@@ -1,6 +1,6 @@
-from PythonLinearNonlinearControl.models.cartpole \
+from control.models.cartpole \
     import CartPoleModel  # NOQA
-from PythonLinearNonlinearControl.models.first_order_lag \
+from control.models.first_order_lag \
     import FirstOrderLagModel  # NOQA
-from PythonLinearNonlinearControl.models.two_wheeled \
+from control.models.two_wheeled \
     import TwoWheeledModel  # NOQA

@@ -1,6 +1,6 @@
-from PythonLinearNonlinearControl.planners.closest_point_planner import ClosestPointPlanner as Planner
-from PythonLinearNonlinearControl.controllers import CEM as Controller
-from PythonLinearNonlinearControl.runners import ExpRunner as Runner
+from control.planners.closest_point_planner import ClosestPointPlanner as Planner
+from control.controllers import CEM as Controller
+from control.runners import ExpRunner as Runner
 
 
 from model.config import AlloConfig

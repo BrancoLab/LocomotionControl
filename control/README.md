@@ -1,1 +1,1 @@
-Code adapted from https://github.com/Shunichi09/PythonLinearNonlinearControl
+Code adapted from https://github.com/Shunichi09/control

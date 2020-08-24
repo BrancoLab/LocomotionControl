@@ -1,8 +1,8 @@
-from PythonLinearNonlinearControl.envs.cartpole \
+from control.envs.cartpole \
     import CartPoleEnv  # NOQA
-from PythonLinearNonlinearControl.envs.first_order_lag \
+from control.envs.first_order_lag \
     import FirstOrderLagEnv  # NOQA
-from PythonLinearNonlinearControl.envs.two_wheeled \
+from control.envs.two_wheeled \
     import TwoWheeledConstEnv  # NOQA
-from PythonLinearNonlinearControl.envs.two_wheeled \
+from control.envs.two_wheeled \
     import TwoWheeledTrackEnv  # NOQA

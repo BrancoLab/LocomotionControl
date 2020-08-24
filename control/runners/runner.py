@@ -1,16 +1,15 @@
 from logging import getLogger
-
+from tqdm import tqdm
 import numpy as np
 
-logger = getLogger(__name__)
 
 class ExpRunner():
     """ experiment runner
     """
-    def __init__(self):
+    def __init__(self, config):
         """
         """
-        pass
+        self.n_iters = config.TASK_HORIZON
 
     def run(self, env, controller, planner):
         """
@@ -26,8 +25,7 @@ class ExpRunner():
         step_count = 0
         score = 0.
 
-        while not done:
-            logger.debug("Step = {}".format(step_count))
+        for iter in tqdm(range(self.n_iters)):
             # plan
             g_xs = planner.plan(curr_x, info["goal_state"])
 
@@ -41,11 +39,15 @@ class ExpRunner():
             history_u.append(u)
             history_x.append(curr_x)
             history_g.append(g_xs[0])
+
             # update
             curr_x = next_x
             score += cost
             step_count += 1
 
-        logger.debug("Controller type = {}, Score = {}"\
+            if done:
+                break
+
+        print("Controller type = {}, Score = {}"\
                      .format(controller, score))
         return np.array(history_x), np.array(history_u), np.array(history_g)

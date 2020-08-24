@@ -45,9 +45,9 @@ class CEM(Controller):
                                           self.pred_len)
 
         # get cost func
-        self.state_cost_fn = config.state_cost_fn
-        self.terminal_state_cost_fn = config.terminal_state_cost_fn
-        self.input_cost_fn = config.input_cost_fn
+        self.state_cost_fn = model.state_cost_fn
+        self.terminal_state_cost_fn = model.terminal_state_cost_fn
+        self.input_cost_fn = model.input_cost_fn
 
         # init mean
         self.init_mean = np.tile((config.INPUT_UPPER_BOUND \

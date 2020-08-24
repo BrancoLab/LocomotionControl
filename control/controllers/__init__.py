@@ -1,14 +1,14 @@
-from PythonLinearNonlinearControl.controllers.cem \
+from control.controllers.cem \
     import CEM  # NOQA
-from PythonLinearNonlinearControl.controllers.mppi \
+from control.controllers.mppi \
     import MPPI  # NOQA
-from PythonLinearNonlinearControl.controllers.mppi_williams \
+from control.controllers.mppi_williams \
     import MPPIWilliams  # NOQA
-from PythonLinearNonlinearControl.controllers.random \
+from control.controllers.random \
     import RandomShooting  # NOQA
-from PythonLinearNonlinearControl.controllers.ilqr \
+from control.controllers.ilqr \
     import iLQR  # NOQA
-from PythonLinearNonlinearControl.controllers.ddp \
+from control.controllers.ddp \
     import DDP  # NOQA
-from PythonLinearNonlinearControl.controllers.mpc \
+from control.controllers.mpc \
     import LinearMPC  # NOQA
