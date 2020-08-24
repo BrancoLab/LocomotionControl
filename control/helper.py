@@ -19,7 +19,7 @@ def make_logger(save_dir):
     )
 
     # mypackage log level
-    logger = getLogger("PythonLinearNonlinearControl")
+    logger = getLogger("control")
     logger.setLevel(DEBUG)
     
     # file handler

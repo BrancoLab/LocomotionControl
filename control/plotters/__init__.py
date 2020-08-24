@@ -1,4 +1,4 @@
-from PythonLinearNonlinearControl.plotters.animator \
+from control.plotters.animator \
     import Animator
-from PythonLinearNonlinearControl.plotters.plot_func \
+from control.plotters.plot_func \
     import plot_results

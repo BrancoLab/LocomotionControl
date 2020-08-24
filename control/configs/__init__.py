@@ -1,6 +1,6 @@
-from PythonLinearNonlinearControl.configs.cartpole \
+from control.configs.cartpole \
     import CartPoleConfigModule  # NOQA
-from PythonLinearNonlinearControl.configs.first_order_lag \
+from control.configs.first_order_lag \
     import FirstOrderLagConfigModule  # NOQA
-from PythonLinearNonlinearControl.configs.two_wheeled \
+from control.configs.two_wheeled \
     import TwoWheeledConfigModule  # NOQA

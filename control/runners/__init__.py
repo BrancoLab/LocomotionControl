@@ -1,2 +1,2 @@
-from PythonLinearNonlinearControl.runners.runner \
+from control.runners.runner \
     import ExpRunner  # NOQA

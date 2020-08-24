@@ -1,57 +1,25 @@
 import numpy as np
-from matplotlib.axes import Axes
-import matplotlib.pyplot as plt
-from collections import namedtuple
 
 from control.envs.env import Env
 from control.plotters.plot_objs import circle_with_angle, square, circle
 
-state = namedtuple('state', 'x, y, theta, v')
-control = namedtuple('control', 'L, R')
-m = 10
-
-def step_two_wheeled_env(curr_x, u, dt, method="Oylar"):
-    """ step two wheeled enviroment
-    
-    Args:
-        curr_x (numpy.ndarray): current state, shape(state_size, )
-        u (numpy.ndarray): input, shape(input_size, )
-        dt (float): sampling time
-    Returns:
-        next_x (numpy.ndarray): next state, shape(state_size. )
-    
-    """
-    u = control(*u)
-    x = state(*curr_x)
-
-    dxdt = np.array([
-        x.v * np.cos(x.theta),
-        x.v * np.sin(x.theta),
-        (u.R - u.L) / m,
-        (u.R + u.L)/m + (1 - (u.R - u.L)/(u.R + u.L))
-    ])
-
-    next_x = dxdt.flatten() * dt + curr_x
-
-    return next_x
-
 
 class AlloEnv(Env):
-    """ Two wheeled robot with constant goal Env
-    """
-    def __init__(self):
-        """
-        """
-        self.config = {"state_size" : 4,
-                       "input_size" : 2,
-                       "dt" : 0.01,
-                       "max_step" : 1000,
-                       "input_lower_bound": (0, 0),
-                       "input_upper_bound": (2, 2),
+    def __init__(self, config):
+        self.config = {"state_size" : config.STATE_SIZE,
+                       "input_size" : config.INPUT_SIZE,
+                       "dt" : config.DT,
+                       "max_step" : config.TASK_HORIZON,
+                       "input_lower_bound" : config.INPUT_LOWER_BOUND,
+                       "input_upper_bound" : config.INPUT_UPPER_BOUND,
                        }
+        self.m = config.m
+        self._control = config._control
+        self._state = config._state
 
         super(AlloEnv, self).__init__(self.config)
-    
+
+
     @staticmethod
     def make_road(linelength=3., circle_radius=1.):
         """ make track
@@ -111,6 +79,31 @@ class AlloEnv(Env):
 
         return self.curr_x, {"goal_state": self.g_traj}
 
+    def _compute_step(self, curr_x, u, dt):
+        """ step two wheeled enviroment
+        
+        Args:
+            curr_x (numpy.ndarray): current state, shape(state_size, )
+            u (numpy.ndarray): input, shape(input_size, )
+            dt (float): sampling time
+        Returns:
+            next_x (numpy.ndarray): next state, shape(state_size. )
+        
+        """
+        u = self._control(*u)
+        x = self._state(*curr_x)
+
+        dxdt = np.array([
+            x.v * np.cos(x.theta),
+            x.v * np.sin(x.theta),
+            (u.R - u.L) / self.m,
+            (u.R + u.L)/self.m + (1 - (u.R - u.L)/(u.R + u.L))
+        ])
+
+        next_x = dxdt.flatten() * dt + curr_x
+
+        return next_x
+
     def step(self, u):
         """ step environments
         Args:
@@ -127,7 +120,7 @@ class AlloEnv(Env):
                     self.config["input_upper_bound"])
 
         # step
-        next_x = step_two_wheeled_env(self.curr_x, u, self.config["dt"])
+        next_x = self._compute_step(self.curr_x, u, self.config["dt"])
 
         costs = 0.
         costs += 0.1 * np.sum(u**2)
