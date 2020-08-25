@@ -3,9 +3,10 @@ import numpy as np
 from control.envs.env import Env
 from control.plotters.plot_objs import circle_with_angle, square, circle
 
+from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 
 class AlloEnv(Env):
-    def __init__(self, config):
+    def __init__(self, config, model):
         self.config = {"state_size" : config.STATE_SIZE,
                        "input_size" : config.INPUT_SIZE,
                        "dt" : config.DT,
@@ -14,8 +15,7 @@ class AlloEnv(Env):
                        "input_upper_bound" : config.INPUT_UPPER_BOUND,
                        }
         self.m = config.m
-        self._control = config._control
-        self._state = config._state
+        self.model = model
 
         super(AlloEnv, self).__init__(self.config)
 
@@ -45,15 +45,17 @@ class AlloEnv(Env):
 
         # calc road angle
         road_diff = road_pos[1:] - road_pos[:-1]
-        road_angle = np.arctan2(road_diff[:, 1], road_diff[:, 0]) 
-        road_angle = np.concatenate((np.zeros(1), road_angle))
+        # road_angle = np.arctan2(road_diff[:, 1], road_diff[:, 0]) 
+        # road_angle = np.concatenate((np.zeros(1), road_angle))
+        road_angle = calc_angle_between_points_of_vector_2d(road_pos[:, 0], road_pos[:, 1])
         road_vel = np.ones_like(road_angle) * 50
 
         road = np.concatenate((road_pos, road_angle[:, np.newaxis], road_vel[:, np.newaxis]), axis=1)
         road =  np.tile(road, (3, 1)) 
 
-        # plt.plot(road[:, 0], road[:, 1])
-        # plt.show()
+        import matplotlib.pyplot as plt
+        plt.plot(road[:, 0], road[:, 1])
+        plt.show()
 
         return road
 
@@ -90,19 +92,7 @@ class AlloEnv(Env):
             next_x (numpy.ndarray): next state, shape(state_size. )
         
         """
-        u = self._control(*u)
-        x = self._state(*curr_x)
-
-        dxdt = np.array([
-            x.v * np.cos(x.theta),
-            x.v * np.sin(x.theta),
-            (u.R - u.L) / self.m,
-            (u.R + u.L)/self.m + (1 - (u.R - u.L)/(u.R + u.L))
-        ])
-
-        next_x = dxdt.flatten() * dt + curr_x
-
-        return next_x
+        return self.model.predict_next_state(curr_x, u)
 
     def step(self, u):
         """ step environments

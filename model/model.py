@@ -29,29 +29,43 @@ class AlloModel(Model):
             next_x (numpy.ndarray): next state, shape(state_size, ) or
                 shape(pop_size, state_size)
         """
-        (pop_size, state_size) = curr_x.shape
-        (_, input_size) = u.shape
+        # Parse args
+        if len(curr_x.shape) > 1:
+            (pop_size, state_size) = curr_x.shape
+            (_, input_size) = u.shape
 
-        x = self._state(curr_x[:, 0], 
-                            curr_x[:, 1],
-                            curr_x[:, 2], 
-                            curr_x[:, 3])
-        u = self._control(u[:, 0], u[:, 1])
+            x = self._state(curr_x[:, 0], 
+                                curr_x[:, 1],
+                                curr_x[:, 2], 
+                                curr_x[:, 3])
+            u = self._control(u[:, 0], u[:, 1])
+        else:
+            u = self._control(*u)
+            x = self._state(*curr_x)
 
-        # x_dot = curr_x[:, -1] * np.cos(curr_x[:, 2]) # v * cos(theta)
-        # y_dot = curr_x[:, -1] * np.sin(curr_x[:, 2]) # v * sin(theta)
-        # theta_dot = (u[:, 0] - u[:, 1])/self.m       # (U.L - U.R)/m
-        # v_dot = (u[:, 0] + u[:, 1])/self.m * (1 - (u[:, 0]-u[:, 1])/(u[:, 0]+u[:, 1]))
+        # Compute derivatives
+        dx = x.v * np.cos(x.theta)
+        dy = x.v * np.sin(x.theta)
+        dtheta = (u.R - u.L)/self.m
+        dv = (u.R + u.L)/self.m * (1 - np.abs((u.R - u.L)/(u.R+u.L)))
 
-        dxdt = np.zeros_like(curr_x)
-        dxdt[:, 0] = x.v * np.cos(x.theta)
-        dxdt[:, 1] = x.v * np.sin(x.theta)
-        dxdt[:, 2] = (u.R - u.L)/self.m
-        dxdt[:, 3] = (u.R + u.L)/self.m * (1 - (u.R - u.L)/(u.R+u.L))
+        # Get dxdt 
+        if len(curr_x.shape) > 1:
+            dxdt = np.zeros_like(curr_x)
+            dxdt[:, 0] = dx
+            dxdt[:, 1] = dy
+            dxdt[:, 2] = dtheta
+            dxdt[:, 3] = dv
+        else:
+            dxdt = np.array([
+                dx,
+                dy,
+                dtheta,
+                dv
+            ]).flatten()
 
         # next state
         next_x = dxdt * self.dt + curr_x
-
         return next_x
 
     def input_cost_fn(self, u):

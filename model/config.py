@@ -6,7 +6,7 @@ class Config():
     ENV_NAME = "allocentric_2d"
     TYPE = "Nonlinear"
     N_AHEAD = 1
-    TASK_HORIZON = 1000
+    TASK_HORIZON = 10
     PRED_LEN = 20
     
     # Model parameters
@@ -17,12 +17,12 @@ class Config():
 
     # cost parameters
     R = np.diag([0.01, 0.01])
-    Q = np.diag([2.5, 2.5, 0.01, 0.01])
+    Q = np.diag([2.5, 2.5, 0, 0])
     Sf = np.diag([2.5, 2.5, 0.01, 0.01])
     
     # bounds
     INPUT_LOWER_BOUND = np.array([0, 0])
-    INPUT_UPPER_BOUND = np.array([5, 5])
+    INPUT_UPPER_BOUND = np.array([.2, .2])
 
     # useful vars
     _state = namedtuple('state', 'x, y, theta, v')
