@@ -50,4 +50,4 @@ class ExpRunner():
 
         print("Controller type = {}, Score = {}"\
                      .format(controller, score))
-        return np.array(history_x), np.array(history_u), np.array(history_g)
+        return np.array(history_x), np.array(history_u), np.array(history_g), info
