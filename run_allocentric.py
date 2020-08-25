@@ -14,8 +14,6 @@ history_x, history_u, history_g = runner.run(env, controller, planner)
 
 # TODO make this damned thing work
 # TODO check the function they had to make sure angles in range
-# TODO better plotting
-
 # TODO add logger to save results in a better way
 
 

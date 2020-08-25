@@ -6,7 +6,7 @@ class Config():
     ENV_NAME = "allocentric_2d"
     TYPE = "Nonlinear"
     N_AHEAD = 1
-    TASK_HORIZON = 5
+    TASK_HORIZON = 1000
     PRED_LEN = 20
     
     # Model parameters
