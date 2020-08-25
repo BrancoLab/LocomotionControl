@@ -14,6 +14,8 @@ class AlloModel(Model):
         self.Q = config.Q
         self.R = config.R
         self.Sf = config.Sf
+        self._state = config._state
+        self._control = config._control
 
     def predict_next_state(self, curr_x, u):
         """ predict next state
@@ -30,16 +32,22 @@ class AlloModel(Model):
         (pop_size, state_size) = curr_x.shape
         (_, input_size) = u.shape
 
-        x_dot = curr_x[:, -1] * np.cos(curr_x[:, 2]) # v * cos(theta)
-        y_dot = curr_x[:, -1] * np.sin(curr_x[:, 2]) # v * sin(theta)
-        theta_dot = (u[:, 0] - u[:, 1])/self.m       # (U.L - U.R)/m
-        v_dot = (u[:, 0] + u[:, 1])/self.m * (1 - (u[:, 0]-u[:, 1])/(u[:, 0]+u[:, 1]))
+        x = self._state(curr_x[:, 0], 
+                            curr_x[:, 1]
+                            curr_x[:, 2], 
+                            curr_x[:, 3])
+        u = self._control(u[:, 0], u[:, 1])
+
+        # x_dot = curr_x[:, -1] * np.cos(curr_x[:, 2]) # v * cos(theta)
+        # y_dot = curr_x[:, -1] * np.sin(curr_x[:, 2]) # v * sin(theta)
+        # theta_dot = (u[:, 0] - u[:, 1])/self.m       # (U.L - U.R)/m
+        # v_dot = (u[:, 0] + u[:, 1])/self.m * (1 - (u[:, 0]-u[:, 1])/(u[:, 0]+u[:, 1]))
 
         dxdt = np.zeros_like(curr_x)
-        dxdt[:, 0] = x_dot
-        dxdt[:, 1] = y_dot
-        dxdt[:, 2] = theta_dot
-        dxdt[:, 3] = v_dot
+        dxdt[:, 0] = x.v * np.cos(x.theta)
+        dxdt[:, 1] = x.v * np.sin(x.theta)
+        dxdt[:, 2] = (u.R - u.L)/self.m
+        dxdt[:, 3] = (u.R + u.L)/self.m * (1 - (u.R - u.L)/(u.R+u.L))
 
         # next state
         next_x = dxdt * self.dt + curr_x
