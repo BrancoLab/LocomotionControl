@@ -120,9 +120,6 @@ class CEM(Controller):
             # soft update
             mean = self.alpha * mean + (1. - self.alpha) * new_mean
             var = self.alpha * var + (1. - self.alpha) * new_var
-
-            logger.debug("Var = {}".format(np.max(var)))
-            logger.debug("Costs = {}".format(np.mean(costs)))
             opt_count += 1
         
         sol = mean.copy()

@@ -131,6 +131,7 @@ class AlloEnv(Env):
         
         # update
         self.curr_x = next_x.flatten()
+        
         # update costs
         self.step_count += 1
 
