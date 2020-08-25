@@ -1,6 +1,8 @@
 from logging import getLogger
 from tqdm import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Wedge
 
 
 class ExpRunner():
@@ -10,6 +12,7 @@ class ExpRunner():
         """
         """
         self.n_iters = config.TASK_HORIZON
+        self.state = config._state
 
     def run(self, env, controller, planner):
         """
@@ -25,9 +28,15 @@ class ExpRunner():
         step_count = 0
         score = 0.
 
+
+        plt.ion()
+        f, axarr = plt.subplots(figsize=(6, 4), ncols=2)
+
         for iter in tqdm(range(self.n_iters)):
             # plan
             g_xs = planner.plan(curr_x, info["goal_state"])
+
+            print(f'\nGoal: {[round(p, 2) for p in g_xs[0, :]]}')
 
             # obtain sol
             u = controller.obtain_sol(curr_x, g_xs)
@@ -45,9 +54,42 @@ class ExpRunner():
             score += cost
             step_count += 1
 
+            # update plot
+            x = self.state(*next_x)
+
+            axarr[0].clear()
+            axarr[1].clear()
+            axarr[0].scatter(info['goal_state'][:, 0], info['goal_state'][:, 1], 
+                        color='g', alpha=.2, zorder=-1)
+
+            axarr[0].plot(g_xs[:, 0], g_xs[:, 1], 
+                        lw=3, color='k', alpha=1, zorder=-1)
+
+            axarr[0].scatter(x.x, x.y, s=160, c=x.v, vmin=-10, vmax=10, cmap='bwr', 
+            #                         lw=2, edgecolors='k')
+            # wedge = Wedge((x.x, x.y), .4, theta1=np.degrees(x.theta) - 15,
+            #                 theta2=np.degrees(x.theta) + 15, width=.2, color='red')
+            # axarr[0].add_patch(wedge)
+            axarr[0].plot([x.x, x.x + np.cos(x.theta) + 2],
+                            [x.y, x.y + np.sin(x.theta) + 2],
+                            lw=2, color='r', zorder=99)
+            axarr[0].set(title=f'ITER: {iter} | x:{round(x.x, 2)}, y:{round(x.y, 2)}, ' +
+                                f' theta:{round(np.degrees(x.theta), 2)}, v:{round(x.v, 2)}\n'+
+                                f'GOAL: x:{round(g_xs[0, 0], 2)}, y:{round(g_xs[0, 1], 2)}, ' +
+                                f' theta:{round(np.degrees(g_xs[0, 2]), 2)}, v:{round(g_xs[0, 3], 2)}'
+                                )
+
+            axarr[1].bar([0, 1], u, color=['b', 'r'])
+            axarr[1].set(title='control', xticks=[0, 1], xticklabels=['L', 'R'])
+
+            f.canvas.draw()
+            plt.pause(0.01)
+
+
             if done:
                 break
-
+        
+        plt.ioff()
         print("Controller type = {}, Score = {}"\
                      .format(controller, score))
         return np.array(history_x), np.array(history_u), np.array(history_g), info

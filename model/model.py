@@ -46,8 +46,11 @@ class AlloModel(Model):
         # Compute derivatives
         dx = x.v * np.cos(x.theta)
         dy = x.v * np.sin(x.theta)
-        dtheta = (u.R - u.L)/self.m
-        dv = (u.R + u.L)/self.m * (1 - np.abs((u.R - u.L)/(u.R+u.L)))
+        # dtheta = ((u.R - u.L)/self.m) * 500
+        # dv = ((u.R + u.L)/self.m) * np.nan_to_num((1 - np.abs((u.R - u.L)/(u.R+u.L))))
+        dtheta = u.L / self.m
+        dv = u.R / self.m
+
 
         # Get dxdt 
         if len(curr_x.shape) > 1:
@@ -63,6 +66,12 @@ class AlloModel(Model):
                 dtheta,
                 dv
             ]).flatten()
+
+            if np.any(np.isnan(dxdt)):
+                raise ValueError('what the heck')
+            print(f'Current: {[round(p,2) for p in curr_x]}')
+            print(f'dxdt: {[round(p,2) for p in dxdt]}')
+            print(f'control: {[round(p,2) for p in u]}')
 
         # next state
         next_x = dxdt * self.dt + curr_x
@@ -112,5 +121,4 @@ class AlloModel(Model):
             (x - X_g)T * Q * (x - x_g)
         """
         terminal_diff = terminal_x  - terminal_g_x
-        
         return ((terminal_diff)**2) * np.diag(self.Sf)

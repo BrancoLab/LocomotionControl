@@ -13,11 +13,9 @@ runner = Runner(config)
 
 history_x, history_u, history_g, info = runner.run(env, controller, planner) 
 
-# TODO make this damned thing work
-# TODO check the function they had to make sure angles in range
-# TODO add logger to save results in a better way
+# TODO figure out why speed is so bad
+# TODO make it actually follow the road
 
-# TODO fix this goddamit
 
 f, axarr = plt.subplots(ncols=4, figsize=(12, 10))
 
@@ -29,9 +27,9 @@ for i in np.arange(t):
 
     if i % 100 == 0:
         alpha = 1
-        axarr[0].plot([x, x + (np.cos(theta)*50)], 
-            [y, y + (np.sin(theta)*50)],
-            color='k', lw=2)
+        # axarr[0].plot([x, x + (np.cos(theta)*50)], 
+        #     [y, y + (np.sin(theta)*50)],
+        #     color='k', lw=2)
     else:
         alpha = .4
 

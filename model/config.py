@@ -5,24 +5,24 @@ class Config():
     # General parameters
     ENV_NAME = "allocentric_2d"
     TYPE = "Nonlinear"
-    N_AHEAD = 1
-    TASK_HORIZON = 10
+    N_AHEAD = 5
+    TASK_HORIZON = 500
     PRED_LEN = 20
     
     # Model parameters
-    m = 10 # mass
+    m = 1 # mass
     STATE_SIZE = 4
     INPUT_SIZE = 2
     DT = 0.01
 
     # cost parameters
-    R = np.diag([0.01, 0.01])
-    Q = np.diag([2.5, 2.5, 0, 0])
-    Sf = np.diag([2.5, 2.5, 0.01, 0.01])
+    R = np.diag([0.2, 0.1])
+    Q = np.diag([2.5, 2.5, 2.5, 2.5])
+    Sf = np.diag([2.5, 2.5, 2.5, 2.5])
     
     # bounds
-    INPUT_LOWER_BOUND = np.array([0, 0])
-    INPUT_UPPER_BOUND = np.array([.2, .2])
+    INPUT_LOWER_BOUND = np.array([-15, -10])
+    INPUT_UPPER_BOUND = np.array([15, 25])
 
     # useful vars
     _state = namedtuple('state', 'x, y, theta, v')
