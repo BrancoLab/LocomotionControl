@@ -33,7 +33,7 @@ class AlloModel(Model):
         (_, input_size) = u.shape
 
         x = self._state(curr_x[:, 0], 
-                            curr_x[:, 1]
+                            curr_x[:, 1],
                             curr_x[:, 2], 
                             curr_x[:, 3])
         u = self._control(u[:, 0], u[:, 1])
