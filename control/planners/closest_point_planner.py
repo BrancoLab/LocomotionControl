@@ -21,7 +21,7 @@ class ClosestPointPlanner(Planner):
         Returns:
             g_xs (numpy.ndarrya): goal state, shape(pred_len+1, state_size)
         """
-        min_idx = np.argmin(np.linalg.norm(curr_x[:-1] - g_traj[:, :-1],
+        min_idx = np.argmin(np.linalg.norm(curr_x[:-2] - g_traj[:, :-2],
                                            axis=1))
 
         start = (min_idx+self.n_ahead) 

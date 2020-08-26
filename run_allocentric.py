@@ -13,8 +13,8 @@ runner = Runner(config)
 
 history_x, history_u, history_g, info = runner.run(env, controller, planner) 
 
-# TODO figure out why speed is so bad
-# TODO make it actually follow the road
+# TODO make new model with LR control
+# TODO add things like inertia, drag and stuff... laws of motion baby
 
 
 f, axarr = plt.subplots(ncols=4, figsize=(12, 10))

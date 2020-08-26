@@ -14,8 +14,9 @@ def rotate_pos(pos, angle):
 
     return np.dot(pos, rot_mat.T)
 
-def fit_angle_in_range(angles, min_angle=-np.pi, max_angle=np.pi):
+def fit_angle_in_range(angles, min_angle=-np.pi, max_angle=np.pi, is_deg=True):
     """ Check angle range and correct the range
+    it assumes that the angles are passed ind degrees
     
     Args:
         angle (numpy.ndarray): in radians
@@ -29,8 +30,11 @@ def fit_angle_in_range(angles, min_angle=-np.pi, max_angle=np.pi):
     if (max_angle - min_angle) < 2.0 * np.pi:
         raise ValueError("difference between max_angle \
                           and min_angle must be greater than 2.0 * pi")
-    
-    output = np.array(angles)
+    if is_deg:
+        output = np.radians(angles)
+    else:
+        output = np.array(angles)
+
     output_shape = output.shape
 
     output = output.flatten()

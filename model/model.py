@@ -93,11 +93,11 @@ class AlloModel(Model):
             fitted_diff_x (numpy.ndarray): same shape as diff_x
         """
         if len(diff_x.shape) == 3:
-            diff_x[:, :, -1] = fit_angle_in_range(diff_x[:, :, -1]) 
+            diff_x[:, :, -2] = fit_angle_in_range(diff_x[:, :, -2]) 
         elif len(diff_x.shape) == 2:
-            diff_x[:, -1] = fit_angle_in_range(diff_x[:, -1])
+            diff_x[:, -2] = fit_angle_in_range(diff_x[:, -2])
         elif len(diff_x.shape) == 1:
-            diff_x[-1] = fit_angle_in_range(diff_x[-1])
+            diff_x[-2] = fit_angle_in_range(diff_x[-2])
 
         return diff_x
 
