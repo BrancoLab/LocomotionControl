@@ -3,13 +3,13 @@ import numpy as np
 from control.models.model import Model
 from control.common.utils import fit_angle_in_range
 
-class AlloModel(Model):
+class Model(Model):
     """ two wheeled model
     """
     def __init__(self, config):
         """
         """
-        super(AlloModel, self).__init__()
+        super(Model, self).__init__()
         self.m = config.m
         self.dt = config.DT
         self.Q = config.Q
@@ -92,6 +92,7 @@ class AlloModel(Model):
         Returns:
             fitted_diff_x (numpy.ndarray): same shape as diff_x
         """
+        
         if len(diff_x.shape) == 3:
             diff_x[:, :, -2] = fit_angle_in_range(diff_x[:, :, -2]) 
         elif len(diff_x.shape) == 2:
