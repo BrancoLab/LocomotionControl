@@ -4,7 +4,7 @@ import numpy as np
     Interactive plot during running
 """
 
-def interactive_plot(axarr, x, goal, u, info, g_xs):
+def interactive_plot(axarr, x, goal, u, info, g_xs, iter):
     axarr[0].clear()
     axarr[1].clear()
     axarr[0].scatter(info['goal_state'][:, 0], info['goal_state'][:, 1], 
