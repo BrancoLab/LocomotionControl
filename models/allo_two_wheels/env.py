@@ -6,6 +6,8 @@ from measurement.measures import Distance, Time
 from control.envs.env import Env
 from control.plotters.plot_objs import circle_with_angle, square, circle
 
+from models.allo_two_wheels.utils import make_road
+
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 
 class Environment(Env):
@@ -18,39 +20,10 @@ class Environment(Env):
                        "input_upper_bound" : config.INPUT_UPPER_BOUND,
                        }
         self.m = config.m
+        self.params = config.params
         self.model = model
 
         super(Environment, self).__init__(self.config)
-
-
-    @staticmethod
-    def make_road(linelength=1., circle_radius=1.):
-        """ make track
-        Returns:
-            road (numpy.ndarray): road info, shape(n_point, 3) x, y, angle
-        """
-        # setup
-        duration = 30 # s
-        distance = 100 # cm
-
-        # get XY coords of road
-        time = np.arange(0, duration, 0.1)
-        n_frames = len(time)
-        x = np.linspace(0, distance, n_frames)
-        y = np.sin(time)
-
-        # Get other vars and make road
-        angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
-        v = np.zeros_like(x) + 30 # cm/s
-        road = np.vstack([x, y, angle, v]).T
-        road = np.tile(road, (3, 1))
-
-        # ? plot road
-        # import matplotlib.pyplot as plt
-        # plt.scatter(road[:, 0], road[:, 1], c=road[:, 2], vmin=0, vmax=np.pi, cmap='bwr')
-        # plt.show()
-
-        return road
 
     def reset(self, init_x=None):
         """ reset state
@@ -60,13 +33,14 @@ class Environment(Env):
         """
         self.step_count = 0
         
-        self.curr_x = np.zeros(self.config["state_size"])
+        # goal
+        self.g_traj = make_road(self.params)
+
+        self.curr_x = self.g_traj[0, :]
 
         if init_x is not None:
             self.curr_x = init_x
 
-        # goal
-        self.g_traj = self.make_road()
         
         # clear memory
         self.history_x = []

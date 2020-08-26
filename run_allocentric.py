@@ -15,7 +15,7 @@ runner = _model.Runner(config, _model.utils.interactive_plot)
 history_x, history_u, history_g, info = runner.run(env, controller, planner) 
 
 # TODO check if L/R turns are inverted
-# TODO modulate velocity in the trace
-# TODO improve how to find next trace goal
+# TODO make it work with realistic mass goddarmit
 # TODO add things like inertia, drag and stuff... laws of motion baby
-q
+
+# TODO look into way to enfore smooth controls | might come from better dynamics

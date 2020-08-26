@@ -13,6 +13,8 @@ class ExpRunner():
         """
         self.n_iters = config.TASK_HORIZON
         self.state = config._state
+        self.mouse = config.mouse
+        self.params = config.params
         self.interactive_plot = interactive_plot_fn
 
     def run(self, env, controller, planner):
@@ -31,7 +33,8 @@ class ExpRunner():
 
 
         plt.ion()
-        f, axarr = plt.subplots(figsize=(12, 8), ncols=2)
+        f, axarr = plt.subplots(figsize=(12, 8), ncols=2, nrows=2)
+        axarr = axarr.flatten()
 
         for iter in tqdm(range(self.n_iters)):
             # plan
@@ -57,7 +60,7 @@ class ExpRunner():
             x = self.state(*next_x)
             goal = self.state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3])
 
-            self.interactive_plot(axarr, x, goal, u, info, g_xs, iter)
+            self.interactive_plot(axarr, x, goal, u, info, g_xs, iter, self.mouse, self.params, history_u)
 
             f.canvas.draw()
             plt.pause(0.01)
