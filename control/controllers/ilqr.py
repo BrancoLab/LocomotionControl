@@ -25,15 +25,15 @@ class iLQR(Controller):
         self.model = model
 
         # get cost func
-        self.state_cost_fn = config.state_cost_fn
-        self.terminal_state_cost_fn = config.terminal_state_cost_fn
-        self.input_cost_fn = config.input_cost_fn
-        self.gradient_cost_fn_with_state = config.gradient_cost_fn_with_state
-        self.gradient_cost_fn_with_input = config.gradient_cost_fn_with_input
-        self.hessian_cost_fn_with_state = config.hessian_cost_fn_with_state
-        self.hessian_cost_fn_with_input = config.hessian_cost_fn_with_input
+        self.state_cost_fn = model.state_cost_fn
+        self.terminal_state_cost_fn = model.terminal_state_cost_fn
+        self.input_cost_fn = model.input_cost_fn
+        self.gradient_cost_fn_with_state = model.gradient_cost_fn_with_state
+        self.gradient_cost_fn_with_input = model.gradient_cost_fn_with_input
+        self.hessian_cost_fn_with_state = model.hessian_cost_fn_with_state
+        self.hessian_cost_fn_with_input = model.hessian_cost_fn_with_input
         self.hessian_cost_fn_with_input_state = \
-            config.hessian_cost_fn_with_input_state
+            model.hessian_cost_fn_with_input_state
 
         # controller parameters
         self.max_iter = config.opt_config["iLQR"]["max_iter"]
