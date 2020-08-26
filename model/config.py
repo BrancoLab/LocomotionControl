@@ -5,9 +5,9 @@ class Config():
     # General parameters
     ENV_NAME = "allocentric_2d"
     TYPE = "Nonlinear"
-    N_AHEAD = 5
+    N_AHEAD = 3
     TASK_HORIZON = 500
-    PRED_LEN = 20
+    PRED_LEN = 10
     
     # Model parameters
     m = 1 # mass
@@ -16,7 +16,7 @@ class Config():
     DT = 0.01
 
     # cost parameters
-    R = np.diag([0.2, 0.01])
+    R = np.diag([0.01, 0.01])
     Q = np.diag([2.5, 2.5, 2, 1])
     Sf = np.diag([2.5, 2.5, .1, .1])
     

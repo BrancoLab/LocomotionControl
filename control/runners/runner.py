@@ -36,8 +36,6 @@ class ExpRunner():
             # plan
             g_xs = planner.plan(curr_x, info["goal_state"])
 
-            # print(f'\nGoal: {[round(p, 2) for p in g_xs[0, :]]}')
-
             # obtain sol
             u = controller.obtain_sol(curr_x, g_xs)
 
@@ -68,18 +66,16 @@ class ExpRunner():
 
             axarr[0].scatter(x.x, x.y, s=160, c=x.v, vmin=-10, vmax=10, cmap='bwr', 
                                     lw=2, edgecolors='k')
-            # wedge = Wedge((x.x, x.y), .4, theta1=np.degrees(x.theta) - 15,
-            #                 theta2=np.degrees(x.theta) + 15, width=.2, color='red')
-            # axarr[0].add_patch(wedge)
-            axarr[0].plot([x.x, x.x + np.cos(x.theta) + .15],
-                            [x.y, x.y + np.sin(x.theta) + .15],
+
+            axarr[0].plot([x.x, x.x + np.cos(x.theta) * .5],
+                            [x.y, x.y + np.sin(x.theta) * .5],
                             lw=2, color='r', zorder=99)
             axarr[0].set(title=f'ITER: {iter} | x:{round(x.x, 2)}, y:{round(x.y, 2)}, ' +
                                 f' theta:{round(np.degrees(x.theta), 2)}, v:{round(x.v, 2)}\n'+
                                 f'GOAL: x:{round(goal.x, 2)}, y:{round(goal.y, 2)}, ' +
-                                f' theta:{round(np.degrees(goal.theta), 2)}, v:{round(goal.v, 2)}'
+                                f' theta:{round(np.degrees(goal.theta), 2)}, v:{round(goal.v, 2)}',
+                                # xlim=[-1.7, 1.7], ylim=[-.1, 2.1],
                                 )
-
             axarr[1].bar([0, 1], u, color=['b', 'r'])
             axarr[1].set(title='control', xticks=[0, 1], xticklabels=['L', 'R'])
 
@@ -91,6 +87,4 @@ class ExpRunner():
                 break
         
         plt.ioff()
-        print("Controller type = {}, Score = {}"\
-                     .format(controller, score))
         return np.array(history_x), np.array(history_u), np.array(history_g), info
