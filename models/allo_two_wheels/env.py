@@ -1,5 +1,8 @@
 import numpy as np
 
+from measurement.measures import Distance, Time
+
+
 from control.envs.env import Env
 from control.plotters.plot_objs import circle_with_angle, square, circle
 
@@ -26,19 +29,26 @@ class Environment(Env):
         Returns:
             road (numpy.ndarray): road info, shape(n_point, 3) x, y, angle
         """
-        time        = np.arange(0, 10, 0.1)
-        x = np.linspace(0, 11*3, len(time))
+        # setup
+        duration = 30 # s
+        distance = 100 # cm
+
+        # get XY coords of road
+        time = np.arange(0, duration, 0.1)
+        n_frames = len(time)
+        x = np.linspace(0, distance, n_frames)
         y = np.sin(time)
+
+        # Get other vars and make road
         angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
-        v = np.ones_like(x) + 5
+        v = np.zeros_like(x) + 30 # cm/s
         road = np.vstack([x, y, angle, v]).T
         road = np.tile(road, (3, 1))
 
         # ? plot road
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         # plt.scatter(road[:, 0], road[:, 1], c=road[:, 2], vmin=0, vmax=np.pi, cmap='bwr')
-        plt.scatter(x, y, c=np.degrees(angle), vmin=0, vmax=360, cmap='bwr')
-        plt.show()
+        # plt.show()
 
         return road
 

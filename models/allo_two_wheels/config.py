@@ -1,3 +1,4 @@
+from natu.units import g, m, s
 from collections import namedtuple
 import numpy as np
 
@@ -12,19 +13,19 @@ class Config():
     PRED_LEN = 10
     
     # Model parameters
-    m = 1 # mass
+    m = 25 / 9.81 # grams
     STATE_SIZE = 4
     INPUT_SIZE = 2
     DT = 0.01
 
     # cost parameters
-    R = np.diag([0.01, 0.01])
+    R = np.diag([0.001, 0.001])
     Q = np.diag([2.5, 2.5, 2, 1])
     Sf = np.diag([2.5, 2.5, .1, .1])
     
     # bounds
-    INPUT_LOWER_BOUND = np.array([-10, -10])
-    INPUT_UPPER_BOUND = np.array([25, 25])
+    INPUT_LOWER_BOUND = np.array([-100, -100])
+    INPUT_UPPER_BOUND = np.array([500, 500])
 
     # useful vars
     _state = namedtuple('state', 'x, y, theta, v')

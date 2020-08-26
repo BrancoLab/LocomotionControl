@@ -18,3 +18,4 @@ history_x, history_u, history_g, info = runner.run(env, controller, planner)
 # TODO modulate velocity in the trace
 # TODO improve how to find next trace goal
 # TODO add things like inertia, drag and stuff... laws of motion baby
+q
