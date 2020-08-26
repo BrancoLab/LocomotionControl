@@ -17,7 +17,7 @@ class Config():
 
     # cost parameters
     R = np.diag([0.2, 0.01])
-    Q = np.diag([2.5, 2.5, 1, 1])
+    Q = np.diag([2.5, 2.5, 2, 1])
     Sf = np.diag([2.5, 2.5, .1, .1])
     
     # bounds
