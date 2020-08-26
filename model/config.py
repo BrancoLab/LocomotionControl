@@ -16,9 +16,9 @@ class Config():
     DT = 0.01
 
     # cost parameters
-    R = np.diag([0.2, 0.1])
-    Q = np.diag([2.5, 2.5, 2.5, 2.5])
-    Sf = np.diag([2.5, 2.5, 2.5, 2.5])
+    R = np.diag([0.2, 0.01])
+    Q = np.diag([2.5, 2.5, 1, 1])
+    Sf = np.diag([2.5, 2.5, .1, .1])
     
     # bounds
     INPUT_LOWER_BOUND = np.array([-15, -10])

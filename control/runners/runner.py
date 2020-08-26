@@ -36,7 +36,7 @@ class ExpRunner():
             # plan
             g_xs = planner.plan(curr_x, info["goal_state"])
 
-            print(f'\nGoal: {[round(p, 2) for p in g_xs[0, :]]}')
+            # print(f'\nGoal: {[round(p, 2) for p in g_xs[0, :]]}')
 
             # obtain sol
             u = controller.obtain_sol(curr_x, g_xs)
@@ -56,6 +56,7 @@ class ExpRunner():
 
             # update plot
             x = self.state(*next_x)
+            goal = self.state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3])
 
             axarr[0].clear()
             axarr[1].clear()
@@ -66,17 +67,17 @@ class ExpRunner():
                         lw=3, color='k', alpha=1, zorder=-1)
 
             axarr[0].scatter(x.x, x.y, s=160, c=x.v, vmin=-10, vmax=10, cmap='bwr', 
-            #                         lw=2, edgecolors='k')
+                                    lw=2, edgecolors='k')
             # wedge = Wedge((x.x, x.y), .4, theta1=np.degrees(x.theta) - 15,
             #                 theta2=np.degrees(x.theta) + 15, width=.2, color='red')
             # axarr[0].add_patch(wedge)
-            axarr[0].plot([x.x, x.x + np.cos(x.theta) + 2],
-                            [x.y, x.y + np.sin(x.theta) + 2],
+            axarr[0].plot([x.x, x.x + np.cos(x.theta) + .15],
+                            [x.y, x.y + np.sin(x.theta) + .15],
                             lw=2, color='r', zorder=99)
             axarr[0].set(title=f'ITER: {iter} | x:{round(x.x, 2)}, y:{round(x.y, 2)}, ' +
                                 f' theta:{round(np.degrees(x.theta), 2)}, v:{round(x.v, 2)}\n'+
-                                f'GOAL: x:{round(g_xs[0, 0], 2)}, y:{round(g_xs[0, 1], 2)}, ' +
-                                f' theta:{round(np.degrees(g_xs[0, 2]), 2)}, v:{round(g_xs[0, 3], 2)}'
+                                f'GOAL: x:{round(goal.x, 2)}, y:{round(goal.y, 2)}, ' +
+                                f' theta:{round(np.degrees(goal.theta), 2)}, v:{round(goal.v, 2)}'
                                 )
 
             axarr[1].bar([0, 1], u, color=['b', 'r'])

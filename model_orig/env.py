@@ -79,7 +79,7 @@ class AlloEnv(Env):
         road_diff = road_pos[1:] - road_pos[:-1]
         road_angle = np.arctan2(road_diff[:, 1], road_diff[:, 0]) 
         road_angle = np.concatenate((np.zeros(1), road_angle))
-        road_vel = np.ones_like(road_angle) * 50
+        road_vel = np.ones_like(road_angle) + 300
 
         road = np.concatenate((road_pos, road_angle[:, np.newaxis], road_vel[:, np.newaxis]), axis=1)
         road =  np.tile(road, (3, 1)) 
