@@ -45,4 +45,8 @@ def fit_angle_in_range(angles, min_angle=-np.pi, max_angle=np.pi, is_deg=True):
     output += min_angle
 
     output = np.minimum(max_angle, np.maximum(min_angle, output))
-    return output.reshape(output_shape)
+    output =  output.reshape(output_shape)
+
+    # if is_deg:
+    #     output = np.degrees(output)
+    return output

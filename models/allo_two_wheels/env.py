@@ -5,7 +5,7 @@ from control.plotters.plot_objs import circle_with_angle, square, circle
 
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 
-class AlloEnv(Env):
+class Environment(Env):
     def __init__(self, config, model):
         self.config = {"state_size" : config.STATE_SIZE,
                        "input_size" : config.INPUT_SIZE,
@@ -17,7 +17,7 @@ class AlloEnv(Env):
         self.m = config.m
         self.model = model
 
-        super(AlloEnv, self).__init__(self.config)
+        super(Environment, self).__init__(self.config)
 
 
     @staticmethod
@@ -26,45 +26,19 @@ class AlloEnv(Env):
         Returns:
             road (numpy.ndarray): road info, shape(n_point, 3) x, y, angle
         """
-        # # not include start points
-        # line = np.linspace(-linelength/2, linelength/2, 
-        #                         num=11, endpoint=False)[1:]
-        # line_1 = np.stack((line, np.zeros(10)), axis=1)
-        # line_2 = np.stack((line[::-1], np.zeros(10)+circle_radius*2.), axis=1)
-
-        # # circle
-        # circle_1_x, circle_1_y = circle(linelength/2., circle_radius,
-        #     circle_radius, start=-np.pi/2., end=np.pi/2., n_point=50)
-        # circle_1 = np.stack((circle_1_x , circle_1_y), axis=1)
-        
-        # circle_2_x, circle_2_y = circle(-linelength/2., circle_radius,
-        #     circle_radius, start=np.pi/2., end=3*np.pi/2., n_point=50)
-        # circle_2 = np.stack((circle_2_x , circle_2_y), axis=1)
-
-        # road_pos = np.concatenate((line_1, circle_1, line_2, circle_2), axis=0)
-
-        # # calc road angle
-        # road_diff = road_pos[1:] - road_pos[:-1]
-        # road_angle = np.arctan2(road_diff[:, 1], road_diff[:, 0]) 
-        # road_angle = np.concatenate((np.zeros(1), road_angle))
-        # road_vel = np.ones_like(road_angle)
-
-
-        # road = np.concatenate((road_pos, road_angle[:, np.newaxis], road_vel[:, np.newaxis]), axis=1)
-        # road =  np.tile(road, (3, 1))
-
-        x = np.linspace(0, 11*3, 101*3)
-        y = np.sin(x)
+        time        = np.arange(0, 10, 0.1)
+        x = np.linspace(0, 11*3, len(time))
+        y = np.sin(time)
         angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
-        v = np.ones_like(x) * 4
+        v = np.ones_like(x) + 5
         road = np.vstack([x, y, angle, v]).T
         road = np.tile(road, (3, 1))
 
         # ? plot road
-        # import matplotlib.pyplot as plt
-        # # plt.scatter(road[:, 0], road[:, 1], c=road[:, 2], vmin=0, vmax=np.pi, cmap='bwr')
-        # plt.scatter(x, y, c=np.degrees(angle), vmin=0, vmax=360, cmap='bwr')
-        # plt.show()
+        import matplotlib.pyplot as plt
+        # plt.scatter(road[:, 0], road[:, 1], c=road[:, 2], vmin=0, vmax=np.pi, cmap='bwr')
+        plt.scatter(x, y, c=np.degrees(angle), vmin=0, vmax=360, cmap='bwr')
+        plt.show()
 
         return road
 
