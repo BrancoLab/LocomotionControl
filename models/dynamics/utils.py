@@ -39,11 +39,11 @@ def plot_mouse(x, mouse, ax):
     """
     # plot body
     theta = np.degrees(x.theta)
-    ms = Arc((x.x, x.y), mouse['length'], mouse['width'], color=mouse['color'],
+    ms = Arc((x.x, x.y),6, mouse['L'], color=[.2, .2, .2],
                  angle=theta, linewidth=4, fill=False, zorder=2)
 
     # plot head
-    ms2 = Arc((x.x, x.y), mouse['length'], mouse['width'], color='g',
+    ms2 = Arc((x.x, x.y),6, mouse['L'], color='g',
                     theta1 = theta-30, theta2 = theta+30,
                     angle=theta, linewidth=8, fill=False, zorder=2)
 
@@ -60,7 +60,7 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
 
     # plot goal states
     axarr[0].scatter(info['goal_state'][:, 0], info['goal_state'][:, 1], 
-                c=info['goal_state'][:, 3], alpha=.8, zorder=-1)
+                c=info['goal_state'][:, 2], alpha=.8, zorder=-1)
 
     # plot currently used goal states
     axarr[0].plot(g_xs[:, 0], g_xs[:, 1], 
@@ -71,9 +71,9 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
 
     # update ax
     axarr[0].set(title=f'ITER: {iter} | x:{round(x.x, 2)}, y:{round(x.y, 2)}, ' +
-                        f' theta:{round(np.degrees(x.theta), 2)}, v:{round(x.v, 2)}\n'+
+                        f' theta:{round(np.degrees(x.theta), 2)}\n'+
                         f'GOAL: x:{round(goal.x, 2)}, y:{round(goal.y, 2)}, ' +
-                        f' theta:{round(np.degrees(goal.theta), 2)}, v:{round(goal.v, 2)}',
+                        f' theta:{round(np.degrees(goal.theta), 2)}',
                         xlim=[-15, params['distance']+15], ylim=[-15, params['distance']+15],
                         )
     axarr[0].axis('equal')

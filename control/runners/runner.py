@@ -36,16 +36,19 @@ class ExpRunner():
         f, axarr = plt.subplots(figsize=(12, 8), ncols=2, nrows=2)
         axarr = axarr.flatten()
 
-        for iter in tqdm(range(self.n_iters)):
-            print(iter)
+        for itern in tqdm(range(self.n_iters)):
+            print(f'iteration: {itern}')
             
             # plan
+            print('Planning')
             g_xs = planner.plan(curr_x, info["goal_state"])
 
             # obtain sol
+            print('Solving')
             u = controller.obtain_sol(curr_x, g_xs)
 
             # step
+            print('Stepping')
             next_x, cost, done, info = env.step(u)
 
             # save
@@ -60,9 +63,9 @@ class ExpRunner():
 
             # update plot
             x = self.state(*next_x)
-            goal = self.state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3])
+            goal = self.state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2])
 
-            self.interactive_plot(axarr, x, goal, u, info, g_xs, iter, self.mouse, self.params, history_u)
+            self.interactive_plot(axarr, x, goal, u, info, g_xs, itern, self.mouse, self.params, history_u)
 
             f.canvas.draw()
             plt.pause(0.01)
