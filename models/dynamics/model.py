@@ -1,4 +1,8 @@
 import numpy as np
+from loky import get_reusable_executor
+import warnings
+
+warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
 from control.models.model import Model
 from control.common.utils import fit_angle_in_range
@@ -36,7 +40,6 @@ class Model(Model):
             next_x (numpy.ndarray): next state, shape(state_size, ) or
                 shape(pop_size, state_size)
         """
-        # TODO evaluate symbolically
 
         # Parse args
         if len(curr_x.shape) > 1:
@@ -101,28 +104,35 @@ class Model(Model):
         Notes:
             This should be discrete form !!
         """ 
+        # prep values
+        theta = xs[:, 2]
+        thetadot = np.ones_like(theta) * self.last_dxdt.theta
+        taur = us[:, 0]
+        taul = us[:, 1]
+        etar = np.ones_like(theta) * self.nu[0]
+        etal = np.ones_like(theta) * self.nu[1]
+
+        x = np.zeros_like(theta)
+        y = np.zeros_like(theta)
+        R = np.zeros_like(theta) * self.mouse['R']
+        L = np.zeros_like(theta) * self.mouse['L']
+        m = np.zeros_like(theta) * self.mouse['m']
+        d = np.zeros_like(theta) * self.mouse['d']
+
+        executor = get_reusable_executor()
+        arr = list(executor.map(self.symbolic.vec_xdot_dx, x, y, R, theta, 
+                                    thetadot, L, m, d, taur, taul, etar, etal))
+
         # get size
         (_, state_size) = xs.shape
         (pred_len, _) = us.shape
 
+        # reshape
         f_x = np.zeros((pred_len, state_size, state_size))
+        for n, ar in enumerate(arr):
+            f_x[n, :, :] = ar
 
-        for i in range(pred_len):
-            values = dict(
-                theta = xs[i, 2],
-                thetadot = self.last_dxdt.theta,
-                tau_r = us[i, 0],
-                tau_l = us[i, 1],
-                eta_r = self.nu[0],
-                eta_l = self.nu[1],
-
-            )
-
-            values = {**values, **self.mouse}
-
-            f_x[i, :, :] =  self.symbolic.eval(self.symbolic.xdot_dx, values)
-
-
+        f_x[np.isnan(f_x)] = 0
         return f_x * dt + np.eye(state_size)  # to discrete form
 
     def calc_f_u(self, xs, us, dt):
@@ -137,26 +147,33 @@ class Model(Model):
         Notes:
             This should be discrete form !!
         """ 
+        theta = xs[:, 2]
+        thetadot = np.ones_like(theta) * self.last_dxdt.theta
+        taur = us[:, 0]
+        taul = us[:, 1]
+        etar = np.ones_like(theta) * self.nu[0]
+        etal = np.ones_like(theta) * self.nu[1]
+
+        x = np.zeros_like(theta)
+        y = np.zeros_like(theta)
+        R = np.zeros_like(theta) * self.mouse['R']
+        L = np.zeros_like(theta) * self.mouse['L']
+        m = np.zeros_like(theta) * self.mouse['m']
+        d = np.zeros_like(theta) * self.mouse['d']
+
+        executor = get_reusable_executor()
+
+        arr = list(executor.map(self.symbolic.vec_xdot_du, x, y, R, theta, thetadot, L, m, d, taur, taul, etar, etal))
+
         # get size
         (_, state_size) = xs.shape
         (pred_len, input_size) = us.shape
 
+        # reshape
         f_u = np.zeros((pred_len, state_size, input_size))
-        
-        for i in range(pred_len):
-            values = dict(
-                theta = xs[i, 2],
-                thetadot = self.last_dxdt.theta,
-                tau_r = us[i, 0],
-                tau_l = us[i, 1],
-                eta_r = self.nu[0],
-                eta_l = self.nu[1],
-
-            )
-
-            values = {**values, **self.mouse}
-            f_u[i, :, :] =  self.symbolic.eval(self.symbolic.xdot_du, values)
-
+        for n, ar in enumerate(arr):
+            f_u[n, :, :] = ar
+        f_u[np.isnan(f_u)] = 0
         return f_u * dt  # to discrete form
 
 

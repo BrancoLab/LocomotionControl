@@ -1,5 +1,5 @@
 import numpy as np
-from sympy import symbols, Matrix, diff, sin, cos
+from sympy import symbols, Matrix, diff, sin, cos, lambdify
 
 class Symbolic():
     """
@@ -79,6 +79,10 @@ class Symbolic():
         for row in range(3):
             for col in range(2):
                 self.xdot_du[row, col] = diff(self.xdot[row], tau[col])
+
+        # vectorize partials
+        self.vec_xdot_dx = lambdify(self.symbols.values(), self.xdot_dx)
+        self.vec_xdot_du = lambdify(self.symbols.values(), self.xdot_du)
 
     @staticmethod
     def eval(expression, values):
