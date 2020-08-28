@@ -12,12 +12,17 @@ class Config():
         min_speed = 40, # cm /s 
     )
 
+    # Mouse params
     mouse = dict(
-        width = 3, # cm
+        L = 2, # half body width | cm
+        R = 1, # radius of wheels | cm
+        d = 2, # distance between axel and CoM | cm
         length = 6, # cm
-        weight = 24, # g
-        color=[.2, .2, .2],
+        m = 24/9.81, # mass | g
     )
+
+    mouse_color = [.2, .2, .2]
+    mouse_length = 6 # | cm
 
     alpha = 1 # numeric value to ensure dividend is != 0
 
@@ -29,22 +34,21 @@ class Config():
     PRED_LEN = 20
     
     # Model parameters
-    m = 3 # grams
-    STATE_SIZE = 4
+    STATE_SIZE = 3
     INPUT_SIZE = 2
     DT = 0.01
 
     # cost parameters
     R = np.diag([0.1, 0.1])
-    Q = np.diag([2.5, 2.5, 2, 1])
-    Sf = np.diag([2.5, 2.5, .1, .1])
+    Q = np.diag([2.5, 2.5, 2])
+    Sf = np.diag([2.5, 2.5, .1,])
     
     # bounds
     INPUT_LOWER_BOUND = np.array([-100, -100])
     INPUT_UPPER_BOUND = np.array([300, 300])
 
     # useful vars
-    _state = namedtuple('state', 'x, y, theta, v')
+    _state = namedtuple('state', 'x, y, theta')
     _control = namedtuple('cost', 'L, R')
 
     # Fitting algorithms params
