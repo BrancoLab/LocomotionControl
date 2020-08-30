@@ -18,7 +18,7 @@ class Config():
         R = 1, # radius of wheels | cm
         d = 2, # distance between axel and CoM | cm
         length = 6, # cm
-        m = 24/9.81, # mass | g
+        m = round(24/9.81, 2), # mass | g
     )
 
     mouse_color = [.2, .2, .2]
@@ -40,7 +40,7 @@ class Config():
 
     # cost parameters
     R = np.diag([0.1, 0.1])
-    Q = np.diag([2.5, 2.5, 2])
+    Q = np.diag([2.5, 2.5, 2.5])
     Sf = np.diag([2.5, 2.5, .1,])
     
     # bounds
@@ -76,7 +76,7 @@ class Config():
                 "noise_sigma": 1.,
             },
            "iLQR":{
-                "max_iter": 50, # was 500
+                "max_iter": 500, # was 500
                 "init_mu": 1.,
                 "mu_min": 1e-6,
                 "mu_max": 1e10,

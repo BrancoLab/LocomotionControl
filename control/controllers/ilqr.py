@@ -83,8 +83,7 @@ class iLQR(Controller):
         # line search param
         alphas = 1.1**(-np.arange(10)**2)
 
-        print('Computing solution with iLQR')
-        for opt_count in  tqdm(range(self.max_iter)):
+        for opt_count in  range(self.max_iter):
             accepted_sol = False
 
             # forward    

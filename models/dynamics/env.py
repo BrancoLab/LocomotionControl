@@ -44,19 +44,6 @@ class Environment(Env):
 
         return self.curr_x, {"goal_state": self.g_traj}
 
-    def _compute_step(self, curr_x, u, dt):
-        """ step two wheeled enviroment
-        
-        Args:
-            curr_x (numpy.ndarray): current state, shape(state_size, )
-            u (numpy.ndarray): input, shape(input_size, )
-            dt (float): sampling time
-        Returns:
-            next_x (numpy.ndarray): next state, shape(state_size. )
-        
-        """
-        return self.model.predict_next_state(curr_x, u)
-
     def step(self, u):
         """ step environments
         Args:
@@ -73,7 +60,7 @@ class Environment(Env):
                     self.config["input_upper_bound"])
 
         # step
-        next_x = self._compute_step(self.curr_x, u, self.config["dt"])
+        next_x = self.model.predict_next_state(self.curr_x, u, update=True)
 
         costs = 0.
         costs += 0.1 * np.sum(u**2)

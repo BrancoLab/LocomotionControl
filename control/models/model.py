@@ -190,7 +190,7 @@ class LinearModel(Model):
         self.A = A
         self.B = B
     
-    def predict_next_state(self, curr_x, u):
+    def predict_next_state(self, curr_x, u,):
         """ predict next state
         
         Args:

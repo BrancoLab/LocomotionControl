@@ -16,4 +16,4 @@ runner = Runner(config, interactive_plot)
 history_x, history_u, history_g, info = runner.run(env, controller, planner) 
 
 
-# TODO try to make it even faster goddamit
+# TODO make it find a good solution dammit

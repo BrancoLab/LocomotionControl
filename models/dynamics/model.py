@@ -30,7 +30,7 @@ class Model(Model):
         self._control = config._control
         self.alpha = config.alpha
 
-    def predict_next_state(self, curr_x, u):
+    def predict_next_state(self, curr_x, u, update=False):
         """ predict next state
         
         Args:
@@ -86,16 +86,16 @@ class Model(Model):
         dxdt = dxdt.ravel()
 
         # update nu and last dx
-        if len(curr_x.shape) == 1:
-            self.last_dxdt = self._state(*dxdt)
-            
-            dnudt = self.symbolic.eval(self.symbolic.dnudt, values)
-            self.nu = self._control(*(np.array(dnudt).astype(np.float32).ravel() * self.dt + self.nu))
+        if update == True:
+            if len(curr_x.shape) == 1:
+                self.last_dxdt = self._state(*dxdt)
+                dnudt = self.symbolic.eval(self.symbolic.dnudt, values)
+                self.nu = self._control(*(np.array(dnudt).astype(np.float32).ravel() * self.dt + self.nu))
 
         if np.any(np.isnan(dxdt)):
-            print(f'Current: {[round(p,2) for p in curr_x]}')
+            print(f'\n\nCurrent: {[round(p,2) for p in curr_x]}')
             print(f'dxdt: {[round(p,2) for p in dxdt]}')
-            print(f'control: {[round(p,2) for p in u]}')
+            print(f'control: {[round(p,2) for p in u]}\n\n')
             raise ValueError('nan in dxdt, what the heck')
 
         # next state
@@ -120,8 +120,6 @@ class Model(Model):
         eta_r = np.ones_like(theta) * self.nu[0]
         eta_l = np.ones_like(theta) * self.nu[1]
 
-        x = np.zeros_like(theta)
-        y = np.zeros_like(theta)
         R = np.ones_like(theta) * self.mouse['R']
         L = np.ones_like(theta) * self.mouse['L']
         m = np.ones_like(theta) * self.mouse['m']
