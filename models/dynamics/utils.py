@@ -30,7 +30,7 @@ def make_road(params):
     x = np.linspace(0, params['distance'], n_steps)
     y = curve(x, *coef)
 
-    angle = np.radians(calc_angle_between_points_of_vector_2d(x, y) - 90)
+    angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
 
     road = np.vstack([x, y, angle]).T
     return road
