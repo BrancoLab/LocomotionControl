@@ -2,11 +2,15 @@ from logging import getLogger
 
 import numpy as np
 import scipy.stats as stats
+from tqdm import tqdm
 
 from .controller import Controller
 from ..envs.cost import calc_cost
 
 logger = getLogger(__name__)
+
+from control.helper import timeit
+
 
 class iLQR(Controller):
     """ iterative Liner Quadratique Regulator
@@ -79,7 +83,8 @@ class iLQR(Controller):
         # line search param
         alphas = 1.1**(-np.arange(10)**2)
 
-        while opt_count < self.max_iter:
+        print('Computing solution with iLQR')
+        for opt_count in  tqdm(range(self.max_iter)):
             accepted_sol = False
 
             # forward    
@@ -140,7 +145,6 @@ class iLQR(Controller):
                 logger.debug("Get converged sol")
                 break
 
-            opt_count += 1
 
         # update prev sol
         self.prev_sol[:-1] = sol[1:]
@@ -206,6 +210,7 @@ class iLQR(Controller):
         """
         # simulate forward using the current control trajectory
         pred_xs = self.model.predict_traj(curr_x, sol)
+
         # check costs
         cost = self.calc_cost(curr_x,
                               sol[np.newaxis, :, :],
@@ -269,7 +274,7 @@ class iLQR(Controller):
         l_ux = self.hessian_cost_fn_with_input_state(pred_xs[:-1], sol)
 
         return l_x, l_xx, l_u, l_uu, l_ux
-
+    
     def backward(self, f_x, f_u, l_x, l_xx, l_u, l_uu, l_ux):
         """ backward step of iLQR
         Args:

@@ -27,11 +27,11 @@ class Config():
     alpha = 1 # numeric value to ensure dividend is != 0
 
     # General parameters
-    ENV_NAME = "allocentric_2d"
+    ENV_NAME = "dynamics"
     TYPE = "Nonlinear"
     N_AHEAD = 3
     TASK_HORIZON = 500
-    PRED_LEN = 20
+    PRED_LEN = 10
     
     # Model parameters
     STATE_SIZE = 3
@@ -49,7 +49,7 @@ class Config():
 
     # useful vars
     _state = namedtuple('state', 'x, y, theta')
-    _control = namedtuple('cost', 'L, R')
+    _control = namedtuple('control', 'L, R')
 
     # Fitting algorithms params
     opt_config = {
@@ -76,7 +76,7 @@ class Config():
                 "noise_sigma": 1.,
             },
            "iLQR":{
-                "max_iter": 500,
+                "max_iter": 50, # was 500
                 "init_mu": 1.,
                 "mu_min": 1e-6,
                 "mu_max": 1e10,

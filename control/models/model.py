@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Model():
     """ base class of model
     """

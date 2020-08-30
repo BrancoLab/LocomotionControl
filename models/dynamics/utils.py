@@ -3,6 +3,8 @@ from scipy.optimize import curve_fit
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 from matplotlib.patches import Arc
 
+
+
 """
     Interactive plot during running
 """
@@ -28,7 +30,7 @@ def make_road(params):
     x = np.linspace(0, params['distance'], n_steps)
     y = curve(x, *coef)
 
-    angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
+    angle = np.radians(calc_angle_between_points_of_vector_2d(x, y) - 90)
 
     road = np.vstack([x, y, angle]).T
     return road
@@ -80,7 +82,7 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
 
     # Plot controls
     axarr[1].bar([0, 1], u, color=['b', 'r'])
-    axarr[1].set(title='control', xticks=[0, 1], xticklabels=['L', 'R'])
+    axarr[1].set(title='control', xticks=[0, 1], xticklabels=['R', 'L'])
 
     # plot controls history
     axarr[2].plot([u[0] for u in  history_u], color='b', lw=4)
