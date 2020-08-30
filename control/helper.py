@@ -6,6 +6,16 @@ import sys
 import six
 import pickle
 from logging import DEBUG, basicConfig, getLogger, FileHandler, StreamHandler, Formatter, Logger
+import time
+
+def timeit(func): # decorator to time function
+    def wrapper(*arg, **kw):
+        t1 = time.time()
+        res = func(*arg, **kw)
+        t2 = time.time()
+        print(f'{func.__name__} ran in {round(t2 - t1, 2)}s')
+        return res
+    return wrapper
 
 def make_logger(save_dir):
     """

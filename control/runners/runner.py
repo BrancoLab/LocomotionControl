@@ -40,15 +40,12 @@ class ExpRunner():
             print(f'iteration: {itern}')
             
             # plan
-            print('Planning')
             g_xs = planner.plan(curr_x, info["goal_state"])
 
             # obtain sol
-            print('Solving')
             u = controller.obtain_sol(curr_x, g_xs)
 
             # step
-            print('Stepping')
             next_x, cost, done, info = env.step(u)
 
             # save

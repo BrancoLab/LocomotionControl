@@ -15,6 +15,5 @@ runner = Runner(config, interactive_plot)
 
 history_x, history_u, history_g, info = runner.run(env, controller, planner) 
 
-# ! TODO check why I'm getting nan in f_x and f_u
-# ! TODO it's not giving errors but no control
-# TODO remove warnings
+
+# TODO try to make it even faster goddamit

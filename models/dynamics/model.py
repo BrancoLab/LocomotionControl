@@ -1,11 +1,13 @@
 import numpy as np
-from loky import get_reusable_executor
+# from loky import get_reusable_executor
 import warnings
 
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
 from control.models.model import Model
 from control.common.utils import fit_angle_in_range
+
+from control.helper import timeit
 
 class Model(Model):
     
@@ -70,7 +72,17 @@ class Model(Model):
         values = {**values, **self.mouse}
 
         # compute dxdt
-        dxdt = np.array(self.symbolic.eval(self.symbolic.xdot, values)).astype(np.float32)
+        dxdt = self.symbolic.compute_xdot(
+                    values['R'],
+                    values['L'],
+                    values['m'],
+                    values['d'],
+                    values['eta_r'],
+                    values['eta_l'],
+                    values['theta'],
+                    values['thetadot'],
+                    values['tau_r'],
+                    values['tau_l'])
         dxdt = dxdt.ravel()
 
         # update nu and last dx
@@ -92,6 +104,50 @@ class Model(Model):
 
 
 # ------------------------------ MODEL GRADIENTS ----------------------------- #
+    def calc_grad(self, xs, us, dt, func, dertype='x'):
+        """
+            Calculates the gradient with respect to either
+            x or u based on which `func` from self.symbolic
+            is passed
+
+        """
+
+        # prep values
+        theta = xs[:, 2]
+        thetadot = np.ones_like(theta) * self.last_dxdt.theta
+        tau_r = us[:, 0]
+        tau_l = us[:, 1]
+        eta_r = np.ones_like(theta) * self.nu[0]
+        eta_l = np.ones_like(theta) * self.nu[1]
+
+        x = np.zeros_like(theta)
+        y = np.zeros_like(theta)
+        R = np.ones_like(theta) * self.mouse['R']
+        L = np.ones_like(theta) * self.mouse['L']
+        m = np.ones_like(theta) * self.mouse['m']
+        d = np.ones_like(theta) * self.mouse['d']
+
+        # reshape
+        (_, state_size) = xs.shape
+        (pred_len, input_size) = us.shape
+
+        if dertype == 'x':
+            shape = (pred_len, state_size, state_size)
+            f =  self.symbolic.compute_xdot_dx(shape, R, L, m, d, eta_r, eta_l, theta, thetadot, tau_r, tau_l)
+        else:
+            shape = (pred_len, state_size, input_size)
+            f = self.symbolic.compute_xdot_du(shape, R, L, m, d, eta_r, eta_l, theta, thetadot, tau_r, tau_l)
+
+        # Check for nan
+        if np.any(np.isnan(f)):
+            raise ValueError("Found nans in the derivative of ", dertype)
+
+        # return
+        if dertype == 'x':
+            return f * dt + np.eye(state_size)  # to discrete form
+        else:
+            return f * dt
+
     def calc_f_x(self, xs, us, dt):
         """ gradient of model with respect to the state in batch form
         Args:
@@ -104,36 +160,7 @@ class Model(Model):
         Notes:
             This should be discrete form !!
         """ 
-        # prep values
-        theta = xs[:, 2]
-        thetadot = np.ones_like(theta) * self.last_dxdt.theta
-        taur = us[:, 0]
-        taul = us[:, 1]
-        etar = np.ones_like(theta) * self.nu[0]
-        etal = np.ones_like(theta) * self.nu[1]
-
-        x = np.zeros_like(theta)
-        y = np.zeros_like(theta)
-        R = np.zeros_like(theta) * self.mouse['R']
-        L = np.zeros_like(theta) * self.mouse['L']
-        m = np.zeros_like(theta) * self.mouse['m']
-        d = np.zeros_like(theta) * self.mouse['d']
-
-        executor = get_reusable_executor()
-        arr = list(executor.map(self.symbolic.vec_xdot_dx, x, y, R, theta, 
-                                    thetadot, L, m, d, taur, taul, etar, etal))
-
-        # get size
-        (_, state_size) = xs.shape
-        (pred_len, _) = us.shape
-
-        # reshape
-        f_x = np.zeros((pred_len, state_size, state_size))
-        for n, ar in enumerate(arr):
-            f_x[n, :, :] = ar
-
-        f_x[np.isnan(f_x)] = 0
-        return f_x * dt + np.eye(state_size)  # to discrete form
+        return self.calc_grad(xs, us, dt, self.symbolic.vec_xdot_dx, dertype='x')
 
     def calc_f_u(self, xs, us, dt):
         """ gradient of model with respect to the input in batch form
@@ -147,34 +174,7 @@ class Model(Model):
         Notes:
             This should be discrete form !!
         """ 
-        theta = xs[:, 2]
-        thetadot = np.ones_like(theta) * self.last_dxdt.theta
-        taur = us[:, 0]
-        taul = us[:, 1]
-        etar = np.ones_like(theta) * self.nu[0]
-        etal = np.ones_like(theta) * self.nu[1]
-
-        x = np.zeros_like(theta)
-        y = np.zeros_like(theta)
-        R = np.zeros_like(theta) * self.mouse['R']
-        L = np.zeros_like(theta) * self.mouse['L']
-        m = np.zeros_like(theta) * self.mouse['m']
-        d = np.zeros_like(theta) * self.mouse['d']
-
-        executor = get_reusable_executor()
-
-        arr = list(executor.map(self.symbolic.vec_xdot_du, x, y, R, theta, thetadot, L, m, d, taur, taul, etar, etal))
-
-        # get size
-        (_, state_size) = xs.shape
-        (pred_len, input_size) = us.shape
-
-        # reshape
-        f_u = np.zeros((pred_len, state_size, input_size))
-        for n, ar in enumerate(arr):
-            f_u[n, :, :] = ar
-        f_u[np.isnan(f_u)] = 0
-        return f_u * dt  # to discrete form
+        return self.calc_grad(xs, us, dt, self.symbolic.vec_xdot_du, dertype='u')
 
 
     # --------------------------- STATE COST FUNCTIONS --------------------------- #
