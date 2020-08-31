@@ -57,6 +57,10 @@ class iLQR(Controller):
         # initialize
         self.prev_sol = np.zeros((self.pred_len, self.input_size))
 
+    def _reset_ldxdt_nu(self):
+        self.last_dxdt = None
+        self.nu = None
+
     def clear_sol(self):
         """ clear prev sol
         """
@@ -73,7 +77,6 @@ class iLQR(Controller):
             opt_input (numpy.ndarray): optimal input, shape(input_size, )
         """
         # initialize
-        opt_count = 0
         sol = self.prev_sol.copy()
         converged_sol = False
         update_sol = True
@@ -83,7 +86,7 @@ class iLQR(Controller):
         # line search param
         alphas = 1.1**(-np.arange(10)**2)
 
-        for opt_count in  range(self.max_iter):
+        for opt_count in  tqdm(range(self.max_iter)):
             accepted_sol = False
 
             # forward    
@@ -128,16 +131,17 @@ class iLQR(Controller):
                         break
                     
             except np.linalg.LinAlgError as e:
-                logger.debug("Non ans : {}".format(e))
+                print("Non ans : {}".format(e))
             
             if not accepted_sol:
+                print('Failed to find an accepted solution')
                 # increase regularization term.
                 self.delta = max(1.0, self.delta) * self.init_delta
                 self.mu = max(self.mu_min, self.mu * self.delta)
-                logger.debug("Update regularization term to {}"\
+                print("Update regularization term to {}"\
                              .format(self.mu))
                 if self.mu >= self.mu_max:
-                    logger.debug("Reach Max regularization term")
+                    print("Reach Max regularization term")
                     break
 
             if converged_sol:
@@ -168,8 +172,11 @@ class iLQR(Controller):
             new_sol (numpy.ndarray): update input trajectory,
                 shape(pred_len, input_size)
         """
+        self._reset_ldxdt_nu()
+
         # get size
         (pred_len, input_size, state_size) = K.shape
+
         # initialize
         new_pred_xs = np.zeros((pred_len+1, state_size))
         new_pred_xs[0] = pred_xs[0].copy()  # init state is same
@@ -179,8 +186,10 @@ class iLQR(Controller):
             new_sol[t] = sol[t] \
                          + alpha * k[t] \
                          + np.dot(K[t], (new_pred_xs[t] - pred_xs[t]))
-            new_pred_xs[t+1] = self.model.predict_next_state(new_pred_xs[t],
+            new_pred_xs[t+1], last_dxdt, nu = self.model.predict_next_state(new_pred_xs[t],
                                                              new_sol[t])
+            self.last_dxdt = last_dxdt
+            self.nu = nu
 
         return new_pred_xs, new_sol
 
