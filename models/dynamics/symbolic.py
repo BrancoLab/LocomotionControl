@@ -77,7 +77,6 @@ class Symbolic():
 
 
         self.xdot_du = Matrix(np.zeros((3, 2)))
-
         for row in range(3):
             for col in range(2):
                 self.xdot_du[row, col] = diff(self.xdot[row], tau[col])
