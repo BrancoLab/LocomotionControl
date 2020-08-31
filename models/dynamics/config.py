@@ -40,15 +40,15 @@ class Config():
 
     # cost parameters
     R = np.diag([0.1, 0.1])
-    Q = np.diag([2.5, 2.5, 2.5])
-    Sf = np.diag([.1, .1, .1,])
+    Q = np.diag([2.5, 2.5, 2.5, 0])
+    Sf = np.diag([.1, .1, .1, .1])
     
     # bounds
     INPUT_LOWER_BOUND = np.array([-100, -100])
     INPUT_UPPER_BOUND = np.array([300, 300])
 
     # useful vars
-    _state = namedtuple('state', 'x, y, theta')
+    _state = namedtuple('state', 'x, y, theta, s')
     _control = namedtuple('control', 'L, R')
 
     # Fitting algorithms params

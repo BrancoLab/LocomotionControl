@@ -32,7 +32,10 @@ def make_road(params):
 
     angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
 
-    road = np.vstack([x, y, angle]).T
+    speed = (1 - np.sin(np.linspace(0, 3, len(x)))) 
+    speed = speed * (params['max_speed']-params['min_speed']) + params['min_speed']
+
+    road = np.vstack([x, y, angle, speed]).T
     return road
 
 def plot_mouse(x, mouse, ax):
@@ -73,9 +76,9 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
 
     # update ax
     axarr[0].set(title=f'ITER: {iter} | x:{round(x.x, 2)}, y:{round(x.y, 2)}, ' +
-                        f' theta:{round(np.degrees(x.theta), 2)}\n'+
+                        f' theta:{round(np.degrees(x.theta), 2)}, v:{round(x.s, 2)}\n'+
                         f'GOAL: x:{round(goal.x, 2)}, y:{round(goal.y, 2)}, ' +
-                        f' theta:{round(np.degrees(goal.theta), 2)}',
+                        f' theta:{round(np.degrees(goal.theta), 2)}, v:{round(goal.s, 2)}',
                         xlim=[-15, params['distance']+15], ylim=[-15, params['distance']+15],
                         )
     axarr[0].axis('equal')
