@@ -6,8 +6,8 @@ class Config():
     # Simulation params and plotting
     params = dict(
         duration = 30, # s
-        dt = .25, # s | DT of goal trace, not simulation.
-        distance = 100, # cm 
+        dt = .75, # s | DT of goal trace, not simulation.
+        distance = 10, # cm 
         max_speed = 2, # cm/s
         min_speed = 1, # cm /s 
 
@@ -41,12 +41,12 @@ class Config():
 
     # cost parameters
     R = np.diag([0.1, 0.1])
-    Q = np.diag([2, 2, 2.5, 2.5])
+    Q = np.diag([0, 0, 2.5, 0])
     Sf = np.diag([2.5, 2.5, 2.5, 2.5])
     
     # bounds
     INPUT_LOWER_BOUND = np.array([-100, -100])
-    INPUT_UPPER_BOUND = np.array([300, 300])
+    INPUT_UPPER_BOUND = np.array([100, 100])
 
     # useful vars
     _state = namedtuple('state', 'x, y, theta, s')
