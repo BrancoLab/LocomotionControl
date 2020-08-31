@@ -30,7 +30,7 @@ class Environment(Env):
         self.step_count = 0
         
         # goal
-        self.g_traj = make_road(self.params)
+        self.g_traj = make_road(self.params)[1:, :]
 
         self.curr_x = self.g_traj[0, :]
 
@@ -45,6 +45,8 @@ class Environment(Env):
         self.nu = None
         self.model.env_last_dxdt = None
         self.model.env_nu = None
+
+        self.model.reset_ldxdt_nu()
 
         return self.curr_x, {"goal_state": self.g_traj}
 

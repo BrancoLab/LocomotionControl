@@ -69,17 +69,8 @@ class Symbolic():
         self.xdot = Q * self.dnudt        
 
         # Compute partial derivs
-        self.xdot_dx = Matrix(np.zeros((3, 3)))
-
-        for row in range(3):
-            for col in range(3):
-                self.xdot_dx[row, col] = diff(self.xdot[row], state[col])
-
-
-        self.xdot_du = Matrix(np.zeros((3, 2)))
-        for row in range(3):
-            for col in range(2):
-                self.xdot_du[row, col] = diff(self.xdot[row], tau[col])
+        self.xdot_dx = self.xdot.jacobian([x, y, theta])
+        self.xdot_du = self.xdot.jacobian([taur, taul])
 
         # vectorize partials
         self.vec_xdot_dx = lambdify(self.symbols.values(), self.xdot_dx)
@@ -91,9 +82,15 @@ class Symbolic():
         ev =  expression.subs([(k,np.float(v)) for k,v in values.items()])
         return np.array(ev).astype(np.float32)
 
+    def compute_nudt(self, R, L, m, d, eta_r, eta_l, theta, thetadot, tau_r, tau_l):
+        f = np.zeros(2)
 
+        f[0] = (-L**2 + 2*d**2)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(2*R**2*d**2*m) + \
+                        (L**2 + 2*d**2)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(2*R**2*d**2*m)
+        f[1] = (-L**2 + 2*d**2)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(2*R**2*d**2*m) + \
+                        (L**2 + 2*d**2)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(2*R**2*d**2*m)
 
-
+        return f
 
     def compute_xdot(self, R, L, m, d, eta_r, eta_l, theta, thetadot, tau_r, tau_l):
         f = np.zeros(3)
