@@ -21,7 +21,6 @@ history_x, history_u, history_g, info = runner.run(env, controller, planner)
 # TODO something about how it computes future steps fucks up cost calculation
 
 
-# TODO make it find a good solution dammit
 # TODO make speed back into state
 
 # %%
