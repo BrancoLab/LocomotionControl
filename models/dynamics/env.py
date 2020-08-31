@@ -43,7 +43,9 @@ class Environment(Env):
 
         self.last_dxdt = None
         self.nu = None
-        
+        self.model.env_last_dxdt = None
+        self.model.env_nu = None
+
         return self.curr_x, {"goal_state": self.g_traj}
 
     def _predict_next(self, x, u):
@@ -73,6 +75,8 @@ class Environment(Env):
         next_x, last_dxdt, nu = self._predict_next(self.curr_x, u)
         self.last_dxdt = last_dxdt
         self.nu = nu
+        self.model.env_last_dxdt = last_dxdt
+        self.model.env_nu = nu
 
         costs = 0.
         costs += 0.1 * np.sum(u**2)

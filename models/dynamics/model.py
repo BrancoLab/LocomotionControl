@@ -30,6 +30,10 @@ class Model(Model):
         self._control = config._control
         self.alpha = config.alpha
 
+    def reset_ldxdt_nu(self, ):
+        self.last_dxdt = self.env_last_dxdt
+        self.nu = self.env_nu
+
     def predict_traj(self, curr_x, us):
         """ predict trajectories
 
@@ -43,6 +47,8 @@ class Model(Model):
                 shape(pred_len+1, state_size) including current state
                 or shape(pop_size, pred_len+1, state_size)
         """
+        self.reset_ldxdt_nu()
+
         if len(us.shape) == 3:
             pred_xs =self._predict_traj_alltogether(curr_x, us)
         elif len(us.shape) == 2:
@@ -65,7 +71,7 @@ class Model(Model):
         # get size
         pred_len = us.shape[0]
         # initialze
-        x = curr_x
+        x = curr_x # (3,)
         pred_xs = curr_x[np.newaxis, :]
 
         for t in range(pred_len):
@@ -94,7 +100,7 @@ class Model(Model):
         (pop_size, pred_len, _) = us.shape
         us = np.transpose(us, (1, 0, 2))  # to (pred_len, pop_size, input_size)
         # initialze
-        x = np.tile(curr_x, (pop_size, 1))
+        x = np.tile(curr_x, (pop_size, 1)) # (1, 3)
         pred_xs = x[np.newaxis, :, :]  # (1, pop_size, state_size)
 
         for t in range(pred_len):
@@ -110,7 +116,7 @@ class Model(Model):
 
         return np.transpose(pred_xs, (1, 0, 2))
 
-    def predict_next_state(self, curr_x, u, last_dxdt = None, nu=None):
+    def predict_next_state(self, curr_x, u, last_dxdt=None, nu=None):
         """ predict next state
         
         Args:
