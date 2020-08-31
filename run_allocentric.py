@@ -17,6 +17,11 @@ runner = Runner(config, interactive_plot)
 # %%
 history_x, history_u, history_g, info = runner.run(env, controller, planner) 
 
+# TODO why is it going the wrong way stupid
 
+# TODO make it faster (e.g. cupy?)
+# TODO add friction?
+
+# TODO add code to cache results + make plots/gifs out of it
 
 # %%

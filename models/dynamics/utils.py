@@ -30,7 +30,7 @@ def make_road(params):
     x = np.linspace(0, params['distance'], n_steps)
     y = curve(x, *coef)
 
-    angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
+    angle = np.radians(90 - calc_angle_between_points_of_vector_2d(x, y))
 
     speed = (1 - np.sin(np.linspace(0, 3, len(x)))) 
     speed = speed * (params['max_speed']-params['min_speed']) + params['min_speed']
@@ -38,25 +38,25 @@ def make_road(params):
     road = np.vstack([x, y, angle, speed]).T
     return road
 
-def plot_mouse(x, mouse, ax):
+def plot_mouse(x, mouse, ax, params):
     """
         Given the state and mouse params plots a mouse
     """
     # plot body
     theta = np.degrees(x.theta)
-    ms = Arc((x.x, x.y),6, mouse['L'], color='magenta',
+    ms = Arc((x.x, x.y), mouse['length'], mouse['L']*2, color='magenta',
                  angle=theta, linewidth=4, fill=False, zorder=2)
 
     # plot head
-    ms2 = Arc((x.x, x.y),6, mouse['L'], color='g',
+    ms2 = Arc((x.x, x.y), mouse['length'], mouse['L']*2, color='g',
                     theta1 = theta-30, theta2 = theta+30,
                     angle=theta, linewidth=8, fill=False, zorder=2)
 
     ax.add_patch(ms)
     ax.add_patch(ms2)
+  
 
-
-def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history_u):
+def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history_u, ):
     """
         Update plot with current situation and controls
     """
@@ -72,7 +72,7 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
                 lw=3, color='r', alpha=1, zorder=-1)
 
     # plot mouse
-    plot_mouse(x, mouse, axarr[0])
+    plot_mouse(x, mouse, axarr[0], params)
 
     # update ax
     axarr[0].set(title=f'ITER: {iter} | x:{round(x.x, 2)}, y:{round(x.y, 2)}, ' +

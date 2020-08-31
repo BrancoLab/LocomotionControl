@@ -73,6 +73,8 @@ class Environment(Env):
                     self.config["input_lower_bound"],
                     self.config["input_upper_bound"])
 
+        # print(f'Env stepping with control: ', u)
+
         # step
         next_x, last_dxdt, nu = self._predict_next(self.curr_x, u)
         self.last_dxdt = last_dxdt
