@@ -133,7 +133,8 @@ class Model(Model):
 
             x = self._state(curr_x[:, 0], 
                                 curr_x[:, 1],
-                                curr_x[:, 2],)
+                                curr_x[:, 2],
+                                curr_x[:, 3],)
             u = self._control(u[:, 0], u[:, 1])
         else:
             u = self._control(*u)
@@ -145,7 +146,7 @@ class Model(Model):
             nu = self.nu
 
         if last_dxdt is None:
-            last_dxdt = self._state(*[0, 0, 0])
+            last_dxdt = self._state(*[0, 0, 0, 0])
         if nu is None:
             nu = self._control(*[0, 0])
             

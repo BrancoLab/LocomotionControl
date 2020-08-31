@@ -59,7 +59,7 @@ class ExpRunner():
 
             # update plot
             x = self.state(*next_x)
-            goal = self.state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2])
+            goal = self.state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3])
 
             self.interactive_plot(axarr, x, goal, u, info, g_xs, itern, self.mouse, self.params, history_u)
 

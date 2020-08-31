@@ -52,7 +52,7 @@ class Environment(Env):
 
     def _predict_next(self, x, u):
         if self.last_dxdt is None:
-            self.last_dxdt = self.model._state(*np.zeros(3))
+            self.last_dxdt = self.model._state(*np.zeros(4))
         if self.nu is None:
             self.nu = self.model._control(*np.zeros(2))
 
