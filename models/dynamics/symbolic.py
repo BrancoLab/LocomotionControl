@@ -98,36 +98,36 @@ class Symbolic():
     def compute_nudt(self, R, L, m, d, eta_r, eta_l, theta, thetadot, tau_r, tau_l):
         f = np.zeros(2)
 
-        f[0] = (-self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1) + \
-                        (self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1)
-        f[1] = (-self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1) + \
-                        (self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1)
+        f[0] = (- L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1) + \
+                        ( L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1)
+        f[1] = (- L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1) + \
+                        ( L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1)
 
         return f
 
     def compute_xdot(self, R, L, m, d, eta_r, eta_l, theta, thetadot, tau_r, tau_l):
         f = np.zeros(4)
 
-        f[0] = R*((-self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1) + \
-                    (self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1))*np.cos(theta)/2 +\
-                    R*((-self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1) + \
-                    (self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1))*np.cos(theta)/2
+        f[0] = R*((- L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1) + \
+                    ( L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1))*np.cos(theta)/2 +\
+                    R*((- L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1) + \
+                    ( L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1))*np.cos(theta)/2
 
 
-        f[1] = R*((-self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1) + \
-                    (self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1))*np.sin(theta)/2 + \
-                    R*((-self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1) + \
-                    (self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1))*np.sin(theta)/2
+        f[1] = R*((- L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1) + \
+                    ( L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1))*np.sin(theta)/2 + \
+                    R*((- L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1) + \
+                    ( L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1))*np.sin(theta)/2
                     
-        f[2] = R*((-self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1) + \
-                    (self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1))/self.twoL - \
-                    R*((-self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1) +\
-                    (self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1))/self.twoL
+        f[2] = R*((- L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1) + \
+                    ( L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1))/(self.twoL) - \
+                    R*((- L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1) +\
+                    ( L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1))/(self.twoL)
 
-        f[3] = R*((-self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1) + \
-                    (self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1))/self.twoL + \
-                    R*((-self.num1)*(tau_r - self.r2*d*eta_l*m*thetadot/self.twoL)/(self.denum1) + \
-                    (self.num1)*(tau_l - self.r2*d*eta_r*m*thetadot/self.twoL)/(self.denum1))/self.twoL
+        f[3] = R*((- L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1) + \
+                    ( L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1))/(self.twoL) + \
+                    R*((- L**2 + 2*d**2)*(tau_r - (self.r2)*d*eta_l*m*thetadot/(self.twoL))/(self.denum1) + \
+                    ( L**2 + 2*d**2)*(tau_l - (self.r2)*d*eta_r*m*thetadot/(self.twoL))/(self.denum1))/(self.twoL)
 
 
         return f
@@ -136,15 +136,15 @@ class Symbolic():
     def compute_xdot_dx(self, shape, R, L, m, d, eta_r, eta_l, theta, thetadot, tau_r, tau_l):
         f = np.zeros(shape)
 
-        f[:, 0, 2] = -R*((-self.num1)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1) + \
-                        (self.num1)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1))*np.sin(theta)/2 - \
-                        R*((-self.num1)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1) + \
-                        (self.num1)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1))*np.sin(theta)/2
+        f[:, 0, 2] = -R*((- L**2 + 2*d**2)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1) + \
+                        ( L**2 + 2*d**2)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1))*np.sin(theta)/2 - \
+                        R*((- L**2 + 2*d**2)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1) + \
+                        ( L**2 + 2*d**2)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1))*np.sin(theta)/2
 
-        f[:, 1, 2] = R*((-self.num1)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1) + \
-                        (self.num1)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1))*np.cos(theta)/2 + \
-                        R*((-self.num1)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1) + \
-                        (self.num1)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1))*np.cos(theta)/2
+        f[:, 1, 2] = R*((- L**2 + 2*d**2)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1) + \
+                        ( L**2 + 2*d**2)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1))*np.cos(theta)/2 + \
+                        R*((- L**2 + 2*d**2)*(tau_r - R**2*d*eta_l*m*thetadot/(2*L))/(self.denum1) + \
+                        ( L**2 + 2*d**2)*(tau_l - R**2*d*eta_r*m*thetadot/(2*L))/(self.denum1))*np.cos(theta)/2
 
         return f
 
