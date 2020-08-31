@@ -3,7 +3,7 @@ import numpy as np
 
 class Config():
     
-    # Simulation and plotting params
+    # Simulation params
     params = dict(
         duration = 30, # s
         dt = .25, # s | DT of goal trace, not simulation.
@@ -14,9 +14,9 @@ class Config():
 
     # Mouse params
     mouse = dict(
-        L = 2, # half body width | cm
+        L = 1.5, # half body width | cm
         R = 1, # radius of wheels | cm
-        d = 2, # distance between axel and CoM | cm
+        d = 3, # distance between axel and CoM | cm
         length = 6, # cm
         m = round(24/9.81, 2), # mass | g
     )
@@ -31,7 +31,7 @@ class Config():
     TYPE = "Nonlinear"
     N_AHEAD = 3
     TASK_HORIZON = 500
-    PRED_LEN = 10
+    PRED_LEN = 20
     
     # Model parameters
     STATE_SIZE = 3
@@ -40,8 +40,8 @@ class Config():
 
     # cost parameters
     R = np.diag([0.1, 0.1])
-    Q = np.diag([2.5, 2.5, 2.5])
-    Sf = np.diag([2.5, 2.5, .1,])
+    Q = np.diag([0, 0, 2.5])
+    Sf = np.diag([.1, .1, .1,])
     
     # bounds
     INPUT_LOWER_BOUND = np.array([-100, -100])

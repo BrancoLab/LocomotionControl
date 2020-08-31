@@ -1,5 +1,7 @@
 import numpy as np
-from sympy import symbols, Matrix, diff, sin, cos, lambdify
+from sympy import symbols, Matrix, diff, sin, cos, lambdify, init_printing, latex
+init_printing() 
+
 
 class Symbolic():
     """
@@ -83,6 +85,7 @@ class Symbolic():
         # vectorize partials
         self.vec_xdot_dx = lambdify(self.symbols.values(), self.xdot_dx)
         self.vec_xdot_du = lambdify(self.symbols.values(), self.xdot_du)
+
 
     @staticmethod
     def eval(expression, values):

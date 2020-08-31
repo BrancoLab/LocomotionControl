@@ -30,7 +30,87 @@ class Model(Model):
         self._control = config._control
         self.alpha = config.alpha
 
-    def predict_next_state(self, curr_x, u, update=False):
+    def predict_traj(self, curr_x, us):
+        """ predict trajectories
+
+        Args:
+            curr_x (numpy.ndarray): current state, shape(state_size, )
+            us (numpy.ndarray): inputs,
+                shape(pred_len, input_size) 
+                or shape(pop_size, pred_len, input_size)
+        Returns:
+            pred_xs (numpy.ndarray): predicted state,
+                shape(pred_len+1, state_size) including current state
+                or shape(pop_size, pred_len+1, state_size)
+        """
+        if len(us.shape) == 3:
+            pred_xs =self._predict_traj_alltogether(curr_x, us)
+        elif len(us.shape) == 2:
+            pred_xs = self._predict_traj(curr_x, us)
+        else:
+            raise ValueError("Invalid us")
+        
+        return pred_xs
+    
+    def _predict_traj(self, curr_x, us):
+        """ predict trajectories
+        
+        Args:
+            curr_x (numpy.ndarray): current state, shape(state_size, )
+            us (numpy.ndarray): inputs, shape(pred_len, input_size)
+        Returns:
+            pred_xs (numpy.ndarray): predicted state,
+                shape(pred_len+1, state_size) including current state
+        """
+        # get size
+        pred_len = us.shape[0]
+        # initialze
+        x = curr_x
+        pred_xs = curr_x[np.newaxis, :]
+
+        for t in range(pred_len):
+            next_x, last_dxdt, nu = self.predict_next_state(x, us[t])
+            self.last_dxdt = last_dxdt
+            self.nu = nu
+
+            # update
+            pred_xs = np.concatenate((pred_xs, next_x[np.newaxis, :]), axis=0)
+
+            x = next_x
+
+        return pred_xs
+    
+    def _predict_traj_alltogether(self, curr_x, us):
+        """ predict trajectories for all samples
+        
+        Args:
+            curr_x (numpy.ndarray): current state, shape(pop_size, state_size)
+            us (numpy.ndarray): inputs, shape(pop_size, pred_len, input_size)
+        Returns:
+            pred_xs (numpy.ndarray): predicted state,
+                shape(pop_size, pred_len+1, state_size) including current state
+        """
+        # get size
+        (pop_size, pred_len, _) = us.shape
+        us = np.transpose(us, (1, 0, 2))  # to (pred_len, pop_size, input_size)
+        # initialze
+        x = np.tile(curr_x, (pop_size, 1))
+        pred_xs = x[np.newaxis, :, :]  # (1, pop_size, state_size)
+
+        for t in range(pred_len):
+            # next_x.shape = (pop_size, state_size)
+            next_x, last_dxdt, nu = self.predict_next_state(x, us[t])
+            self.last_dxdt = last_dxdt
+            self.nu = nu
+            
+            # update
+            pred_xs = np.concatenate((pred_xs, next_x[np.newaxis, :, :]),\
+                                      axis=0)
+            x = next_x
+
+        return np.transpose(pred_xs, (1, 0, 2))
+
+    def predict_next_state(self, curr_x, u, last_dxdt = None, nu=None):
         """ predict next state
         
         Args:
@@ -56,18 +136,24 @@ class Model(Model):
             u = self._control(*u)
             x = self._state(*curr_x)
 
-        if self.last_dxdt is None:
-            self.last_dxdt = self._state(*np.zeros_like(curr_x))
-        if self.nu is None:
-            self.nu = self._control(*np.zeros(2))
+        if last_dxdt is None:
+            last_dxdt = self.last_dxdt
+        if nu is None:
+            nu = self.nu
+
+        if last_dxdt is None:
+            last_dxdt = self._state(*[0, 0, 0])
+        if nu is None:
+            nu = self._control(*[0, 0])
+            
 
         values = dict(
             theta = x.theta,
-            thetadot = self.last_dxdt.theta,
+            thetadot = last_dxdt.theta,
             tau_r = u.R,
             tau_l = u.L, 
-            eta_r = self.nu.R,
-            eta_l = self.nu.L
+            eta_r = nu.R,
+            eta_l = nu.L
         )
         values = {**values, **self.mouse}
 
@@ -86,11 +172,9 @@ class Model(Model):
         dxdt = dxdt.ravel()
 
         # update nu and last dx
-        if update == True:
-            if len(curr_x.shape) == 1:
-                self.last_dxdt = self._state(*dxdt)
-                dnudt = self.symbolic.eval(self.symbolic.dnudt, values)
-                self.nu = self._control(*(np.array(dnudt).astype(np.float32).ravel() * self.dt + self.nu))
+        last_dxdt = self._state(*dxdt)
+        dnudt = self.symbolic.eval(self.symbolic.dnudt, values)
+        nu = self._control(*(np.array(dnudt).astype(np.float32).ravel() * self.dt + nu))
 
         if np.any(np.isnan(dxdt)):
             print(f'\n\nCurrent: {[round(p,2) for p in curr_x]}')
@@ -100,25 +184,24 @@ class Model(Model):
 
         # next state
         next_x = dxdt * self.dt + curr_x
-        return next_x
+        return next_x, self._state(*dxdt), self._control(*nu)
 
 
 # ------------------------------ MODEL GRADIENTS ----------------------------- #
-    def calc_grad(self, xs, us, dt, func, dertype='x'):
+    def calc_grad(self, xs, us, dt, dertype='x'):
         """
             Calculates the gradient with respect to either
-            x or u based on which `func` from self.symbolic
+            x or u
             is passed
 
         """
-
         # prep values
         theta = xs[:, 2]
         thetadot = np.ones_like(theta) * self.last_dxdt.theta
         tau_r = us[:, 0]
         tau_l = us[:, 1]
-        eta_r = np.ones_like(theta) * self.nu[0]
-        eta_l = np.ones_like(theta) * self.nu[1]
+        eta_r = np.ones_like(theta) * self.nu.R
+        eta_l = np.ones_like(theta) * self.nu.L
 
         R = np.ones_like(theta) * self.mouse['R']
         L = np.ones_like(theta) * self.mouse['L']
@@ -158,7 +241,7 @@ class Model(Model):
         Notes:
             This should be discrete form !!
         """ 
-        return self.calc_grad(xs, us, dt, self.symbolic.vec_xdot_dx, dertype='x')
+        return self.calc_grad(xs, us, dt, dertype='x')
 
     def calc_f_u(self, xs, us, dt):
         """ gradient of model with respect to the input in batch form
@@ -172,7 +255,7 @@ class Model(Model):
         Notes:
             This should be discrete form !!
         """ 
-        return self.calc_grad(xs, us, dt, self.symbolic.vec_xdot_du, dertype='u')
+        return self.calc_grad(xs, us, dt,  dertype='u')
 
 
     # --------------------------- STATE COST FUNCTIONS --------------------------- #
@@ -226,6 +309,7 @@ class Model(Model):
             (x - X_g)T * Q * (x - x_g)
         """
         diff = self.fit_diff_in_range(x - g_x)
+        # diff = x - g_x
         return ((diff)**2) * np.diag(self.Q)
 
     def terminal_state_cost_fn(self, terminal_x, terminal_g_x):
@@ -243,6 +327,7 @@ class Model(Model):
             (x - X_g)T * Q * (x - x_g)
         """
         terminal_diff = self.fit_diff_in_range(terminal_x  - terminal_g_x)
+        # terminal_diff = terminal_x  - terminal_g_x
         return ((terminal_diff)**2) * np.diag(self.Sf)
 
   

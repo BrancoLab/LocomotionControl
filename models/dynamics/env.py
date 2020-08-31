@@ -37,12 +37,22 @@ class Environment(Env):
         if init_x is not None:
             self.curr_x = init_x
 
-        
         # clear memory
         self.history_x = []
         self.history_g_x = []
 
+        self.last_dxdt = None
+        self.nu = None
+        
         return self.curr_x, {"goal_state": self.g_traj}
+
+    def _predict_next(self, x, u):
+        if self.last_dxdt is None:
+            self.last_dxdt = self.model._state(*np.zeros(3))
+        if self.nu is None:
+            self.nu = self.model._control(*np.zeros(2))
+
+        return self.model.predict_next_state(x, u, last_dxdt = self.last_dxdt, nu = self.nu)
 
     def step(self, u):
         """ step environments
@@ -60,7 +70,9 @@ class Environment(Env):
                     self.config["input_upper_bound"])
 
         # step
-        next_x = self.model.predict_next_state(self.curr_x, u, update=True)
+        next_x, last_dxdt, nu = self._predict_next(self.curr_x, u)
+        self.last_dxdt = last_dxdt
+        self.nu = nu
 
         costs = 0.
         costs += 0.1 * np.sum(u**2)

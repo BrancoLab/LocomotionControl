@@ -48,9 +48,13 @@ class Model():
         pred_xs = curr_x[np.newaxis, :]
 
         for t in range(pred_len):
-            next_x = self.predict_next_state(x, us[t])
+            next_x, dxdt, nu = self.predict_next_state(x, us[t])
+            self.dxdt = dxdt
+            self.nu = nu
+
             # update
             pred_xs = np.concatenate((pred_xs, next_x[np.newaxis, :]), axis=0)
+
             x = next_x
 
         return pred_xs
@@ -74,7 +78,10 @@ class Model():
 
         for t in range(pred_len):
             # next_x.shape = (pop_size, state_size)
-            next_x = self.predict_next_state(x, us[t])
+            next_x, dxdt, nu = self.predict_next_state(x, us[t])
+            self.dxdt = dxdt
+            self.nu = nu
+            
             # update
             pred_xs = np.concatenate((pred_xs, next_x[np.newaxis, :, :]),\
                                       axis=0)
