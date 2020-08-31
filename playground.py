@@ -14,15 +14,19 @@ env = Environment(config, model)
 
 # %%
 env.reset()
+env.curr_x = np.zeros(4)
 
 history = []
-for i in range(10):
-    u = [100, 101]
+for i in range(1000):
+    u = [2, -2]
     next_x, cost, done, info = env.step(u)
     history.append(next_x)
 history = np.vstack(history)
 
-plt.plot(history[:, 0], history[:, 1])
+f, axarr = plt.subplots(ncols=2)
+axarr[0].plot(history[:, 0], history[:, 1])
+axarr[1].plot(history[:, 2])
+axarr[1].plot(history[:, 3])
 
 
 # %%

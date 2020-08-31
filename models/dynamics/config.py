@@ -3,13 +3,15 @@ import numpy as np
 
 class Config():
     
-    # Simulation params
+    # Simulation params and plotting
     params = dict(
         duration = 30, # s
         dt = .25, # s | DT of goal trace, not simulation.
         distance = 100, # cm 
-        max_speed = 70, # cm/s
-        min_speed = 40, # cm /s 
+        max_speed = 2, # cm/s
+        min_speed = 1, # cm /s 
+
+        mouse_color = [.2, .2, .2],
     )
 
     # Mouse params
@@ -21,15 +23,14 @@ class Config():
         m = round(24/9.81, 2), # mass | g
     )
 
-    mouse_color = [.2, .2, .2]
-    mouse_length = 6 # | cm
+
 
     alpha = 1 # numeric value to ensure dividend is != 0
 
     # General parameters
     ENV_NAME = "dynamics"
     TYPE = "Nonlinear"
-    N_AHEAD = 5
+    N_AHEAD = 3
     TASK_HORIZON = 500
     PRED_LEN = 20
     
@@ -40,8 +41,8 @@ class Config():
 
     # cost parameters
     R = np.diag([0.1, 0.1])
-    Q = np.diag([2.5, 2.5, 2.5, 0])
-    Sf = np.diag([.1, .1, .1, .1])
+    Q = np.diag([2, 2, 2.5, 2.5])
+    Sf = np.diag([2.5, 2.5, 2.5, 2.5])
     
     # bounds
     INPUT_LOWER_BOUND = np.array([-100, -100])
