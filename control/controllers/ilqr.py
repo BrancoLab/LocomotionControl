@@ -86,7 +86,7 @@ class iLQR(Controller):
         # line search param
         alphas = 1.1**(-np.arange(10)**2)
 
-        for opt_count in  tqdm(range(self.max_iter)):
+        for opt_count in range(self.max_iter):
             accepted_sol = False
 
             # forward    
@@ -134,19 +134,17 @@ class iLQR(Controller):
                 print("Non ans : {}".format(e))
             
             if not accepted_sol:
-                print('Failed to find an accepted solution')
+                # print('Failed to find an accepted solution')
                 # increase regularization term.
                 self.delta = max(1.0, self.delta) * self.init_delta
                 self.mu = max(self.mu_min, self.mu * self.delta)
-                print("Update regularization term to {}"\
-                             .format(self.mu))
+                # print("Update regularization term to {}"\
+                            #  .format(self.mu))
                 if self.mu >= self.mu_max:
-                    print("Reach Max regularization term")
+                    # print("Reach Max regularization term")
                     break
 
-            if converged_sol:
-                logger.debug("Get converged sol")
-                break
+ 
 
 
         # update prev sol

@@ -41,7 +41,7 @@ def plot_mouse(x, mouse, ax):
     """
     # plot body
     theta = np.degrees(x.theta)
-    ms = Arc((x.x, x.y),6, mouse['L'], color=[.2, .2, .2],
+    ms = Arc((x.x, x.y),6, mouse['L'], color='magenta',
                  angle=theta, linewidth=4, fill=False, zorder=2)
 
     # plot head
@@ -66,7 +66,7 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
 
     # plot currently used goal states
     axarr[0].plot(g_xs[:, 0], g_xs[:, 1], 
-                lw=3, color='k', alpha=1, zorder=-1)
+                lw=3, color='r', alpha=1, zorder=-1)
 
     # plot mouse
     plot_mouse(x, mouse, axarr[0])

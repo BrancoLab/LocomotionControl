@@ -10,10 +10,6 @@ from control.common.utils import fit_angle_in_range
 from control.helper import timeit
 
 class Model(Model):
-    
-    last_dxdt = None
-    nu = None
-
     def __init__(self, config, symbolic):
         """
         """
@@ -29,6 +25,7 @@ class Model(Model):
         self._state = config._state
         self._control = config._control
         self.alpha = config.alpha
+
 
     def reset_ldxdt_nu(self, ):
         self.last_dxdt = self.env_last_dxdt
@@ -179,8 +176,18 @@ class Model(Model):
 
         # update nu and last dx
         last_dxdt = self._state(*dxdt)
-        dnudt = self.symbolic.eval(self.symbolic.dnudt, values)
-        nu = self._control(*(np.array(dnudt).astype(np.float32).ravel() * self.dt + nu))
+        dnudt = self.symbolic.compute_nudt(
+                    values['R'],
+                    values['L'],
+                    values['m'],
+                    values['d'],
+                    values['eta_r'],
+                    values['eta_l'],
+                    values['theta'],
+                    values['thetadot'],
+                    values['tau_r'],
+                    values['tau_l'])
+        nu = self._control(*(dnudt * self.dt + nu))
 
         if np.any(np.isnan(dxdt)):
             print(f'\n\nCurrent: {[round(p,2) for p in curr_x]}')

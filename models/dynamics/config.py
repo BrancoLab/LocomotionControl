@@ -29,7 +29,7 @@ class Config():
     # General parameters
     ENV_NAME = "dynamics"
     TYPE = "Nonlinear"
-    N_AHEAD = 3
+    N_AHEAD = 5
     TASK_HORIZON = 500
     PRED_LEN = 20
     
@@ -40,7 +40,7 @@ class Config():
 
     # cost parameters
     R = np.diag([0.1, 0.1])
-    Q = np.diag([0, 0, 2.5])
+    Q = np.diag([2.5, 2.5, 2.5])
     Sf = np.diag([.1, .1, .1,])
     
     # bounds

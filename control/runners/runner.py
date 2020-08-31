@@ -37,7 +37,6 @@ class ExpRunner():
         axarr = axarr.flatten()
 
         for itern in tqdm(range(self.n_iters)):
-            print(f'iteration: {itern}')
             
             # plan
             g_xs = planner.plan(curr_x, info["goal_state"])
