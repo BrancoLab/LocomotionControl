@@ -18,6 +18,8 @@ class Environment(Env):
                        }
         self.params = config.params
         self.model = model
+        self._state = config._state
+        self._control = config._control
 
         super(Environment, self).__init__(self.config)
 
@@ -40,6 +42,8 @@ class Environment(Env):
         # clear memory
         self.history_x = []
         self.history_g_x = []
+        self.history_nu = []
+        self.history_u = []
 
         self.last_dxdt = None
         self.nu = None
@@ -87,7 +91,9 @@ class Environment(Env):
         costs += np.min(np.linalg.norm(self.curr_x - self.g_traj, axis=1))
 
         # save history
-        self.history_x.append(next_x.flatten())
+        self.history_x.append(self._state(*next_x))
+        self.history_nu.append(self._control(*nu))
+        self.history_u.append(self._control(*u))
         
         # update
         self.curr_x = next_x.flatten()

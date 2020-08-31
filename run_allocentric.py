@@ -17,6 +17,8 @@ runner = Runner(config, interactive_plot)
 # %%
 history_x, history_u, history_g, info = runner.run(env, controller, planner) 
 
+# TODO separate the kinematic and dynamic models and apply control to each individually.
+
 # TODO why is it going the wrong way stupid
 
 # TODO make it faster (e.g. cupy?)

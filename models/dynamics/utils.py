@@ -29,6 +29,7 @@ def make_road(params):
 
     x = np.linspace(0, params['distance'], n_steps)
     y = curve(x, *coef)
+    # y = x 
 
     angle = np.radians(90 - calc_angle_between_points_of_vector_2d(x, y))
 
@@ -56,12 +57,18 @@ def plot_mouse(x, mouse, ax, params):
     ax.add_patch(ms2)
   
 
-def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history_u, ):
+def interactive_plot(axarr, env, goal, info, g_xs, iter, mouse, params):
     """
         Update plot with current situation and controls
     """
+    x = env.history_x[-1]
+    u = env.history_u[-1]
+    nu = env.history_nu[-1]
+
     axarr[0].clear()
     axarr[1].clear()
+    axarr[2].clear()
+    axarr[3].clear()
 
     # plot goal states
     axarr[0].scatter(info['goal_state'][:, 0], info['goal_state'][:, 1], 
@@ -74,6 +81,10 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
     # plot mouse
     plot_mouse(x, mouse, axarr[0], params)
 
+    x_hist = [x.x for x in env.history_x]
+    y_hist = [x.y for x in env.history_x]
+    axarr[0].plot(x_hist, y_hist, color='g', lw=1.5, ls='--')
+
     # update ax
     axarr[0].set(title=f'ITER: {iter} | x:{round(x.x, 2)}, y:{round(x.y, 2)}, ' +
                         f' theta:{round(np.degrees(x.theta), 2)}, v:{round(x.s, 2)}\n'+
@@ -84,11 +95,16 @@ def interactive_plot(axarr, x, goal, u, info, g_xs, iter, mouse, params, history
     axarr[0].axis('equal')
 
     # Plot controls
-    axarr[1].bar([0, 1], u, color=['b', 'r'])
-    axarr[1].set(title='control', xticks=[0, 1], xticklabels=['R', 'L'])
+    axarr[1].bar([0, 1, 2], [u.L, u.R, u.L - u.R], color=['b', 'r', 'k'])
+    axarr[1].set(title='control', xticks=[0, 1, 2], xticklabels=['L', 'R', 'L-R'])
 
     # plot controls history
-    axarr[2].plot([u[0] for u in  history_u], color='b', lw=4)
-    axarr[2].plot([u[1] for u in  history_u], color='r', lw=4)
+    axarr[2].plot([u.L for u in  env.history_u], color='b', lw=4, label='L')
+    axarr[2].plot([u.R for u in  env.history_u], color='r', lw=4, label='R')
+    axarr[2].legend()
+    axarr[2].set(title='Control')
 
-    axarr[3].axis('off')
+    axarr[3].plot([nu.L for nu in  env.history_nu], color='g', lw=4, label='L')
+    axarr[3].plot([nu.R for nu in  env.history_nu], color='m', lw=4, label='R')
+    axarr[3].legend()
+    axarr[3].set(title='Wheel speeds')
