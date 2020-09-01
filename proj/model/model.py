@@ -1,5 +1,6 @@
 import numpy as np
 from sympy import *
+init_printing()
 from sympy.solvers import solve
 from collections import namedtuple
 
@@ -39,6 +40,8 @@ class Model(Config):
             tau_r = [],
             tau_l = [],
         )
+
+        self._append_history() # make sure first state is included
 
     def _append_history(self):
         for ntuple in [self.curr_x, self.curr_eta, self.curr_control]:
@@ -89,7 +92,7 @@ class Model(Config):
             omegadot=omegadot,
         )
 
-    def _make_matrices(self):
+    def _make_matrices(self): 
         x, y, theta, thetadot, s, L, R, m, d, psi_l, psi_r, psidot_l, \
                     psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = self.variables.values()
 
@@ -139,8 +142,8 @@ class Model(Config):
         eq2 = Eq(I*omegadot + m*d*omega*v, (L/R)*(tau_r - tau_l))
 
         # solve
-        vdot_sol = solve(eq1, vdot)
-        omegadot_sol = solve(eq2, omegadot)
+        vdot_sol = solve(eq1, vdot)[0]
+        omegadot_sol = solve(eq2, omegadot)[0]
 
         # store in matrix
         D = Matrix([vdot_sol, omegadot_sol])
@@ -161,24 +164,25 @@ class Model(Config):
         ])
         self.matrixes['Q'] = Q
 
-        x = Q * Matrix([vdot, omegadot])
+        x = Q * Matrix([v, omega])
 
         self.matrixes['Qeta'] = x
 
-        self.calc_Q = lambdify([theta, vdot, omegadot], x)
+        self.calc_Q = lambdify([theta, v, omega], x)
 
 
     def step(self, u):
         # First update eta
         variables = merge(u, self.curr_x, self.curr_thetadot, self.mouse, self.curr_eta, self.curr_etadot)
 
+        # dv, domega
         d = self.calc_D(*[variables[a] for a in self._D_args]).ravel()
         self.curr_etadot = self._etadot(*np.array(d))
 
         self.curr_eta = self._eta(*np.array(self.curr_eta) + d * self.dt)
 
         # Then use deta to compute the state
-        dxdt = self.calc_Q(variables['theta'], self.curr_etadot.vdot, self.curr_etadot.omegadot).ravel()
+        dxdt = self.calc_Q(variables['theta'], self.curr_eta.v, self.curr_eta.omega).ravel()
         self.curr_x = self._state(*(np.array(self.curr_x) + dxdt * self.dt))
 
         # Update history
