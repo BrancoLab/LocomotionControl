@@ -18,7 +18,7 @@ class Config():
     mouse = dict(
         L = 1.5, # half body width | cm
         R = 1, # radius of wheels | cm
-        d = 3, # distance between axel and CoM | cm
+        d = 0.75, # distance between axel and CoM | cm
         length = 6, # cm
         m = round(24/9.81, 2), # mass | g
     )
@@ -45,8 +45,8 @@ class Config():
     Sf = np.diag([2.5, 2.5, 2.5, 2.5])
     
     # bounds
-    INPUT_LOWER_BOUND = np.array([-100, -100])
-    INPUT_UPPER_BOUND = np.array([100, 100])
+    INPUT_LOWER_BOUND = np.array([-.2, -.2])
+    INPUT_UPPER_BOUND = np.array([.2, .2])
 
     # useful vars
     _state = namedtuple('state', 'x, y, theta, s')
