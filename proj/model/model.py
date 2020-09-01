@@ -79,8 +79,6 @@ class Model(Config):
             omega=omega,
         )
 
-
-
     def get_combined_dynamics_kinematics(self):
         x, y, theta, L, R, m, m_w, d, tau_l, tau_r, v, omega = self.variables.values()
 
@@ -148,5 +146,43 @@ class Model(Config):
         self.curr_x = self._state(*next_x)
 
         # Update history
-        self._append_history()
+        self._append_history() 
+
+    def _fake_step(self, x, u):
+        """
+            Simulate a step fiven a state and a control
+        """
+        x = self._state(x)
+
+        # Compute dxdt
+        variables = merge(u, x, self.mouse)
+        inputs = [variables[a] for a in self._M_args]
+        dxdt = self.calc_dqdt(*inputs).ravel()
+
+        # Step
+        next_x = np.array(x) + dxdt * self.dt
+        return next_x
+
+    def predict_trajectory(self, curr_x, us):
+        """
+            Compute the trajectory for N steps given a
+            state and a (series of) control(s)
+        """
+        if len(us.shape) == 3:
+            raise NotImplementedError
+
+        # get size
+        pred_len = us.shape[0]
+
+        # initialze
+        x = curr_x # (3,)
+        pred_xs = curr_x[np.newaxis, :]
+
+        for t in range(pred_len):
+            next_x = self._fake_step(x, us[t])
+            # update
+            pred_xs = np.concatenate((pred_xs, next_x[np.newaxis, :]), axis=0)
+            x = next_x
+
+        return pred_xs
 
