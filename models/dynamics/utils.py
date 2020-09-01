@@ -31,7 +31,7 @@ def make_road(params):
     y = curve(x, *coef)
     # y = x 
 
-    angle = np.radians(90 - calc_angle_between_points_of_vector_2d(x, y))
+    angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
 
     speed = (1 - np.sin(np.linspace(0, 3, len(x)))) 
     speed = speed * (params['max_speed']-params['min_speed']) + params['min_speed']

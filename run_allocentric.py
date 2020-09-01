@@ -1,8 +1,12 @@
 # %%
 from proj import Model, Environment, Controller, run_experiment
-# %%
 
-# TODO env.plan make it more accurate, make sure it uses only X,Y for selection
+
+# TODO fix failing control goddarnit
+
+# TODO test test test
+
+# TODO once it's mature enough make proper code testing stuff
 
 agent = Model()
 env = Environment(agent)

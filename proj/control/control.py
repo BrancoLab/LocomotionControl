@@ -125,18 +125,16 @@ class Controller(Cost):
                 print("Non ans : {}".format(e))
             
             if not accepted_sol:
-                # print('Failed to find an accepted solution')
-                # increase regularization term.
+                print('Failed to find an accepted solution')
                 self.delta = max(1.0, self.delta) * self.init_delta
                 self.mu = max(self.mu_min, self.mu * self.delta)
-                # print("Update regularization term to {}"\
-                            #  .format(self.mu))
                 if self.mu >= self.mu_max:
                     # print("Reach Max regularization term")
                     break
 
  
-
+        if np.any(np.isnan(sol)) or np.any(np.isinf(sol)):
+            raise ValueError('nans or inf in solution!')
 
         # update prev sol
         self.prev_sol[:-1] = sol[1:]
@@ -161,8 +159,6 @@ class Controller(Cost):
             new_sol (numpy.ndarray): update input trajectory,
                 shape(pred_len, input_size)
         """
-        raise NotImplementedError()
-        self._reset_ldxdt_nu()
 
         # get size
         (pred_len, input_size, state_size) = K.shape
@@ -176,10 +172,7 @@ class Controller(Cost):
             new_sol[t] = sol[t] \
                          + alpha * k[t] \
                          + np.dot(K[t], (new_pred_xs[t] - pred_xs[t]))
-            new_pred_xs[t+1], last_dxdt, nu = self.model.predict_next_state(new_pred_xs[t],
-                                                             new_sol[t])
-            self.last_dxdt = last_dxdt
-            self.nu = nu
+            new_pred_xs[t+1] = self.model._fake_step(new_pred_xs[t],new_sol[t])
 
         return new_pred_xs, new_sol
 
@@ -215,8 +208,8 @@ class Controller(Cost):
                               g_xs)
 
         # calc gradinet in batch
-        f_x = self.model.calc_f_x(pred_xs[:-1], sol, self.dt) 
-        f_u = self.model.calc_f_u(pred_xs[:-1], sol, self.dt)
+        f_x = self.model.calc_gradient(pred_xs[:-1], sol, wrt='x') 
+        f_u = self.model.calc_gradient(pred_xs[:-1], sol, wrt='u') 
 
         # gradint of costs
         l_x, l_xx, l_u, l_uu, l_ux = \

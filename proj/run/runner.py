@@ -1,5 +1,8 @@
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import numpy as np
 
+from proj.plotting.live import update_interactive_plot
 
 def run_experiment(environment, controller, model, n_steps=200):
     """
@@ -21,15 +24,29 @@ def run_experiment(environment, controller, model, n_steps=200):
     model.reset()
     trajectory = environment.reset()
 
+    # setup interactive plot
+    plt.ion()
+    f, axarr = plt.subplots(figsize=(12, 8), ncols=2, nrows=2)
+    axarr = axarr.flatten()
+
     # RUN
     for itern in tqdm(range(n_steps)):
+        curr_x = np.array(model.curr_x)
         # plan
-        g_xs = environment.plan(model.curr_x, trajectory)
+        g_xs = environment.plan(curr_x, trajectory)
 
         # obtain sol
-        u = controller.obtain_sol(model.curr_x, g_xs)
+        u = controller.obtain_sol(curr_x, g_xs)
 
         # step
-        next_x, cost, done, info = model.step(u)
+        model.step(u)
+
+        # update interactieve plot
+        goal= model._state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4])
+        update_interactive_plot(axarr, model, goal, trajectory, g_xs, itern)
+
+
+        f.canvas.draw()
+        plt.pause(0.01)
 
     return model.history
