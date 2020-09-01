@@ -8,7 +8,7 @@ from proj.model.config import Config
 from proj.utils import merge
 
 class Model(Config):
-    _D_args = ['R', 'd', 'm', 'omega', 'tau_r', 'tau_l', "L", 'v']
+    _D_args = ['R', 'd', 'm', 'm_w', 'omega', 'tau_r', 'tau_l', "L", 'v']
 
     _control = namedtuple('control', 'tau_r, tau_l')
     _eta = namedtuple('eta', 'v, omega')
@@ -53,7 +53,7 @@ class Model(Config):
         x, y, theta, thetadot, s = symbols('x, y, theta, thetadot, s', real=True)
 
         # static variables
-        L, R, m, d = symbols('L, R, m, d', real=True)
+        L, R, m, m_w, d = symbols('L, R, m, m_w, d', real=True)
 
         # wheel speeds
         psi_l, psi_r = symbols('psi_l, psi_r', real=True)
@@ -76,6 +76,7 @@ class Model(Config):
             L = L,
             R = R,
             m = m,
+            m_w = m_w,
             d = d,
 
             psi_l=psi_l,
@@ -92,50 +93,57 @@ class Model(Config):
             omegadot=omegadot,
         )
 
-    def _make_matrices(self): 
-        x, y, theta, thetadot, s, L, R, m, d, psi_l, psi_r, psidot_l, \
-                    psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = self.variables.values()
+    # def _make_matrices(self): 
+    #     x, y, theta, thetadot, s, L, R, m, d, psi_l, psi_r, psidot_l, \
+    #                 psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = self.variables.values()
+        
+    #     # Define moments of inertia
+    #     I = 2 * m * d**2
 
-        I = 2 * m * d**2
-        F = R**2/(4*L**2)
+    #     # Define 
+    #     F = R**2/(4*L**2)
 
-        Q = Matrix([
-            [R/2 * cos(theta), R/2 * cos(theta)],
-            [R/2 * sin(theta), R/2 * sin(theta)],
-            [R/(2 * L), -R/(2*L)],
-            [R/(2 * L), R/(2*L)]
-        ])
+    #     Q = Matrix([
+    #         [R/2 * cos(theta), R/2 * cos(theta)],
+    #         [R/2 * sin(theta), R/2 * sin(theta)],
+    #         [R/(2 * L), -R/(2*L)],
+    #         [R/(2 * L), R/(2*L)]
+    #     ])
 
-        M = Matrix([
-            [F*(m*L**2 + I), F*(m*L**2 - I)],
-            [F*(m*L**2 - I), F*(m*L**2 + I)]
-        ])
+    #     M = Matrix([
+    #         [F*(m*L**2 + I), F*(m*L**2 - I)],
+    #         [F*(m*L**2 - I), F*(m*L**2 + I)]
+    #     ])
 
-        V = Matrix([
-            [0, R**2/(2*L)*m*d*thetadot],
-            [-R**2/(2*L)*m*d*thetadot, 0],
-        ])
+    #     V = Matrix([
+    #         [0, R**2/(2*L)*m*d*thetadot],
+    #         [-R**2/(2*L)*m*d*thetadot, 0],
+    #     ])
 
-        tau = Matrix([tau_r, tau_l])
-        eta = Matrix([psi_r, psi_l])
-        etadot = Matrix([psidot_r, psidot_l])
+    #     tau = Matrix([tau_r, tau_l])
+    #     eta = Matrix([psi_r, psi_l])
+    #     etadot = Matrix([psidot_r, psidot_l])
 
-        self.matrixes = dict(
-            Q = Q,
-            M = M,
-            V = V,
-            eta = eta,
-            etadot = etadot,
-            tau = tau,
-        )
+    #     self.matrixes = dict(
+    #         Q = Q,
+    #         M = M,
+    #         V = V,
+    #         eta = eta,
+    #         etadot = etadot,
+    #         tau = tau,
+    #     )
 
-        return Q, M, V, tau, eta, etadot
+    #     return Q, M, V, tau, eta, etadot
 
     def get_dynamics(self):
-        x, y, theta, thetadot, s, L, R, m, d, psi_l, psi_r, psidot_l, \
-                    psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = self.variables.values()
+        x, y, theta, thetadot, s, L, R, m, m_w, d, psi_l, psi_r, psidot_l, \
+                psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = self.variables.values()
         self.matrixes = {}
-        I = 2 * m * d**2
+
+        # Define moments of inertia
+        I_c = m * d**2 # mom. inertia around center of gravity
+        I_w = m_w * R**2 # mom. inertia of wheels
+        I = I_c + m*d**2 + 2*m_w*L**2 + I_w
 
         # Define two diff equations
         eq1 = Eq(m * vdot - m*d*omega**2, 1/R * (tau_r + tau_l))
@@ -153,7 +161,7 @@ class Model(Config):
         self.calc_D = lambdify([self.variables[k] for k in self._D_args], self.matrixes['D'])
 
     def get_kinematics(self):
-        x, y, theta, thetadot, s, L, R, m, d, psi_l, psi_r, psidot_l, \
+        x, y, theta, thetadot, s, L, R, m, m_w, d, psi_l, psi_r, psidot_l, \
                 psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = self.variables.values()
 
         Q = Matrix([
