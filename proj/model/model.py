@@ -10,6 +10,9 @@ from proj.utils import merge
 class Model(Config):
     _M_args = ['theta', 'v', 'omega', 'L', 'R', 'm', 'd', 'm_w' , 'tau_l', 'tau_r']
 
+    _calc_model_jacobian_state_args = ['theta', 'v', 'omega', 'L', 'R', 'm', 'd', 'm_w']
+    _calc_model_jacobian_input_args = ['L', 'R', 'm', 'd', 'm_w']
+
     _control = namedtuple('control', 'tau_r, tau_l')
     _state = namedtuple('state', 'x, y, theta, v, omega')
 
@@ -18,6 +21,7 @@ class Model(Config):
 
         self._make_simbols()
         self.get_combined_dynamics_kinematics()
+        self.get_jacobians()
         self.reset()
 
     def reset(self):
@@ -112,6 +116,25 @@ class Model(Config):
             inp = inp,
             M = M,
         )
+
+        # Store dxdt model as sympy expression
+        self.model = g + M*inp
+
+    def get_jacobians(self):
+        x, y, theta, L, R, m, m_w, d, tau_l, tau_r, v, omega = self.variables.values()
+
+        # Get jacobian wrt state
+        self.model_jacobian_state = self.model.jacobian([x, y, theta, v, omega])
+
+        # Get jacobian wrt input
+        self.model_jacobian_input = self.model.jacobian([tau_r, tau_l])
+
+        # vectorize expressions
+        args = [theta, v, omega, L, R, m, d, m_w]
+        self.calc_model_jacobian_state = lambdify(args, self.model_jacobian_state, modules='numpy')
+
+        args = [L, R, m, d, m_w]
+        self.calc_model_jacobian_input = lambdify(args, self.model_jacobian_input, modules='numpy')
 
 
     def step(self, u):
