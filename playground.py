@@ -16,7 +16,6 @@ model = Model()
 
 x, y, theta, L, R, m, m_w, d, tau_l, tau_r, v, omega = model.variables.values()
 
-# model.matrixes['D']
 
 
 # %%
@@ -63,37 +62,5 @@ _ = f.tight_layout()
 
 
 # %%
-
-model.matrixes['D']
-
+model.model.jacobian([tau_r, tau_l])
 # %%
-x, y, theta, thetadot, s, L, R, m, m_w, d, psi_l, psi_r, psidot_l, \
-        psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = model.variables.values()
-
-# Define moments of inertia
-I_c = m * d**2 # mom. inertia around center of gravity
-I_w = m_w * R**2 # mom. inertia of wheels
-I = I_c + m*d**2 + 2*m_w*L**2 + I_w
-
-# Define two diff equations
-eq1 = Eq(m * vdot - m*d*omega**2, 1/R * (tau_r + tau_l))
-eq2 = Eq((I + (2*L**2*I_w)/R**2)*omegadot + m*d*omega*v, (L/R)*(tau_r - tau_l))
-
-eq2
-# %%
-
-J = I + (2*I**2/R**2) * I_w
-
-const = Matrix([0, 0, 0, 0, d*omega**2, - (m * d * omega * v)/J])
-inp = Matrix([v, omega, tau_r, tau_l])
-
-M = Matrix([
-    [cos(theta), 0, 0, 0],
-    [sin(theta), 0, 0, 0],
-    [0, 1, 0, 0],
-    [1, 0, 0, 0],
-    [0, 0, L/(m*R), L/(m*R)],
-    [0, 0, L/(J*R), L/(J*R)]
-])
-
-M
