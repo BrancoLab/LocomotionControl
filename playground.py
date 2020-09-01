@@ -37,7 +37,7 @@ model = Model()
 dt = 0.01
 t = np.linspace(0, 20, np.int(2 * (1/dt)))
 
-# TODO check why cant I set d to zero
+# TODO check why cant I set d to zero because need to add wheel inertia
 
 u = model._control(1, -1)
 history = dict(x=[], y=[], theta=[], s=[])
