@@ -14,39 +14,27 @@ from proj.utils import wrap_angle
 # %%
 model = Model()
 
-x, y, theta, thetadot, s, L, R, m, d, psi_l, psi_r, psidot_l, \
+x, y, theta, thetadot, s, L, R, m, m_w, d, psi_l, psi_r, psidot_l, \
                     psidot_r, tau_l, tau_r, v, omega, vdot, omegadot = model.variables.values()
 
 model.matrixes['D']
 
-I = 2 * m * d**2
 
-# Define two diff equations
-eq1 = Eq(m * vdot - m*d*omega**2, 1/R * (tau_r + tau_l))
-eq2 = Eq(I*omegadot + m*d*omega*v, (L/R)*(tau_r - tau_l))
-
-# solve
-vdot_sol = solve(eq1, vdot)
-omegadot_sol = solve(eq2, omegadot)
-
-# store in matrix
-D = Matrix([vdot_sol, omegadot_sol])
-D
 # %%
 model = Model()
 dt = 0.01
-t = np.linspace(0, 20, np.int(2 * (1/dt)))
+t = np.linspace(0, 20, np.int(200 * (1/dt)))
 
 # TODO check why cant I set d to zero because need to add wheel inertia
 
-u = model._control(1, -1)
+u = model._control(20, 0)
 history = dict(x=[], y=[], theta=[], s=[])
 
 for it in tqdm(t):
     # if it > 10: 
     #     u = model._control(.11, .1)
     model.step(u)
-    # u =  model._control(0, 0)    
+    u =  model._control(0, 0)    
 # 
 
 
@@ -73,6 +61,9 @@ axarr[3].legend()
 
 _ = axarr[3].set(title='Velocities')
 _ = f.tight_layout()
+
+
 # %%
+
 model.matrixes['D']
 # %%
