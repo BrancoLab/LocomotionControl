@@ -30,7 +30,7 @@ class Environment():
         y = self.curve(x, *coef)
 
         # Compute other variables that figure in the state vector
-        angle = np.radians(90 - calc_angle_between_points_of_vector_2d(x, y))
+        angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
 
         speed = (1 - np.sin(np.linspace(0, 3, len(x)))) 
         speed = speed * (params['max_speed']-params['min_speed']) + params['min_speed']
@@ -39,7 +39,7 @@ class Environment():
 
 
         trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
-        return trajectory
+        return trajectory[1:, :]
 
     def reset(self):
         """
@@ -52,7 +52,8 @@ class Environment():
         g_traj = self.make_trajectory()
 
         # Set model's state to the start of the trajectory
-        self.model.curr_x = g_traj[0, :]
+        self.model.curr_x = self.model._state(g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], 0, 0)
+        
 
         return g_traj
 
