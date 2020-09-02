@@ -38,7 +38,7 @@ def run_experiment(environment, controller, model, n_steps=200, plot=True, folde
     for itern in tqdm(range(n_steps)):
         curr_x = np.array(model.curr_x)
         # plan
-        g_xs = environment.plan(curr_x, trajectory)
+        g_xs = environment.plan(curr_x, trajectory, itern)
 
         # obtain sol
         u = controller.obtain_sol(curr_x, g_xs)

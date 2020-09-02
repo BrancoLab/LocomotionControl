@@ -6,6 +6,7 @@ from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 def complete_given_xy(x, y, params):
     # Compute other variables that figure in the state vector
     angle = np.radians(90 - calc_angle_between_points_of_vector_2d(x, y))
+    angle = np.unwrap(angle)
 
     speed = (1 - np.sin(np.linspace(0, 3, len(x)))) 
     speed = speed * (params['max_speed']-params['min_speed']) + params['min_speed']
@@ -14,7 +15,7 @@ def complete_given_xy(x, y, params):
 
 
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
-    return trajectory[1:, :]
+    return trajectory
 
 
 # ---------------------------------- Curves ---------------------------------- #
@@ -45,7 +46,7 @@ def parabola(n_steps, params):
     # fit curve and make trace
     coef,_ = curve_fit(curve, X, Y)
 
-    x = np.linspace(0, params['distance'], n_steps)
-    y = curve(x, *coef)
+    y = np.linspace(0, params['distance'], n_steps)
+    x = curve(y, *coef)
 
     return complete_given_xy(x, y, params)
