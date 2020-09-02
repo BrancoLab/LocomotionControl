@@ -5,22 +5,22 @@ class Config:
     # ----------------------------- Simulation params ---------------------------- #
     save_folder = Path('Z:\\swc\\branco\\Federico\\Locomotion\\control')
     save_name = 'parabola'
-    dt  = 0.1
+    dt  = .1
     
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
     INPUT_SIZE = 2
 
     R = np.diag([0.01, 0.01]) # control cost
-    Q = np.diag([1, 1, 0, 2.5, 0]) # state cost | x, y, theta, v, omega
-    Sf = np.diag([1, 1, 0, 2.5, 0]) # final state cost
+    Q = np.diag([2.5, 2.5, 2.5, 2.5, 0]) # state cost | x, y, theta, v, omega
+    Sf = np.diag([2.5, 2.5, 2.5, 2.5, 0]) # final state cost
 
     # ------------------------------- Mouse params ------------------------------- #
 
     mouse = dict(
         L = 1.5, # half body width | cm
         R = 1, # radius of wheels | cm
-        d = 0, # distance between axel and CoM | cm
+        d = 0.1, # distance between axel and CoM | cm
         length = 6, # cm
         m = round(20/9.81, 2), # mass | g
         m_w = round(2/9.81, 2), # mass of wheels/legs |g
@@ -29,11 +29,12 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict( # parameters of the goals trajectory
-        nsteps = 200, 
+        nsteps = 150, 
         distance = 100,
         max_speed = 20,
-        min_speed = 2,
-        min_dist = 500, # if agent is within this distance from trajectory end the goal is considered achieved
+        min_speed = 10,
+
+        min_dist = 5, # if agent is within this distance from trajectory end the goal is considered achieved
     )
 
     # ------------------------------ Planning params ----------------------------- #    
