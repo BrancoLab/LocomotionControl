@@ -16,3 +16,4 @@ def plot_trajectory(traj):
     axarr[1].axis('equal')
     # axarr[1].legend()
     plt.colorbar(sc2 , ax=axarr[1])   
+

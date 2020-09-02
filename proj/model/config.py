@@ -42,7 +42,7 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #    
     planning = dict( # params used to compute goal states to be used for control
-        prediction_length = 20,
+        prediction_length = 40,
         n_ahead = 5, # start prediction states from N steps ahead
     )
 
