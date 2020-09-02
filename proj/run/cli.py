@@ -15,5 +15,5 @@ def launch(folder=None, n_steps=1000, int_plot=True):
 
     env = Environment(agent)
     control = Controller(agent)
-    run_experiment(env, control, agent, n_steps=2000, plot=int_plot)
+    run_experiment(env, control, agent, n_steps=2000, plot=int_plot, folder=folder)
 
