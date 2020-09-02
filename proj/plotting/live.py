@@ -1,28 +1,28 @@
 import matplotlib.pyplot as plt
 from matplotlib.patches import Arc
 import numpy as np
+from matplotlib import transforms
+
+
 
 from fcutils.maths.utils import derivative
 from fcutils.plotting.colors import desaturate_color
 
-def plot_mouse(history, mouse, ax):
+def plot_mouse(curr_x, mouse, ax):
     """
         Given the state and mouse params plots a mouse
     """
-    # plot body
-    theta = np.degrees(history['theta'])[-1]
-    ms = Arc((history['x'][-1], history['y'][-1]), mouse['length'], mouse['L']*2, 
-                color='magenta',
-                 angle=theta, linewidth=4, fill=False, zorder=2)
+    # Read image and craete transform to move it to 0, 0
 
-    # plot head
-    ms2 = Arc((history['x'][-1], history['y'][-1]), mouse['length'], mouse['L']*2, color='g',
-                    theta1 = theta-90, theta2 = theta+90,
-                    angle=theta, linewidth=8, fill=False, zorder=2)
+    img = plt.imread('/Users/federicoclaudi/Desktop/rat.png')
+    tr = transforms.Affine2D().scale(.03).translate(-5, -5).rotate_deg(180 - 90).rotate(curr_x.theta)
 
-    ax.add_patch(ms)
-    ax.add_patch(ms2)
-  
+    # Move mouse to current place
+    tr = tr.translate(curr_x.x, curr_x.y)
+
+    ax.imshow(img, origin='upper', transform=tr + ax.transData)
+
+    _ = ax.set(xlim=[-20, 80], ylim=[-10, 110])
 
 def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
     """
@@ -47,7 +47,7 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
                 lw=3, color='r', alpha=1, zorder=-1)
 
     # plot mouse and XY tracking history
-    plot_mouse(model.history, model.mouse, axarr[0])
+    plot_mouse(x, model.mouse, axarr[0])
     axarr[0].plot(model.history['x'], model.history['y'], color='g', lw=1.5, ls='--')
 
     # update ax
@@ -57,7 +57,7 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
                         f' theta:{round(np.degrees(goal.theta), 2)}, v:{round(goal.v, 2)}',
                         # xlim=[-15, params['distance']+15], ylim=[-15, params['distance']+15],
                         )
-    axarr[0].axis('equal')
+    # axarr[0].axis('equal')
 
     if len(model.history['omega']) > 5:
         # Plot Angular velocity
