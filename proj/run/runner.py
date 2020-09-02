@@ -4,7 +4,7 @@ import numpy as np
 
 from proj.plotting.live import update_interactive_plot
 
-def run_experiment(environment, controller, model, n_steps=200):
+def run_experiment(environment, controller, model, n_steps=200, plot=True):
     """
         Runs an experiment
 
@@ -25,9 +25,10 @@ def run_experiment(environment, controller, model, n_steps=200):
     trajectory = environment.reset()
 
     # setup interactive plot
-    plt.ion()
-    f, axarr = plt.subplots(figsize=(12, 8), ncols=2, nrows=2)
-    axarr = axarr.flatten()
+    if plot:
+        plt.ion()
+        f, axarr = plt.subplots(figsize=(16, 8), ncols=3, nrows=2)
+        axarr = axarr.flatten()
 
     # RUN
     for itern in tqdm(range(n_steps)):
@@ -41,12 +42,21 @@ def run_experiment(environment, controller, model, n_steps=200):
         # step
         model.step(u)
 
+        # Check if we're done
+        if environment.isdone(model.curr_x, trajectory):
+            print('Reached end of trajectory after itern steps')
+            break
+
         # update interactieve plot
-        goal= model._state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4])
-        update_interactive_plot(axarr, model, goal, trajectory, g_xs, itern)
+        if plot:
+            goal= model._state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4])
+            update_interactive_plot(axarr, model, goal, trajectory, g_xs, itern)
 
 
-        f.canvas.draw()
-        plt.pause(0.01)
+            f.canvas.draw()
+            plt.pause(0.01)
+
+    # SAVE results
+    model.save(trajectory)
 
     return model.history
