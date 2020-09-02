@@ -21,6 +21,7 @@ class Model(Config):
 
         self._make_simbols()
         self.get_combined_dynamics_kinematics()
+        # self.get_inverse_dynamics()
         self.get_jacobians()
         self.reset()
 
@@ -117,6 +118,29 @@ class Model(Config):
 
         # Store dxdt model as sympy expression
         self.model = g + M*inp
+
+    def get_inverse_dynamics(self):
+        """
+            If the model is
+                x_dot = g + M*tau
+            the inverse model is
+                tau = M_inv * (x_dot - g)
+        """
+        # Get variables
+        x, y, theta, L, R, m, m_w, d, tau_l, tau_r, v, omega = self.variables.values()
+        state = Matrix([x, y, theta, v, omega])
+
+        # Get inverse of M matrix
+        M_inv = SparseMatrix(self.matrixes['M']).pinv() # recast as sparse for speed
+
+        # Get inverse model
+        self.model_inverse = M_inv * (state - self.matrixes['g'])
+
+        # Vectorize expression
+        args = [x, y, theta, v, omega, L, R, m, d, m_w]
+        self.calc_inv_dynamics = lambdify(args, self.model_inverse, modules='numpy')
+
+
 
     def get_jacobians(self):
         x, y, theta, L, R, m, m_w, d, tau_l, tau_r, v, omega = self.variables.values()
@@ -231,12 +255,17 @@ class Model(Config):
             f = np.zeros((pred_len, state_size, state_size))
             for i in range(pred_len):
                 f[i, :, :] = self.calc_model_jacobian_state(theta[i], v[i], omega[i], L, R, m, d, m_w)
-            
+        
+            a = 1
+
             return f * self.dt + np.eye(state_size)
         else:
             f = np.zeros((pred_len, state_size, input_size))
-            f0 = res.append(self.calc_model_jacobian_input(L, R, m, d, m_w)) # no need to iterate because const.
+            f0 = self.calc_model_jacobian_input(L, R, m, d, m_w) # no need to iterate because const.
             for i in range(pred_len):
                 f[i, :, :] = f0
+
+            a = 1
+
             return f * self.dt
 

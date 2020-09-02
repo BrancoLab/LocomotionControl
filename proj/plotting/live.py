@@ -58,8 +58,9 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
     axarr[0].axis('equal')
 
     # Plot controls
-    axarr[1].bar([0, 1, 2], [u.tau_l, u.tau_l, u.tau_l - u.tau_r], color=['b', 'r', 'k'])
-    axarr[1].set(title='control', xticks=[0, 1, 2], xticklabels=['L', 'R', 'L-R'])
+    axarr[1].plot(model.history['omega'], color='m', lw=4, label='$\omega$')
+    axarr[1].legend()
+    axarr[1].set(title='Angular velocity')
 
     # plot controls history
     axarr[2].plot(model.history['tau_l'], color='b', lw=4, label='$\\tau_L$')
@@ -68,6 +69,5 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
     axarr[2].set(title='Control')
 
     axarr[3].plot(model.history['v'], color='g', lw=4, label='$v$')
-    axarr[3].plot(model.history['omega'], color='m', lw=4, label='$\omega$')
     axarr[3].legend()
-    axarr[3].set(title='Velocities')
+    axarr[3].set(title='Linear velocity')
