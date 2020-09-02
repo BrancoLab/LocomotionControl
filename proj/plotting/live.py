@@ -59,28 +59,29 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
                         )
     axarr[0].axis('equal')
 
-    # Plot Angular velocity
-    axarr[1].plot(model.history['omega'], color='m', lw=4, label='$\omega$')
-    axarr[1].legend()
-    axarr[1].set(title='Angular velocity')
+    if len(model.history['omega']) > 5:
+        # Plot Angular velocity
+        axarr[1].plot(model.history['omega'][5:], color='m', lw=4, label='$\omega$')
+        axarr[1].legend()
+        axarr[1].set(title='Angular velocity')
 
-    # Pot angular accelratopm
-    axarr[2].plot(derivative(np.array(model.history['omega'])), color='m', lw=4, label='$\dot{\omega}$')
-    axarr[2].legend()
-    axarr[2].set(title='Angular acceleration')
+        # Pot angular accelratopm
+        axarr[2].plot(derivative(np.array(model.history['omega'][5:])), color='m', lw=4, label='$\dot{\omega}$')
+        axarr[2].legend()
+        axarr[2].set(title='Angular acceleration')
 
-    # plot controls history
-    axarr[3].plot(model.history['tau_l'], color='b', lw=4, label='$\\tau_L$')
-    axarr[3].plot(model.history['tau_r'], color='r', lw=4, label='$\\tau_R$')
-    axarr[3].legend()
-    axarr[3].set(title='Control')
+        # plot controls history
+        axarr[3].plot(model.history['tau_l'][5:], color='b', lw=4, label='$\\tau_L$')
+        axarr[3].plot(model.history['tau_r'][5:], color='r', lw=4, label='$\\tau_R$')
+        axarr[3].legend()
+        axarr[3].set(title='Control')
 
-    # Plot linear velocity
-    axarr[4].plot(model.history['v'], color='g', lw=4, label='$v$')
-    axarr[4].legend()
-    axarr[4].set(title='Linear velocity')
+        # Plot linear velocity
+        axarr[4].plot(model.history['v'][5:], color='g', lw=4, label='$v$')
+        axarr[4].legend()
+        axarr[4].set(title='Linear velocity')
 
-    # Plot linear acceleration
-    axarr[5].plot(derivative(np.array(model.history['v'])), color=desaturate_color('g'), lw=4, label='$\dot{v}$')
-    axarr[5].legend()
-    axarr[5].set(title='Linear acceleration')
+        # Plot linear acceleration
+        axarr[5].plot(derivative(np.array(model.history['v'][5:])), color=desaturate_color('g'), lw=4, label='$\dot{v}$')
+        axarr[5].legend()
+        axarr[5].set(title='Linear acceleration')

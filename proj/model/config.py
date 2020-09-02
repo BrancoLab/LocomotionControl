@@ -1,11 +1,11 @@
 import numpy as np
 from pathlib import Path
-
+import os
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
     save_folder = Path('Z:\\swc\\branco\\Federico\\Locomotion\\control')
     save_name = 'parabola'
-    dt  = .01
+    dt  = .001
     
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
@@ -30,7 +30,7 @@ class Config:
 
     trajectory = dict( # parameters of the goals trajectory
         name = 'parabola',
-        nsteps = 200, 
+        nsteps = 50, 
         distance = 100,
         max_speed = 20,
         min_speed = 2,
