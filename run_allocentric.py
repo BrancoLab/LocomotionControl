@@ -16,7 +16,5 @@ control = Controller(agent)
 # %%
 run_experiment(env, control, agent, n_steps=2000)
 
-# TODO proper logging
 # TODO make it run on HPC
 # TODO run on a number of different trajectories
-# TODO make it stop once at goal

@@ -5,7 +5,7 @@ class Config:
     # ----------------------------- Simulation params ---------------------------- #
     save_folder = Path('Z:\\swc\\branco\\Federico\\Locomotion\\control')
     save_name = 'parabola'
-    dt  = .1
+    dt  = .01
     
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
@@ -29,10 +29,10 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict( # parameters of the goals trajectory
-        nsteps = 150, 
+        nsteps = 200, 
         distance = 100,
         max_speed = 20,
-        min_speed = 10,
+        min_speed = 2,
 
         min_dist = 5, # if agent is within this distance from trajectory end the goal is considered achieved
     )
