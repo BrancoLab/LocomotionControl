@@ -48,7 +48,7 @@ def run_experiment(environment, controller, model, n_steps=200, plot=True, folde
 
         # Check if we're done
         if environment.isdone(model.curr_x, trajectory):
-            print('Reached end of trajectory after itern steps')
+            print(f'Reached end of trajectory after {itern} steps')
             break
 
         # update interactieve plot
