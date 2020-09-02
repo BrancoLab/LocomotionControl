@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
+from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d, calc_distance_between_points_2d
 
 class Environment():
     def __init__(self, model):
@@ -81,3 +81,18 @@ class Environment():
             return np.tile(g_traj[-1], (pred_len, 1))
 
         return g_traj[start:end]
+
+    def isdone(self, curr_x, trajectory):
+        """
+            Checks if the task is complited by seeing if the mouse
+            is close enough to the end of the trajectory
+        """
+        mouse_xy = np.array([curr_x.x, curr_x.y])
+        goal_xy = trajectory[-1, :2]
+
+        dist = calc_distance_between_points_2d(mouse_xy, goal_xy)
+
+        if dist <= self.model.trajectory['min_dist']:
+            return True
+        else:
+            return False
