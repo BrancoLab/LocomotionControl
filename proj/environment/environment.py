@@ -1,14 +1,19 @@
 import numpy as np
-from scipy.optimize import curve_fit
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d, calc_distance_between_points_2d
 
+from proj.environment.trajectories import parabola
+
 class Environment():
+    traj_funcs = dict(
+        parabola = parabola,
+    )
     def __init__(self, model):
         self.model = model
 
-    @staticmethod
-    def curve(x, a, b, c):
-        return (a * (x-b)**2) + + c
+        try:
+            self._traj_func = self.traj_funcs[model.trajectory['name']]
+        except KeyError as e:
+            raise ValueError(f'Could not find a trajectory constructing curve called: {model.trajectory["name"]}')
 
     def make_trajectory(self):
         """
@@ -19,27 +24,7 @@ class Environment():
         params = self.model.trajectory
         n_steps = int(params['nsteps'])
 
-        # Define 3 points
-        X = [0, params['distance']/2, params['distance']]
-        Y = [0, params['distance']/4, 0]
-
-        # fit curve and make trace
-        coef,_ = curve_fit(self.curve, X, Y)
-
-        x = np.linspace(0, params['distance'], n_steps)
-        y = self.curve(x, *coef)
-
-        # Compute other variables that figure in the state vector
-        angle = np.radians(calc_angle_between_points_of_vector_2d(x, y))
-
-        speed = (1 - np.sin(np.linspace(0, 3, len(x)))) 
-        speed = speed * (params['max_speed']-params['min_speed']) + params['min_speed']
-
-        ang_speed = np.ones_like(speed) # it will be ignored
-
-
-        trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
-        return trajectory[1:, :]
+        return self._traj_func(n_steps, params)
 
     def reset(self):
         """

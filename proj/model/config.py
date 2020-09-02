@@ -29,6 +29,7 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict( # parameters of the goals trajectory
+        name = 'parabola',
         nsteps = 200, 
         distance = 100,
         max_speed = 20,

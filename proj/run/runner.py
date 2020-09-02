@@ -1,10 +1,11 @@
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 from proj.plotting.live import update_interactive_plot
 
-def run_experiment(environment, controller, model, n_steps=200, plot=True):
+def run_experiment(environment, controller, model, n_steps=200, plot=True, folder=None):
     """
         Runs an experiment
 
@@ -20,6 +21,9 @@ def run_experiment(environment, controller, model, n_steps=200, plot=True):
 
         :returns: the history of events as stored by model
     """
+    if folder is not None:
+        model.save_folder = Path(folder)
+        
     # reset things
     model.reset()
     trajectory = environment.reset()
