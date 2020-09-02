@@ -28,6 +28,9 @@ class Model(Config, Symbolic):
         self.get_jacobians()
         self.reset()
 
+    def __repr__(self):
+        return ''.join([f'{k}: -- {v}\n' for k,v in self.config_dict().items()])
+
     def reset(self):
         self.curr_x = self._state(0, 0, 0, 0, 0)
         self.curr_control = self._control(0, 0) # use only to keep track
@@ -63,7 +66,7 @@ class Model(Config, Symbolic):
         save_yaml(str(save_fld/'control_vars.yml'), dict(self._control(0, 0)._asdict()))
 
         # save trajectory
-        np.save(str(save_fld/'trajecotry.npy'), trajectory)
+        np.save(str(save_fld/'trajectory.npy'), trajectory)
 
         # save history
         pd.DataFrame(self.history).to_hdf(str(save_fld/'history.h5'), key='hdf')
