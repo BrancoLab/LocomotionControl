@@ -125,7 +125,6 @@ class Controller(Cost):
                 print("Non ans : {}".format(e))
             
             if not accepted_sol:
-                print('Failed to find an accepted solution')
                 self.delta = max(1.0, self.delta) * self.init_delta
                 self.mu = max(self.mu_min, self.mu * self.delta)
                 if self.mu >= self.mu_max:
