@@ -6,13 +6,15 @@ class Config:
     # ----------------------------- Simulation params ---------------------------- #
     save_folder = Path("Z:\\swc\\branco\\Federico\\Locomotion\\control")
     save_name = "parabola"
-    dt = 0.01
+
+    warmup_length = 0
+    dt = 0.1
 
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
     INPUT_SIZE = 2
 
-    R = np.diag([0.01, 0.01])  # control cost
+    R = np.diag([1, 1])  # control cost
     Q = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # final state cost
 
@@ -31,7 +33,7 @@ class Config:
 
     trajectory = dict(  # parameters of the goals trajectory
         name="parabola",
-        nsteps=200,
+        nsteps=300,
         distance=100,
         max_speed=20,
         min_speed=2,
@@ -40,7 +42,7 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=20,
+        prediction_length=40,
         n_ahead=5,  # start prediction states from N steps ahead
     )
 
