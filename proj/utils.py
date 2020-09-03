@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def merge(*ds):
     """
         Merges an arbitrary number of dicts or named tuples
@@ -12,9 +13,10 @@ def merge(*ds):
             res = {**res, **d}
     return res
 
+
 def wrap_angle(angles):
     """ 
         Maps a list of angles in RADIANS to [-pi, pi]
     """
     angles = np.array(angles)
-    return ( angles + np.pi) % (2 * np.pi ) - np.pi
+    return (angles + np.pi) % (2 * np.pi) - np.pi

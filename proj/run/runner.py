@@ -5,7 +5,10 @@ from pathlib import Path
 
 from proj.plotting.live import update_interactive_plot
 
-def run_experiment(environment, controller, model, n_steps=200, plot=True, folder=None):
+
+def run_experiment(
+    environment, controller, model, n_steps=200, plot=True, folder=None
+):
     """
         Runs an experiment
 
@@ -23,7 +26,7 @@ def run_experiment(environment, controller, model, n_steps=200, plot=True, folde
     """
     if folder is not None:
         model.save_folder = Path(folder)
-        
+
     # reset things
     model.reset()
     trajectory = environment.reset()
@@ -48,14 +51,17 @@ def run_experiment(environment, controller, model, n_steps=200, plot=True, folde
 
         # Check if we're done
         if environment.isdone(model.curr_x, trajectory):
-            print('Reached end of trajectory after itern steps')
+            print("Reached end of trajectory after itern steps")
             break
 
         # update interactieve plot
         if plot:
-            goal= model._state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4])
-            update_interactive_plot(axarr, model, goal, trajectory, g_xs, itern)
-
+            goal = model._state(
+                g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4]
+            )
+            update_interactive_plot(
+                axarr, model, goal, trajectory, g_xs, itern
+            )
 
             f.canvas.draw()
             plt.pause(0.01)
