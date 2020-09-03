@@ -41,7 +41,7 @@ def run_experiment(
     for itern in tqdm(range(n_steps)):
         curr_x = np.array(model.curr_x)
         # plan
-        g_xs = environment.plan(curr_x, trajectory)
+        g_xs = environment.plan(curr_x, trajectory, itern)
 
         # obtain sol
         u = controller.obtain_sol(curr_x, g_xs)
@@ -51,7 +51,7 @@ def run_experiment(
 
         # Check if we're done
         if environment.isdone(model.curr_x, trajectory):
-            print("Reached end of trajectory after itern steps")
+            print(f"Reached end of trajectory after {itern} steps")
             break
 
         # update interactieve plot

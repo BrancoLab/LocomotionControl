@@ -1,11 +1,11 @@
 import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
-from proj.environment.trajectories import parabola
+from proj.environment.trajectories import parabola, sin, circle
 
 
 class Environment:
-    traj_funcs = dict(parabola=parabola,)
+    traj_funcs = dict(parabola=parabola, sin=sin, circle=circle,)
 
     def __init__(self, model):
         self.model = model
@@ -40,12 +40,12 @@ class Environment:
 
         # Set model's state to the start of the trajectory
         self.model.curr_x = self.model._state(
-            g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], 0, 0
+            g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], g_traj[0, 3] / 2, 0
         )
 
         return g_traj
 
-    def plan(self, curr_x, g_traj):
+    def plan(self, curr_x, g_traj, itern):
         """
             Given the current state and the goal trajectory, 
             find the next N sates, based on planning
@@ -53,21 +53,26 @@ class Environment:
         n_ahead = self.model.planning["n_ahead"]
         pred_len = self.model.planning["prediction_length"] + 1
 
-        min_idx = np.argmin(np.linalg.norm(curr_x[:2] - g_traj[:, :2], axis=1))
+        if itern > self.model.warmup_length:
+            min_idx = np.argmin(
+                np.linalg.norm(curr_x[:2] - g_traj[:, :2], axis=1)
+            )
 
-        start = min_idx + n_ahead
-        if start > len(g_traj):
-            start = len(g_traj)
+            start = min_idx + n_ahead
+            if start > len(g_traj):
+                start = len(g_traj)
 
-        end = min_idx + n_ahead + pred_len
+            end = min_idx + n_ahead + pred_len
 
-        if (min_idx + n_ahead + pred_len) > len(g_traj):
-            end = len(g_traj)
+            if (min_idx + n_ahead + pred_len) > len(g_traj):
+                end = len(g_traj)
 
-        if abs(start - end) != pred_len:
-            return np.tile(g_traj[-1], (pred_len, 1))
+            if abs(start - end) != pred_len:
+                return np.tile(g_traj[-1], (pred_len, 1))
 
-        return g_traj[start:end]
+            return g_traj[start:end]
+        else:
+            return g_traj[0:pred_len]
 
     def isdone(self, curr_x, trajectory):
         """
