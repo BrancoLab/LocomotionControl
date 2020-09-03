@@ -11,8 +11,8 @@ requirements = [
     "matplotlib",
     "simpy",
     "sympy",
-    'h5py',
-    'click',
+    "h5py",
+    "click",
 ]
 
 setup(
