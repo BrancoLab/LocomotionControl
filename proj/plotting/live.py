@@ -14,8 +14,8 @@ def plot_mouse(curr_x, mouse, ax):
     """
     # Read image and craete transform to move it to 0, 0
 
-    img = plt.imread('/Users/federicoclaudi/Desktop/rat.png')
-    tr = transforms.Affine2D().scale(.03).translate(-5, -5).rotate_deg(180 - 90).rotate(curr_x.theta)
+    img = plt.imread('rat.png')
+    tr = transforms.Affine2D().scale(.03).translate(-7, -5).rotate_deg(180 - 90).rotate(curr_x.theta)
 
     # Move mouse to current place
     tr = tr.translate(curr_x.x, curr_x.y)
@@ -23,6 +23,15 @@ def plot_mouse(curr_x, mouse, ax):
     ax.imshow(img, origin='upper', transform=tr + ax.transData)
 
     _ = ax.set(xlim=[-20, 80], ylim=[-10, 110])
+
+def update_interactive_plot_manual(ax, model):
+    ax.clear()
+    x = model.curr_x
+
+    # plot mouse and XY tracking history
+    plot_mouse(x, model.mouse, ax)
+    ax.plot(model.history['x'], model.history['y'], color='g', lw=1.5, ls='--')
+
 
 def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
     """
