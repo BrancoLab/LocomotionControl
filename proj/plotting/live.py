@@ -24,13 +24,17 @@ def plot_mouse(curr_x, mouse, ax):
 
     _ = ax.set(xlim=[-20, 80], ylim=[-10, 110])
 
-def update_interactive_plot_manual(ax, model):
+def update_interactive_plot_manual(ax, model, trajectory=None):
     ax.clear()
     x = model.curr_x
 
     # plot mouse and XY tracking history
     plot_mouse(x, model.mouse, ax)
     ax.plot(model.history['x'], model.history['y'], color='g', lw=1.5, ls='--')
+
+    if trajectory is not None:
+        ax.plot(trajectory[:, 0], trajectory[:, 1], lw=2, color='k', alpha=.4, zorder=-1)
+        
 
 
 def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):

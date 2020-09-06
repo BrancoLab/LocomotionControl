@@ -6,3 +6,4 @@ from proj.environment.environment import Environment
 from proj.control.control import Controller
 
 from proj.plotting.misc import plot_trajectory
+from proj.plotting.results import plot_results

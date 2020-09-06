@@ -69,7 +69,7 @@ class Model(Config):
         # save history
         pd.DataFrame(self.history).to_hdf(str(save_fld/'history.h5'), key='hdf')
 
-        print(f'Data saved at: {fld}')
+        print(f'Data saved at: {save_fld}')
 
     def _make_simbols(self):
         # state variables
