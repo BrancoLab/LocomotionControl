@@ -8,6 +8,8 @@ import numpy as np
 # ! TODO  formula I_c for cube!
 # ! energy considerations, you should need more force to accelerate when going faster?
 
+# TODO fix orientation at start of trajectory
+
 agent = Model()
 env = Environment(agent)
 control = Controller(agent)
@@ -23,19 +25,18 @@ agent.model
 # plot_trajectory(env.reset())
 # plt.show()
 
-# run_experiment(env, control, agent, n_steps=2000)
 # %%
-agent.curr_x = agent._state(0, 0, 0, 0, 0)
+# agent.curr_x = agent._state(0, 0, 0, 0, 0)
 
 folder='/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/tests/anim'
-
 savefolder = '/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Presentations/Presentations/goal_directed_locomotion'
-name = '/sincos.mp4'
+name = '/line.mp4'
 savepath = savefolder + name
 
-run_manual(env, agent, n_steps, u, 
-                ax_kwargs=dict(xlim=[-250, 250], ylim=[-250, 250]),
-                folder=folder)
+# run_manual(env, agent, n_steps, u, 
+#                 ax_kwargs=dict(xlim=[-250, 250], ylim=[-250, 250]),
+#                 folder=folder)
 
+run_experiment(env, control, agent, n_steps=2000, frames_folder=None)
 
 animate_from_images(folder, savepath)

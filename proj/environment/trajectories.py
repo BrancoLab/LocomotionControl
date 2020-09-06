@@ -10,7 +10,7 @@ def complete_given_xy(x, y, params):
 
     speed = (1 - np.sin(np.linspace(0, 3, len(x)))) 
     speed = speed * (params['max_speed']-params['min_speed']) + params['min_speed']
-
+    
     ang_speed = np.ones_like(speed) # it will be ignored
 
 
@@ -19,6 +19,12 @@ def complete_given_xy(x, y, params):
 
 
 # ---------------------------------- Curves ---------------------------------- #
+def line(n_steps, params):
+    y = np.linspace(0, params['distance'], n_steps)
+    x = np.zeros_like(y)
+
+    return complete_given_xy(x, y, params)
+
 def circle(n_steps, params):
     p = np.linspace(0, 2 * np.pi, n_steps)
     r = params['distance']/2
