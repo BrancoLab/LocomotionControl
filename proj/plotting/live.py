@@ -11,7 +11,6 @@ def plot_mouse(curr_x, mouse, ax):
         Given the state and mouse params plots a mouse
     """
     # Read image and craete transform to move it to 0, 0
-
     img = plt.imread("/Users/federicoclaudi/Desktop/rat.png")
     tr = (
         transforms.Affine2D()
