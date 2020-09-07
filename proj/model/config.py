@@ -4,19 +4,21 @@ from pathlib import Path
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    save_folder = Path("Z:\\swc\\branco\\Federico\\Locomotion\\control")
+    save_folder = Path(
+        "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control"
+    )
     save_name = "parabola"
 
     warmup_length = 0
-    dt = 0.1
+    dt = 0.01
 
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
     INPUT_SIZE = 2
 
-    R = np.diag([1, 1])  # control cost
-    Q = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # state cost | x, y, theta, v, omega
-    Sf = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # final state cost
+    R = np.diag([0.01, 0.01])  # control cost
+    Q = np.diag([2.5, 2.5, 2.5, 5, 0])  # state cost | x, y, theta, v, omega
+    Sf = np.diag([2.5, 2.5, 2.5, 5, 0])  # final state cost
 
     # ------------------------------- Mouse params ------------------------------- #
 
@@ -36,8 +38,8 @@ class Config:
         nsteps=300,
         distance=100,
         max_speed=20,
-        min_speed=2,
-        min_dist=5,  # if agent is within this distance from trajectory end the goal is considered achieved
+        min_speed=10,
+        min_dist=20,  # if agent is within this distance from trajectory end the goal is considered achieved
     )
 
     # ------------------------------ Planning params ----------------------------- #

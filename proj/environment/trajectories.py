@@ -16,11 +16,20 @@ def complete_given_xy(x, y, params):
 
     ang_speed = np.ones_like(speed)  # it will be ignored
 
+    ang_speed = np.ones_like(speed)  # it will be ignored
+
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
     return trajectory
 
 
 # ---------------------------------- Curves ---------------------------------- #
+def line(n_steps, params):
+    y = np.linspace(0, params["distance"], n_steps)
+    x = np.zeros_like(y)
+
+    return complete_given_xy(x, y, params)
+
+
 def circle(n_steps, params):
     p = np.linspace(0, 2 * np.pi, n_steps)
     r = params["distance"] / 2

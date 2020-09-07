@@ -1,11 +1,11 @@
 import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
-from proj.environment.trajectories import parabola, sin, circle
+from proj.environment.trajectories import parabola, sin, circle, line
 
 
 class Environment:
-    traj_funcs = dict(parabola=parabola, sin=sin, circle=circle,)
+    traj_funcs = dict(parabola=parabola, sin=sin, circle=circle, line=line,)
 
     def __init__(self, model):
         self.model = model
@@ -40,7 +40,7 @@ class Environment:
 
         # Set model's state to the start of the trajectory
         self.model.curr_x = self.model._state(
-            g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], g_traj[0, 3] / 2, 0
+            g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], 0, 0
         )
 
         return g_traj

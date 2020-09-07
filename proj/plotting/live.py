@@ -11,11 +11,12 @@ def plot_mouse(curr_x, mouse, ax):
         Given the state and mouse params plots a mouse
     """
     # Read image and craete transform to move it to 0, 0
-    img = plt.imread("/Users/federicoclaudi/Desktop/rat.png")
+
+    img = plt.imread("rat.png")
     tr = (
         transforms.Affine2D()
         .scale(0.03)
-        .translate(-5, -5)
+        .translate(-7, -5)
         .rotate_deg(180 - 90)
         .rotate(curr_x.theta)
     )
@@ -28,6 +29,18 @@ def plot_mouse(curr_x, mouse, ax):
     _ = ax.set(xlim=[-20, 80], ylim=[-10, 110])
 
 
+def update_interactive_plot_manual(ax, model, trajectory=None):
+    ax.clear()
+    x = model.curr_x
+
+    # plot mouse and XY tracking history
+    plot_mouse(x, model.mouse, ax)
+    ax.plot(model.history["x"], model.history["y"], color="g", lw=1.5, ls="--")
+
+    if trajectory is not None:
+        ax.plot(trajectory[:, 0], trajectory[:, 1], color="k", lw=1)
+
+
 def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
     """
         Update plot with current situation and controls
@@ -37,10 +50,8 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
     axarr[0].clear()
     axarr[1].clear()
     axarr[2].clear()
-    axarr[3].clear()
     axarr[4].clear()
     axarr[5].clear()
-
     # plot trajectory
     axarr[0].scatter(
         trajectory[:, 0],

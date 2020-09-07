@@ -73,7 +73,7 @@ class Model(Config):
             for k, v in ntuple._asdict().items():
                 self.history[k].append(v)
 
-    def save(self, trajectory):
+    def save(self, trajectory=None):
         # Create folder
         time_stamp = time.strftime("%y%m%d_%H%M%S")
         save_fld = self.save_folder / (self.save_name + f"_{time_stamp}")
@@ -93,12 +93,15 @@ class Model(Config):
         )
 
         # save trajectory
-        np.save(str(save_fld / "trajectory.npy"), trajectory)
+        if trajectory is not None:
+            np.save(str(save_fld / "trajectory.npy"), trajectory)
 
         # save history
         pd.DataFrame(self.history).to_hdf(
             str(save_fld / "history.h5"), key="hdf"
         )
+
+        print(f"Data saved at: {save_fld}")
 
     def _make_simbols(self):
         # state variables
