@@ -3,11 +3,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
-from proj.plotting.live import update_interactive_plot
+from proj.plotting.live import (
+    update_interactive_plot,
+    update_interactive_plot_manual,
+)
 
 
 def run_experiment(
-    environment, controller, model, n_steps=200, plot=True, folder=None
+    environment,
+    controller,
+    model,
+    n_steps=200,
+    plot=True,
+    folder=None,
+    frames_folder=None,
 ):
     """
         Runs an experiment
@@ -37,6 +46,10 @@ def run_experiment(
         f, axarr = plt.subplots(figsize=(16, 8), ncols=3, nrows=2)
         axarr = axarr.flatten()
 
+    # save frames
+    if frames_folder is not None:
+        f2, ax2, = plt.subplots(figsize=(12, 8))
+
     # RUN
     for itern in tqdm(range(n_steps)):
         curr_x = np.array(model.curr_x)
@@ -65,6 +78,21 @@ def run_experiment(
 
             f.canvas.draw()
             plt.pause(0.01)
+
+            # save frames for animation
+            if frames_folder is not None:
+                update_interactive_plot_manual(
+                    ax2, model, trajectory=trajectory
+                )
+
+                if itern < 10:
+                    n = f"0{itern}"
+                else:
+                    n = str(itern)
+
+                ax2.set(xlim=[-20, 120], ylim=[-20, 20])
+                ax2.axis("off")
+                f2.savefig(str(Path(frames_folder) / n))
 
     # SAVE results
     model.save(trajectory)

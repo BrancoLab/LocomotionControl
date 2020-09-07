@@ -1,3 +1,8 @@
-from proj.run.cli import launch
+import matplotlib.pyplot as plt
+from proj import plot_results
 
-launch()
+plot_results(
+    "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/parabola_200905_134410"
+)
+
+plt.show()
