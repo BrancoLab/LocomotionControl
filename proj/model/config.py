@@ -25,16 +25,16 @@ class Config:
     STATE_SIZE = 4
     INPUT_SIZE = 2
 
-    R = np.diag([0.01, 0.01])  # control cost
-    Q = np.diag([2.5, 2.5, 5, 0])  # state cost | x, y, theta, v, omega
-    Sf = np.diag([2.5, 2.5, 5, 0])  # final state cost
+    R = np.diag([0.05, 0.05])  # control cost
+    Q = np.diag([2.5, 2.5, 0, 0])  # state cost | r, omega, v, omega
+    Sf = np.diag([2.5, 2.5, 0, 0])  # final state cost
 
     # ------------------------------- Mouse params ------------------------------- #
 
     mouse = dict(
         L=1.5,  # half body width | cm
         R=1,  # radius of wheels | cm
-        d=0.1,  # distance between axel and CoM | cm
+        d=0,  # distance between axel and CoM | cm
         length=6,  # cm
         m=round(20 / 9.81, 2),  # mass | g
         m_w=round(2 / 9.81, 2),  # mass of wheels/legs |g
@@ -43,17 +43,17 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="parabola",
+        name="point",
         nsteps=300,
-        distance=100,
+        distance=50,
         max_speed=20,
         min_speed=10,
-        min_dist=20,  # if agent is within this distance from trajectory end the goal is considered achieved
+        min_dist=-0.1,  # if agent is within this distance from trajectory end the goal is considered achieved
     )
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=40,
+        prediction_length=30,
         n_ahead=5,  # start prediction states from N steps ahead
     )
 

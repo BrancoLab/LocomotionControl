@@ -63,16 +63,6 @@ def traj_to_polar(traj):
 
     new_traj[:, 1] = np.arctan2(traj[:, 1], traj[:, 0])
 
-    # import matplotlib.pyplot as plt
-    # f = plt.figure()
-    # ax = f.add_subplot(121)
-    # pax = f.add_subplot(122, projection="polar")
-
-    # ax.scatter(traj[:, 0], traj[:, 1], cmap='bwr', c=np.arange(len(traj[:, 0])))
-    # pax.scatter(new_traj[:, 1], new_traj[:, 0], cmap='bwr', c=np.arange(len(traj[:, 0])))
-
-    # plt.show()
-
     return new_traj
 
 

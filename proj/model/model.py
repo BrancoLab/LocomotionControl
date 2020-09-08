@@ -56,9 +56,9 @@ class Model(Config):
         Config.__init__(self)
 
         self._make_simbols()
-        self.get_combined_dynamics_kinematics()
 
         if startup:
+            self.get_combined_dynamics_kinematics()
             # self.get_inverse_dynamics()
             self.get_jacobians()
             self.reset()

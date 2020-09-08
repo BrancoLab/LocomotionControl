@@ -9,6 +9,7 @@ from sympy import (
 )
 
 from proj.model.model import Model
+from proj.utils import cartesian_to_polar
 
 
 class ModelPolar(Model):
@@ -53,6 +54,41 @@ class ModelPolar(Model):
         self._get_polar_dynamics()
         self.get_jacobians()
 
+    def reset(self):
+        self.move_to_random_location()
+        self.curr_control = self._control(0, 0)  # use only to keep track
+
+        self.history = dict(
+            x=[],
+            y=[],
+            theta=[],
+            v=[],
+            omega=[],
+            tau_r=[],
+            tau_l=[],
+            r=[],
+            gamma=[],
+        )
+
+    def move_to_random_location(self):
+        """
+            Moves the agent to a point with random polar coordinates
+        """
+        # start as a point in the plane with theta 0
+        x = np.random.randint(
+            -self.trajectory["distance"], self.trajectory["distance"]
+        )
+        y = np.random.randint(
+            -self.trajectory["distance"], self.trajectory["distance"]
+        )
+
+        self.initial_pos = (x, y)
+
+        # Get r, gamma from goal
+        r, gamma = cartesian_to_polar(x, y)
+
+        self.curr_x = self._state(r, gamma, 0, 0,)
+
     def _get_polar_dynamics(self):
         (
             _,
@@ -86,15 +122,15 @@ class ModelPolar(Model):
         # Define M matrix
         M = Matrix(
             [
-                [-1, cos(omega), 0, 0],
-                [0, 1, 0, 0],
+                [-cos(gamma), 0, 0, 0],
+                [0, -1, 0, 0],
                 [0, 0, L / (m * R), L / (m * R)],
                 [0, 0, L / (J * R), -L / (J * R)],
             ]
         )
 
         # vectorize expression
-        args = [gamma, r, v, omega, L, R, m, d, m_w, tau_l, tau_r]
+        args = [r, gamma, v, omega, L, R, m, d, m_w, tau_l, tau_r]
         expr = g + M * inp
         self.calc_dqdt = lambdify(args, expr, modules="numpy")
 

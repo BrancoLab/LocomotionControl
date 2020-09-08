@@ -144,6 +144,9 @@ class Controller(Cost):
                     # print("Reach Max regularization term")
                     break
 
+        # if not accepted_sol:
+        #     print('Failed to converge to a solution')
+
         if np.any(np.isnan(sol)) or np.any(np.isinf(sol)):
             raise ValueError("nans or inf in solution!")
 
