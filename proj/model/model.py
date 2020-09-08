@@ -7,8 +7,11 @@ import time
 import pandas as pd
 from fcutils.file_io.io import save_yaml
 
+from fcutils.maths.geometry import calc_distance_between_points_2d, calc_angle_between_vectors_of_points_2d
+
 from proj.model.config import Config
 from proj.utils import merge
+from proj.control.utils import fit_angle_in_range
 
 class Model(Config):
     _M_args = ['theta', 'v', 'omega', 'L', 'R', 'm', 'd', 'm_w' , 'tau_l', 'tau_r']
@@ -164,8 +167,6 @@ class Model(Config):
         args = [x, y, theta, v, omega, L, R, m, d, m_w]
         self.calc_inv_dynamics = lambdify(args, self.model_inverse, modules='numpy')
 
-
-
     def get_jacobians(self):
         x, y, theta, L, R, m, m_w, d, tau_l, tau_r, v, omega = self.variables.values()
 
@@ -181,7 +182,6 @@ class Model(Config):
 
         args = [L, R, m, d, m_w]
         self.calc_model_jacobian_input = lambdify(args, self.model_jacobian_input, modules='numpy')
-
 
     def step(self, u):
         u = self._control(*np.array(u))
@@ -292,3 +292,28 @@ class Model(Config):
             a = 1
 
             return f * self.dt
+
+    def calc_angle_distance_from_goal(self, goal_x, goal_y):
+        # Get current position
+        x, y = self.curr_x.x, self.curr_x.y
+
+        # Get a point in front of current heading
+        x1 = x + np.cos(self.curr_x.theta)
+        y1 = y + np.sin(self.curr_x.theta)
+
+        # Get the angle between x-axis and (x_g, y_g)
+        gamma = np.radians(calc_angle_between_vectors_of_points_2d(x, y, goal_x, goal_y))
+
+        # Get the angle between x-axis and (x_1, y_1)
+        ang = np.radians(calc_angle_between_vectors_of_points_2d(x, y, x1, y1))
+
+        # take difference 
+        gamma -= ang
+        gamma = fit_angle_in_range(gamma, is_deg=False)
+        gamma = -gamma
+
+        # compute distance
+        r = calc_distance_between_points_2d([x, y], [goal_x, goal_y])
+
+
+        return r, gamma
