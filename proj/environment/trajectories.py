@@ -23,6 +23,18 @@ def complete_given_xy(x, y, params):
 
 
 # ---------------------------------- Curves ---------------------------------- #
+def point(n_steps, params):
+    x = np.zeros(n_steps)
+    y = np.zeros(n_steps)
+
+    return complete_given_xy(x, y, params)
+
+
+# `
+# def polar_line(n_steps, params):
+#     x = `
+
+
 def line(n_steps, params):
     y = np.linspace(0, params["distance"], n_steps)
     x = np.zeros_like(y)

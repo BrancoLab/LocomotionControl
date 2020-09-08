@@ -1,7 +1,9 @@
 import numpy as np
 
 
-def fit_angle_in_range(angles, min_angle=-np.pi, max_angle=np.pi, is_deg=True):
+def fit_angle_in_range(
+    angles, min_angle=-np.pi, max_angle=np.pi, is_deg=False
+):
     """ Check angle range and correct the range
     it assumes that the angles are passed ind degrees
     

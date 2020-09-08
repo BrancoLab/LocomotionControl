@@ -6,6 +6,7 @@ from pathlib import Path
 from proj.plotting.live import (
     update_interactive_plot,
     update_interactive_plot_manual,
+    update_interactive_plot_polar,
 )
 
 
@@ -37,14 +38,22 @@ def run_experiment(
         model.save_folder = Path(folder)
 
     # reset things
-    model.reset()
     trajectory = environment.reset()
+    model.reset()
 
     # setup interactive plot
     if plot:
         plt.ion()
-        f, axarr = plt.subplots(figsize=(16, 8), ncols=3, nrows=2)
-        axarr = axarr.flatten()
+
+        if model.MODEL_TYPE == "cartesian":
+            f, axarr = plt.subplots(figsize=(16, 8), ncols=3, nrows=2)
+            axarr = axarr.flatten()
+        else:
+            f = plt.figure(figsize=(22, 8))
+            ax = f.add_subplot(131)
+            ax2 = f.add_subplot(132)
+            pax = f.add_subplot(133, projection="polar")
+            axarr = [ax, ax2, pax]
 
     # save frames
     if frames_folder is not None:
@@ -69,12 +78,16 @@ def run_experiment(
 
         # update interactieve plot
         if plot:
-            goal = model._state(
-                g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4]
-            )
-            update_interactive_plot(
-                axarr, model, goal, trajectory, g_xs, itern
-            )
+
+            if model.MODEL_TYPE == "cartesian":
+                goal = model._state(
+                    g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4]
+                )
+                update_interactive_plot(
+                    axarr, model, goal, trajectory, g_xs, itern
+                )
+            else:
+                update_interactive_plot_polar(axarr, model, trajectory, itern)
 
             f.canvas.draw()
             plt.pause(0.01)

@@ -1,6 +1,24 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from proj.utils import polar_to_cartesian
+
+
+def plot_trajectory_polar(traj):
+
+    f = plt.figure()
+    ax = f.add_subplot(121)
+    pax = f.add_subplot(122, projection="polar")
+
+    # plot in cartesian coordinates
+    x, y = polar_to_cartesian(traj[:, 0], traj[:, 1])
+    ax.scatter(x, y, cmap="bwr", c=np.arange(len(x)))
+
+    # plot in polar coordinates
+    pax.scatter(
+        traj[:, 1], traj[:, 0], cmap="bwr", c=np.arange(len(traj[:, 0]))
+    )
+
 
 def plot_trajectory(traj):
 

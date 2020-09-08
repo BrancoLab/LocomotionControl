@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from fcutils.maths.utils import derivative
 from fcutils.plotting.colors import desaturate_color
 
+from proj.utils import polar_to_cartesian
+
 
 def plot_mouse(curr_x, mouse, ax):
     """
@@ -39,6 +41,31 @@ def update_interactive_plot_manual(ax, model, trajectory=None):
 
     if trajectory is not None:
         ax.plot(trajectory[:, 0], trajectory[:, 1], color="k", lw=1)
+
+
+def update_interactive_plot_manual_polar(model, ax, pax, traj=None):
+    x, y = polar_to_cartesian(model.curr_x.r, model.curr_x.gamma)
+
+    ax.scatter(x, y)
+
+    pax.scatter(model.curr_x.gamma, model.curr_x.r)
+
+    if traj is not None:
+        xtraj, ytraj = polar_to_cartesian(traj[:, 0], traj[:, 1])
+        ax.scatter(xtraj, ytraj, lw=1, color="k")
+
+        ax.plot(
+            [x, x + (xtraj[0] - x) * 0.1],
+            [y, y + (ytraj[0] - y) * 0.1],
+            color="k",
+            lw=0.5,
+        )
+
+        pax.scatter(traj[:, 1], traj[:, 0], lw=1, color="k")
+
+    pax.set(
+        title=f"r: {round(model.curr_x.r, 2)} | gamma: {round(model.curr_x.gamma, 2)}"
+    )
 
 
 def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
@@ -122,3 +149,52 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
         )
         axarr[5].legend()
         axarr[5].set(title="Linear acceleration")
+
+
+def update_interactive_plot_polar(axarr, model, trajectory, itern):
+    # Setup
+    for ax in axarr:
+        ax.clear()
+
+    ax, ax2, pax = axarr
+
+    # Plot control history
+    ax2.plot(model.history["tau_r"], color="r", lw=2, label="R")
+    ax2.plot(model.history["tau_l"], color="b", lw=2, label="L")
+    ax2.legend()
+
+    # Plot XY tracking
+    x, y = polar_to_cartesian(
+        model.history["r"], np.pi - np.array(model.history["gamma"])
+    )
+
+    xtraj, ytraj = polar_to_cartesian(trajectory[:, 0], trajectory[:, 1])
+    # xtraj += x[-1]
+    # ytraj += y[-1]
+
+    ax.plot(xtraj, ytraj, lw=1, color="k")
+    ax.scatter(xtraj[-1], ytraj[-1], s=50, color="k")
+
+    ax.plot(x, y, lw=2, color="g", ls="--")
+    ax.scatter(x[-1], y[-1], s=100, color="r")
+
+    ax.scatter(model.initial_pos[0], model.initial_pos[1], s=200, color="g")
+
+    # Plot polar tracking
+    pax.plot(trajectory[:, 1], trajectory[:, 0], lw=1, color="k")
+    pax.plot(
+        model.history["gamma"], model.history["r"], lw=2, color="g", ls="--"
+    )
+    pax.scatter(model.curr_x.gamma, model.curr_x.r, s=200, color="r")
+
+    # Cleanup
+    dist = model.trajectory["distance"]
+    ax.set(
+        title=f"Iteration number: {itern}",
+        xlim=[-dist, dist],
+        ylim=[-dist, dist],
+    )
+    pax.set(
+        title=f"r: {round(model.curr_x.r, 2)} | gamma: {round(model.curr_x.gamma, 2)} \n"
+        + f"v: {round(model.curr_x.v, 2)} | omega: {round(model.curr_x.omega, 2)}"
+    )
