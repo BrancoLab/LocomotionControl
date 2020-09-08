@@ -61,14 +61,22 @@ class Model(Config):
         if startup:
             # self.get_inverse_dynamics()
             self.get_jacobians()
-        self.reset()
+            self.reset()
 
     def reset(self):
-        self.curr_x = self._state(0, 0, 0, 0, 0)
+        self.curr_x = self._state(*np.zeros(self.STATE_SIZE))
         self.curr_control = self._control(0, 0)  # use only to keep track
 
         self.history = dict(
-            x=[], y=[], theta=[], v=[], omega=[], tau_r=[], tau_l=[],
+            x=[],
+            y=[],
+            theta=[],
+            v=[],
+            omega=[],
+            tau_r=[],
+            tau_l=[],
+            r=[],
+            gamma=[],
         )
 
         self._append_history()  # make sure first state is included
