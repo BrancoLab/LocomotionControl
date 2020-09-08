@@ -1,13 +1,30 @@
 # %%
+<<<<<<< HEAD
 from proj import Model, Environment, Controller, run_experiment, plot_trajectory, run_manual, plot_results
+=======
+from proj import (
+    Model,
+    Environment,
+    Controller,
+    run_experiment,
+    # plot_trajectory,
+    # run_manual,
+)
+>>>>>>> 4d8d75eaeeb72f6610ac7ef7bf3bac9c01a5ff11
 from proj.animation.animate import animate_from_images
 from proj.utils import load_results_from_folder
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 
+<<<<<<< HEAD
 from fcutils.maths.utils import derivative
 
+=======
+# import matplotlib.pyplot as plt
+
+# TODO move rat image to within package
+>>>>>>> 4d8d75eaeeb72f6610ac7ef7bf3bac9c01a5ff11
 # ! TODO  formula I_c for cube!
 # ! energy considerations, you should need more force to accelerate when going faster?
 
@@ -21,7 +38,9 @@ n_steps = 500
 
 t = np.linspace(0, 1, n_steps)
 u = np.ones((n_steps, 2)) * 2
-u[:, 0] = (np.sin(t) - .5) * 2
+u[:, 0] = (np.sin(t) - 0.5) * 2
+# u[:, 1] = np.cos(t) * 2
+agent.model
 
 # %%
 config, control, state, trajectory, history = load_results_from_folder('/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/parabola_200905_134410')
@@ -89,6 +108,7 @@ _ = ax.axis('equal')
 
 # %%
 
+<<<<<<< HEAD
 # # %%
 # # agent.curr_x = agent._state(0, 0, 0, 0, 0)
 
@@ -100,7 +120,21 @@ _ = ax.axis('equal')
 # # run_manual(env, agent, n_steps, u, 
 # #                 ax_kwargs=dict(xlim=[-250, 250], ylim=[-250, 250]),
 # #                 folder=folder)
+=======
+folder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/tests/anim"
+savefolder = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Presentations/Presentations/goal_directed_locomotion"
+name = "/line.mp4"
+savepath = savefolder + name
+
+# run_manual(env, agent, n_steps, u,
+#                 ax_kwargs=dict(xlim=[-250, 250], ylim=[-250, 250]),
+#                 folder=folder)
+>>>>>>> 4d8d75eaeeb72f6610ac7ef7bf3bac9c01a5ff11
 
 # run_experiment(env, control, agent, n_steps=2000, frames_folder=None)
 
+<<<<<<< HEAD
 # animate_from_images(folder, savepath)
+=======
+animate_from_images(folder, savepath)
+>>>>>>> 4d8d75eaeeb72f6610ac7ef7bf3bac9c01a5ff11

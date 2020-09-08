@@ -3,9 +3,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
-from proj.plotting.live import update_interactive_plot, update_interactive_plot_manual
+from proj.plotting.live import (
+    update_interactive_plot,
+    update_interactive_plot_manual,
+)
 
-def run_experiment(environment, controller, model, n_steps=200, plot=True, folder=None, frames_folder=None):
+
+def run_experiment(
+    environment,
+    controller,
+    model,
+    n_steps=200,
+    plot=True,
+    folder=None,
+    frames_folder=None,
+):
     """
         Runs an experiment
 
@@ -23,7 +35,7 @@ def run_experiment(environment, controller, model, n_steps=200, plot=True, folde
     """
     if folder is not None:
         model.save_folder = Path(folder)
-        
+
     # reset things
     model.reset()
     trajectory = environment.reset()
@@ -52,30 +64,35 @@ def run_experiment(environment, controller, model, n_steps=200, plot=True, folde
 
         # Check if we're done
         if environment.isdone(model.curr_x, trajectory):
-            print(f'Reached end of trajectory after {itern} steps')
+            print(f"Reached end of trajectory after {itern} steps")
             break
 
         # update interactieve plot
         if plot:
-            goal= model._state(g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4])
-            update_interactive_plot(axarr, model, goal, trajectory, g_xs, itern)
+            goal = model._state(
+                g_xs[0, 0], g_xs[0, 1], g_xs[0, 2], g_xs[0, 3], g_xs[0, 4]
+            )
+            update_interactive_plot(
+                axarr, model, goal, trajectory, g_xs, itern
+            )
 
             f.canvas.draw()
             plt.pause(0.01)
 
             # save frames for animation
             if frames_folder is not None:
-                update_interactive_plot_manual(ax2, model, trajectory = trajectory)
+                update_interactive_plot_manual(
+                    ax2, model, trajectory=trajectory
+                )
 
                 if itern < 10:
-                    n = f'0{itern}'
+                    n = f"0{itern}"
                 else:
                     n = str(itern)
-                
-                ax2.set(xlim=[-20, 120], ylim=[-20, 20])
-                ax2.axis('off')
-                f2.savefig(str(Path(frames_folder) / n))
 
+                ax2.set(xlim=[-20, 120], ylim=[-20, 20])
+                ax2.axis("off")
+                f2.savefig(str(Path(frames_folder) / n))
 
     # SAVE results
     model.save(trajectory)

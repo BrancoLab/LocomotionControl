@@ -15,9 +15,9 @@ class Cost:
         Returns:
             fitted_diff_x (numpy.ndarray): same shape as diff_x
         """
-        
+
         if len(diff_x.shape) == 3:
-            diff_x[:, :, -2] = fit_angle_in_range(diff_x[:, :, -2]) 
+            diff_x[:, :, -2] = fit_angle_in_range(diff_x[:, :, -2])
         elif len(diff_x.shape) == 2:
             diff_x[:, -2] = fit_angle_in_range(diff_x[:, -2])
         elif len(diff_x.shape) == 1:
@@ -34,7 +34,7 @@ class Cost:
             cost (numpy.ndarray): cost of input, shape(pred_len, input_size) or
                 shape(pop_size, pred_len, input_size)
         """
-        return (u**2) * np.diag(self.R)
+        return (u ** 2) * np.diag(self.R)
 
     def state_cost_fn(self, x, g_x):
         """ state cost function
@@ -53,7 +53,7 @@ class Cost:
         """
         diff = self.fit_diff_in_range(x - g_x)
         # diff = x - g_x
-        return ((diff)**2) * np.diag(self.Q)
+        return ((diff) ** 2) * np.diag(self.Q)
 
     def terminal_state_cost_fn(self, terminal_x, terminal_g_x):
         """
@@ -69,11 +69,10 @@ class Cost:
         Cost of end state, is given bY
             (x - X_g)T * Q * (x - x_g)
         """
-        terminal_diff = self.fit_diff_in_range(terminal_x  - terminal_g_x)
+        terminal_diff = self.fit_diff_in_range(terminal_x - terminal_g_x)
         # terminal_diff = terminal_x  - terminal_g_x
-        return ((terminal_diff)**2) * np.diag(self.Sf)
+        return ((terminal_diff) ** 2) * np.diag(self.Sf)
 
-  
     def gradient_cost_fn_with_state(self, x, g_x, terminal=False):
         """ gradient of costs with respect to the state
 
@@ -86,11 +85,11 @@ class Cost:
                 or shape(1, state_size)
         """
         diff = self.fit_diff_in_range(x - g_x)
-        
+
         if not terminal:
-            return 2. * (diff) * np.diag(self.Q)
-        
-        return (2. * (diff) * np.diag(self.Sf))[np.newaxis, :]
+            return 2.0 * (diff) * np.diag(self.Q)
+
+        return (2.0 * (diff) * np.diag(self.Sf))[np.newaxis, :]
 
     # ---------------------------- COST FUN GRADIENTS ---------------------------- #
 
@@ -104,7 +103,7 @@ class Cost:
         Returns:
             l_u (numpy.ndarray): gradient of cost, shape(pred_len, input_size)
         """
-        return 2. * u * np.diag(self.R)
+        return 2.0 * u * np.diag(self.R)
 
     def hessian_cost_fn_with_state(self, x, g_x, terminal=False):
         """ hessian costs with respect to the state
@@ -120,9 +119,9 @@ class Cost:
         """
         if not terminal:
             (pred_len, _) = x.shape
-            return np.tile(2.*self.Q, (pred_len, 1, 1))               
-        
-        return np.tile(2.*self.Sf, (1, 1, 1))    
+            return np.tile(2.0 * self.Q, (pred_len, 1, 1))
+
+        return np.tile(2.0 * self.Sf, (1, 1, 1))
 
     def hessian_cost_fn_with_input(self, x, u):
         """ hessian costs with respect to the input
@@ -137,8 +136,8 @@ class Cost:
         """
         (pred_len, _) = u.shape
 
-        return np.tile(2.*self.R, (pred_len, 1, 1))
-    
+        return np.tile(2.0 * self.R, (pred_len, 1, 1))
+
     def hessian_cost_fn_with_input_state(self, x, u):
         """ hessian costs with respect to the state and input
 
@@ -153,6 +152,4 @@ class Cost:
         (_, state_size) = x.shape
         (pred_len, input_size) = u.shape
 
-        return np.zeros((pred_len, input_size, state_size))  
-
-
+        return np.zeros((pred_len, input_size, state_size))
