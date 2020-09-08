@@ -2,6 +2,7 @@ import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.environment.trajectories import parabola, sin, circle, line
+from proj.utils import traj_to_polar
 
 
 class Environment:
@@ -26,7 +27,12 @@ class Environment:
         params = self.model.trajectory
         n_steps = int(params["nsteps"])
 
-        return self._traj_func(n_steps, params)
+        traj = self._traj_func(n_steps, params)
+
+        if self.model.MODEL_TYPE == "polar":
+            traj = traj_to_polar(traj)
+
+        return traj
 
     def reset(self):
         """
@@ -39,9 +45,14 @@ class Environment:
         g_traj = self.make_trajectory()
 
         # Set model's state to the start of the trajectory
-        self.model.curr_x = self.model._state(
-            g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], 0, 0
-        )
+        if self.model.STATE_SIZE == 5:
+            self.model.curr_x = self.model._state(
+                g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], 0, 0
+            )
+        else:
+            self.model.curr_x = self.model._state(
+                g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], 0
+            )
 
         return g_traj
 
@@ -79,10 +90,13 @@ class Environment:
             Checks if the task is complited by seeing if the mouse
             is close enough to the end of the trajectory
         """
-        mouse_xy = np.array([curr_x.x, curr_x.y])
-        goal_xy = trajectory[-1, :2]
+        if self.model.MODEL_TYPE == "cartesian":
+            mouse_xy = np.array([curr_x.x, curr_x.y])
+            goal_xy = trajectory[-1, :2]
 
-        dist = calc_distance_between_points_2d(mouse_xy, goal_xy)
+            dist = calc_distance_between_points_2d(mouse_xy, goal_xy)
+        else:
+            dist = curr_x.r
 
         if dist <= self.model.trajectory["min_dist"]:
             return True

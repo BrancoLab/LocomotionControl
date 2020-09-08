@@ -3,6 +3,8 @@ from pathlib import Path
 
 
 class Config:
+    MODEL_TYPE = "polar"  # cartesian or polar
+
     # ----------------------------- Simulation params ---------------------------- #
     save_folder = Path(
         "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control"
@@ -13,19 +15,19 @@ class Config:
     dt = 0.01
 
     # -------------------------------- Cost params ------------------------------- #
-    STATE_SIZE = 5
-    INPUT_SIZE = 2
-
-    R = np.diag([0.01, 0.01])  # control cost
-    Q = np.diag([2.5, 2.5, 2.5, 5, 0])  # state cost | x, y, theta, v, omega
-    Sf = np.diag([2.5, 2.5, 2.5, 5, 0])  # final state cost
-
-    # STATE_SIZE = 4
+    # STATE_SIZE = 5
     # INPUT_SIZE = 2
 
     # R = np.diag([0.01, 0.01])  # control cost
-    # Q = np.diag([2.5, 2.5, 5, 0])  # state cost | x, y, theta, v, omega
-    # Sf = np.diag([2.5, 2.5, 5, 0])  # final state cost
+    # Q = np.diag([2.5, 2.5, 2.5, 5, 0])  # state cost | x, y, theta, v, omega
+    # Sf = np.diag([2.5, 2.5, 2.5, 5, 0])  # final state cost
+
+    STATE_SIZE = 4
+    INPUT_SIZE = 2
+
+    R = np.diag([0.01, 0.01])  # control cost
+    Q = np.diag([2.5, 2.5, 5, 0])  # state cost | x, y, theta, v, omega
+    Sf = np.diag([2.5, 2.5, 5, 0])  # final state cost
 
     # ------------------------------- Mouse params ------------------------------- #
 
