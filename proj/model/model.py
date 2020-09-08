@@ -52,13 +52,15 @@ class Model(Config):
     _control = namedtuple("control", "tau_r, tau_l")
     _state = namedtuple("state", "x, y, theta, v, omega")
 
-    def __init__(self):
+    def __init__(self, startup=True):
         Config.__init__(self)
 
         self._make_simbols()
         self.get_combined_dynamics_kinematics()
-        # self.get_inverse_dynamics()
-        self.get_jacobians()
+
+        if startup:
+            # self.get_inverse_dynamics()
+            self.get_jacobians()
         self.reset()
 
     def reset(self):
