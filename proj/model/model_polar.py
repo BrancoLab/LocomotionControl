@@ -6,15 +6,39 @@ from sympy import (
     symbols,
     lambdify,
     cos,
-    sqrt,
-    acos,
-    sign,
 )
 
 from proj.model.model import Model
 
 
 class ModelPolar(Model):
+    _M_args = [
+        "r",
+        "gamma",
+        "v",
+        "omega",
+        "L",
+        "R",
+        "m",
+        "d",
+        "m_w",
+        "tau_l",
+        "tau_r",
+    ]
+
+    _calc_model_jacobian_state_args = [
+        "r",
+        "gamma",
+        "v",
+        "omega",
+        "L",
+        "R",
+        "m",
+        "d",
+        "m_w",
+    ]
+    _calc_model_jacobian_input_args = ["L", "R", "m", "d", "m_w"]
+
     def __init__(self):
         Model.__init__(self, startup=False)
 
@@ -47,45 +71,38 @@ class ModelPolar(Model):
             gamma,
         ) = self.variables.values()
 
-        # Kinematics
-        r1 = sqrt(r ** 2 + v ** 2 - 2 * r * v * cos(gamma))
-        rdot = r1 - r
+        # Define moments of inertia
+        I_c = m * d ** 2  # mom. inertia around center of gravity
+        I_w = m_w * R ** 2  # mom. inertia of wheels
+        I = I_c + m * d ** 2 + 2 * m_w * L ** 2 + I_w
 
-        num = r ** 2 + r1 ** 2 - v ** 2
-        den = 2 * r * r1
-        gammadot = (acos(num / den) + omega * (-sign(gamma))).simplify()
+        # Define a constant:
+        J = I + (2 * I ** 2 / R ** 2) * I_w
 
-        # lambdify kinematics
-        self.rdot = rdot
-        self.calc_rdot = lambdify((r, v, gamma), rdot, modules="numpy")
+        # Define g vector and input vector
+        g = Matrix([0, 0, d * omega ** 2, -(m * d * omega * v) / J])
+        inp = Matrix([v, omega, tau_r, tau_l])
 
-        self.gammadot = gammadot
-        self.calc_gammadot = lambdify(
-            (r, v, gamma, omega), gammadot, modules="numpy"
+        # Define M matrix
+        M = Matrix(
+            [
+                [-1, cos(omega), 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, L / (m * R), L / (m * R)],
+                [0, 0, L / (J * R), -L / (J * R)],
+            ]
         )
 
-        # Get reduced dynamics
-        vdot = (
-            self.matrixes["g"][3]
-            * self.matrixes["M"][3, 2:]
-            * Matrix(self.matrixes["inp"][2:])
-        )
-        omegadot = (
-            self.matrixes["g"][4]
-            * self.matrixes["M"][4, 2:]
-            * Matrix(self.matrixes["inp"][2:])
-        )
+        # vectorize expression
+        args = [gamma, r, v, omega, L, R, m, d, m_w, tau_l, tau_r]
+        expr = g + M * inp
+        self.calc_dqdt = lambdify(args, expr, modules="numpy")
 
-        # lambdify dynamics
-        self.vdot = vdot
-        self.calc_vdot = lambdify(
-            (L, d, m, R, omega, tau_l, tau_r), vdot, modules="numpy"
-        )
+        # store matrices
+        self.matrixes = dict(g=g, inp=inp, M=M,)
 
-        self.omegadot = omegadot
-        self.calc_omegadot = lambdify(
-            (L, d, m, R, m_w, omega, tau_l, tau_r), omegadot, modules="numpy"
-        )
+        # Store dxdt model as sympy expression
+        self.model = g + M * inp
 
     def get_jacobians(self):
         (
@@ -105,65 +122,56 @@ class ModelPolar(Model):
             gamma,
         ) = self.variables.values()
 
-        # ---------------------------- Jacobian wrt state ---------------------------- #
-        self.model_jacobian_state = Matrix(np.zeros((4, 4)))
+        # Get jacobian wrt state
+        self.model_jacobian_state = self.model.jacobian([r, gamma, v, omega])
 
-        # wrt gammadot
-        self.model_jacobian_state[0, 0] = self.gammadot.diff(gamma)
-        self.model_jacobian_state[0, 1] = self.gammadot.diff(r)
-        self.model_jacobian_state[0, 2] = self.gammadot.diff(v)
-        self.model_jacobian_state[0, 3] = self.gammadot.diff(omega)
+        # Get jacobian wrt input
+        self.model_jacobian_input = self.model.jacobian([tau_r, tau_l])
 
-        # wrt rdot
-        self.model_jacobian_state[1, 0] = self.rdot.diff(gamma)
-        self.model_jacobian_state[1, 1] = self.rdot.diff(r)
-        self.model_jacobian_state[1, 2] = self.rdot.diff(v)
-        self.model_jacobian_state[1, 3] = self.rdot.diff(omega)
-
-        # wrt vdot
-        self.model_jacobian_state[2, 0] = self.vdot.diff(gamma)
-        self.model_jacobian_state[2, 1] = self.vdot.diff(r)
-        self.model_jacobian_state[2, 2] = self.vdot.diff(v)
-        self.model_jacobian_state[2, 3] = self.vdot.diff(omega)
-
-        # wrt omegadot
-        self.model_jacobian_state[3, 0] = self.omegadot.diff(gamma)
-        self.model_jacobian_state[3, 1] = self.omegadot.diff(r)
-        self.model_jacobian_state[3, 2] = self.omegadot.diff(v)
-        self.model_jacobian_state[3, 3] = self.omegadot.diff(omega)
-
-        # ---------------------------- Jacobian wrt input ---------------------------- #
-        self.model_jacobian_input = Matrix(np.zeros((4, 2)))
-
-        # wrt gammadot
-        self.model_jacobian_input[0, 0] = self.gammadot.diff(tau_r)
-        self.model_jacobian_input[0, 1] = self.gammadot.diff(tau_l)
-
-        # wrt rdot
-        self.model_jacobian_input[1, 0] = self.rdot.diff(tau_r)
-        self.model_jacobian_input[1, 1] = self.rdot.diff(tau_l)
-
-        # wrt vdot
-        self.model_jacobian_input[2, 0] = self.vdot.diff(tau_r)
-        self.model_jacobian_input[2, 1] = self.vdot.diff(tau_l)
-
-        # wrt omegadot
-        self.model_jacobian_input[3, 0] = self.omegadot.diff(tau_r)
-        self.model_jacobian_input[3, 1] = self.omegadot.diff(tau_l)
-
-        # --------------------------------- vectorize --------------------------------- #
+        # vectorize expressions
         args = [r, gamma, v, omega, L, R, m, d, m_w]
         self.calc_model_jacobian_state = lambdify(
             args, self.model_jacobian_state, modules="numpy"
         )
 
-        args = [r, gamma, v, omega, L, R, m, d, m_w]
+        args = [L, R, m, d, m_w]
         self.calc_model_jacobian_input = lambdify(
             args, self.model_jacobian_input, modules="numpy"
         )
 
-    def calc_dqdt(self):
+    def calc_gradient(self, xs, us, wrt="x"):
+        """
+            Compute the models gradient wrt state or control
+        """
 
-        # calc dynamics and kinematics
+        # prep some variables
+        r = xs[:, 0]
+        gamma = xs[:, 1]
+        v = xs[:, 2]
+        omega = xs[:, 3]
 
-        return
+        L = self.mouse["L"]
+        R = self.mouse["R"]
+        m = self.mouse["m"]
+        m_w = self.mouse["m_w"]
+        d = self.mouse["d"]
+
+        # reshapshapee
+        (_, state_size) = xs.shape
+        (pred_len, input_size) = us.shape
+
+        if wrt == "x":
+            f = np.zeros((pred_len, state_size, state_size))
+            for i in range(pred_len):
+                f[i, :, :] = self.calc_model_jacobian_state(
+                    r[i], gamma[i], v[i], omega[i], L, R, m, d, m_w
+                )
+            return f * self.dt + np.eye(state_size)
+        else:
+            f = np.zeros((pred_len, state_size, input_size))
+            f0 = self.calc_model_jacobian_input(
+                L, R, m, d, m_w
+            )  # no need to iterate because const.
+            for i in range(pred_len):
+                f[i, :, :] = f0
+            return f * self.dt

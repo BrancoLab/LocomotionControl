@@ -3,6 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 from fcutils.file_io.io import load_yaml
+from fcutils.maths.geometry import calc_distance_from_point
+
+# ---------------------------------- Data IO --------------------------------- #
 
 
 def load_results_from_folder(folder):
@@ -31,6 +34,49 @@ def load_results_from_folder(folder):
     history = pd.read_hdf(str(files["history"]), key="hdf")
 
     return config, control, state, trajectory, history
+
+
+# -------------------------------- Coordinates ------------------------------- #
+
+
+def cartesian_to_polar(x, y):
+    r = np.sqrt(x ** 2 + y ** 2)
+    gamma = np.arctan2(y, x)
+    return r, gamma
+
+
+def polar_to_cartesian(r, gamma):
+    x = r * np.cos(gamma)
+    y = r * np.sin(gamma)
+    return x, y
+
+
+def traj_to_polar(traj):
+    """ 
+        Takes a trjectory expressed as (x,y,theta,v,s)
+        and converts it to (r, gamma, v, s)
+    """
+
+    new_traj = np.zeros((len(traj), 4))
+
+    new_traj[:, 0] = calc_distance_from_point(traj[:, :2], [0, 0])
+
+    new_traj[:, 1] = np.arctan2(traj[:, 1], traj[:, 0])
+
+    # import matplotlib.pyplot as plt
+    # f = plt.figure()
+    # ax = f.add_subplot(121)
+    # pax = f.add_subplot(122, projection="polar")
+
+    # ax.scatter(traj[:, 0], traj[:, 1], cmap='bwr', c=np.arange(len(traj[:, 0])))
+    # pax.scatter(new_traj[:, 1], new_traj[:, 0], cmap='bwr', c=np.arange(len(traj[:, 0])))
+
+    # plt.show()
+
+    return new_traj
+
+
+# ----------------------------------- Misc ----------------------------------- #
 
 
 def merge(*ds):

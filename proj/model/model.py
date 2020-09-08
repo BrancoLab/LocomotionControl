@@ -90,7 +90,14 @@ class Model(Config):
         # Create folder
         time_stamp = time.strftime("%y%m%d_%H%M%S")
         save_fld = self.save_folder / (self.save_name + f"_{time_stamp}")
-        save_fld.mkdir(exist_ok=True)
+
+        try:
+            save_fld.mkdir(exist_ok=True)
+        except FileNotFoundError:
+            print(
+                f"Failed to save files in folder {save_fld} because it doesnt exist"
+            )
+            return
 
         # save config
         save_yaml(str(save_fld / "config.yml"), self.config_dict())
