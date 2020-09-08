@@ -14,7 +14,10 @@ import time
 import pandas as pd
 from fcutils.file_io.io import save_yaml
 
-from fcutils.maths.geometry import calc_distance_between_points_2d, calc_angle_between_vectors_of_points_2d
+from fcutils.maths.geometry import (
+    calc_distance_between_points_2d,
+    calc_angle_between_vectors_of_points_2d,
+)
 
 from proj.model.config import Config
 from proj.utils import merge
@@ -365,10 +368,6 @@ class Model(Config):
             )  # no need to iterate because const.
             for i in range(pred_len):
                 f[i, :, :] = f0
-<<<<<<< HEAD
-
-            a = 1
-
             return f * self.dt
 
     def calc_angle_distance_from_goal(self, goal_x, goal_y):
@@ -380,12 +379,14 @@ class Model(Config):
         y1 = y + np.sin(self.curr_x.theta)
 
         # Get the angle between x-axis and (x_g, y_g)
-        gamma = np.radians(calc_angle_between_vectors_of_points_2d(x, y, goal_x, goal_y))
+        gamma = np.radians(
+            calc_angle_between_vectors_of_points_2d(x, y, goal_x, goal_y)
+        )
 
         # Get the angle between x-axis and (x_1, y_1)
         ang = np.radians(calc_angle_between_vectors_of_points_2d(x, y, x1, y1))
 
-        # take difference 
+        # take difference
         gamma -= ang
         gamma = fit_angle_in_range(gamma, is_deg=False)
         gamma = -gamma
@@ -393,8 +394,4 @@ class Model(Config):
         # compute distance
         r = calc_distance_between_points_2d([x, y], [goal_x, goal_y])
 
-
         return r, gamma
-=======
-            return f * self.dt
->>>>>>> 4d8d75eaeeb72f6610ac7ef7bf3bac9c01a5ff11
