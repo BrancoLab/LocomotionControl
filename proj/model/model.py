@@ -14,10 +14,7 @@ import time
 import pandas as pd
 from fcutils.file_io.io import save_yaml
 
-from fcutils.maths.geometry import (
-    calc_distance_between_points_2d,
-    calc_angle_between_vectors_of_points_2d,
-)
+from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.model.config import Config
 from proj.utils import merge
@@ -374,22 +371,9 @@ class Model(Config):
         # Get current position
         x, y = self.curr_x.x, self.curr_x.y
 
-        # Get a point in front of current heading
-        x1 = x + np.cos(self.curr_x.theta)
-        y1 = y + np.sin(self.curr_x.theta)
-
-        # Get the angle between x-axis and (x_g, y_g)
-        gamma = np.radians(
-            calc_angle_between_vectors_of_points_2d(x, y, goal_x, goal_y)
-        )
-
-        # Get the angle between x-axis and (x_1, y_1)
-        ang = np.radians(calc_angle_between_vectors_of_points_2d(x, y, x1, y1))
-
-        # take difference
-        gamma -= ang
+        gamma = np.arctan2(goal_y - y, goal_x - x)
         gamma = fit_angle_in_range(gamma, is_deg=False)
-        gamma = -gamma
+        gamma -= self.curr_x.theta
 
         # compute distance
         r = calc_distance_between_points_2d([x, y], [goal_x, goal_y])
