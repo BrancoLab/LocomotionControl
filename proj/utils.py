@@ -88,3 +88,8 @@ def wrap_angle(angles):
     """
     angles = np.array(angles)
     return (angles + np.pi) % (2 * np.pi) - np.pi
+
+
+# ---------------------------------- COLORS ---------------------------------- #
+salmon = "#FA8072"
+seagreen = "#2E8B57"

@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 class Config:
-    MODEL_TYPE = "polar"  # cartesian or polar
+    SPAWN_TYPE = "trajectory"
 
     # ----------------------------- Simulation params ---------------------------- #
     save_folder = Path(
@@ -11,31 +11,30 @@ class Config:
     )
     save_name = "parabola"
 
-    warmup_length = 0
-    dt = 0.01
+    dt = 0.1
 
     # -------------------------------- Cost params ------------------------------- #
-    # STATE_SIZE = 5
-    # INPUT_SIZE = 2
-
-    # R = np.diag([0.01, 0.01])  # control cost
-    # Q = np.diag([2.5, 2.5, 2.5, 5, 0])  # state cost | x, y, theta, v, omega
-    # Sf = np.diag([2.5, 2.5, 2.5, 5, 0])  # final state cost
-
-    STATE_SIZE = 4
+    STATE_SIZE = 5
     INPUT_SIZE = 2
 
-    R = np.diag([0.05, 0.05])  # control cost
-    Q = np.diag([2.5, 2.5, 0, 0])  # state cost | r, omega, v, omega
-    Sf = np.diag([2.5, 2.5, 0, 0])  # final state cost
+    R = np.diag([0.01, 0.01])  # control cost
+    Q = np.diag([2.5, 2.5, 2.5, 0, 0])  # state cost | x, y, theta, v, omega
+    Sf = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # final state cost
+
+    # STATE_SIZE = 4
+    # INPUT_SIZE = 2
+
+    # R = np.diag([0.05, 0.05])  # control cost
+    # Q = np.diag([2.5, 2.5, 0, 0])  # state cost | r, omega, v, omega
+    # Sf = np.diag([2.5, 2.5, 0, 0])  # final state cost
 
     # ------------------------------- Mouse params ------------------------------- #
 
     mouse = dict(
         L=1.5,  # half body width | cm
         R=1,  # radius of wheels | cm
-        d=0,  # distance between axel and CoM | cm
-        length=6,  # cm
+        d=0.1,  # distance between axel and CoM | cm
+        length=3,  # cm
         m=round(20 / 9.81, 2),  # mass | g
         m_w=round(2 / 9.81, 2),  # mass of wheels/legs |g
     )
@@ -43,9 +42,9 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="point",
+        name="parabola",
         nsteps=300,
-        distance=50,
+        distance=150,
         max_speed=20,
         min_speed=10,
         min_dist=-0.1,  # if agent is within this distance from trajectory end the goal is considered achieved
