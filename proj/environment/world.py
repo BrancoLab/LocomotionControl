@@ -105,6 +105,19 @@ class World:
         self.initial_model_position_world = self.model_position_world
         self.model_position_history_world = [self.initial_model_position_world]
 
+    def make_figure(self):
+        self.f = plt.figure(constrained_layout=True, figsize=(12, 8))
+
+        gs = self.f.add_gridspec(2, 4)
+        self.xy_ax = self.f.add_subplot(gs[:, :2])
+        self.xy_ax.axis("off")
+
+        self.tau_ax = self.f.add_subplot(gs[0, 2:])
+
+        self.ax = self.f.add_subplot(gs[1, 2])
+
+        clean_axes(self.f)
+
     def initialize_world(self, trajectory):
         """
             Create the world and the model at some location
@@ -123,9 +136,7 @@ class World:
 
         # create a figure for live plotting
         plt.ion()
-        self.f, self.ax = plt.subplots(figsize=(8, 8))
-        self.ax.axis("equal")
-        clean_axes(self.f)
+        self.make_figure()
 
     # ---------------------------------- Update ---------------------------------- #
 
@@ -151,21 +162,7 @@ class World:
         self.visualize_world_live(curr_goals)
 
     # ------------------------------- Live plotting ------------------------------ #
-
-    def visualize_world_live(self, curr_goals):
-        ax = self.ax
-        ax.clear()
-
-        # plot trajectory
-        ax.scatter(
-            self.initial_trajectory[::7, 0],
-            self.initial_trajectory[::7, 1],
-            s=50,
-            color=[0.4, 0.4, 0.4],
-            lw=1,
-            edgecolors="white",
-        )
-
+    def _plot_xy(self, ax, curr_goals):
         # plot currently selected goals
         if self.model.MODEL_TYPE == "cartesian":
             ax.plot(
@@ -177,7 +174,8 @@ class World:
                 solid_capstyle="round",
             )
         else:
-            raise NotImplementedError("current goals for polar")
+            print("current goals for polar")
+            # raise NotImplementedError("current goals for polar")
 
         # plot position history
         X = [pos.x for pos in self.model_position_history_world]
@@ -214,6 +212,69 @@ class World:
                 lw=1.5,
                 edgecolors=[0.3, 0.3, 0.3],
             )
+
+        ax.axis("equal")
+        ax.axis("off")
+
+    def plot_control(self, keep_n=30):
+        ax = self.tau_ax
+        ax.clear()
+
+        R, L = self.model.history["tau_r"], self.model.history["tau_l"]
+        n = len(R)
+
+        # plot traces
+        ax.plot(
+            R,
+            color="r",
+            label="$\tau_R$",
+            lw=3,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+        ax.plot(
+            L,
+            color="b",
+            label="$\tau_L$",
+            lw=3,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+
+        # set axes
+        if n > keep_n:
+            ymin = np.min(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+            ymax = np.max(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+
+            ymin -= np.abs(ymin) * 0.1
+            ymax += np.abs(ymax) * 0.1
+
+            if ymin > -5:
+                ymin = -5
+            if ymax < 5:
+                ymax = 5
+
+            ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
+
+    def visualize_world_live(self, curr_goals):
+        ax = self.xy_ax
+        ax.clear()
+
+        # plot trajectory
+        ax.scatter(
+            self.initial_trajectory[::7, 0],
+            self.initial_trajectory[::7, 1],
+            s=50,
+            color=[0.4, 0.4, 0.4],
+            lw=1,
+            edgecolors="white",
+        )
+
+        # plot XY tracking
+        self._plot_xy(ax, curr_goals)
+
+        # plot control
+        self.plot_control()
 
         # display plot
         self.f.canvas.draw()
