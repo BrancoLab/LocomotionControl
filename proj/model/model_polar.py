@@ -4,15 +4,21 @@ from collections import namedtuple
 from sympy import (
     Matrix,
     symbols,
-    lambdify,
+    # lambdify,
     cos,
 )
 
 from proj.model.model import Model
-from proj.utils import cartesian_to_polar
+from proj.model.fast import (
+    fast_dqdt_polar,
+    fast_model_jacobian_state_polar,
+    fast_model_jacobian_input_polar,
+)
 
 
 class ModelPolar(Model):
+    MODEL_TYPE = "polar"
+
     _M_args = [
         "r",
         "gamma",
@@ -55,7 +61,6 @@ class ModelPolar(Model):
         self.get_jacobians()
 
     def reset(self):
-        self.move_to_random_location()
         self.curr_control = self._control(0, 0)  # use only to keep track
 
         self.history = dict(
@@ -69,25 +74,6 @@ class ModelPolar(Model):
             r=[],
             gamma=[],
         )
-
-    def move_to_random_location(self):
-        """
-            Moves the agent to a point with random polar coordinates
-        """
-        # start as a point in the plane with theta 0
-        x = np.random.randint(
-            -self.trajectory["distance"], self.trajectory["distance"]
-        )
-        y = np.random.randint(
-            -self.trajectory["distance"], self.trajectory["distance"]
-        )
-
-        self.initial_pos = (x, y)
-
-        # Get r, gamma from goal
-        r, gamma = cartesian_to_polar(x, y)
-
-        self.curr_x = self._state(r, gamma, 0, 0,)
 
     def _get_polar_dynamics(self):
         (
@@ -130,9 +116,10 @@ class ModelPolar(Model):
         )
 
         # vectorize expression
-        args = [r, gamma, v, omega, L, R, m, d, m_w, tau_l, tau_r]
-        expr = g + M * inp
-        self.calc_dqdt = lambdify(args, expr, modules="numpy")
+        # args = [r, gamma, v, omega, L, R, m, d, m_w, tau_l, tau_r]
+        # expr = g + M * inp
+        # self.calc_dqdt = lambdify(args, expr, modules="numpy")
+        self.calc_dqdt = fast_dqdt_polar
 
         # store matrices
         self.matrixes = dict(g=g, inp=inp, M=M,)
@@ -165,15 +152,17 @@ class ModelPolar(Model):
         self.model_jacobian_input = self.model.jacobian([tau_r, tau_l])
 
         # vectorize expressions
-        args = [r, gamma, v, omega, L, R, m, d, m_w]
-        self.calc_model_jacobian_state = lambdify(
-            args, self.model_jacobian_state, modules="numpy"
-        )
+        # args = [r, gamma, v, omega, L, R, m, d, m_w]
+        # self.calc_model_jacobian_state = lambdify(
+        #     args, self.model_jacobian_state, modules="numpy"
+        # )
+        self.calc_model_jacobian_state = fast_model_jacobian_state_polar
 
-        args = [L, R, m, d, m_w]
-        self.calc_model_jacobian_input = lambdify(
-            args, self.model_jacobian_input, modules="numpy"
-        )
+        # args = [L, R, m, d, m_w]
+        # self.calc_model_jacobian_input = lambdify(
+        #     args, self.model_jacobian_input, modules="numpy"
+        # )
+        self.calc_model_jacobian_input = fast_model_jacobian_input_polar
 
     def calc_gradient(self, xs, us, wrt="x"):
         """

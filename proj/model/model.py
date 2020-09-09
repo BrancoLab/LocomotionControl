@@ -24,6 +24,8 @@ init_printing()
 
 
 class Model(Config):
+    MODEL_TYPE = "cartesian"
+
     _M_args = [
         "theta",
         "v",
@@ -64,7 +66,6 @@ class Model(Config):
             self.reset()
 
     def reset(self):
-        self.curr_x = self._state(*np.zeros(self.STATE_SIZE))
         self.curr_control = self._control(0, 0)  # use only to keep track
 
         self.history = dict(
@@ -78,8 +79,6 @@ class Model(Config):
             r=[],
             gamma=[],
         )
-
-        self._append_history()  # make sure first state is included
 
     def _append_history(self):
         for ntuple in [self.curr_x, self.curr_control]:

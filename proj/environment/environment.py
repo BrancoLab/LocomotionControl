@@ -3,14 +3,17 @@ from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.environment.trajectories import parabola, sin, circle, line, point
 from proj.utils import traj_to_polar
+from proj.environment.world import World
 
 
-class Environment:
+class Environment(World):
     traj_funcs = dict(
         parabola=parabola, sin=sin, circle=circle, line=line, point=point
     )
 
     def __init__(self, model):
+        World.__init__(self, model)
+
         self.model = model
 
         try:
@@ -44,19 +47,12 @@ class Environment:
         self.model.reset()
 
         # make goal trajetory
-        g_traj = self.make_trajectory()
+        trajectory = self.make_trajectory()
 
-        # Set model's state to the start of the trajectory
-        if self.model.STATE_SIZE == 5:
-            self.model.curr_x = self.model._state(
-                g_traj[0, 0], g_traj[0, 1], g_traj[0, 2], 0, 0
-            )
-        else:
-            self.model.curr_x = self.model._state(
-                g_traj[-1, 0], g_traj[-1, 1], g_traj[-1, 2], 0
-            )
+        # reset the world and the model's initial position
+        self.initialize_world(trajectory)
 
-        return g_traj
+        return trajectory
 
     def plan(self, curr_x, g_traj, itern):
         """
@@ -66,26 +62,21 @@ class Environment:
         n_ahead = self.model.planning["n_ahead"]
         pred_len = self.model.planning["prediction_length"] + 1
 
-        if itern > self.model.warmup_length:
-            min_idx = np.argmin(
-                np.linalg.norm(curr_x[:2] - g_traj[:, :2], axis=1)
-            )
+        min_idx = np.argmin(np.linalg.norm(curr_x[:2] - g_traj[:, :2], axis=1))
 
-            start = min_idx + n_ahead
-            if start > len(g_traj):
-                start = len(g_traj)
+        start = min_idx + n_ahead
+        if start > len(g_traj):
+            start = len(g_traj)
 
-            end = min_idx + n_ahead + pred_len
+        end = min_idx + n_ahead + pred_len
 
-            if (min_idx + n_ahead + pred_len) > len(g_traj):
-                end = len(g_traj)
+        if (min_idx + n_ahead + pred_len) > len(g_traj):
+            end = len(g_traj)
 
-            if abs(start - end) != pred_len:
-                return np.tile(g_traj[-1], (pred_len, 1))
+        if abs(start - end) != pred_len:
+            return np.tile(g_traj[-1], (pred_len, 1))
 
-            return g_traj[start:end]
-        else:
-            return g_traj[0:pred_len]
+        return g_traj[start:end]
 
     def isdone(self, curr_x, trajectory):
         """

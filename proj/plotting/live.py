@@ -79,6 +79,7 @@ def update_interactive_plot(axarr, model, goal, trajectory, g_xs, niter):
     axarr[2].clear()
     axarr[4].clear()
     axarr[5].clear()
+
     # plot trajectory
     axarr[0].scatter(
         trajectory[:, 0],

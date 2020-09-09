@@ -1,7 +1,7 @@
 # # %%
 
 # from proj import (
-#     # Model,
+#     Model,
 #     Environment,
 #     Controller,
 #     run_experiment,
@@ -14,18 +14,23 @@
 
 
 # # ! TODO  formula I_c for cube!
-# # ! energy considerations, you should need more force to accelerate when going faster?
-# # TODO fix orientation at start of trajectory
+# # energy considerations, you should need more force to accelerate when going faster?
 
-# model = ModelPolar()
+# # TODO the LIVE PLOTTING CARTESIANN COORDINATES STUFF IS INVERTED
+
+
+# # model = ModelPolar()
+# model = Model()
 # env = Environment(model)
 # control = Controller(model)
 
 # # plot_trajectory_polar(env.reset())
 
 
-# run_experiment(env, control, model)
+# run_experiment(env, control, model, plot=False)
 
 
 # # %%
-# # ! TODO the LIVE PLOTTING CARTESIANN COORDINATES STUFF IS INVERTED
+# print(model.model_jacobian_input)
+
+# # %%

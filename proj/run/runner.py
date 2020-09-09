@@ -62,6 +62,7 @@ def run_experiment(
     # RUN
     for itern in tqdm(range(n_steps)):
         curr_x = np.array(model.curr_x)
+
         # plan
         g_xs = environment.plan(curr_x, trajectory, itern)
 
@@ -70,6 +71,9 @@ def run_experiment(
 
         # step
         model.step(u)
+
+        # update world
+        environment.update_world(g_xs)
 
         # Check if we're done
         if environment.isdone(model.curr_x, trajectory):
