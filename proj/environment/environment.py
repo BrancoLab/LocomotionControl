@@ -64,6 +64,10 @@ class Environment(World):
 
         min_idx = np.argmin(np.linalg.norm(curr_x[:2] - g_traj[:, :2], axis=1))
 
+        # keep track of where in the trajectory we are
+        self.curr_traj_waypoint_idx = min_idx
+        self.current_traj_waypoint = g_traj[min_idx, :]
+
         start = min_idx + n_ahead
         if start > len(g_traj):
             start = len(g_traj)

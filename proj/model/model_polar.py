@@ -93,6 +93,10 @@ class ModelPolar(Model):
             gamma,
         ) = self.variables.values()
 
+        raise ValueError(
+            "The polar model is wrong, gammadot should depend on v"
+        )
+
         # Define moments of inertia
         I_c = m * d ** 2  # mom. inertia around center of gravity
         I_w = m_w * R ** 2  # mom. inertia of wheels

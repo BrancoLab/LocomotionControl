@@ -14,19 +14,19 @@ class Config:
     dt = 0.1
 
     # -------------------------------- Cost params ------------------------------- #
-    # STATE_SIZE = 5
-    # INPUT_SIZE = 2
-
-    # R = np.diag([0.01, 0.01])  # control cost
-    # Q = np.diag([2.5, 2.5, 2.5, 0, 0])  # state cost | x, y, theta, v, omega
-    # Sf = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # final state cost
-
-    STATE_SIZE = 4
+    STATE_SIZE = 5
     INPUT_SIZE = 2
 
-    R = np.diag([0.05, 0.05])  # control cost
-    Q = np.diag([2.5, 2.5, 0, 0])  # state cost | r, omega, v, omega
-    Sf = np.diag([2.5, 2.5, 0, 0])  # final state cost
+    R = np.diag([0.01, 0.01])  # control cost
+    Q = np.diag([2.5, 2.5, 2.5, 0, 0])  # state cost | x, y, theta, v, omega
+    Sf = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # final state cost
+
+    # STATE_SIZE = 4
+    # INPUT_SIZE = 2
+
+    # R = np.diag([0.05, 0.05])  # control cost
+    # Q = np.diag([2.5, 2.5, 0, 0])  # state cost | r, omega, v, omega
+    # Sf = np.diag([2.5, 2.5, 0, 0])  # final state cost
 
     # ------------------------------- Mouse params ------------------------------- #
 
@@ -42,7 +42,7 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="point",
+        name="parabola",
         nsteps=300,
         distance=150,
         max_speed=20,
