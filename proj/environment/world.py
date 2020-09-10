@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from fcutils.maths.geometry import calc_distance_between_points_2d
 from fcutils.plotting.utils import clean_axes
 from fcutils.plotting.colors import desaturate_color
-
+from fcutils.plotting.plot_elements import plot_line_outlined
 
 from proj.utils import polar_to_cartesian, seagreen, salmon
 
@@ -114,7 +114,7 @@ class World:
 
         self.tau_ax = self.f.add_subplot(gs[0, 2:])
 
-        self.ax = self.f.add_subplot(gs[1, 2])
+        self.sax = self.f.add_subplot(gs[1, 2:])
 
         clean_axes(self.f)
 
@@ -224,18 +224,20 @@ class World:
         n = len(R)
 
         # plot traces
-        ax.plot(
+        plot_line_outlined(
+            ax,
             R,
             color="r",
-            label="$\tau_R$",
+            label="$\\tau_R$",
             lw=3,
             solid_joinstyle="round",
             solid_capstyle="round",
         )
-        ax.plot(
+        plot_line_outlined(
+            ax,
             L,
             color="b",
-            label="$\tau_L$",
+            label="$\\tau_L$",
             lw=3,
             solid_joinstyle="round",
             solid_capstyle="round",
@@ -256,6 +258,46 @@ class World:
 
             ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
 
+        ax.set(ylabel="Forces", xlabel="step n")
+        ax.legend()
+
+    def plot_current_variables(self):
+        """
+            Plot the agent's current state vs where it should be
+        """
+
+        ax = self.sax
+        ax.clear()
+
+        # plot speed trajectory
+        color = "#B22222"
+
+        if self.model.MODEL_TYPE == "cartesian":
+            idx = 3
+        else:
+            idx = 2
+
+        plot_line_outlined(
+            ax,
+            self.initial_trajectory[:, idx],
+            color=color,
+            label="trajectory speed",
+        )
+
+        # plot current speed
+        ax.scatter(
+            self.curr_traj_waypoint_idx,
+            self.model.history["v"][-1],
+            zorder=100,
+            s=150,
+            lw=1,
+            edgecolors="k",
+            label="models speed",
+        )
+
+        ax.legend()
+        ax.set(ylabel="speed", xlabel="trajectory progression")
+
     def visualize_world_live(self, curr_goals):
         ax = self.xy_ax
         ax.clear()
@@ -270,11 +312,25 @@ class World:
             edgecolors="white",
         )
 
+        # highlight current trajectory point
+        ax.scatter(
+            self.current_traj_waypoint[0],
+            self.current_traj_waypoint[1],
+            s=30,
+            color="r",
+            lw=1,
+            edgecolors="white",
+            zorder=99,
+        )
+
         # plot XY tracking
         self._plot_xy(ax, curr_goals)
 
         # plot control
         self.plot_control()
+
+        # plot current waypoint
+        self.plot_current_variables()
 
         # display plot
         self.f.canvas.draw()

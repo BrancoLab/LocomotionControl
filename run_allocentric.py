@@ -19,8 +19,8 @@
 # # TODO the LIVE PLOTTING CARTESIANN COORDINATES STUFF IS INVERTED
 
 
-# model = ModelPolar()
-# # model = Model()
+# # model = ModelPolar()
+# model = Model()
 # env = Environment(model)
 # control = Controller(model)
 
