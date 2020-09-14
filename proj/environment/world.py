@@ -7,7 +7,7 @@ from fcutils.plotting.utils import clean_axes
 from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 
-from proj.utils import polar_to_cartesian, seagreen, salmon
+from proj.utils import polar_to_cartesian, seagreen, salmon, timeit
 
 _xy = namedtuple("xy", "x, y")
 _xyt = namedtuple("xyt", "x, y, t")
@@ -298,6 +298,7 @@ class World:
         ax.legend()
         ax.set(ylabel="speed", xlabel="trajectory progression")
 
+    @timeit
     def visualize_world_live(self, curr_goals):
         ax = self.xy_ax
         ax.clear()
@@ -324,13 +325,13 @@ class World:
         )
 
         # plot XY tracking
-        self._plot_xy(ax, curr_goals)
+        # self._plot_xy(ax, curr_goals)
 
-        # plot control
-        self.plot_control()
+        # # plot control
+        # self.plot_control()
 
-        # plot current waypoint
-        self.plot_current_variables()
+        # # plot current waypoint
+        # self.plot_current_variables()
 
         # display plot
         self.f.canvas.draw()

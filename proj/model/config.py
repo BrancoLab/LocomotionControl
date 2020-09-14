@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 class Config:
+    USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
 
     # ----------------------------- Simulation params ---------------------------- #

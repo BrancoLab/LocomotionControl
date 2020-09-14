@@ -1,6 +1,7 @@
 import numpy as np
 
 from proj.control.utils import calc_cost
+from proj.utils import timeit
 from proj.control.cost import Cost
 
 
@@ -63,6 +64,7 @@ class Controller(Cost):
 
         return costs
 
+    @timeit
     def obtain_sol(self, curr_x, g_xs):
         """ calculate the optimal inputs
 
