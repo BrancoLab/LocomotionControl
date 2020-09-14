@@ -19,6 +19,11 @@ from fcutils.maths.geometry import calc_distance_between_points_2d
 from proj.model.config import Config
 from proj.utils import merge
 from proj.control.utils import fit_angle_in_range
+from proj.model.fast import (
+    fast_dqdt,
+    fast_model_jacobian_state,
+    fast_model_jacobian_input,
+)
 
 init_printing()
 
@@ -60,9 +65,14 @@ class Model(Config):
         self._make_simbols()
 
         if startup:
-            self.get_combined_dynamics_kinematics()
-            # self.get_inverse_dynamics()
-            self.get_jacobians()
+            if not self.USE_FAST:
+                self.get_combined_dynamics_kinematics()
+                # self.get_inverse_dynamics()
+                self.get_jacobians()
+            else:
+                self.calc_dqdt = fast_dqdt
+                self.calc_model_jacobian_state = fast_model_jacobian_state
+                self.calc_model_jacobian_input = fast_model_jacobian_input
             self.reset()
 
     def reset(self):

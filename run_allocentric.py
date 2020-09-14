@@ -31,6 +31,8 @@
 
 
 # # %%
-# print(model.model_jacobian_input)
+# # print('\ndqdt\n', model.model)
+# # print('\njacobian state\n', model.model_jacobian_state)
+# # print('\njacobian input\n', model.model_jacobian_input)
 
 # # %%
