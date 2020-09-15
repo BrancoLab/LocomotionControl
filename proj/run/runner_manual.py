@@ -23,7 +23,7 @@ def make_figure(model_type):
 def run_manual(
     environment,
     model,
-    n_steps,
+    n_secs,
     u,
     traj=None,
     plot=True,
@@ -45,6 +45,9 @@ def run_manual(
         f, ax = make_figure(model.MODEL_TYPE)
 
     model.move_to_random_location()
+
+    # get number of steps
+    n_steps = int(n_secs / model.dt)
 
     # RUN
     for itern in tqdm(range(n_steps)):

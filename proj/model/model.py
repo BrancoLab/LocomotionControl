@@ -373,7 +373,6 @@ class Model(Config):
         m_w = self.mouse["m_w"]
         d = self.mouse["d"]
 
-        # reshapshapee
         (_, state_size) = xs.shape
         (pred_len, input_size) = us.shape
 
@@ -383,7 +382,7 @@ class Model(Config):
                 f[i, :, :] = self.calc_model_jacobian_state(
                     theta[i], v[i], omega[i], L, R, m, d, m_w
                 )
-            return f * self.dt + np.eye(state_size)
+            return f * self.dt  # + np.eye(state_size)
         else:
             f = np.zeros((pred_len, state_size, input_size))
             f0 = self.calc_model_jacobian_input(

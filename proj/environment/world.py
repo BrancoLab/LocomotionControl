@@ -78,7 +78,11 @@ class World:
         """
         if self.model.MODEL_TYPE == "cartesian":
             self.model.curr_x = self.model._state(
-                trajectory[0, 0], trajectory[0, 1], trajectory[0, 2], v, omega
+                trajectory[0, 0],
+                trajectory[0, 1],
+                trajectory[0, 2],
+                trajectory[0, 3],
+                omega,
             )
 
             # keep track of model's position
@@ -325,13 +329,13 @@ class World:
         )
 
         # plot XY tracking
-        # self._plot_xy(ax, curr_goals)
+        self._plot_xy(ax, curr_goals)
 
-        # # plot control
-        # self.plot_control()
+        # plot control
+        self.plot_control()
 
-        # # plot current waypoint
-        # self.plot_current_variables()
+        # plot current waypoint
+        self.plot_current_variables()
 
         # display plot
         self.f.canvas.draw()
