@@ -9,7 +9,6 @@ requirements = [
     "numpy",
     "pandas",
     "matplotlib",
-    "simpy",
     "sympy",
     "h5py",
     "click",

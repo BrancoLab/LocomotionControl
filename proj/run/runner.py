@@ -14,7 +14,7 @@ def run_experiment(
     environment,
     controller,
     model,
-    n_steps=200,
+    n_secs=10,
     plot=True,
     folder=None,
     frames_folder=None,
@@ -58,6 +58,12 @@ def run_experiment(
     # save frames
     if frames_folder is not None:
         f2, ax2, = plt.subplots(figsize=(12, 8))
+
+    # Get number of steps
+    n_steps = int(n_secs / model.dt)
+    print(
+        f"Starting simulation with {n_steps} steps [{n_secs} at {model.dt} s/step]"
+    )
 
     # RUN
     for itern in tqdm(range(n_steps)):
