@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
+from sklearn.metrics import mean_squared_error
 
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 from fcutils.maths.filtering import line_smoother
@@ -76,8 +77,28 @@ def parabola(n_steps, params):
 
 
 # ------------------------------ From real data ------------------------------ #
+def _interpol(x, max_deg, n_steps):
+    """
+        interpolates x with a number of polynomials to find
+        the one with the best fit
+    """
+    l = np.arange(len(x))
+    l2 = np.linspace(0, len(x), n_steps)
+
+    # try a bunch of degrees
+    errs = []
+    for deg in range(3, max_deg):
+        f = np.poly1d(np.polyfit(l, x, deg))
+        newx = f(l)
+        errs.append(mean_squared_error(newx, x))
+
+    best_deg = np.argmin(errs) + 3
+    f = np.poly1d(np.polyfit(l, x, best_deg))
+    return f(l2)
+
+
 def from_tracking(n_steps, params, skip=135):
-    trial = pd.read_hdf(trials_cache, key="hdf").iloc[200]
+    trial = pd.read_hdf(trials_cache, key="hdf").iloc[0]
 
     # Get variables
     x = trial.body_xy[:, 0]
@@ -96,12 +117,7 @@ def from_tracking(n_steps, params, skip=135):
     if params["resample"]:
         for k, v in vars.items():
             v = v[skip:-10]
-            l = np.arange(len(v))
-            l2 = np.linspace(0, len(v), n_steps)
-
-            f = np.poly1d(np.polyfit(l, v, params["fit_order"]))
-
-            vars[k] = f(l2)
+            vars[k] = _interpol(v, params["max_deg_interpol"], n_steps)
 
     # stack and cut
     trajectory = np.vstack(vars.values()).T

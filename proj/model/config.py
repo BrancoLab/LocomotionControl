@@ -7,7 +7,7 @@ class Config:
 
     # ----------------------------- Simulation params ---------------------------- #
     save_name = "tracking"
-    dt = 0.001
+    dt = 0.0025
 
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
@@ -39,14 +39,14 @@ class Config:
 
     trajectory = dict(  # parameters of the goals trajectory
         name="tracking",
-        nsteps=300,
+        nsteps=50,
         distance=150,
         max_speed=100,
         min_speed=80,
         min_dist=20,  # if agent is within this distance from trajectory end the goal is considered achieved
         skip=0,
         resample=True,  # if True when using tracking trajectory resamples it
-        fit_order=8,  # if using track fit a N degree polynomial to daa to smoothen
+        max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
     )
 
     # ------------------------------ Planning params ----------------------------- #
@@ -56,7 +56,7 @@ class Config:
     )
 
     # --------------------------------- Plotting --------------------------------- #
-    traj_plot_every = 10
+    traj_plot_every = 1
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(
