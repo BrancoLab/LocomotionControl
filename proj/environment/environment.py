@@ -1,14 +1,26 @@
 import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
-from proj.environment.trajectories import parabola, sin, circle, line, point
+from proj.environment.trajectories import (
+    parabola,
+    sin,
+    circle,
+    line,
+    point,
+    from_tracking,
+)
 from proj.utils import traj_to_polar
 from proj.environment.world import World
 
 
 class Environment(World):
     traj_funcs = dict(
-        parabola=parabola, sin=sin, circle=circle, line=line, point=point
+        parabola=parabola,
+        sin=sin,
+        circle=circle,
+        line=line,
+        point=point,
+        tracking=from_tracking,
     )
 
     def __init__(self, model):
