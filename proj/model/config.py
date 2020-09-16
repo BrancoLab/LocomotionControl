@@ -53,9 +53,12 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=30,
-        n_ahead=2,  # start prediction states from N steps ahead
+        prediction_length=5,
+        n_ahead=1,  # start prediction states from N steps ahead
     )
+
+    # --------------------------------- Plotting --------------------------------- #
+    traj_plot_every = 1
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(

@@ -1,7 +1,9 @@
 import numpy as np
+from scipy import interpolate
 from pathlib import Path
 import pandas as pd
 import time
+
 from fcutils.file_io.io import load_yaml
 from fcutils.maths.geometry import calc_distance_from_point
 
@@ -101,6 +103,21 @@ def wrap_angle(angles):
     """
     angles = np.array(angles)
     return (angles + np.pi) % (2 * np.pi) - np.pi
+
+
+def interpolate_nans(arr):
+    """
+    interpolate to fill nan values
+    """
+    inds = np.arange(arr.shape[0])
+    good = np.where(np.isfinite(arr))
+    f = interpolate.interp1d(inds[good], arr[good], bounds_error=False)
+    B = np.where(np.isfinite(arr), arr, f(inds))
+    return B
+
+
+def timestamp():
+    return time.strftime("%y%m%d_%H%M%S")
 
 
 # ---------------------------------- COLORS ---------------------------------- #
