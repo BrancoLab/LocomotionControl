@@ -7,6 +7,10 @@ from rich.progress import (
 import numpy as np
 from pathlib import Path
 
+from proj.paths import frames_cache, main_fld
+from proj.animation.animate import animate_from_images
+from proj.utils import timestamp
+
 # define progress bar
 progress = Progress(
     TextColumn(
@@ -77,7 +81,8 @@ def run_experiment(
             model.step(u)
 
             # update world
-            environment.update_world(g_xs)
+            environment.itern = itern
+            environment.update_world(g_xs, elapsed=itern * model.dt)
 
             # Check if we're done
             if (
@@ -89,5 +94,10 @@ def run_experiment(
 
     # SAVE results
     # model.save(trajectory)
+
+    # make gif
+    animate_from_images(
+        frames_cache, str(main_fld / f"{model.save_name}_{timestamp()}.mp4")
+    )
 
     return model.history

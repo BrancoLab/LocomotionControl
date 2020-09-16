@@ -8,6 +8,7 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 
 from proj.utils import polar_to_cartesian, seagreen, salmon
+from proj.paths import frames_cache
 
 _xy = namedtuple("xy", "x, y")
 _xyt = namedtuple("xyt", "x, y, t")
@@ -33,6 +34,7 @@ class World:
 
     def __init__(self, model):
         self.model = model
+        self.plot_every = self.model.traj_plot_every
 
     # -------------------------------- Initialize -------------------------------- #
 
@@ -160,7 +162,7 @@ class World:
 
     # ---------------------------------- Update ---------------------------------- #
 
-    def update_world(self, curr_goals):
+    def update_world(self, curr_goals, elapsed=None):
         # Get model's position
         if self.model.MODEL_TYPE == "cartesian":
             x, y = self.model.curr_x.x, self.model.curr_x.y
@@ -179,7 +181,7 @@ class World:
         self.model_position_world = self.model_position_history_world[-1]
 
         # Update plots
-        self.visualize_world_live(curr_goals)
+        self.visualize_world_live(curr_goals, elapsed=elapsed)
 
     # ------------------------------- Live plotting ------------------------------ #
     def _plot_xy(self, ax, curr_goals):
@@ -271,10 +273,10 @@ class World:
             ymin -= np.abs(ymin) * 0.1
             ymax += np.abs(ymax) * 0.1
 
-            if ymin > -5:
-                ymin = -5
-            if ymax < 5:
-                ymax = 5
+            if ymin > -2:
+                ymin = -2
+            if ymax < 2:
+                ymax = 2
 
             ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
 
@@ -298,8 +300,10 @@ class World:
             idx = 2
 
         ax.scatter(
-            np.arange(len(self.initial_trajectory[:, idx]))[::7],
-            self.initial_trajectory[:, idx][::7],
+            np.arange(len(self.initial_trajectory[:, idx]))[
+                :: self.plot_every
+            ],
+            self.initial_trajectory[:, idx][:: self.plot_every],
             color=color,
             label="trajectory speed",
             lw=1,
@@ -335,14 +339,14 @@ class World:
         ax.legend()
         ax.set(ylabel="speed", xlabel="trajectory progression")
 
-    def visualize_world_live(self, curr_goals):
+    def visualize_world_live(self, curr_goals, elapsed=None):
         ax = self.xy_ax
         ax.clear()
 
         # plot trajectory
         ax.scatter(
-            self.initial_trajectory[::7, 0],
-            self.initial_trajectory[::7, 1],
+            self.initial_trajectory[:: self.plot_every, 0],
+            self.initial_trajectory[:: self.plot_every, 1],
             s=50,
             color=[0.4, 0.4, 0.4],
             lw=1,
@@ -362,6 +366,7 @@ class World:
 
         # plot XY tracking
         self._plot_xy(ax, curr_goals)
+        ax.set(title=f"Elapsed time: {round(elapsed, 2)}")
 
         # plot control
         self.plot_control()
@@ -372,3 +377,10 @@ class World:
         # display plot
         self.f.canvas.draw()
         plt.pause(0.001)
+
+        # save figure for gif making
+        if self.itern < 10:
+            n = f"0{self.itern}"
+        else:
+            n = str(self.itern)
+        self.f.savefig(str(frames_cache / n))

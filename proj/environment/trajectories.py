@@ -1,7 +1,12 @@
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
+
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
+from fcutils.maths.filtering import line_smoother
+
+from proj.utils import interpolate_nans
+from proj.paths import trials_cache
 
 
 def complete_given_xy(x, y, params):
@@ -71,18 +76,20 @@ def parabola(n_steps, params):
 
 
 # ------------------------------ From real data ------------------------------ #
-def from_tracking(*args, skip=150):
-    fp = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\behav_data\\m1_cache.h5"
-    trial = pd.read_hdf(fp, key="hdf").iloc[0]
+def from_tracking(*args, skip=135):
+    trial = pd.read_hdf(trials_cache, key="hdf").iloc[0]
 
-    x = trial.body_xy[skip:, 0]
-    y = trial.body_xy[skip:, 1]
+    x = trial.body_xy[:, 0]
+    y = trial.body_xy[:, 1]
 
-    angle = np.radians(90 - trial.body_orientation)[skip:]
+    angle = interpolate_nans(trial.body_orientation)
+    angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
-    speed = np.radians(trial.body_speed)[skip:]
+
+    speed = line_smoother(trial.body_speed)
 
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
-    return trajectory[2:, :]
+
+    return trajectory[skip:-20, :]

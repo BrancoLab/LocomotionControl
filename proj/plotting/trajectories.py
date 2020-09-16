@@ -30,7 +30,7 @@ def plot_trajectory(traj):
     sc = axarr[0].scatter(
         traj[:, 0],
         traj[:, 1],
-        c=traj[:, 2],
+        c=np.degrees(traj[:, 2]),
         lw=1,
         edgecolors="k",
         label="$\omega$",
