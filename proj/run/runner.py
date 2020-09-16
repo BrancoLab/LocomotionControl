@@ -2,13 +2,17 @@ from rich.progress import (
     Progress,
     BarColumn,
     TimeRemainingColumn,
+    TextColumn,
 )
 import numpy as np
 from pathlib import Path
 
 # define progress bar
 progress = Progress(
-    "[progress.description]{task.description}",
+    TextColumn(
+        "[bold, magenta]Step {task.completed}/{task.total} - {task.speed} steps/s"
+    ),
+    # "[progress.description]{task.description}",
     BarColumn(bar_width=None),
     "•",
     "[progress.percentage]{task.percentage:>3.0f}%",
@@ -59,7 +63,7 @@ def run_experiment(
         task_id = progress.add_task("running", start=True, total=n_steps)
 
         for itern in range(n_steps):
-            progress.update(task_id, advance=1, total=n_steps)
+            progress.advance(task_id, 1)
 
             curr_x = np.array(model.curr_x)
 

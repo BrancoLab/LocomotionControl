@@ -1,5 +1,4 @@
 # %%
-
 from proj import (
     Model,
     Environment,
