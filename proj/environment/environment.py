@@ -59,7 +59,9 @@ class Environment(World):
         self.model.reset()
 
         # make goal trajetory
-        trajectory = self.make_trajectory()
+        trajectory, goal_duration = self.make_trajectory()
+
+        self.goal_duration = goal_duration  # how long it should take
 
         # reset the world and the model's initial position
         self.initialize_world(trajectory)
@@ -77,7 +79,7 @@ class Environment(World):
         min_idx = np.argmin(np.linalg.norm(curr_x[:2] - g_traj[:, :2], axis=1))
 
         # keep track of where in the trajectory we are
-        self.curr_traj_waypoint_idx = min_idx
+        self.curr_traj_waypoint_idx = min_idx + n_ahead
         self.current_traj_waypoint = g_traj[min_idx, :]
 
         start = min_idx + n_ahead

@@ -366,7 +366,9 @@ class World:
 
         # plot XY tracking
         self._plot_xy(ax, curr_goals)
-        ax.set(title=f"Elapsed time: {round(elapsed, 2)}")
+        ax.set(
+            title=f"Elapsed time: {round(elapsed, 2)}s | goal: {round(self.goal_duration, 2)}s"
+        )
 
         # plot control
         self.plot_control()
