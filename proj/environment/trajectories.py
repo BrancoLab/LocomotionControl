@@ -76,9 +76,10 @@ def parabola(n_steps, params):
 
 
 # ------------------------------ From real data ------------------------------ #
-def from_tracking(*args, skip=135):
+def from_tracking(n_steps, params, skip=135):
     trial = pd.read_hdf(trials_cache, key="hdf").iloc[0]
 
+    # Get variables
     x = trial.body_xy[:, 0]
     y = trial.body_xy[:, 1]
 
@@ -90,6 +91,18 @@ def from_tracking(*args, skip=135):
 
     ang_speed = np.ones_like(speed)  # it will be ignored
 
-    trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
+    # resample variables so that samples are uniformly distribued
+    vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
+    for k, v in vars.items():
+        v = v[skip:-10]
+        l = np.arange(len(v))
+        l2 = np.linspace(0, len(v), n_steps)
 
-    return trajectory[skip:-20, :], len(x) / trial.fps
+        f = np.poly1d(np.polyfit(l, v, 3))
+
+        vars[k] = f(l2)
+
+    # stack and cut
+    trajectory = np.vstack(vars.values()).T
+
+    return trajectory, len(x) / trial.fps
