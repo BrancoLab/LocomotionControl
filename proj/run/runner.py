@@ -29,7 +29,7 @@ def run_experiment(
     environment,
     controller,
     model,
-    n_secs=10,
+    n_secs=30,
     plot=True,
     folder=None,
     frames_folder=None,
@@ -97,7 +97,8 @@ def run_experiment(
 
     # make gif
     animate_from_images(
-        frames_cache, str(main_fld / f"{model.save_name}_{timestamp()}.mp4")
+        str(frames_cache),
+        str(main_fld / f"{model.save_name}_{timestamp()}.mp4"),
     )
 
     return model.history

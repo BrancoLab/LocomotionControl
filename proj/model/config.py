@@ -48,7 +48,7 @@ class Config:
         distance=150,
         max_speed=100,
         min_speed=80,
-        min_dist=-20,  # if agent is within this distance from trajectory end the goal is considered achieved
+        min_dist=20,  # if agent is within this distance from trajectory end the goal is considered achieved
     )
 
     # ------------------------------ Planning params ----------------------------- #

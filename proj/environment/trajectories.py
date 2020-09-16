@@ -86,10 +86,10 @@ def from_tracking(*args, skip=135):
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
-    speed = line_smoother(trial.body_speed)
+    speed = line_smoother(trial.body_speed) + 20
 
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
 
-    return trajectory[skip:-20, :]
+    return trajectory[skip:-20, :], len(x) / trial.fps
