@@ -96,9 +96,12 @@ def run_experiment(
     # model.save(trajectory)
 
     # make gif
-    animate_from_images(
-        str(frames_cache),
-        str(main_fld / f"{model.save_name}_{timestamp()}.mp4"),
-    )
+    try:
+        animate_from_images(
+            str(frames_cache),
+            str(main_fld / f"{model.save_name}_{timestamp()}.mp4"),
+        )
+    except ValueError:
+        pass
 
     return model.history

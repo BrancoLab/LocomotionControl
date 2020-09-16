@@ -47,6 +47,7 @@ class ModelPolar(Model):
     _calc_model_jacobian_input_args = ["L", "R", "m", "d", "m_w"]
 
     def __init__(self):
+        raise NotImplementedError("Model needs to be fixed and improved")
         Model.__init__(self, startup=False)
 
         # add some simbols
