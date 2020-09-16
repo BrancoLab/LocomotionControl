@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 class Config:
-    USE_FAST = True  # if true use cumba's methods
+    USE_FAST = False  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
 
     # ----------------------------- Simulation params ---------------------------- #
@@ -43,7 +43,7 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="parabola",
+        name="tracking",
         nsteps=300,
         distance=150,
         max_speed=100,

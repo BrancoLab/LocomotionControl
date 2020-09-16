@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy.optimize import curve_fit
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 
@@ -16,8 +17,6 @@ def complete_given_xy(x, y, params):
 
     ang_speed = np.ones_like(speed)  # it will be ignored
 
-    ang_speed = np.ones_like(speed)  # it will be ignored
-
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
     return trajectory[2:, :]
 
@@ -28,11 +27,6 @@ def point(n_steps, params):
     y = np.zeros(n_steps)
 
     return complete_given_xy(x, y, params)
-
-
-# `
-# def polar_line(n_steps, params):
-#     x = `
 
 
 def line(n_steps, params):
@@ -74,3 +68,21 @@ def parabola(n_steps, params):
     x = curve(y, *coef)
 
     return complete_given_xy(x, y, params)
+
+
+# ------------------------------ From real data ------------------------------ #
+def from_tracking(*args, skip=150):
+    fp = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\behav_data\\m1_cache.h5"
+    trial = pd.read_hdf(fp, key="hdf").iloc[0]
+
+    x = trial.body_xy[skip:, 0]
+    y = trial.body_xy[skip:, 1]
+
+    angle = np.radians(90 - trial.body_orientation)[skip:]
+    angle = np.unwrap(angle)
+    speed = np.radians(trial.body_speed)[skip:]
+
+    ang_speed = np.ones_like(speed)  # it will be ignored
+
+    trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
+    return trajectory[2:, :]
