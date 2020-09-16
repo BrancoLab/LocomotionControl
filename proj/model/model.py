@@ -76,8 +76,6 @@ class Model(Config):
             self.reset()
 
     def reset(self):
-        self.curr_control = self._control(0, 0)  # use only to keep track
-
         self.history = dict(
             x=[],
             y=[],
@@ -304,8 +302,8 @@ class Model(Config):
         self.curr_x = self._state(*next_x)
 
         # Update history
-        self._append_history()
         self.curr_control = u
+        self._append_history()
 
     def _fake_step(self, x, u):
         """
