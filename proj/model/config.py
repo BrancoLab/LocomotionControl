@@ -1,25 +1,20 @@
 import numpy as np
-from pathlib import Path
 
 
 class Config:
-    USE_FAST = False  # if true use cumba's methods
+    USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
 
     # ----------------------------- Simulation params ---------------------------- #
-    save_folder = Path(
-        "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control"
-    )
-    save_name = "sin"
-
-    dt = 0.01
+    save_name = "tracking"
+    dt = 0.001
 
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
     INPUT_SIZE = 2
 
     R = np.diag([0.01, 0.01])  # control cost
-    Q = np.diag([5, 5, 1, 5, 0])  # state cost | x, y, theta, v, omega
+    Q = np.diag([5, 5, 1, 4.25, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
     # STATE_SIZE = 4
@@ -49,12 +44,15 @@ class Config:
         max_speed=100,
         min_speed=80,
         min_dist=20,  # if agent is within this distance from trajectory end the goal is considered achieved
+        skip=0,
+        resample=True,  # if True when using tracking trajectory resamples it
+        fit_order=8,  # if using track fit a N degree polynomial to daa to smoothen
     )
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=5,
-        n_ahead=1,  # start prediction states from N steps ahead
+        prediction_length=10,
+        n_ahead=2,  # start prediction states from N steps ahead
     )
 
     # --------------------------------- Plotting --------------------------------- #

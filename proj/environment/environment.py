@@ -1,5 +1,6 @@
 import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
+import shutil
 
 from proj.environment.trajectories import (
     parabola,
@@ -11,9 +12,14 @@ from proj.environment.trajectories import (
 )
 from proj.utils import traj_to_polar
 from proj.environment.world import World
+from proj.paths import frames_cache
 
 
 class Environment(World):
+    itern = 0
+    moved_to_next = []
+    curr_traj_waypoint_idx = None
+
     traj_funcs = dict(
         parabola=parabola,
         sin=sin,
@@ -66,6 +72,14 @@ class Environment(World):
         # reset the world and the model's initial position
         self.initialize_world(trajectory)
 
+        # empty cache frames folder
+        # empty frames cahce
+        try:
+            shutil.rmtree(str(frames_cache))
+        except (FileNotFoundError, PermissionError):
+            pass
+        frames_cache.mkdir(exist_ok=True)
+
         return trajectory
 
     def plan(self, curr_x, g_traj, itern):
@@ -79,6 +93,9 @@ class Environment(World):
         min_idx = np.argmin(np.linalg.norm(curr_x[:2] - g_traj[:, :2], axis=1))
 
         # keep track of where in the trajectory we are
+        if min_idx + n_ahead != self.curr_traj_waypoint_idx:
+            self.moved_to_next.append(self.itern)
+
         self.curr_traj_waypoint_idx = min_idx + n_ahead
         self.current_traj_waypoint = g_traj[min_idx, :]
 

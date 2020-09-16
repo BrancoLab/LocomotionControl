@@ -128,6 +128,7 @@ class World:
 
         gs = self.f.add_gridspec(2, 4)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
+        self.xy_ax.axis("equal")
         self.xy_ax.axis("off")
 
         self.tau_ax = self.f.add_subplot(gs[0, 2:])
@@ -238,7 +239,8 @@ class World:
         ax.axis("equal")
         ax.axis("off")
 
-    def plot_control(self, keep_n=30):
+    def plot_control(self, keep_s=1.2):
+        keep_n = int(keep_s / self.model.dt)
         ax = self.tau_ax
         ax.clear()
 
@@ -266,22 +268,21 @@ class World:
         )
 
         # set axes
-        if n > keep_n:
-            ymin = np.min(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
-            ymax = np.max(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+        ymin = np.min(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+        ymax = np.max(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
 
+        if n > keep_n:
             ymin -= np.abs(ymin) * 0.1
             ymax += np.abs(ymax) * 0.1
-
-            if ymin > -2:
-                ymin = -2
-            if ymax < 2:
-                ymax = 2
 
             ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
 
         ax.set(ylabel="Forces", xlabel="step n")
         ax.legend()
+
+        # mark the times a change of traj idx happened
+        for v in self.moved_to_next:
+            ax.axvline(v, color="k")
 
     def plot_current_variables(self):
         """
@@ -367,7 +368,8 @@ class World:
         # plot XY tracking
         self._plot_xy(ax, curr_goals)
         ax.set(
-            title=f"Elapsed time: {round(elapsed, 2)}s | goal: {round(self.goal_duration, 2)}s"
+            title=f"Elapsed time: {round(elapsed, 2)}s | goal: {round(self.goal_duration, 2)}s\n"
+            + f"trajectory progression: {self.curr_traj_waypoint_idx}/{len(self.initial_trajectory)}"
         )
 
         # plot control

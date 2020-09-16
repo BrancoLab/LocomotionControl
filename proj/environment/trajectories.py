@@ -65,7 +65,7 @@ def parabola(n_steps, params):
     # Define 3 points
     X = [0, params["distance"] / 2, params["distance"]]
     Y = [0, params["distance"] / 4, 0]
-
+    #
     # fit curve and make trace
     coef, _ = curve_fit(curve, X, Y)
 
@@ -77,7 +77,7 @@ def parabola(n_steps, params):
 
 # ------------------------------ From real data ------------------------------ #
 def from_tracking(n_steps, params, skip=135):
-    trial = pd.read_hdf(trials_cache, key="hdf").iloc[0]
+    trial = pd.read_hdf(trials_cache, key="hdf").iloc[200]
 
     # Get variables
     x = trial.body_xy[:, 0]
@@ -87,22 +87,25 @@ def from_tracking(n_steps, params, skip=135):
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
-    speed = line_smoother(trial.body_speed) + 20
+    speed = line_smoother(trial.body_speed) + trial.fps
 
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     # resample variables so that samples are uniformly distribued
     vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
-    for k, v in vars.items():
-        v = v[skip:-10]
-        l = np.arange(len(v))
-        l2 = np.linspace(0, len(v), n_steps)
+    if params["resample"]:
+        for k, v in vars.items():
+            v = v[skip:-10]
+            l = np.arange(len(v))
+            l2 = np.linspace(0, len(v), n_steps)
 
-        f = np.poly1d(np.polyfit(l, v, 3))
+            f = np.poly1d(np.polyfit(l, v, params["fit_order"]))
 
-        vars[k] = f(l2)
+            vars[k] = f(l2)
 
     # stack and cut
     trajectory = np.vstack(vars.values()).T
+
+    trajectory = trajectory[params["skip"] :, :]
 
     return trajectory, len(x) / trial.fps
