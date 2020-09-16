@@ -7,10 +7,19 @@ from fcutils.plotting.utils import clean_axes
 from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 
-from proj.utils import polar_to_cartesian, seagreen, salmon, timeit
+from proj.utils import polar_to_cartesian, seagreen, salmon
 
 _xy = namedtuple("xy", "x, y")
 _xyt = namedtuple("xyt", "x, y, t")
+
+
+def press(event, self):
+    """ 
+        Deals with key press during interactive visualizatoin
+    """
+    if event.key == "c":
+        print("stopping")
+        self.stop = True
 
 
 class World:
@@ -18,6 +27,9 @@ class World:
         Class to keep a representation of the world (model + trajectory)
         in euclidean representation, regardless of the model's own coordinates system
     """
+
+    stop = False
+    _cache = dict(speed_plot_x=[], speed_plot_y=[],)
 
     def __init__(self, model):
         self.model = model
@@ -121,6 +133,10 @@ class World:
         self.sax = self.f.add_subplot(gs[1, 2:])
 
         clean_axes(self.f)
+
+        self.f.canvas.mpl_connect(
+            "key_press_event", lambda event: press(event, self)
+        )
 
     def initialize_world(self, trajectory):
         """
@@ -281,11 +297,14 @@ class World:
         else:
             idx = 2
 
-        plot_line_outlined(
-            ax,
-            self.initial_trajectory[:, idx],
+        ax.scatter(
+            np.arange(len(self.initial_trajectory[:, idx]))[::7],
+            self.initial_trajectory[:, idx][::7],
             color=color,
             label="trajectory speed",
+            lw=1,
+            edgecolors="white",
+            s=100,
         )
 
         # plot current speed
@@ -293,16 +312,29 @@ class World:
             self.curr_traj_waypoint_idx,
             self.model.history["v"][-1],
             zorder=100,
-            s=150,
+            s=300,
             lw=1,
+            color="m",
             edgecolors="k",
             label="models speed",
+        )
+
+        # store the scatter coords for later plots
+        self._cache["speed_plot_x"].append(self.curr_traj_waypoint_idx)
+        self._cache["speed_plot_y"].append(self.model.history["v"][-1])
+
+        # plot line
+        ax.plot(
+            self._cache["speed_plot_x"],
+            self._cache["speed_plot_y"],
+            color=desaturate_color("m"),
+            zorder=-1,
+            lw=9,
         )
 
         ax.legend()
         ax.set(ylabel="speed", xlabel="trajectory progression")
 
-    @timeit
     def visualize_world_live(self, curr_goals):
         ax = self.xy_ax
         ax.clear()

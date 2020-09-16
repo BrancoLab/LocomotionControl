@@ -10,7 +10,6 @@
 #     plot_trajectory_polar,
 #     run_manual,
 # )
-# import numpy as np
 
 
 # # ! TODO  formula I_c for cube!

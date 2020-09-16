@@ -10,7 +10,7 @@ class Config:
     save_folder = Path(
         "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control"
     )
-    save_name = "parabola"
+    save_name = "sin"
 
     dt = 0.01
 
@@ -19,7 +19,7 @@ class Config:
     INPUT_SIZE = 2
 
     R = np.diag([0.01, 0.01])  # control cost
-    Q = np.diag([2.5, 2.5, 2.5, 2.5, 0])  # state cost | x, y, theta, v, omega
+    Q = np.diag([5, 5, 1, 5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
     # STATE_SIZE = 4
@@ -46,15 +46,15 @@ class Config:
         name="parabola",
         nsteps=300,
         distance=150,
-        max_speed=20,
-        min_speed=10,
+        max_speed=100,
+        min_speed=80,
         min_dist=20,  # if agent is within this distance from trajectory end the goal is considered achieved
     )
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
         prediction_length=30,
-        n_ahead=5,  # start prediction states from N steps ahead
+        n_ahead=2,  # start prediction states from N steps ahead
     )
 
     # ------------------------------ Control params ------------------------------ #
