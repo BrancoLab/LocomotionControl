@@ -55,7 +55,7 @@ class Environment(World):
             self.trials_cache = trials_cache
         else:
             self.main_fld = winstor_main
-            self.cache_fld = str(
+            self.cache_fld = (
                 winstor_main / f'{model.trajectory["name"]}_{timestamp()}'
             )
             self.trials_cache = winstor_trial_cache
