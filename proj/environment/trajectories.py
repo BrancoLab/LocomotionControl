@@ -4,6 +4,7 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 from rich.table import Table
 from rich import print
+import logging
 
 from fcutils.maths.geometry import (
     calc_angle_between_points_of_vector_2d,
@@ -74,17 +75,31 @@ def compute_trajectory_stats(trajectory, duration, planning_params):
         str(perc_lookahead),
     )
 
-    print("\n\n")
-    print(table)
+    log = logging.getLogger("rich")
+    logging.info(print(table), extra={"markup": True})
+
+    log.info(
+        f"""
+        n_points = {n_points}
+        distance_travelled = {distance_travelled}
+        waypoint_density = {waypoint_density}
+        start_goal_distance = {start_goal_distance}
+        duration = {duration}
+        lookahead = {lookahead}
+        perc_lookahead = {perc_lookahead}
+    """
+    )
 
     if waypoint_density < 2 or waypoint_density > 3:
-        print(
-            f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!"
+        logging.info(
+            f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!",
+            extra={"markup": True},
         )
 
     if perc_lookahead < 0.05:
-        print(
-            f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised."
+        logging.info(
+            f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised.",
+            extra={"markup": True},
         )
 
     return trajectory, duration
@@ -160,9 +175,7 @@ def _interpol(x, max_deg, n_steps):
     return f(l2)
 
 
-def from_tracking(
-    n_steps, params, planning_params, cache_fld, *args, skip=100
-):
+def from_tracking(n_steps, params, planning_params, cache_fld, *args, skip=20):
     if not params["randomize"]:
         trial = pd.read_hdf(cache_fld, key="hdf").iloc[0]
     else:

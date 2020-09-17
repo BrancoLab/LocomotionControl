@@ -1,7 +1,5 @@
 import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
-import shutil
-from pathlib import Path
 
 from proj.environment.trajectories import (
     parabola,
@@ -11,18 +9,12 @@ from proj.environment.trajectories import (
     point,
     from_tracking,
 )
-from proj.utils import traj_to_polar, timestamp
+from proj.utils import traj_to_polar
 from proj.environment.world import World
-from proj.paths import (
-    frames_cache,
-    winstor_trial_cache,
-    trials_cache,
-    winstor_main,
-    main_fld,
-)
+from proj.environment.manager import Manager
 
 
-class Environment(World):
+class Environment(World, Manager):
     itern = 0
     moved_to_next = []
     curr_traj_waypoint_idx = None
@@ -38,6 +30,7 @@ class Environment(World):
 
     def __init__(self, model, winstor=False):
         World.__init__(self, model)
+        Manager.__init__(self, model, winstor=winstor)
 
         self.model = model
 
@@ -50,25 +43,6 @@ class Environment(World):
 
         # Prepare paths
         self.winstor = winstor
-        self.exp_name = f'{model.trajectory["name"]}_{timestamp()}'
-
-        if not winstor:
-            # normal
-            self.main_fld = main_fld
-            self.cache_fld = frames_cache
-            self.trials_cache = trials_cache
-
-        else:
-            # winstor
-            self.main_fld = winstor_main
-            self.cache_fld = winstor_main / self.exp_name
-            self.trials_cache = winstor_trial_cache
-
-            for fld in [self.main_fld, self.cache_fld]:
-                fld.mkdir(exist_ok=True)
-
-        self.save_res_fld = Path(str(self.cache_fld) + "_results")
-        self.save_res_fld.mkdir(exist_ok=True)
 
     def make_trajectory(self):
         """
@@ -102,13 +76,6 @@ class Environment(World):
 
         # reset the world and the model's initial position
         self.initialize_world(trajectory)
-
-        # empty cache frames folder
-        try:
-            shutil.rmtree(str(frames_cache))
-        except (FileNotFoundError, PermissionError):
-            pass
-        frames_cache.mkdir(exist_ok=True)
 
         return trajectory
 

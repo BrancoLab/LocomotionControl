@@ -12,7 +12,7 @@ class Config:
     STATE_SIZE = 5
     INPUT_SIZE = 2
 
-    R = np.diag([0.01, 0.01])  # control cost
+    R = np.diag([1.5, 1.5])  # control cost
     Q = np.diag([5, 5, 1, 4.5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
@@ -51,12 +51,12 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=50,
+        prediction_length=80,
         n_ahead=5,  # start prediction states from N steps ahead
     )
 
     # --------------------------------- Plotting --------------------------------- #
-    traj_plot_every = 20
+    traj_plot_every = 15
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(

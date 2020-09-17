@@ -6,9 +6,6 @@ from rich.progress import (
 )
 import numpy as np
 from rich import print
-from pathlib import Path
-
-from proj.animation.animate import animate_from_images
 
 
 # define progress bar
@@ -26,13 +23,7 @@ progress = Progress(
 
 # run
 def run_experiment(
-    environment,
-    controller,
-    model,
-    n_secs=30,
-    plot=True,
-    folder=None,
-    frames_folder=None,
+    environment, controller, model, n_secs=30, frames_folder=None,
 ):
     """
         Runs an experiment
@@ -49,9 +40,6 @@ def run_experiment(
 
         :returns: the history of events as stored by model
     """
-    if folder is not None:
-        model.save_folder = Path(folder)
-
     # reset things
     trajectory = environment.reset()
     model.reset()
@@ -92,16 +80,5 @@ def run_experiment(
                 print(f"Reached end of trajectory after {itern} steps")
                 break
 
-    # SAVE results
-    model.save(trajectory, environment.save_res_fld)
-
-    # make gif
-    try:
-        animate_from_images(
-            str(environment.cache_fld),
-            str(environment.main_fld / f"{environment.exp_name}.mp4"),
-        )
-    except (ValueError, FileNotFoundError):
-        print("Failed to generate video from frames.. ")
-
-    return model.history
+    # save data and close stuff
+    environment.conclude()

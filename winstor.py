@@ -11,4 +11,4 @@ env = Environment(model, winstor=True)
 control = Controller(model)
 
 
-run_experiment(env, control, model, plot=False, n_secs=0.2)
+run_experiment(env, control, model, plot=False)  # , n_secs=0.2)

@@ -20,7 +20,7 @@ class Plotter:
     def make_figure(self):
         plt.ion()
 
-        self.f = plt.figure(constrained_layout=True, figsize=(12, 8))
+        self.f = plt.figure(figsize=(12, 8))
 
         gs = self.f.add_gridspec(2, 4)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
@@ -240,4 +240,4 @@ class Plotter:
             n = f"0{self.itern}"
         else:
             n = str(self.itern)
-        self.f.savefig(str(self.cache_fld / n))
+        self.f.savefig(str(self.frames_folder / n))
