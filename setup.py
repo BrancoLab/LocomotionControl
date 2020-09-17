@@ -15,6 +15,7 @@ requirements = [
     "numba",
     "rich",
     "sklearn",
+    "fancylog",
 ]
 
 setup(

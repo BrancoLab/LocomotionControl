@@ -10,13 +10,11 @@ from sympy import (
 )
 
 from collections import namedtuple
-import pandas as pd
-from fcutils.file_io.io import save_yaml
 
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.model.config import Config
-from proj.utils import merge, timestamp
+from proj.utils import merge
 from proj.control.utils import fit_angle_in_range
 from proj.model.fast import (
     fast_dqdt,
@@ -91,41 +89,6 @@ class Model(Config):
         for ntuple in [self.curr_x, self.curr_control]:
             for k, v in ntuple._asdict().items():
                 self.history[k].append(v)
-
-    def save(self, trajectory, save_folder):
-        # Create folder
-        save_fld = save_folder / (self.trajectory["name"] + f"_{timestamp()}")
-
-        try:
-            save_fld.mkdir(exist_ok=True)
-        except FileNotFoundError:
-            print(
-                f"Failed to save files in folder {save_fld} because it doesnt exist"
-            )
-            return
-
-        # save config
-        save_yaml(str(save_fld / "config.yml"), self.config_dict())
-
-        # save state and control variables naes
-        save_yaml(
-            str(save_fld / "state_vars.yml"),
-            dict(self._state(0, 0, 0, 0, 0)._asdict()),
-        )
-        save_yaml(
-            str(save_fld / "control_vars.yml"),
-            dict(self._control(0, 0)._asdict()),
-        )
-
-        # save trajectory
-        if trajectory is not None:
-            np.save(str(save_fld / "trajectory.npy"), trajectory)
-
-        # save history
-        history = {k: v for k, v in self.history.items() if v}
-        pd.DataFrame(history).to_hdf(str(save_fld / "history.h5"), key="hdf")
-
-        print(f"Data saved at: {save_fld}")
 
     def _make_simbols(self):
         # state variables
