@@ -5,7 +5,6 @@ from fcutils.plotting.plot_elements import plot_line_outlined
 import numpy as np
 
 from proj.utils import seagreen, salmon
-from proj.paths import frames_cache
 
 
 def press(event, self):
@@ -241,4 +240,4 @@ class Plotter:
             n = f"0{self.itern}"
         else:
             n = str(self.itern)
-        self.f.savefig(str(frames_cache / n))
+        self.f.savefig(str(self.cache_fld / n))

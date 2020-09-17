@@ -13,7 +13,6 @@ from fcutils.maths.geometry import (
 from fcutils.maths.filtering import line_smoother
 
 from proj.utils import interpolate_nans
-from proj.paths import trials_cache
 
 
 def complete_given_xy(x, y, params, planning_params):
@@ -92,21 +91,21 @@ def compute_trajectory_stats(trajectory, duration, planning_params):
 
 
 # ---------------------------------- Curves ---------------------------------- #
-def point(n_steps, params, planning_params):
+def point(n_steps, params, planning_params, *akrgs):
     x = np.zeros(n_steps)
     y = np.zeros(n_steps)
 
     return complete_given_xy(x, y, params, planning_params)
 
 
-def line(n_steps, params, planning_params):
+def line(n_steps, params, planning_params, *akrgs):
     y = np.linspace(0, params["distance"], n_steps)
     x = np.zeros_like(y)
 
     return complete_given_xy(x, y, params, planning_params)
 
 
-def circle(n_steps, params, planning_params):
+def circle(n_steps, params, planning_params, *akrgs):
     p = np.linspace(0, 2 * np.pi, n_steps)
     r = params["distance"] / 2
 
@@ -116,14 +115,14 @@ def circle(n_steps, params, planning_params):
     return complete_given_xy(x, y, params, planning_params)
 
 
-def sin(n_steps, params, planning_params):
+def sin(n_steps, params, planning_params, *akrgs):
     x = np.linspace(0, params["distance"], n_steps)
     y = 5 * np.sin(0.1 * x)
 
     return complete_given_xy(x, y, params, planning_params)
 
 
-def parabola(n_steps, params, planning_params):
+def parabola(n_steps, params, planning_params, *akrgs):
     def curve(x, a, b, c):
         return (a * (x - b) ** 2) + +c
 
@@ -161,8 +160,13 @@ def _interpol(x, max_deg, n_steps):
     return f(l2)
 
 
-def from_tracking(n_steps, params, planning_params, skip=135):
-    trial = pd.read_hdf(trials_cache, key="hdf").iloc[0]
+def from_tracking(
+    n_steps, params, planning_params, cache_fld, *args, skip=100
+):
+    if not params["randomize"]:
+        trial = pd.read_hdf(cache_fld, key="hdf").iloc[0]
+    else:
+        trial = pd.read_hdf(cache_fld, key="hdf").sample().iloc[0]
 
     # Get variables
     x = trial.body_xy[:, 0]

@@ -10,9 +10,15 @@ from proj.environment.trajectories import (
     point,
     from_tracking,
 )
-from proj.utils import traj_to_polar
+from proj.utils import traj_to_polar, timestamp
 from proj.environment.world import World
-from proj.paths import frames_cache
+from proj.paths import (
+    frames_cache,
+    winstor_trial_cache,
+    trials_cache,
+    winstor_main,
+    main_fld,
+)
 
 
 class Environment(World):
@@ -29,7 +35,7 @@ class Environment(World):
         tracking=from_tracking,
     )
 
-    def __init__(self, model):
+    def __init__(self, model, winstor=False):
         World.__init__(self, model)
 
         self.model = model
@@ -41,6 +47,19 @@ class Environment(World):
                 f'Could not find a trajectory constructing curve called: {model.trajectory["name"]}'
             )
 
+        # Prepare paths
+        self.winstor = winstor
+        if not winstor:
+            self.main_fld = main_fld
+            self.cache_fld = frames_cache
+            self.trials_cache = trials_cache
+        else:
+            self.main_fld = winstor_main
+            self.cache_fld = str(
+                winstor_main / f'{model.trajectory["name"]}_{timestamp()}'
+            )
+            self.trials_cache = winstor_trial_cache
+
     def make_trajectory(self):
         """
             Defines a path that the mouse has to 
@@ -50,7 +69,9 @@ class Environment(World):
         params = self.model.trajectory
         n_steps = int(params["nsteps"])
 
-        traj = self._traj_func(n_steps, params, self.model.planning)
+        traj = self._traj_func(
+            n_steps, params, self.model.planning, self.trials_cache
+        )
 
         if self.model.MODEL_TYPE == "polar":
             traj = traj_to_polar(traj)
@@ -73,7 +94,6 @@ class Environment(World):
         self.initialize_world(trajectory)
 
         # empty cache frames folder
-        # empty frames cahce
         try:
             shutil.rmtree(str(frames_cache))
         except (FileNotFoundError, PermissionError):

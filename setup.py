@@ -12,6 +12,8 @@ requirements = [
     "sympy",
     "h5py",
     "click",
+    "numba",
+    "rich",
 ]
 
 setup(

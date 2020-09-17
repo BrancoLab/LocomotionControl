@@ -22,4 +22,7 @@ else:
 
 
 # winstor paths
-winstor_main = "/nfs/winstor/branco/Federico/Locomotion/control"
+winstor_main = Path("/nfs/winstor/branco/Federico/Locomotion/control")
+winstor_trial_cache = (
+    "/nfs/winstor/branco/Federico/Locomotion/control/m1_cache.h5"
+)
