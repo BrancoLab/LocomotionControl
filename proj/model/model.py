@@ -10,14 +10,13 @@ from sympy import (
 )
 
 from collections import namedtuple
-import time
 import pandas as pd
 from fcutils.file_io.io import save_yaml
 
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.model.config import Config
-from proj.utils import merge
+from proj.utils import merge, timestamp
 from proj.control.utils import fit_angle_in_range
 from proj.model.fast import (
     fast_dqdt,
@@ -93,10 +92,9 @@ class Model(Config):
             for k, v in ntuple._asdict().items():
                 self.history[k].append(v)
 
-    def save(self, trajectory=None):
+    def save(self, trajectory, save_folder):
         # Create folder
-        time_stamp = time.strftime("%y%m%d_%H%M%S")
-        save_fld = self.save_folder / (self.save_name + f"_{time_stamp}")
+        save_fld = save_folder / (self.trajectory["name"] + f"_{timestamp()}")
 
         try:
             save_fld.mkdir(exist_ok=True)
@@ -124,9 +122,8 @@ class Model(Config):
             np.save(str(save_fld / "trajectory.npy"), trajectory)
 
         # save history
-        pd.DataFrame(self.history).to_hdf(
-            str(save_fld / "history.h5"), key="hdf"
-        )
+        history = {k: v for k, v in self.history.items() if v}
+        pd.DataFrame(history).to_hdf(str(save_fld / "history.h5"), key="hdf")
 
         print(f"Data saved at: {save_fld}")
 

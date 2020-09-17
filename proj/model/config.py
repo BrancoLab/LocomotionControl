@@ -46,16 +46,17 @@ class Config:
         skip=0,
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
+        randomize=True,  # if true when using tracking it pulls a random trial
     )
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=100,
-        n_ahead=2,  # start prediction states from N steps ahead
+        prediction_length=50,
+        n_ahead=5,  # start prediction states from N steps ahead
     )
 
     # --------------------------------- Plotting --------------------------------- #
-    traj_plot_every = 50
+    traj_plot_every = 20
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(

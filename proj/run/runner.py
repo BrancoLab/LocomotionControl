@@ -8,7 +8,6 @@ import numpy as np
 from rich import print
 from pathlib import Path
 
-from proj.paths import frames_cache, main_fld
 from proj.animation.animate import animate_from_images
 from proj.utils import timestamp
 
@@ -94,13 +93,16 @@ def run_experiment(
                 break
 
     # SAVE results
-    # model.save(trajectory)
+    model.save(trajectory, environment.main_fld)
 
     # make gif
     try:
         animate_from_images(
-            str(frames_cache),
-            str(main_fld / f"{model.trajectory['name']}_{timestamp()}.mp4"),
+            str(environment.cache_fld),
+            str(
+                environment.main_fld
+                / f"{model.trajectory['name']}_{timestamp()}.mp4"
+            ),
         )
     except ValueError:
         pass
