@@ -60,6 +60,9 @@ class Environment(World):
             )
             self.trials_cache = winstor_trial_cache
 
+            for fld in [self.main_fld, self.cache_fld]:
+                fld.mkdir(exist_ok=True)
+
     def make_trajectory(self):
         """
             Defines a path that the mouse has to 
