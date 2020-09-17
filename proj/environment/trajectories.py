@@ -197,7 +197,7 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args, skip=20):
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
-    speed = line_smoother(trial.body_speed) + trial.fps
+    speed = line_smoother(trial.body_speed) * trial.fps
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     # resample variables so that samples are uniformly distributed
