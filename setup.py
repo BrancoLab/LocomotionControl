@@ -14,6 +14,7 @@ requirements = [
     "click",
     "numba",
     "rich",
+    "sklearn",
 ]
 
 setup(
