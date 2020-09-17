@@ -5,6 +5,7 @@ from rich.progress import (
     TextColumn,
 )
 import numpy as np
+from rich import print
 from pathlib import Path
 
 from proj.paths import frames_cache, main_fld
@@ -14,7 +15,7 @@ from proj.utils import timestamp
 # define progress bar
 progress = Progress(
     TextColumn(
-        "[bold, magenta]Step {task.completed}/{task.total} - {task.speed} steps/s"
+        "[bold magenta]Step {task.completed}/{task.total} - {task.speed} steps/s"
     ),
     # "[progress.description]{task.description}",
     BarColumn(bar_width=None),
@@ -59,7 +60,7 @@ def run_experiment(
     # Get number of steps
     n_steps = int(n_secs / model.dt)
     print(
-        f"Starting simulation with {n_steps} steps [{n_secs} at {model.dt} s/step]"
+        f"\n\n[bold  green]Starting simulation with {n_steps} steps [{n_secs}s at {model.dt} s/step][/bold  green]"
     )
 
     # RUN
@@ -99,7 +100,7 @@ def run_experiment(
     try:
         animate_from_images(
             str(frames_cache),
-            str(main_fld / f"{model.save_name}_{timestamp()}.mp4"),
+            str(main_fld / f"{model.trajectory['name']}_{timestamp()}.mp4"),
         )
     except ValueError:
         pass

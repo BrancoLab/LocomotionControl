@@ -19,3 +19,7 @@ else:
     frames_cache = Path(
         "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\frames_cache"
     )
+
+
+# winstor paths
+winstor_main = "/nfs/winstor/branco/Federico/Locomotion/control"

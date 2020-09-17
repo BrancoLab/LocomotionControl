@@ -6,7 +6,6 @@ class Config:
     SPAWN_TYPE = "trajectory"
 
     # ----------------------------- Simulation params ---------------------------- #
-    save_name = "parabola"
     dt = 0.01
 
     # -------------------------------- Cost params ------------------------------- #
@@ -14,7 +13,7 @@ class Config:
     INPUT_SIZE = 2
 
     R = np.diag([0.01, 0.01])  # control cost
-    Q = np.diag([5, 5, 1, 4.0, 0])  # state cost | x, y, theta, v, omega
+    Q = np.diag([5, 5, 1, 4.5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
     # STATE_SIZE = 4
@@ -38,8 +37,8 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="parabola",
-        nsteps=300,
+        name="tracking",
+        nsteps=1000,
         distance=150,
         max_speed=100,
         min_speed=80,
@@ -51,12 +50,12 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=20,
+        prediction_length=100,
         n_ahead=2,  # start prediction states from N steps ahead
     )
 
     # --------------------------------- Plotting --------------------------------- #
-    traj_plot_every = 10
+    traj_plot_every = 50
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(

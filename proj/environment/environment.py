@@ -50,7 +50,7 @@ class Environment(World):
         params = self.model.trajectory
         n_steps = int(params["nsteps"])
 
-        traj = self._traj_func(n_steps, params)
+        traj = self._traj_func(n_steps, params, self.model.planning)
 
         if self.model.MODEL_TYPE == "polar":
             traj = traj_to_polar(traj)
