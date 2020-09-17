@@ -104,7 +104,7 @@ def run_experiment(
                 / f"{model.trajectory['name']}_{timestamp()}.mp4"
             ),
         )
-    except ValueError:
-        pass
+    except (ValueError, FileNotFoundError):
+        print("Failed to generate video from frames.. ")
 
     return model.history
