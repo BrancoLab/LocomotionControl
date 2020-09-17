@@ -180,6 +180,9 @@ def from_tracking(
 
     ang_speed = np.ones_like(speed)  # it will be ignored
 
+    if len(x) < skip + 10:
+        raise ValueError("Tracking trajectory too short, stopping")
+
     # resample variables so that samples are uniformly distribued
     vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
     if params["resample"]:
