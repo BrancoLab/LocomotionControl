@@ -49,19 +49,24 @@ class Environment(World):
 
         # Prepare paths
         self.winstor = winstor
+        self.exp_name = f'{model.trajectory["name"]}_{timestamp()}'
+
         if not winstor:
+            # normal
             self.main_fld = main_fld
             self.cache_fld = frames_cache
             self.trials_cache = trials_cache
+
         else:
+            # winstor
             self.main_fld = winstor_main
-            self.cache_fld = (
-                winstor_main / f'{model.trajectory["name"]}_{timestamp()}'
-            )
+            self.cache_fld = winstor_main / self.exp_name
             self.trials_cache = winstor_trial_cache
 
             for fld in [self.main_fld, self.cache_fld]:
                 fld.mkdir(exist_ok=True)
+
+        self.save_res_fld = self.cache_fld / "_results"
 
     def make_trajectory(self):
         """

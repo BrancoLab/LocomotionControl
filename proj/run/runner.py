@@ -9,7 +9,7 @@ from rich import print
 from pathlib import Path
 
 from proj.animation.animate import animate_from_images
-from proj.utils import timestamp
+
 
 # define progress bar
 progress = Progress(
@@ -93,16 +93,13 @@ def run_experiment(
                 break
 
     # SAVE results
-    model.save(trajectory, environment.main_fld)
+    model.save(trajectory, environment.save_res_fld)
 
     # make gif
     try:
         animate_from_images(
             str(environment.cache_fld),
-            str(
-                environment.main_fld
-                / f"{model.trajectory['name']}_{timestamp()}.mp4"
-            ),
+            str(environment.main_fld / f"{environment.exp_name}.mp4"),
         )
     except (ValueError, FileNotFoundError):
         print("Failed to generate video from frames.. ")
