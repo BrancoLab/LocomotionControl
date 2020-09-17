@@ -24,7 +24,7 @@ def complete_given_xy(x, y, params):
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
-    return trajectory[2:, :]
+    return trajectory[2:, :], len(trajectory)
 
 
 # ---------------------------------- Curves ---------------------------------- #
