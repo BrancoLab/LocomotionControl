@@ -30,12 +30,16 @@ class Manager:
 
         # get main folder
         if winstor:
+            # ? winstor
             main_fld = paths.winstor_main
             self.datafolder = main_fld / self.exp_name
+
+            self.trials_cache = paths.winstor_trial_cache
 
         else:
             main_fld = paths.main_fld
             self.datafolder = main_fld / "cache"
+            self.trials_cache = paths.trials_cache
 
             # clean cache
             try:
