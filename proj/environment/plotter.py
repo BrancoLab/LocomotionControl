@@ -21,7 +21,7 @@ class Plotter:
     def make_figure(self):
         plt.ion()
 
-        self.f = plt.figure(constrained_layout=True, figsize=(8, 6))
+        self.f = plt.figure(constrained_layout=True, figsize=(12, 8))
 
         gs = self.f.add_gridspec(2, 4)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
@@ -135,8 +135,8 @@ class Plotter:
         ax.legend()
 
         # mark the times a change of traj idx happened
-        for v in self.moved_to_next:
-            ax.axvline(v, color="k")
+        # for v in self.moved_to_next:
+        #     ax.axvline(v, color="k")
 
     def plot_current_variables(self):
         """
