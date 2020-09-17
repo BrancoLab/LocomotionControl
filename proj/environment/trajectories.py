@@ -75,9 +75,8 @@ def compute_trajectory_stats(trajectory, duration, planning_params):
         str(perc_lookahead),
     )
 
+    # log stuff
     log = logging.getLogger("rich")
-    logging.info(print(table), extra={"markup": True})
-
     log.info(
         f"""
         n_points = {n_points}
@@ -90,14 +89,17 @@ def compute_trajectory_stats(trajectory, duration, planning_params):
     """
     )
 
+    # print stuff
+    print(table)
+
     if waypoint_density < 2 or waypoint_density > 3:
-        logging.info(
+        print(
             f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!",
             extra={"markup": True},
         )
 
     if perc_lookahead < 0.05:
-        logging.info(
+        print(
             f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised.",
             extra={"markup": True},
         )
@@ -176,10 +178,16 @@ def _interpol(x, max_deg, n_steps):
 
 
 def from_tracking(n_steps, params, planning_params, cache_fld, *args, skip=20):
+    # Keep only trials with enough frames
+    trials = pd.read_hdf(cache_fld, key="hdf")
+    trials["length"] = [len(t.body_xy) for i, t in trials.iterrows()]
+    trials = trials.loc[trials.length > skip + 20]
+
+    # select a single trials
     if not params["randomize"]:
-        trial = pd.read_hdf(cache_fld, key="hdf").iloc[0]
+        trial = trials.iloc[0]
     else:
-        trial = pd.read_hdf(cache_fld, key="hdf").sample().iloc[0]
+        trial = trials.sample().iloc[0]
 
     # Get variables
     x = trial.body_xy[:, 0]
@@ -190,13 +198,9 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args, skip=20):
     angle = np.unwrap(angle)
 
     speed = line_smoother(trial.body_speed) + trial.fps
-
     ang_speed = np.ones_like(speed)  # it will be ignored
 
-    if len(x) < skip + 10:
-        raise ValueError("Tracking trajectory too short, stopping")
-
-    # resample variables so that samples are uniformly distribued
+    # resample variables so that samples are uniformly distributed
     vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
     if params["resample"]:
         for k, v in vars.items():
