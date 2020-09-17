@@ -1,6 +1,7 @@
 import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 import shutil
+from pathlib import Path
 
 from proj.environment.trajectories import (
     parabola,
@@ -66,7 +67,8 @@ class Environment(World):
             for fld in [self.main_fld, self.cache_fld]:
                 fld.mkdir(exist_ok=True)
 
-        self.save_res_fld = self.cache_fld / "_results"
+        self.save_res_fld = Path(str(self.cache_fld) + "_results")
+        self.save_res_fld.mkdir(exist_ok=True)
 
     def make_trajectory(self):
         """
