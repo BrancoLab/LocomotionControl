@@ -1,4 +1,4 @@
-import subprocess
+# import subprocess
 from fcutils.video.utils import (
     get_cap_from_images_folder,
     save_videocap_to_video,
@@ -6,21 +6,17 @@ from fcutils.video.utils import (
 import click
 
 
-def animate_from_images(folder, savepath):
-    print("Loading images")
+def animate_from_images(folder, savepath, fps):
     cap = get_cap_from_images_folder(folder, img_format="%2d.png")
-
-    print("Saving to video")
-    save_videocap_to_video(cap, savepath, ".mp4")
+    save_videocap_to_video(cap, savepath, ".mp4", fps=fps)
 
     gifpath = savepath.replace(".mp4", ".gif")
     print(
         "To save the video as GIF, use: \n"
         + f'ffmpeg -i "{savepath}" -f gif "{gifpath}"'
     )
-    subprocess.call(["ffmpeg", "-i", f"{savepath}", "-f", "gif", f"{gifpath}"])
-
-    print(f"\n\n\n saved gif at: {gifpath}")
+    # subprocess.call(["ffmpeg", "-i", f"{savepath}", "-f", "gif", f"{gifpath}"])
+    # print(f"\n\n\n saved gif at: {gifpath}")
 
 
 @click.command()

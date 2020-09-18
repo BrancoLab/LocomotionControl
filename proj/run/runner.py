@@ -6,7 +6,7 @@ from rich.progress import (
 )
 import numpy as np
 from rich import print
-
+import logging
 
 # define progress bar
 progress = Progress(
@@ -40,6 +40,8 @@ def run_experiment(
 
         :returns: the history of events as stored by model
     """
+    log = logging.getLogger("rich")
+
     # reset things
     trajectory = environment.reset()
     model.reset()
@@ -77,6 +79,12 @@ def run_experiment(
             environment.itern = itern
             environment.update_world(g_xs, elapsed=itern * model.dt)
 
+            # log
+            if itern % 25 == 0:
+                log.info(
+                    f"Iteration {itern}/{n_steps}. Current cost: {environment.curr_cost}."
+                )
+
             # Check if we're done
             if (
                 environment.isdone(model.curr_x, trajectory)
@@ -84,6 +92,8 @@ def run_experiment(
             ):
                 print(f"Reached end of trajectory after {itern} steps")
                 break
+
+    log.info(f"Terminated after {itern} iterations.")
 
     # save data and close stuff
     environment.conclude()

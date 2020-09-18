@@ -17,7 +17,6 @@ class World(Plotter):
     """
 
     total_cost = 0
-    cost_history = []
 
     stop = False
     _cache = dict(speed_plot_x=[], speed_plot_y=[],)
@@ -27,6 +26,11 @@ class World(Plotter):
 
         self.model = model
         self.plot_every = self.model.traj_plot_every
+
+        keys = list(model._state._fields)
+        keys.extend(model._control._fields)
+        self.cost_history = {k: [] for k in keys}
+        self.cost_history["total"] = []
 
     # -------------------------------- Initialize -------------------------------- #
 
@@ -135,9 +139,17 @@ class World(Plotter):
         self.make_figure()
 
     # ---------------------------------- Update ---------------------------------- #
-    def update_world(self, curr_goals, elapsed=None):
+    def _update_cost_history(self):
         self.total_cost += self.curr_cost["total"]
-        self.cost_history.append(self.curr_cost["total"])
+        self.cost_history["total"].append(self.curr_cost["total"])
+
+        for k in self.model._state._fields:
+            self.cost_history[k].append(self.curr_cost["state"]._asdict()[k])
+        for k in self.model._control._fields:
+            self.cost_history[k].append(self.curr_cost["control"]._asdict()[k])
+
+    def update_world(self, curr_goals, elapsed=None):
+        self._update_cost_history()
 
         # Get model's position
         if self.model.MODEL_TYPE == "cartesian":

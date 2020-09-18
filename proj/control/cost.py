@@ -75,10 +75,12 @@ class Cost:
 
     def calc_step_cost(self, x, u, g_x):
         cost = dict(
-            control=np.sum(self.input_cost_fn(u)),
-            state=np.sum(self.state_cost_fn(x, g_x)),
+            control=self.model._control(*self.input_cost_fn(u)),
+            state=self.model._state(*self.state_cost_fn(x, g_x)),
         )
-        cost["total"] = cost["control"] + cost["state"]
+        cost["total"] = (
+            np.array(cost["control"]).sum() + np.array(cost["state"]).sum()
+        )
         return cost
 
     def gradient_cost_fn_with_state(self, x, g_x, terminal=False):
