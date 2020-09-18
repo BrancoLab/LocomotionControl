@@ -104,12 +104,20 @@ class Manager:
     def _save_video(self):
         # make gif
         try:
+            fps = int(np.ceil(1 / self.model.dt))
             animate_from_images(
                 str(self.frames_folder),
                 str(self.datafolder / f"{self.exp_name}.mp4"),
+                fps,
             )
         except (ValueError, FileNotFoundError):
             print("Failed to generate video from frames.. ")
+        else:
+            # remove frames folder if everything's okay
+            try:
+                shutil.rmtree(str(self.frames_folder))
+            except (FileNotFoundError, PermissionError):
+                print("could not remove frames folder")
 
     def conclude(self):
         self._save_results()

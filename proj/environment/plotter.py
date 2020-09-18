@@ -212,16 +212,11 @@ class Plotter:
         ax = self.cost_ax
         ax.clear()
 
-        plot_line_outlined(
-            ax,
-            self.cost_history,
-            color=desaturate_color("b"),
-            label="cost",
-            lw=3,
-            solid_joinstyle="round",
-            solid_capstyle="round",
-        )
-
+        for k, v in self.cost_history.items():
+            if "total" not in k:
+                ax.plot(
+                    v, label=k, lw=3, solid_capstyle="round",
+                )
         ax.legend()
 
     def visualize_world_live(self, curr_goals, elapsed=None):
