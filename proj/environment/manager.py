@@ -26,7 +26,7 @@ class Manager:
         """
         self.model = model
 
-        self.exp_name = f'{model.trajectory["name"]}_{timestamp()}'
+        self.exp_name = f'{model.trajectory["name"]}_{timestamp()}_{np.random.randint(low=0, high=10000)}'
 
         # get main folder
         if winstor:
@@ -94,6 +94,12 @@ class Manager:
         pd.DataFrame(history).to_hdf(
             str(self.results_folder / "history.h5"), key="hdf"
         )
+
+        # save the last frame as a results image
+        last_frame = [
+            f for f in self.frames_folder.glob("*.png") if f.is_file()
+        ][-1]
+        shutil.copy(str(last_frame), str(self.datafolder / "final_frame.png"))
 
     def _save_video(self):
         # make gif

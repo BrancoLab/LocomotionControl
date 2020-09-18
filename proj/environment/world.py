@@ -16,6 +16,9 @@ class World(Plotter):
         in euclidean representation, regardless of the model's own coordinates system
     """
 
+    total_cost = 0
+    cost_history = []
+
     stop = False
     _cache = dict(speed_plot_x=[], speed_plot_y=[],)
 
@@ -133,6 +136,9 @@ class World(Plotter):
 
     # ---------------------------------- Update ---------------------------------- #
     def update_world(self, curr_goals, elapsed=None):
+        self.total_cost += self.curr_cost["total"]
+        self.cost_history.append(self.curr_cost["total"])
+
         # Get model's position
         if self.model.MODEL_TYPE == "cartesian":
             x, y = self.model.curr_x.x, self.model.curr_x.y
