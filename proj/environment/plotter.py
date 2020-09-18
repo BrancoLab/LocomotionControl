@@ -20,16 +20,20 @@ class Plotter:
     def make_figure(self):
         plt.ion()
 
-        self.f = plt.figure(figsize=(12, 8))
+        self.f = plt.figure(figsize=(16, 8))
 
-        gs = self.f.add_gridspec(2, 4)
+        gs = self.f.add_gridspec(2, 6)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
         self.xy_ax.axis("equal")
         self.xy_ax.axis("off")
 
-        self.tau_ax = self.f.add_subplot(gs[0, 2:])
+        self.tau_ax = self.f.add_subplot(gs[0, 2:4])
 
-        self.sax = self.f.add_subplot(gs[1, 2:])
+        self.sax = self.f.add_subplot(gs[1, 2:4])
+
+        self.accel_ax = self.f.add_subplot(gs[0, 4])
+
+        self.cost_ax = self.f.add_subplot(gs[1, 4:])
 
         clean_axes(self.f)
 
@@ -92,7 +96,7 @@ class Plotter:
         ax.axis("equal")
         ax.axis("off")
 
-    def plot_control(self, keep_s=1.2):
+    def _plot_control(self, keep_s=1.2):
         keep_n = int(keep_s / self.model.dt)
         ax = self.tau_ax
         ax.clear()
@@ -137,7 +141,7 @@ class Plotter:
         # for v in self.moved_to_next:
         #     ax.axvline(v, color="k")
 
-    def plot_current_variables(self):
+    def _plot_current_variables(self):
         """
             Plot the agent's current state vs where it should be
         """
@@ -193,6 +197,33 @@ class Plotter:
         ax.legend()
         ax.set(ylabel="speed", xlabel="trajectory progression")
 
+    def _plot_accelerations(self):
+        ax = self.accel_ax
+        ax.clear()
+
+        ax.bar(
+            [0, 1],
+            [self.model.curr_dxdt.v_dot, self.model.curr_dxdt.omega_dot],
+            color=["m", "g"],
+        )
+        ax.set(xticklabels=["$\dot{v}$", "$\dot{\omega}$"], xticks=[0, 1])
+
+    def _plot_cost(self):
+        ax = self.cost_ax
+        ax.clear()
+
+        plot_line_outlined(
+            ax,
+            self.cost_history,
+            color=desaturate_color("b"),
+            label="cost",
+            lw=3,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+
+        ax.legend()
+
     def visualize_world_live(self, curr_goals, elapsed=None):
         ax = self.xy_ax
         ax.clear()
@@ -222,14 +253,21 @@ class Plotter:
         self._plot_xy(ax, curr_goals)
         ax.set(
             title=f"Elapsed time: {round(elapsed, 2)}s | goal: {round(self.goal_duration, 2)}s\n"
-            + f"trajectory progression: {self.curr_traj_waypoint_idx}/{len(self.initial_trajectory)}"
+            + f"trajectory progression: {self.curr_traj_waypoint_idx}/{len(self.initial_trajectory)}\n"
+            + f'Curr cost: {round(self.curr_cost["total"], 2)} | total: {round(self.total_cost, 2)}'
         )
 
         # plot control
-        self.plot_control()
+        self._plot_control()
 
         # plot current waypoint
-        self.plot_current_variables()
+        self._plot_current_variables()
+
+        # plot accelerations
+        self._plot_accelerations()
+
+        # plot cost
+        self._plot_cost()
 
         # display plot
         self.f.canvas.draw()

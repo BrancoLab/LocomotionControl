@@ -43,7 +43,7 @@ class Config:
         max_speed=100,
         min_speed=80,
         min_dist=20,  # if agent is within this distance from trajectory end the goal is considered achieved
-        skip=0,
+        skip=50,
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
         randomize=True,  # if true when using tracking it pulls a random trial

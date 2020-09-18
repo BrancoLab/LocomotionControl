@@ -68,6 +68,11 @@ def run_experiment(
             # step
             model.step(u)
 
+            # get current cost
+            environment.curr_cost = controller.calc_step_cost(
+                np.array(model.curr_x), u, g_xs[0, :]
+            )
+
             # update world
             environment.itern = itern
             environment.update_world(g_xs, elapsed=itern * model.dt)

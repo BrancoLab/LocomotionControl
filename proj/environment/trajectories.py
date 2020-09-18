@@ -94,14 +94,12 @@ def compute_trajectory_stats(trajectory, duration, planning_params):
 
     if waypoint_density < 2 or waypoint_density > 3:
         print(
-            f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!",
-            extra={"markup": True},
+            f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!"
         )
 
     if perc_lookahead < 0.05:
         print(
-            f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised.",
-            extra={"markup": True},
+            f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised."
         )
 
     return trajectory, duration
@@ -177,11 +175,11 @@ def _interpol(x, max_deg, n_steps):
     return f(l2)
 
 
-def from_tracking(n_steps, params, planning_params, cache_fld, *args, skip=20):
+def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     # Keep only trials with enough frames
     trials = pd.read_hdf(cache_fld, key="hdf")
     trials["length"] = [len(t.body_xy) for i, t in trials.iterrows()]
-    trials = trials.loc[trials.length > skip + 20]
+    trials = trials.loc[trials.length > params["skip"] * 2 + 20]
 
     # select a single trials
     if not params["randomize"]:
@@ -204,13 +202,12 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args, skip=20):
     vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
     if params["resample"]:
         for k, v in vars.items():
-            v = v[skip:-10]
             vars[k] = _interpol(v, params["max_deg_interpol"], n_steps)
 
     # stack and cut
     trajectory = np.vstack(vars.values()).T
 
-    trajectory = trajectory[params["skip"] :, :]
+    trajectory = trajectory[params["skip"] : -params["skip"], :]
 
     return compute_trajectory_stats(
         trajectory, len(x) / trial.fps, planning_params

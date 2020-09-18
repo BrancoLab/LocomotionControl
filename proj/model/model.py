@@ -55,6 +55,7 @@ class Model(Config):
 
     _control = namedtuple("control", "tau_r, tau_l")
     _state = namedtuple("state", "x, y, theta, v, omega")
+    _dxdt = namedtuple("dxdt", "x_dot, y_dt, theta_dot, v_dot, omega_dot")
 
     def __init__(self, startup=True):
         Config.__init__(self)
@@ -253,6 +254,7 @@ class Model(Config):
         variables = merge(u, self.curr_x, self.mouse)
         inputs = [variables[a] for a in self._M_args]
         dxdt = self.calc_dqdt(*inputs).ravel()
+        self.curr_dxdt = self._dxdt(*dxdt)
 
         if np.any(np.isnan(dxdt)) or np.any(np.isinf(dxdt)):
             raise ValueError("Nans in dxdt")
