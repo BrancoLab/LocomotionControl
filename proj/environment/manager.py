@@ -11,7 +11,7 @@ from fcutils.file_io.io import save_yaml
 from proj.utils import timestamp
 from proj import paths
 from proj.animation.animate import animate_from_images
-
+from proj.plotting.results import plot_results
 
 FORMAT = "%(message)s"
 logging.basicConfig(
@@ -122,3 +122,10 @@ class Manager:
     def conclude(self):
         self._save_results()
         self._save_video()
+
+        # save summary plot
+        plot_results(
+            self.results_folder,
+            plot_every=self.plot_every,
+            save_path=self.datafolder / "outcome",
+        )
