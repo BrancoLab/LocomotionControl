@@ -1,10 +1,8 @@
-# letters = 'egzonafederico'
+from proj.plotting.results import plot_results
+import matplotlib.pyplot as plt
 
-# import random
+fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/tracking_200918_171149_532/results"
 
-# for i in range(10000):
-#     l = list(letters)
-#     random.shuffle(l)
-#     result = ''.join(l)
-# #
-#     print(result)
+
+plot_results(fld)
+plt.show()

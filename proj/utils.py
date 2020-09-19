@@ -17,9 +17,7 @@ def load_results_from_folder(folder):
 
     files = dict(
         config=folder / "config.yml",
-        control=folder / "control_vars.yml",
-        state=folder / "state_vars.yml",
-        trajectory=folder / "trajectory.npy",
+        trajectory=folder / "init_trajectory.npy",
         history=folder / "history.h5",
     )
 
@@ -30,12 +28,10 @@ def load_results_from_folder(folder):
             )
 
     config = load_yaml(str(files["config"]))
-    control = load_yaml(str(files["control"]))
-    state = load_yaml(str(files["state"]))
     trajectory = np.load(str(files["trajectory"]))
     history = pd.read_hdf(str(files["history"]), key="hdf")
 
-    return config, control, state, trajectory, history
+    return config, trajectory, history
 
 
 # -------------------------------- Coordinates ------------------------------- #

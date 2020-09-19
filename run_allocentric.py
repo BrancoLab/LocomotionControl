@@ -7,10 +7,8 @@ from proj import (
     # ModelPolar,
 )
 
-# from proj.plotting.trajectories import plot_trajectory
-
-# ! TODO  formula I_c for cube!
-# TODO energy considerations, you should need more force to accelerate when going faster?
+# TODO get trials from M4 catwalk and M6 catwalk only.
+# TODO save cost history and add to summary plot
 
 # model = ModelPolar()
 model = Model()
