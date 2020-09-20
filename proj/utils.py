@@ -19,6 +19,7 @@ def load_results_from_folder(folder):
         config=folder / "config.yml",
         trajectory=folder / "init_trajectory.npy",
         history=folder / "history.h5",
+        cost_history=folder / "cost_history.h5",
     )
 
     for f in files.values():
@@ -30,8 +31,9 @@ def load_results_from_folder(folder):
     config = load_yaml(str(files["config"]))
     trajectory = np.load(str(files["trajectory"]))
     history = pd.read_hdf(str(files["history"]), key="hdf")
+    cost_history = pd.read_hdf(str(files["cost_history"]), key="hdf")
 
-    return config, trajectory, history
+    return config, trajectory, history, cost_history
 
 
 # -------------------------------- Coordinates ------------------------------- #

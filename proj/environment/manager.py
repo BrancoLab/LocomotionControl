@@ -101,6 +101,11 @@ class Manager:
         ][-1]
         shutil.copy(str(last_frame), str(self.datafolder / "final_frame.png"))
 
+        # save cost history
+        pd.DataFrame(self.cost_history).to_hdf(
+            str(self.results_folder / "cost_history.h5"), key="hdf"
+        )
+
     def _save_video(self):
         # make gif
         try:

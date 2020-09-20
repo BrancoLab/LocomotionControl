@@ -6,7 +6,8 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 from fcutils.maths.utils import derivative
 
-from proj.utils import load_results_from_folder, seagreen
+from proj.utils import load_results_from_folder
+from proj.animation import variables_colors as colors
 
 
 def _make_figure():
@@ -28,31 +29,34 @@ def _make_figure():
 
 def _plot_xy(history, trajectory, plot_every, ax=None):
     # plot trajectory
+    plot_line_outlined(
+        ax,
+        trajectory[:, 0],
+        trajectory[:, 1],
+        lw=1.5,
+        color=colors["trajectory"],
+        outline=0.5,
+        outline_color="white",
+    )
     ax.scatter(
         trajectory[::plot_every, 0],
         trajectory[::plot_every, 1],
-        s=50,
-        color=[0.4, 0.4, 0.4],
-        lw=1,
-        edgecolors="white",
+        color="white",
+        lw=1.5,
+        edgecolors=colors["trajectory"],
+        s=20,
+        zorder=99,
     )
 
     # plot tracking
-    ax.plot(
-        history["x"],
-        history["y"],
-        lw=9,
-        color=desaturate_color(seagreen),
-        zorder=-1,
-        solid_capstyle="round",
-    )
     plot_line_outlined(
         ax,
         history["x"],
         y=history["y"],
-        color=desaturate_color(seagreen),
-        lw=12,
-        zorder=-1,
+        color=colors["tracking"],
+        lw=1,
+        zorder=100,
+        outline_color=[0.2, 0.2, 0.2],
     )
 
 
@@ -63,18 +67,18 @@ def _plot_control(history, ax=None):
     plot_line_outlined(
         ax,
         R,
-        color="r",
+        color=colors["tau_r"],
         label="$\\tau_R$",
-        lw=3,
+        lw=2,
         solid_joinstyle="round",
         solid_capstyle="round",
     )
     plot_line_outlined(
         ax,
         L,
-        color="b",
+        color=colors["tau_l"],
         label="$\\tau_L$",
-        lw=3,
+        lw=2,
         solid_joinstyle="round",
         solid_capstyle="round",
     )
@@ -82,7 +86,6 @@ def _plot_control(history, ax=None):
 
 
 def _plot_v(history, trajectory, plot_every, ax=None):
-    color = "#B22222"
     idx = 3
     v = history["v"]
 
@@ -90,16 +93,17 @@ def _plot_v(history, trajectory, plot_every, ax=None):
     ax.scatter(
         np.arange(len(trajectory[:, idx]))[::plot_every],
         trajectory[:, idx][::plot_every],
-        color=color,
+        color=desaturate_color(colors["v"]),
         label="trajectory speed",
         lw=1,
         edgecolors="white",
-        s=100,
+        s=50,
+        alpha=0.5,
     )
 
     # plot history speed
     ax.plot(
-        v, color=desaturate_color("m"), lw=9, zorder=-1,
+        v, color=colors["v"], lw=2, zorder=100,
     )
 
 
@@ -108,13 +112,30 @@ def _plot_accel(history, ax=None):
     vdot = derivative(v)
     omegadot = derivative(omega)
 
-    ax.plot(vdot, lw=3, color="m", label="$v$")
-    ax.plot(omegadot, lw=3, color="g", label="$\omega$")
+    plot_line_outlined(ax, vdot, lw=2, color=colors["v"], label="$v$")
+    plot_line_outlined(
+        ax, omegadot, lw=2, color=colors["omega"], label="$\omega$"
+    )
+    ax.legend()
+
+
+def _plot_cost(cost_history, ax=None):
+    for k in cost_history.columns:
+        if "total" not in k:
+            ax.plot(
+                cost_history[k],
+                label=k,
+                lw=3,
+                solid_capstyle="round",
+                color=colors[k],
+            )
     ax.legend()
 
 
 def plot_results(results_folder, plot_every=20, save_path=None):
-    config, trajectory, history = load_results_from_folder(results_folder)
+    config, trajectory, history, cost_history = load_results_from_folder(
+        results_folder
+    )
 
     f, xy_ax, tau_ax, sax, accel_ax, cost_ax = _make_figure()
 
@@ -122,6 +143,7 @@ def plot_results(results_folder, plot_every=20, save_path=None):
     _plot_control(history, ax=tau_ax)
     _plot_v(history, trajectory, plot_every, ax=sax)
     _plot_accel(history, ax=accel_ax)
+    _plot_cost(cost_history, ax=cost_ax)
 
     clean_axes(f)
 

@@ -13,7 +13,7 @@ class Config:
     INPUT_SIZE = 2
 
     R = np.diag([1.5, 1.5])  # control cost
-    Q = np.diag([5, 5, 1, 4.5, 0])  # state cost | x, y, theta, v, omega
+    Q = np.diag([5, 5, 1, 5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
     # STATE_SIZE = 4
