@@ -7,8 +7,11 @@ from proj import (
     # ModelPolar,
 )
 
+# from proj.plotting.trajectories import plot_trajectory
+
 # TODO get trials from M4 catwalk and M6 catwalk only.
-# TODO save cost history and add to summary plot
+# TODO trajectory: get moved awaay from start location as start frame
+# TODO find metrics to say if it was good/bad?
 
 # model = ModelPolar()
 model = Model()
@@ -18,4 +21,3 @@ control = Controller(model)
 # plot_trajectory(env.reset())
 
 run_experiment(env, control, model)
-#

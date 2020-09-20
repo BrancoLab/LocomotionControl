@@ -10,6 +10,7 @@ from fcutils.maths.geometry import (
     calc_angle_between_points_of_vector_2d,
     calc_distance_between_points_in_a_vector_2d,
     calc_distance_between_points_2d,
+    calc_distance_from_point,
 )
 from fcutils.maths.filtering import line_smoother
 
@@ -179,7 +180,9 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     # Keep only trials with enough frames
     trials = pd.read_hdf(cache_fld, key="hdf")
     trials["length"] = [len(t.body_xy) for i, t in trials.iterrows()]
-    trials = trials.loc[trials.length > params["skip"] * 2 + 20]
+    trials = trials.loc[
+        trials.length > 50
+    ]  # at least N frames in tracking data
 
     # select a single trials
     if not params["randomize"]:
@@ -204,10 +207,13 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
         for k, v in vars.items():
             vars[k] = _interpol(v, params["max_deg_interpol"], n_steps)
 
+    # get start frame
+    from_start = calc_distance_from_point(np.array([x, y]), [x[0], y[0]])
+    start = np.where(from_start > params["dist_th"])[0][0]
+
     # stack and cut
     trajectory = np.vstack(vars.values()).T
-
-    trajectory = trajectory[params["skip"] : -params["skip"], :]
+    trajectory = trajectory[start:-1, :]
 
     return compute_trajectory_stats(
         trajectory, len(x) / trial.fps, planning_params
