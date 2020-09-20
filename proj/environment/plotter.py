@@ -4,7 +4,8 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 import numpy as np
 
-from proj.utils import seagreen, salmon
+from proj.utils import salmon
+from proj.animation import variables_colors as colors
 
 
 def press(event, self):
@@ -65,7 +66,7 @@ class Plotter:
             X,
             Y,
             lw=9,
-            color=desaturate_color(seagreen),
+            color=desaturate_color(colors["tracking"]),
             zorder=-1,
             solid_capstyle="round",
         )
@@ -74,7 +75,12 @@ class Plotter:
         x, y = self.model_position_world.x, self.model_position_world.y
 
         ax.scatter(
-            x, y, s=350, color=seagreen, lw=1.5, edgecolors=[0.3, 0.3, 0.3]
+            x,
+            y,
+            s=350,
+            color=colors["tracking"],
+            lw=1.5,
+            edgecolors=[0.3, 0.3, 0.3],
         )
 
         if self.model.MODEL_TYPE == "cartesian":
@@ -83,12 +89,12 @@ class Plotter:
             dx = np.cos(t) * self.model.mouse["length"]
             dy = np.sin(t) * self.model.mouse["length"]
 
-            ax.plot([x, x + dx], [y, y + dy], lw=8, color=seagreen)
+            ax.plot([x, x + dx], [y, y + dy], lw=8, color=colors["tracking"])
             ax.scatter(
                 x + dx,
                 y + dy,
                 s=225,
-                color=seagreen,
+                color=colors["tracking"],
                 lw=1.5,
                 edgecolors=[0.3, 0.3, 0.3],
             )
@@ -108,18 +114,18 @@ class Plotter:
         plot_line_outlined(
             ax,
             R,
-            color="r",
+            color=colors["tau_r"],
             label="$\\tau_R$",
-            lw=3,
+            lw=2,
             solid_joinstyle="round",
             solid_capstyle="round",
         )
         plot_line_outlined(
             ax,
             L,
-            color="b",
+            color=colors["tau_l"],
             label="$\\tau_L$",
-            lw=3,
+            lw=2,
             solid_joinstyle="round",
             solid_capstyle="round",
         )
@@ -150,7 +156,6 @@ class Plotter:
         ax.clear()
 
         # plot speed trajectory
-        color = "#B22222"
 
         if self.model.MODEL_TYPE == "cartesian":
             idx = 3
@@ -162,7 +167,7 @@ class Plotter:
                 :: self.plot_every
             ],
             self.initial_trajectory[:, idx][:: self.plot_every],
-            color=color,
+            color=colors["v"],
             label="trajectory speed",
             lw=1,
             edgecolors="white",
@@ -176,7 +181,7 @@ class Plotter:
             zorder=100,
             s=300,
             lw=1,
-            color="m",
+            color=colors["v"],
             edgecolors="k",
             label="models speed",
         )
@@ -189,7 +194,7 @@ class Plotter:
         ax.plot(
             self._cache["speed_plot_x"],
             self._cache["speed_plot_y"],
-            color=desaturate_color("m"),
+            color=desaturate_color(colors["v"]),
             zorder=-1,
             lw=9,
         )
@@ -204,7 +209,7 @@ class Plotter:
         ax.bar(
             [0, 1],
             [self.model.curr_dxdt.v_dot, self.model.curr_dxdt.omega_dot],
-            color=["m", "g"],
+            color=[colors["v"], colors["omega"]],
         )
         ax.set(xticklabels=["$\dot{v}$", "$\dot{\omega}$"], xticks=[0, 1])
 
@@ -215,7 +220,7 @@ class Plotter:
         for k, v in self.cost_history.items():
             if "total" not in k:
                 ax.plot(
-                    v, label=k, lw=3, solid_capstyle="round",
+                    v, label=k, lw=3, solid_capstyle="round", color=colors[k],
                 )
         ax.legend()
 
@@ -228,7 +233,7 @@ class Plotter:
             self.initial_trajectory[:: self.plot_every, 0],
             self.initial_trajectory[:: self.plot_every, 1],
             s=50,
-            color=[0.4, 0.4, 0.4],
+            color=colors["trajectory"],
             lw=1,
             edgecolors="white",
         )
