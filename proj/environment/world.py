@@ -101,6 +101,7 @@ class World(Plotter):
             )
 
         elif self.model.MODEL_TYPE == "polar":
+            raise ValueError
             self.model.curr_x = self.model._state(
                 trajectory[-1, 0], trajectory[-1, 1], v, omega
             )
