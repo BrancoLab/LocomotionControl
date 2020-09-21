@@ -14,6 +14,7 @@ from proj.model.fast import (
     fast_model_jacobian_state_polar,
     fast_model_jacobian_input_polar,
 )
+from rich import print
 
 
 class ModelPolar(Model):
@@ -47,7 +48,6 @@ class ModelPolar(Model):
     _calc_model_jacobian_input_args = ["L", "R", "m", "d", "m_w"]
 
     def __init__(self):
-        raise NotImplementedError("Model needs to be fixed and improved")
         Model.__init__(self, startup=False)
 
         # add some simbols
@@ -60,21 +60,6 @@ class ModelPolar(Model):
         # Get model
         self._get_polar_dynamics()
         self.get_jacobians()
-
-    def reset(self):
-        self.curr_control = self._control(0, 0)  # use only to keep track
-
-        self.history = dict(
-            x=[],
-            y=[],
-            theta=[],
-            v=[],
-            omega=[],
-            tau_r=[],
-            tau_l=[],
-            r=[],
-            gamma=[],
-        )
 
     def _get_polar_dynamics(self):
         (
@@ -94,8 +79,11 @@ class ModelPolar(Model):
             gamma,
         ) = self.variables.values()
 
-        raise ValueError(
-            "The polar model is wrong, gammadot should depend on v"
+        # raise ValueError(
+        #     "The polar model is wrong, gammadot should depend on v"
+        # )
+        print(
+            "[bold red]\n\n!!! !!! The polar model is wrong, gammadot should depend on v !!! !!! \n"
         )
 
         # Define moments of inertia

@@ -1,10 +1,10 @@
 # %%
 from proj import (
-    Model,
+    # Model,
     Environment,
     Controller,
     run_experiment,
-    # ModelPolar,
+    ModelPolar,
 )
 
 # from proj.plotting.trajectories import plot_trajectory
@@ -13,11 +13,14 @@ from proj import (
 # TODO trajectory: get moved awaay from start location as start frame
 # TODO find metrics to say if it was good/bad?
 
-# model = ModelPolar()
-model = Model()
+model = ModelPolar()
+# model = Model()
 env = Environment(model)
 control = Controller(model)
 
 # plot_trajectory(env.reset())
 
+# %%
 run_experiment(env, control, model)
+
+# %%

@@ -9,7 +9,6 @@ from proj.environment.trajectories import (
     point,
     from_tracking,
 )
-from proj.utils import traj_to_polar
 from proj.environment.world import World
 from proj.environment.manager import Manager
 
@@ -56,9 +55,6 @@ class Environment(World, Manager):
         traj = self._traj_func(
             n_steps, params, self.model.planning, self.trials_cache
         )
-
-        if self.model.MODEL_TYPE == "polar":
-            traj = traj_to_polar(traj)
 
         return traj
 
