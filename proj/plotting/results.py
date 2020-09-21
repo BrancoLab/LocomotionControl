@@ -102,8 +102,9 @@ def _plot_v(history, trajectory, plot_every, ax=None):
     )
 
     # plot history speed
+    x = np.linspace(0, len(trajectory), len(v))
     ax.plot(
-        v, color=colors["v"], lw=2, zorder=100,
+        x, v, color=colors["v"], lw=2, zorder=100,
     )
 
 
