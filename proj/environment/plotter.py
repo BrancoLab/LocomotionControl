@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import logging
+
 from fcutils.plotting.utils import clean_axes
 from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
-import numpy as np
 
 from proj.utils import salmon
 from proj.animation import variables_colors as colors
@@ -13,7 +15,9 @@ def press(event, self):
         Deals with key press during interactive visualizatoin
     """
     if event.key == "c":
-        print("stopping")
+        logging.info(
+            "Stopping because user manually terminated simulation (presed C)"
+        )
         self.stop = True
 
 

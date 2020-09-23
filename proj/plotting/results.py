@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import logging
 
 from fcutils.plotting.utils import clean_axes, save_figure
 from fcutils.plotting.colors import desaturate_color
@@ -102,9 +103,8 @@ def _plot_v(history, trajectory, plot_every, ax=None):
     )
 
     # plot history speed
-    x = np.linspace(0, len(trajectory), len(v))
     ax.plot(
-        x, v, color=colors["v"], lw=2, zorder=100,
+        history["trajectory_idx"], v, color=colors["v"], lw=2, zorder=100,
     )
 
 
@@ -113,9 +113,9 @@ def _plot_accel(history, ax=None):
     vdot = derivative(v)
     omegadot = derivative(omega)
 
-    plot_line_outlined(ax, vdot, lw=2, color=colors["v"], label="$v$")
+    plot_line_outlined(ax, vdot, lw=2, color=colors["v"], label="$\dot{v}$")
     plot_line_outlined(
-        ax, omegadot, lw=2, color=colors["omega"], label="$\omega$"
+        ax, omegadot, lw=2, color=colors["omega"], label="$\dot{\omega}$"
     )
     ax.legend()
 
@@ -150,3 +150,4 @@ def plot_results(results_folder, plot_every=20, save_path=None):
 
     if save_path is not None:
         save_figure(f, str(save_path))
+        logging.info(f"Saved summary figure at: {save_path}")

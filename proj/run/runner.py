@@ -86,11 +86,11 @@ def run_experiment(
                 )
 
             # Check if we're done
-            if (
-                environment.isdone(model.curr_x, trajectory)
-                or environment.stop
-            ):
-                print(f"Reached end of trajectory after {itern} steps")
+            if environment.isdone(model.curr_x, trajectory):
+                log.info("environment says we're DONE")
+                break
+            if environment.stop:
+                log.info("environment says STOP")
                 break
 
     log.info(f"Terminated after {itern} iterations.")

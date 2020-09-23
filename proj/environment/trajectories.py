@@ -78,6 +78,8 @@ def compute_trajectory_stats(trajectory, duration, planning_params):
 
     # log stuff
     log = logging.getLogger("rich")
+    log.setLevel(logging.INFO)
+
     log.info(
         f"""
         n_points = {n_points}
@@ -201,19 +203,24 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     speed = line_smoother(trial.body_speed) * trial.fps
     ang_speed = np.ones_like(speed)  # it will be ignored
 
-    # resample variables so that samples are uniformly distributed
-    vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
-    if params["resample"]:
-        for k, v in vars.items():
-            vars[k] = _interpol(v, params["max_deg_interpol"], n_steps)
-
     # get start frame
     from_start = calc_distance_from_point(np.array([x, y]), [x[0], y[0]])
     start = np.where(from_start > params["dist_th"])[0][0]
 
-    # stack and cut
+    if start >= len(x):
+        logging.error("Bad trajectory")
+        raise ValueError("Bad trajectory")
+
+    # resample variables so that samples are uniformly distributed
+    vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
+    if params["resample"]:
+        for k, v in vars.items():
+            vars[k] = _interpol(
+                v[start:-1], params["max_deg_interpol"], n_steps
+            )
+
+    # stack
     trajectory = np.vstack(vars.values()).T
-    trajectory = trajectory[start:-1, :]
 
     return compute_trajectory_stats(
         trajectory, len(x) / trial.fps, planning_params
