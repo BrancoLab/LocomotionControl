@@ -9,9 +9,6 @@ from proj import (
 
 # from proj.plotting.trajectories import plot_trajectory
 
-# TODO get trials from M4 catwalk and M6 catwalk only.
-# TODO trajectory: get moved awaay from start location as start frame
-# TODO find metrics to say if it was good/bad?
 
 # model = ModelPolar()
 model = Model()
