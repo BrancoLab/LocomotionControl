@@ -6,7 +6,6 @@ from fcutils.plotting.utils import clean_axes
 from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 
-from proj.utils import salmon
 from proj.animation import variables_colors as colors
 
 
@@ -54,7 +53,7 @@ class Plotter:
                 curr_goals[:, 0],
                 curr_goals[:, 1],
                 lw=10,
-                color=salmon,
+                color="r",
                 zorder=-1,
                 solid_capstyle="round",
             )

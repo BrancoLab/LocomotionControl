@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from proj.utils import polar_to_cartesian
+from proj.utils.misc import polar_to_cartesian
 
 
 def plot_trajectory_polar(traj):

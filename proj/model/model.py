@@ -14,7 +14,7 @@ from collections import namedtuple
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.model.config import Config
-from proj.utils import merge
+from proj.utils.misc import merge
 from proj.control.utils import fit_angle_in_range
 from proj.model.fast import (
     fast_dqdt,

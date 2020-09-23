@@ -4,7 +4,7 @@ import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.environment.plotter import Plotter
-from proj.utils import polar_to_cartesian
+from proj.utils.misc import polar_to_cartesian
 
 _xy = namedtuple("xy", "x, y")
 _xyt = namedtuple("xyt", "x, y, t")

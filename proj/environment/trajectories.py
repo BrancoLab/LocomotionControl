@@ -14,7 +14,7 @@ from fcutils.maths.geometry import (
 )
 from fcutils.maths.filtering import line_smoother
 
-from proj.utils import interpolate_nans
+from proj.utils.misc import interpolate_nans
 
 
 def complete_given_xy(x, y, params, planning_params):
@@ -36,7 +36,9 @@ def complete_given_xy(x, y, params, planning_params):
     )
 
 
-def compute_trajectory_stats(trajectory, duration, planning_params):
+def compute_trajectory_stats(
+    trajectory, duration, planning_params, min_dist_travelled=150
+):
     # Compute stats
     n_points = len(trajectory)
     distance_travelled = np.sum(
@@ -96,14 +98,20 @@ def compute_trajectory_stats(trajectory, duration, planning_params):
     print(table)
 
     if waypoint_density < 2 or waypoint_density > 3:
-        print(
-            f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!"
+        log.info(
+            f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!",
+            extra={"markdown": True},
         )
 
     if perc_lookahead < 0.05:
-        print(
-            f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised."
+        log.info(
+            f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised.",
+            extra={"markdown": True},
         )
+
+    if distance_travelled < min_dist_travelled:
+        log.warning("Distance travelled below minimal requirement, erroring")
+        raise ValueError("Distance travelled below minimal requirement")
 
     return trajectory, duration
 

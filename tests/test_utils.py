@@ -1,6 +1,6 @@
 import numpy as np
 
-from proj.utils import cartesian_to_polar, polar_to_cartesian
+from proj.utils.misc import cartesian_to_polar, polar_to_cartesian
 
 
 def test_coord_transf():
