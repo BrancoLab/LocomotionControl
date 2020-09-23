@@ -217,14 +217,21 @@ class Plotter:
         )
         ax.set(xticklabels=["$\dot{v}$", "$\dot{\omega}$"], xticks=[0, 1])
 
-    def _plot_cost(self):
+    def _plot_cost(self, keep_s=1.2):
+        keep_n = int(keep_s / self.model.dt)
+
         ax = self.cost_ax
         ax.clear()
 
         for k, v in self.cost_history.items():
             if "total" not in k:
+                n = len(v)
                 ax.plot(
-                    v, label=k, lw=3, solid_capstyle="round", color=colors[k],
+                    v[n - keep_n],
+                    label=k,
+                    lw=3,
+                    solid_capstyle="round",
+                    color=colors[k],
                 )
         ax.legend()
 
