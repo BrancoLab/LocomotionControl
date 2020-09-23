@@ -1,4 +1,6 @@
 import numpy as np
+import logging
+
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.environment.trajectories import (
@@ -90,6 +92,7 @@ class Environment(World, Manager):
             self.moved_to_next.append(self.itern)
 
         self.curr_traj_waypoint_idx = min_idx + n_ahead
+        self.model.curr_traj_waypoint_idx = self.curr_traj_waypoint_idx
         self.current_traj_waypoint = g_traj[min_idx, :]
 
         start = min_idx + n_ahead
@@ -120,6 +123,9 @@ class Environment(World, Manager):
             dist = curr_x.r
 
         if dist <= self.model.trajectory["min_dist"]:
+            logging.info(
+                f"Reached the end of the threshold as we're within {self.model.trajectory['min_dist']} from the end"
+            )
             return True
         else:
             return False

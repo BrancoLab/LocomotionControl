@@ -1,12 +1,13 @@
-from proj.plotting.results import plot_results
-import matplotlib.pyplot as plt
-import logging
+# %%
+from rich.syntax import Syntax
+from rich import print
 
-logging.disable(logging.DEBUG)
-log = logging.getLogger("rich")
+with open("proj/model/config.py") as f:
+    content = f.read()
 
-fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/tracking_200920_220443_6689/results"
+content
 
+# %%
+print(Syntax(content, "python", theme="monokai", line_numbers=True))
 
-plot_results(fld)
-plt.show()
+# %%

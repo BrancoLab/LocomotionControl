@@ -84,12 +84,17 @@ class Model(Config):
             tau_l=[],
             r=[],
             gamma=[],
+            trajectory_idx=[],
         )
 
     def _append_history(self):
         for ntuple in [self.curr_x, self.curr_control]:
             for k, v in ntuple._asdict().items():
                 self.history[k].append(v)
+
+        self.history["trajectory_idx"].append(
+            self.curr_traj_waypoint_idx
+        )  # this is updated by env.plan
 
     def _make_simbols(self):
         # state variables

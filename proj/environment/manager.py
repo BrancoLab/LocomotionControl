@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from fancylog import fancylog
 import logging
+
 from rich.logging import RichHandler
 
 from fcutils.file_io.io import save_yaml
@@ -56,6 +57,9 @@ class Manager:
         for fld in folders:
             fld.mkdir(exist_ok=True)
 
+        self._start_logging()
+
+    def _start_logging(self):
         # Start logging
         fancylog.start_logging(
             output_dir=str(self.datafolder),
@@ -67,15 +71,23 @@ class Manager:
             file_log_level="INFO",
         )
 
-        print(f"Saving data at: {self.datafolder}")
-        logging.info("\n\n\n\n")
-        logging.info(f"Saving data at: {self.datafolder}")
-
+        # log main folder
         log = logging.getLogger("rich")
+        log.setLevel(logging.INFO)
+
         log.info(
             f"[bold green] Saving data at: {self.datafolder}",
             extra={"markup": True},
         )
+
+        # log config.py
+        logging.info("=" * 20)
+        logging.info("=" * 20)
+        with open("proj/model/config.py") as f:
+            conf = f.read()
+        logging.info(conf)
+        logging.info("=" * 20)
+        logging.info("=" * 20)
 
     def _save_results(self):
         # save config

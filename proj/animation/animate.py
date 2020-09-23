@@ -4,6 +4,7 @@ from fcutils.video.utils import (
     save_videocap_to_video,
 )
 import click
+import logging
 
 
 def animate_from_images(folder, savepath, fps):
@@ -11,7 +12,7 @@ def animate_from_images(folder, savepath, fps):
     save_videocap_to_video(cap, savepath, ".mp4", fps=fps)
 
     gifpath = savepath.replace(".mp4", ".gif")
-    print(
+    logging.info(
         "To save the video as GIF, use: \n"
         + f'ffmpeg -i "{savepath}" -f gif "{gifpath}"'
     )
