@@ -101,11 +101,11 @@ class Environment(World, Manager):
 
         end = min_idx + n_ahead + pred_len
 
-        if (min_idx + n_ahead + pred_len) > len(g_traj):
-            end = len(g_traj)
+        if start + pred_len > len(g_traj):
+            end = len(g_traj) - 2
 
-        if abs(start - end) != pred_len:
-            return np.tile(g_traj[-1], (pred_len, 1))
+        # if abs(start - end) != pred_len:
+        #     return np.tile(g_traj[-1], (pred_len, 1))
 
         return g_traj[start:end]
 

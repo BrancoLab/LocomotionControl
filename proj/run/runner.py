@@ -6,13 +6,26 @@ from rich.progress import (
 )
 import numpy as np
 from rich import print
+from rich.text import Text
 import logging
 
-# define progress bar
+
+class SpeedColumn(TextColumn):
+    _renderable_cache = {}
+
+    def __init__(self, *args):
+        pass
+
+    def render(self, task):
+        if task.speed is None:
+            return Text("no speed")
+        else:
+            return Text(f"{task.speed:.3f} steps/s")
+
+
 progress = Progress(
-    TextColumn(
-        "[bold magenta]Step {task.completed}/{task.total} - {task.speed} steps/s"
-    ),
+    TextColumn("[bold magenta]Step {task.completed}/{task.total}"),
+    SpeedColumn(),
     # "[progress.description]{task.description}",
     BarColumn(bar_width=None),
     "•",
