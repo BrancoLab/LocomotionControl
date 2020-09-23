@@ -9,10 +9,11 @@ from rich.logging import RichHandler
 from fcutils.file_io.io import save_yaml
 
 
-from proj.utils import timestamp
+from proj.utils.misc import timestamp
 from proj import paths
 from proj.animation.animate import animate_from_images
 from proj.plotting.results import plot_results
+from proj.utils.dropbox import DropBoxUtils, upload_folder
 
 FORMAT = "%(message)s"
 logging.basicConfig(
@@ -136,6 +137,13 @@ class Manager:
             except (FileNotFoundError, PermissionError):
                 print("could not remove frames folder")
 
+    def _upload_to_dropbox(self):
+        dbx = DropBoxUtils()
+        dpx_path = self.datafolder.name
+        logging.info(f"Uploading data to dropbox at: {dpx_path}")
+
+        upload_folder(dbx, self.datafolder, dpx_path)
+
     def conclude(self):
         self._save_results()
         self._save_video()
@@ -146,3 +154,7 @@ class Manager:
             plot_every=self.plot_every,
             save_path=self.datafolder / "outcome",
         )
+
+        # Upload results to dropbox
+        if self.winstor:
+            self._upload_to_dropbox()

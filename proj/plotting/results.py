@@ -7,7 +7,7 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 from fcutils.maths.utils import derivative
 
-from proj.utils import load_results_from_folder
+from proj.utils.misc import load_results_from_folder
 from proj.animation import variables_colors as colors
 
 

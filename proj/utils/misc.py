@@ -116,8 +116,3 @@ def interpolate_nans(arr):
 
 def timestamp():
     return time.strftime("%y%m%d_%H%M%S")
-
-
-# ---------------------------------- COLORS ---------------------------------- #
-salmon = "#FA8072"
-seagreen = "#2E8B57"
