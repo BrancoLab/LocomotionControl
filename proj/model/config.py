@@ -12,7 +12,7 @@ class Config:
     STATE_SIZE = 5
     INPUT_SIZE = 2
 
-    R = np.diag([1.5, 1.5])  # control cost
+    R = np.diag([0.0001, 0.0001])  # control cost
     Q = np.diag([5, 5, 1, 5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
@@ -24,14 +24,24 @@ class Config:
     # Sf = np.diag([2.5, 2.5, 0, 0])  # final state cost
 
     # ------------------------------- Mouse params ------------------------------- #
+    # ? works
+    # mouse = dict(
+    #     L=1.5,  # half body width | cm
+    #     R=1,  # radius of wheels | cm
+    #     d=0.1,  # distance between axel and CoM | cm
+    #     length=3,  # cm
+    #     m=round(20 / 9.81, 2),  # mass | g
+    #     m_w=round(2 / 9.81, 2),  # mass of wheels/legs |g
+    # )
 
+    # ? more realistic
     mouse = dict(
-        L=1.5,  # half body width | cm
-        R=1,  # radius of wheels | cm
-        d=0.1,  # distance between axel and CoM | cm
-        length=3,  # cm
-        m=round(20 / 9.81, 2),  # mass | g
-        m_w=round(2 / 9.81, 2),  # mass of wheels/legs |g
+        L=2,  # half body width | cm
+        R=2,  # radius of wheels | cm
+        d=3,  # distance between axel and CoM | cm
+        length=8.6,  # cm
+        m=round(25 / 9.81, 2),  # mass | g
+        m_w=round(0.6 / 9.81, 2),  # mass of wheels/legs |g
     )
 
     # ------------------------------ Goal trajectory ----------------------------- #
