@@ -226,12 +226,13 @@ class Plotter:
         for k, v in self.cost_history.items():
             if "total" not in k:
                 n = len(v)
+                if n > keep_n + 2:
+                    x = v[n - keep_n]
+                else:
+                    x = v.copy()
+
                 ax.plot(
-                    v[n - keep_n],
-                    label=k,
-                    lw=3,
-                    solid_capstyle="round",
-                    color=colors[k],
+                    x, label=k, lw=3, solid_capstyle="round", color=colors[k],
                 )
         ax.legend()
 
