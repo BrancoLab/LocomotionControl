@@ -22,8 +22,7 @@ else:
         "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\frames_cache"
     )
 
-    raise NotImplementedError("db app missing")
-
+    db_app = "D:\\Dropbox (UCL - SWC)\\Apps\\loco_upload"
 
 # winstor paths
 winstor_main = Path("/nfs/winstor/branco/Federico/Locomotion/control")
