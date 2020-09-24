@@ -92,8 +92,8 @@ def run_experiment(
             environment.itern = itern
             environment.update_world(g_xs, elapsed=itern * model.dt)
 
-            # log
-            if itern % 25 == 0:
+            # log status once a second
+            if itern % int(1 / model.dt) == 0:
                 log.info(
                     f"Iteration {itern}/{n_steps}. Current cost: {environment.curr_cost}."
                 )
