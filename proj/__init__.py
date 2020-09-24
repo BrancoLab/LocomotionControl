@@ -1,3 +1,11 @@
+# Set up logging
+import logging
+
+for module in ["matplotlib", "pandas", "numpy"]:
+    requests_logger = logging.getLogger("matplotlib")
+    requests_logger.setLevel(logging.ERROR)
+
+# import stuff
 from proj.model.config import Config
 from proj.model.model import Model
 from proj.model.model_polar import ModelPolar
