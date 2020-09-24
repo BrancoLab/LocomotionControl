@@ -26,6 +26,7 @@ class Config:
     # ------------------------------- Mouse params ------------------------------- #
     # ? works
     mouse = dict(
+        mouse_type="working",
         L=1.5,  # half body width | cm
         R=1,  # radius of wheels | cm
         d=0.1,  # distance between axel and CoM | cm
@@ -36,6 +37,7 @@ class Config:
 
     # ? more realistic
     # mouse = dict(
+    # mouse_type = 'realistic',
     #     L=2,  # half body width | cm
     #     R=2,  # radius of wheels | cm
     #     d=3,  # distance between axel and CoM | cm
