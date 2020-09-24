@@ -14,6 +14,7 @@ from proj import paths
 from proj.animation.animate import animate_from_images
 from proj.plotting.results import plot_results
 from proj.utils.dropbox import DropBoxUtils, upload_folder
+from proj.utils.slack import send_slack_message
 
 FORMAT = "%(message)s"
 logging.basicConfig(
@@ -26,8 +27,9 @@ class Manager:
         """
             This class manages paths, saving of results etc.
         """
-        self.model = model
+        self.simstart = timestamp()
 
+        self.model = model
         self.exp_name = f'{model.trajectory["name"]}_{timestamp()}_{np.random.randint(low=0, high=10000)}'
 
         # get main folder
@@ -158,3 +160,16 @@ class Manager:
         # Upload results to dropbox
         if self.winstor:
             self._upload_to_dropbox()
+        else:
+            logging.info("Did not upload to dropbox")
+
+        logging.info("Sending slack message")
+        send_slack_message(
+            f"""
+            \n
+            Completed simulation
+            Start time: {self.simstart}
+            End time: {timestamp()}
+            Data folder: {self.datafolder}
+            """
+        )

@@ -16,6 +16,7 @@ requirements = [
     "rich",
     "sklearn",
     "fancylog",
+    "dropbox",
 ]
 
 setup(
