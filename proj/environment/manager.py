@@ -85,8 +85,11 @@ class Manager:
 
     def _log_conf(self):
         # log config.py
-        with open("proj/model/config.py") as f:
-            conf = f.read()
+        try:
+            with open("proj/model/config.py") as f:
+                conf = f.read()
+        except FileNotFoundError:
+            conf = self.model.config_dict()
         logging.info(conf)
 
     def _save_results(self):
