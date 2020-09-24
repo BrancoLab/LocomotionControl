@@ -7,6 +7,10 @@ proj/secrets.py
 vscode/*
 vscode/
 vscode
+.vscode
+.vscode/*
+.vscode/settings.json
+vscode/settings.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

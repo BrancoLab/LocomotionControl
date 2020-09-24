@@ -44,6 +44,7 @@ class DropBoxUtils:
 
     def _check_path(self, path):
         path = str(path)
+        path = path.replace("\\", "/")
         if path[0] != "/":
             return "/" + path
         else:

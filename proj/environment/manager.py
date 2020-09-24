@@ -158,14 +158,26 @@ class Manager:
         # Upload results to dropbox
         if self.winstor:
             self._upload_to_dropbox()
+
+            logging.info("Sending slack message")
+            send_slack_message(
+                f"""
+                \n
+                Completed simulation
+                Start time: {self.simstart}
+                End time: {timestamp()}
+                Data folder: {self.datafolder}
+                """
+            )
         else:
             logging.info("Did not upload to dropbox")
 
+    def failed(self):
         logging.info("Sending slack message")
         send_slack_message(
             f"""
             \n
-            Completed simulation
+            Failed simulation simulation
             Start time: {self.simstart}
             End time: {timestamp()}
             Data folder: {self.datafolder}

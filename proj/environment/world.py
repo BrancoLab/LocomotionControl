@@ -124,6 +124,9 @@ class World(Plotter):
         """
             Create the world and the model at some location
         """
+        if trajectory is None:
+            return
+
         # create world
         self.world_size = self._initialize_world(trajectory)
 
