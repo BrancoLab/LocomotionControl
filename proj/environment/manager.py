@@ -83,14 +83,11 @@ class Manager:
             extra={"markup": True},
         )
 
+    def _log_conf(self):
         # log config.py
-        logging.info("=" * 20)
-        logging.info("=" * 20)
         with open("proj/model/config.py") as f:
             conf = f.read()
         logging.info(conf)
-        logging.info("=" * 20)
-        logging.info("=" * 20)
 
     def _save_results(self):
         # save config
@@ -147,6 +144,7 @@ class Manager:
         upload_folder(dbx, self.datafolder, dpx_path)
 
     def conclude(self):
+        self._log_conf()
         self._save_results()
         self._save_video()
 

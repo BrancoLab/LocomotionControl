@@ -70,40 +70,46 @@ def run_experiment(
         task_id = progress.add_task("running", start=True, total=n_steps)
 
         for itern in range(n_steps):
-            progress.advance(task_id, 1)
+            try:
+                progress.advance(task_id, 1)
 
-            curr_x = np.array(model.curr_x)
+                curr_x = np.array(model.curr_x)
 
-            # plan
-            g_xs = environment.plan(curr_x, trajectory, itern)
+                # plan
+                g_xs = environment.plan(curr_x, trajectory, itern)
 
-            # obtain sol
-            u = controller.obtain_sol(curr_x, g_xs)
+                # obtain sol
+                u = controller.obtain_sol(curr_x, g_xs)
 
-            # step
-            model.step(u)
+                # step
+                model.step(u)
 
-            # get current cost
-            environment.curr_cost = controller.calc_step_cost(
-                np.array(model.curr_x), u, g_xs[0, :]
-            )
-
-            # update world
-            environment.itern = itern
-            environment.update_world(g_xs, elapsed=itern * model.dt)
-
-            # log status once a second
-            if itern % int(1 / model.dt) == 0:
-                log.info(
-                    f"Iteration {itern}/{n_steps}. Current cost: {environment.curr_cost}."
+                # get current cost
+                environment.curr_cost = controller.calc_step_cost(
+                    np.array(model.curr_x), u, g_xs[0, :]
                 )
 
-            # Check if we're done
-            if environment.isdone(model.curr_x, trajectory):
-                log.info("environment says we're DONE")
-                break
-            if environment.stop:
-                log.info("environment says STOP")
+                # update world
+                environment.itern = itern
+                environment.update_world(g_xs, elapsed=itern * model.dt)
+
+                # log status once a second
+                if itern % int(1 / model.dt) == 0:
+                    log.info(
+                        f"Iteration {itern}/{n_steps}. Current cost: {environment.curr_cost}."
+                    )
+
+                # Check if we're done
+                if environment.isdone(model.curr_x, trajectory):
+                    log.info("environment says we're DONE")
+                    break
+                if environment.stop:
+                    log.info("environment says STOP")
+                    break
+            except Exception as e:
+                logging.error(
+                    f"Failed to take next step in simulation.\n error {e}"
+                )
                 break
 
     log.info(f"Terminated after {itern} iterations.")
