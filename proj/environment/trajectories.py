@@ -111,7 +111,7 @@ def compute_trajectory_stats(
 
     if distance_travelled < min_dist_travelled:
         log.warning("Distance travelled below minimal requirement, erroring")
-        raise ValueError("Distance travelled below minimal requirement")
+        return None, None
 
     return trajectory, duration
 
@@ -223,9 +223,12 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
     if params["resample"]:
         for k, v in vars.items():
-            vars[k] = _interpol(
-                v[start:-1], params["max_deg_interpol"], n_steps
-            )
+            try:
+                vars[k] = _interpol(
+                    v[start:-1], params["max_deg_interpol"], n_steps
+                )
+            except ValueError:  # there were nans in the array
+                return None, None
 
     # stack
     trajectory = np.vstack(vars.values()).T

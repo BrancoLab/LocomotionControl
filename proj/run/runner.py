@@ -57,6 +57,11 @@ def run_experiment(
 
     # reset things
     trajectory = environment.reset()
+    if trajectory is None:
+        log.info("Failed to get a valid trajectory")
+        environment.failed()
+        return
+
     model.reset()
 
     # Get number of steps

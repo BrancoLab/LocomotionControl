@@ -54,6 +54,7 @@ class Plotter:
                 curr_goals[:, 1],
                 lw=10,
                 color="r",
+                alpha=0.5,
                 zorder=-1,
                 solid_capstyle="round",
             )
@@ -226,7 +227,7 @@ class Plotter:
             if "total" not in k:
                 n = len(v)
                 if n > keep_n + 2:
-                    x = v[n - keep_n]
+                    x = v[n - keep_n :]
                 else:
                     x = v.copy()
 

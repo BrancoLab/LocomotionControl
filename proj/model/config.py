@@ -12,7 +12,7 @@ class Config:
     STATE_SIZE = 5
     INPUT_SIZE = 2
 
-    R = np.diag([0.0001, 0.0001])  # control cost
+    R = np.diag([0.1, 0.1])  # control cost
     Q = np.diag([5, 5, 1, 5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
@@ -25,24 +25,24 @@ class Config:
 
     # ------------------------------- Mouse params ------------------------------- #
     # ? works
-    # mouse = dict(
-    #     L = 1.5,  # half body width | cm
-    #     R = 1,  # radius of wheels | cm
-    #     d = 0.1,  # distance between axel and CoM | cm
-    #     length = 3,  # cm
-    #     m = round(20 / 9.81, 2),  # mass | g
-    #     m_w = round(2 / 9.81, 2),  # mass of wheels/legs |g
-    # )
+    mouse = dict(
+        L=1.5,  # half body width | cm
+        R=1,  # radius of wheels | cm
+        d=0.1,  # distance between axel and CoM | cm
+        length=3,  # cm
+        m=round(20 / 9.81, 2),  # mass | g
+        m_w=round(2 / 9.81, 2),  # mass of wheels/legs |g
+    )
 
     # ? more realistic
-    mouse = dict(
-        L=2,  # half body width | cm
-        R=2,  # radius of wheels | cm
-        d=3,  # distance between axel and CoM | cm
-        length=8.6,  # cm
-        m=round(25 / 9.81, 2),  # mass | g
-        m_w=round(0.6 / 9.81, 2),  # mass of wheels/legs |g
-    )
+    # mouse = dict(
+    #     L=2,  # half body width | cm
+    #     R=2,  # radius of wheels | cm
+    #     d=3,  # distance between axel and CoM | cm
+    #     length=8.6,  # cm
+    #     m=round(25 / 9.81, 2),  # mass | g
+    #     m_w=round(0.6 / 9.81, 2),  # mass of wheels/legs |g
+    # )
 
     # ------------------------------ Goal trajectory ----------------------------- #
 
@@ -53,7 +53,7 @@ class Config:
         max_speed=100,
         min_speed=80,
         min_dist=5,  # if agent is within this distance from trajectory end the goal is considered achieved
-        dist_th=300,  # keep frames only after moved away from start location
+        dist_th=60,  # keep frames only after moved away from start location
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
         randomize=True,  # if true when using tracking it pulls a random trial
