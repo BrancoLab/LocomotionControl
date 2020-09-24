@@ -30,7 +30,7 @@ class Manager:
         self.simstart = timestamp()
 
         self.model = model
-        self.exp_name = f'{model.trajectory["name"]}_{timestamp()}_{np.random.randint(low=0, high=10000)}'
+        self.exp_name = f'{model.SIMULATION_NAME}_{model.trajectory["name"]}_{timestamp()}_{np.random.randint(low=0, high=10000)}'
 
         # get main folder
         if winstor:
