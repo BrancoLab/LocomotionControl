@@ -36,8 +36,6 @@ class DropBoxUtils:
 
         # keep ref to path where db app is stored locally
         self.local = Path(db_app)
-        if not self.local.exists():
-            raise FileNotFoundError("Local path not found")
 
     def _fix_path(self, path):
         return str(self.local / path)
@@ -65,7 +63,7 @@ class DropBoxUtils:
 
     def upload_file(self, source, dest):
         try:
-            with open(self._fix_path(source), "rb") as f:
+            with open(source, "rb") as f:
                 self.db.files_upload(
                     f.read(),
                     self._check_path(dest),
