@@ -3,8 +3,7 @@ from proj.control.utils import fit_angle_in_range
 
 
 class Cost:
-    @staticmethod
-    def fit_diff_in_range(diff_x):
+    def fit_diff_in_range(self, diff_x):
         """ fit difference state in range(angle)
 
         Args:
@@ -17,11 +16,15 @@ class Cost:
         """
 
         if len(diff_x.shape) == 3:
-            diff_x[:, :, -2] = fit_angle_in_range(diff_x[:, :, -2])
+            diff_x[:, :, self.angle_idx] = fit_angle_in_range(
+                diff_x[:, :, self.angle_idx]
+            )
         elif len(diff_x.shape) == 2:
-            diff_x[:, -2] = fit_angle_in_range(diff_x[:, -2])
+            diff_x[:, self.angle_idx] = fit_angle_in_range(
+                diff_x[:, self.angle_idx]
+            )
         elif len(diff_x.shape) == 1:
-            diff_x[-2] = fit_angle_in_range(diff_x[-2])
+            diff_x[self.angle_idx] = fit_angle_in_range(diff_x[self.angle_idx])
 
         return diff_x
 
@@ -53,7 +56,7 @@ class Cost:
         """
         diff = self.fit_diff_in_range(x - g_x)
         # diff = x - g_x
-        return ((diff) ** 2) * np.diag(self.Q)
+        return (diff ** 2) * np.diag(self.Q)
 
     def terminal_state_cost_fn(self, terminal_x, terminal_g_x):
         """
