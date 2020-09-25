@@ -7,14 +7,15 @@ class Config:
     SPAWN_TYPE = "trajectory"
 
     # ----------------------------- Simulation params ---------------------------- #
-    dt = 0.01
+    dt = 0.005
 
     # -------------------------------- Cost params ------------------------------- #
     STATE_SIZE = 5
     INPUT_SIZE = 2
+    ANGLE_IDX = 2  # state vector index which is angle, used to fit diff in
 
-    R = np.diag([0.1, 0.1])  # control cost
-    Q = np.diag([5, 5, 1, 5, 0])  # state cost | x, y, theta, v, omega
+    R = np.diag([0.01, 0.01])  # control cost
+    Q = np.diag([1, 1, 1, 5, 0])  # state cost | x, y, theta, v, omega
     Sf = np.diag([0, 0, 0, 0, 0])  # final state cost
 
     # STATE_SIZE = 4
@@ -64,7 +65,7 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=80,
+        prediction_length=150,
         n_ahead=5,  # start prediction states from N steps ahead
     )
 

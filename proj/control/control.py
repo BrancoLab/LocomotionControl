@@ -18,6 +18,8 @@ class Controller(Cost):
         self.R = model.R
         self.Sf = model.Sf
 
+        self.angle_idx = model.ANGLE_IDX
+
         # Params
         self.max_iter = model.iLQR["max_iter"]
         self.init_mu = model.iLQR["init_mu"]
