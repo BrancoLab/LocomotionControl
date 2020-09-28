@@ -124,11 +124,10 @@ class Manager:
     def _save_video(self):
         # make gif
         try:
-            fps = int(np.ceil(1 / self.model.dt))
             animate_from_images(
                 str(self.frames_folder),
                 str(self.datafolder / f"{self.exp_name}.mp4"),
-                fps,
+                10,
             )
         except (ValueError, FileNotFoundError):
             print("Failed to generate video from frames.. ")
