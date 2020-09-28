@@ -234,5 +234,5 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     trajectory = np.vstack(vars.values()).T
 
     return compute_trajectory_stats(
-        trajectory, len(x) / trial.fps, planning_params
+        trajectory, len(x[start:]) / trial.fps, planning_params
     )
