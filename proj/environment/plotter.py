@@ -238,11 +238,26 @@ class Plotter:
                 )
         ax.legend()
 
-    # def _plot_goal(self, goal):
-    #     goal = self.model._goal(*goal)
-    #     x = self.model.curr_x
+    def _plot_goal(self, goal):
+        self.goal_ax.clear()
+        goal = self.model._state(*goal)
+        x = self.model.curr_x
 
-    #     for k in self.model.curr_x._fields:
+        for n, k in enumerate(x._fields):
+            self.goal_ax.bar(n, goal._asdict()[k], color=colors[k], alpha=0.7)
+            self.goal_ax.scatter(
+                n,
+                x._asdict()[k],
+                color=desaturate_color(colors[k]),
+                s=200,
+                zorder=99,
+                lw=1,
+                edgecolors="white",
+                label=k,
+            )
+
+        self.goal_ax.legend()
+        self.goal_ax.set(xticks=[])
 
     def visualize_world_live(self, curr_goals, elapsed=None):
         ax = self.xy_ax
@@ -288,6 +303,9 @@ class Plotter:
 
         # plot cost
         self._plot_cost()
+
+        # plot goal
+        self._plot_goal(curr_goals[0, :])
 
         # display plot
         self.f.canvas.draw()

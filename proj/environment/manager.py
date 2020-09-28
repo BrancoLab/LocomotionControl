@@ -111,10 +111,15 @@ class Manager:
         )
 
         # save the last frame as a results image
-        last_frame = [
-            f for f in self.frames_folder.glob("*.png") if f.is_file()
-        ][-1]
-        shutil.copy(str(last_frame), str(self.datafolder / "final_frame.png"))
+        try:
+            last_frame = [
+                f for f in self.frames_folder.glob("*.png") if f.is_file()
+            ][-1]
+            shutil.copy(
+                str(last_frame), str(self.datafolder / "final_frame.png")
+            )
+        except IndexError:
+            pass  # no frames were saved
 
         # save cost history
         pd.DataFrame(self.cost_history).to_hdf(
@@ -149,7 +154,7 @@ class Manager:
         self._log_conf()
         self._save_results()
 
-        if self.model.PLOT_LIVE:
+        if self.model.LIVE_PLOT:
             self._save_video()
 
         # save summary plot
