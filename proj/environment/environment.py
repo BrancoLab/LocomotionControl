@@ -104,10 +104,12 @@ class Environment(World, Manager):
         if start + pred_len > len(g_traj):
             end = len(g_traj) - 2
 
-        # if abs(start - end) != pred_len:
-        #     return np.tile(g_traj[-1], (pred_len, 1))
-
-        return g_traj[start:end]
+        if abs(start - end) != pred_len:
+            g_traj = g_traj[start:end]
+            len_diff = (start - end) - pred_len
+            return np.pad(g_traj, ((0, len_diff), (0, 0)), mode="edge")
+        else:
+            return g_traj[start:end]
 
     def isdone(self, curr_x, trajectory):
         """

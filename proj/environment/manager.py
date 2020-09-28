@@ -66,7 +66,7 @@ class Manager:
         # Start logging
         fancylog.start_logging(
             output_dir=str(self.datafolder),
-            filename=self.exp_name + ".txt",
+            filename=self.exp_name + ".log",
             multiprocessing_aware=False,
             write_git=False,
             verbose=False,
@@ -87,7 +87,7 @@ class Manager:
         # log config.py
         try:
             with open("proj/model/config.py") as f:
-                conf = f.read()
+                conf = "\n" + f.read()
         except FileNotFoundError:
             conf = self.model.config_dict()
         logging.info(conf)
