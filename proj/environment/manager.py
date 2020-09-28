@@ -53,10 +53,9 @@ class Manager:
 
         # get subfolders
         self.frames_folder = self.datafolder / "frames"
-        self.results_folder = self.datafolder / "results"
 
         # create folders
-        folders = [self.datafolder, self.frames_folder, self.results_folder]
+        folders = [self.datafolder, self.frames_folder]
         for fld in folders:
             fld.mkdir(exist_ok=True)
 
@@ -95,19 +94,19 @@ class Manager:
     def _save_results(self):
         # save config
         save_yaml(
-            str(self.results_folder / "config.yml"), self.model.config_dict()
+            str(self.datafolder / "config.yml"), self.model.config_dict()
         )
 
         # save trajectory
         np.save(
-            str(self.results_folder / "init_trajectory.npy"),
+            str(self.datafolder / "init_trajectory.npy"),
             self.initial_trajectory,
         )
 
         # save model history
         history = {k: v for k, v in self.model.history.items() if v}
         pd.DataFrame(history).to_hdf(
-            str(self.results_folder / "history.h5"), key="hdf"
+            str(self.datafolder / "history.h5"), key="hdf"
         )
 
         # save the last frame as a results image
@@ -123,7 +122,7 @@ class Manager:
 
         # save cost history
         pd.DataFrame(self.cost_history).to_hdf(
-            str(self.results_folder / "cost_history.h5"), key="hdf"
+            str(self.datafolder / "cost_history.h5"), key="hdf"
         )
 
     def _save_video(self):
@@ -159,7 +158,7 @@ class Manager:
 
         # save summary plot
         plot_results(
-            self.results_folder,
+            self.datafolder,
             plot_every=self.plot_every,
             save_path=self.datafolder / "outcome",
         )
