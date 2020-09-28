@@ -148,7 +148,9 @@ class Manager:
     def conclude(self):
         self._log_conf()
         self._save_results()
-        self._save_video()
+
+        if self.model.PLOT_LIVE:
+            self._save_video()
 
         # save summary plot
         plot_results(
