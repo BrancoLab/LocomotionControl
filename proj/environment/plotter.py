@@ -37,6 +37,8 @@ class Plotter:
 
         self.accel_ax = self.f.add_subplot(gs[0, 4])
 
+        self.goal_ax = self.f.add_subplot(gs[0, 5])
+
         self.cost_ax = self.f.add_subplot(gs[1, 4:])
 
         clean_axes(self.f)
@@ -235,6 +237,12 @@ class Plotter:
                     x, label=k, lw=3, solid_capstyle="round", color=colors[k],
                 )
         ax.legend()
+
+    # def _plot_goal(self, goal):
+    #     goal = self.model._goal(*goal)
+    #     x = self.model.curr_x
+
+    #     for k in self.model.curr_x._fields:
 
     def visualize_world_live(self, curr_goals, elapsed=None):
         ax = self.xy_ax

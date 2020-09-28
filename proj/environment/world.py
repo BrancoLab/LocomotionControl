@@ -173,4 +173,5 @@ class World(Plotter):
         self.model_position_world = self.model_position_history_world[-1]
 
         # Update plots
-        self.visualize_world_live(curr_goals, elapsed=elapsed)
+        if self.model.LIVE_PLOT:
+            self.visualize_world_live(curr_goals, elapsed=elapsed)

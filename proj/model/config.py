@@ -3,8 +3,10 @@ import numpy as np
 
 class Config:
     SIMULATION_NAME = ""
+
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
+    LIVE_PLOT = False
 
     # ----------------------------- Simulation params ---------------------------- #
     dt = 0.005
