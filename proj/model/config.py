@@ -33,13 +33,17 @@ _easy_mouse = dict(
 
 _realistic_mouse = dict(
     L=2,  # half body width | cm
-    R=2,  # radius of wheels | cm
-    d=3,  # distance between axel and CoM | cm
+    R=1.5,  # radius of wheels | cm
+    d=2,  # distance between axel and CoM | cm
     length=8.6,  # cm
-    m=round(25 / 9.81, 2),  # mass | g
-    m_w=round(0.6 / 9.81, 2),  # mass of wheels/legs |g
+    m=round(23 / 9.81, 2),  # mass | g
+    m_w=0.8,  # mass of wheels/legs |g
     mouse_type="realistic",
 )
+
+# ---------------------------------------------------------------------------- #
+#                                    CONFIG                                    #
+# ---------------------------------------------------------------------------- #
 
 
 class Config:
@@ -48,7 +52,7 @@ class Config:
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = True
+    LIVE_PLOT = False
 
     mouse_type = "easy"
     model_type = "cart"
@@ -72,7 +76,7 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=80,
+        prediction_length=20,
         n_ahead=5,  # start prediction states from N steps ahead
     )
 
