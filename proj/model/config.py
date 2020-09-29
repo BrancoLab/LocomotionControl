@@ -63,11 +63,14 @@ class Config:
 
     trajectory = dict(  # parameters of the goals trajectory
         name="tracking",
+        # ? For artificial trajectories
         nsteps=10000,
         distance=150,
         max_speed=100,
         min_speed=80,
         min_dist=5,  # if agent is within this distance from trajectory end the goal is considered achieved
+        # ? for trajectories from data
+        px_to_cm=1 / 30.8,  # convert px values to cm
         # dist_th=60,  # keep frames only after moved away from start location
         dist_th=-1,
         resample=True,  # if True when using tracking trajectory resamples it
@@ -82,7 +85,7 @@ class Config:
     )
 
     # --------------------------------- Plotting --------------------------------- #
-    traj_plot_every = 15
+    traj_plot_every = 80
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(
