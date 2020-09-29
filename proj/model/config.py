@@ -54,7 +54,7 @@ class Config:
     SPAWN_TYPE = "trajectory"
     LIVE_PLOT = False
 
-    mouse_type = "easy"
+    mouse_type = "realistic"
     model_type = "cart"
 
     dt = 0.005
