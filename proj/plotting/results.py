@@ -134,8 +134,8 @@ def _plot_cost(cost_history, ax=None):
     ax.legend()
 
 
-def _plot_integrals(history, tax=None, aax=None):
-    R, L = history["tau_r"], history["tau_l"]
+def _plot_integrals(history, dt, tax=None, aax=None):
+    R, L = np.cumsum(history["tau_r"]), np.cumsum(history["tau_l"])
 
     plot_line_outlined(
         tax,
@@ -198,7 +198,7 @@ def plot_results(results_folder, plot_every=20, save_path=None):
     _plot_v(history, trajectory, plot_every, ax=sax)
     _plot_accel(history, ax=accel_ax)
     _plot_cost(cost_history, ax=cost_ax)
-    _plot_integrals(history, tax=tau_int_ax, aax=acc_int_ax)
+    _plot_integrals(history, config["dt"], tax=tau_int_ax, aax=acc_int_ax)
 
     clean_axes(f)
 

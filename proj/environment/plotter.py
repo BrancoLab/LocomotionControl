@@ -244,15 +244,13 @@ class Plotter:
         x = self.model.curr_x
 
         for n, k in enumerate(x._fields):
-            self.goal_ax.bar(n, goal._asdict()[k], color=colors[k], alpha=0.7)
-            self.goal_ax.scatter(
+            self.goal_ax.bar(
                 n,
-                x._asdict()[k],
+                goal._asdict()[k] - x._asdict()[k],
                 color=desaturate_color(colors[k]),
-                s=200,
                 zorder=99,
                 lw=1,
-                edgecolors="white",
+                ec="k",
                 label=k,
             )
 
