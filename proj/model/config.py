@@ -5,8 +5,8 @@ _cart_params = dict(
     STATE_SIZE=5,
     INPUT_SIZE=2,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([0.05, 0.05]),  # control cost
-    Q=np.diag([1, 1, 1, 1, 0]),  # state cost | x, y, theta, v, omega
+    R=np.diag([1.0e-06, 1.0e-06]),  # control cost
+    Q=np.diag([10, 10, 10, 10, 0]),  # state cost | x, y, theta, v, omega
     Sf=np.diag([0, 0, 0, 0, 0]),  # final state cost
 )
 
