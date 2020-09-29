@@ -55,7 +55,8 @@ class Model(Config):
 
     _control = namedtuple("control", "tau_r, tau_l")
     _state = namedtuple("state", "x, y, theta, v, omega")
-    _dxdt = namedtuple("dxdt", "x_dot, y_dt, theta_dot, v_dot, omega_dot")
+    _dxdt = namedtuple("dxdt", "x_dot, y_dot, theta_dot, v_dot, omega_dot")
+    _wheel_state = namedtuple("wheel_state", "nudot_right, nudot_left")
 
     def __init__(self, startup=True):
         Config.__init__(self)
@@ -71,6 +72,8 @@ class Model(Config):
                 self.calc_dqdt = fast_dqdt
                 self.calc_model_jacobian_state = fast_model_jacobian_state
                 self.calc_model_jacobian_input = fast_model_jacobian_input
+
+            self.get_wheels_dynamics()
             self.reset()
 
     def reset(self):
@@ -85,10 +88,12 @@ class Model(Config):
             r=[],
             gamma=[],
             trajectory_idx=[],
+            nudot_left=[],  # acceleration of left wheel
+            nudot_right=[],  # acceleration of right wheel
         )
 
     def _append_history(self):
-        for ntuple in [self.curr_x, self.curr_control]:
+        for ntuple in [self.curr_x, self.curr_control, self.curr_wheel_state]:
             for k, v in ntuple._asdict().items():
                 self.history[k].append(v)
 
@@ -251,6 +256,43 @@ class Model(Config):
             args, self.model_jacobian_input, modules="numpy"
         )
 
+    def get_wheels_dynamics(self):
+        (
+            x,
+            y,
+            theta,
+            L,
+            R,
+            m,
+            m_w,
+            d,
+            tau_l,
+            tau_r,
+            v,
+            omega,
+        ) = self.variables.values()
+
+        x_dot, y_dot, theta_dot = symbols("xdot, ydot, thetadot")
+        nu_l_dot, nu_r_dot = symbols("nudot_L, nudot_R")
+
+        vels = Matrix([x_dot, y_dot, theta_dot])
+        K = Matrix(
+            [
+                [R / 2 * cos(theta), R / 2 * cos(theta)],
+                [R / 2 * sin(theta), R / 2 * sin(theta)],
+                [R / (2 * L), R / (2 * L)],
+            ]
+        )
+
+        # In the model you can use the wheels accelerations
+        # to get the x,y,theta velocity.
+        # Here we do the inverse, given x,y,theta velocities
+        # we get the wheel's accelerations
+
+        nu = K.pinv() * vels
+        args = [L, R, theta, x_dot, y_dot, theta_dot]
+        self.calc_wheels_accels = lambdify(args, nu, modules="numpy")
+
     def step(self, u):
         u = self._control(*np.array(u))
         self.curr_x = self._state(*self.curr_x)
@@ -267,6 +309,17 @@ class Model(Config):
         # Step
         next_x = np.array(self.curr_x) + dxdt * self.dt
         self.curr_x = self._state(*next_x)
+
+        # Compute wheel accelerations
+        w = self.calc_wheels_accels(
+            variables["L"],
+            variables["R"],
+            variables["theta"],
+            self.curr_dxdt.x_dot,
+            self.curr_dxdt.y_dot,
+            self.curr_dxdt.theta_dot,
+        )
+        self.curr_wheel_state = self._wheel_state(*w.ravel())
 
         # Update history
         self.curr_control = u
