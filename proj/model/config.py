@@ -68,7 +68,7 @@ class Config:
         distance=150,
         max_speed=100,
         min_speed=80,
-        min_dist=5,  # if agent is within this distance from trajectory end the goal is considered achieved
+        min_dist=0,  # if agent is within this distance from trajectory end the goal is considered achieved
         # ? for trajectories from data
         px_to_cm=1 / 30.8,  # convert px values to cm
         # dist_th=60,  # keep frames only after moved away from start location
