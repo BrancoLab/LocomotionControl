@@ -18,13 +18,14 @@ class SpeedColumn(TextColumn):
 
     def render(self, task):
         if task.speed is None:
-            return Text("no speed")
+            return Text(" ")
         else:
             return Text(f"{task.speed:.3f} steps/s")
 
 
 progress = Progress(
     TextColumn("[bold magenta]Step {task.completed}/{task.total}"),
+    "•",
     SpeedColumn(),
     # "[progress.description]{task.description}",
     BarColumn(bar_width=None),
@@ -36,7 +37,7 @@ progress = Progress(
 
 # run
 def run_experiment(
-    environment, controller, model, n_secs=30, frames_folder=None,
+    environment, controller, model, n_secs=10, frames_folder=None,
 ):
     """
         Runs an experiment

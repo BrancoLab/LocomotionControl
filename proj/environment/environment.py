@@ -68,7 +68,8 @@ class Environment(World, Manager):
         self.model.reset()
 
         # make goal trajetory
-        trajectory, goal_duration = self.make_trajectory()
+        (trajectory, goal_duration), trial = self.make_trajectory()
+        self.trial = trial
 
         self.goal_duration = goal_duration  # how long it should take
 
