@@ -135,13 +135,13 @@ def _plot_cost(cost_history, ax=None):
 
 
 def _plot_integrals(history, dt, tax=None, aax=None):
-    R, L = np.cumsum(history["tau_r"]), np.cumsum(history["tau_l"])
+    R, L = history["nudot_right"], history["nudot_left"]
 
     plot_line_outlined(
         tax,
         R,
         color=desaturate_color(colors["tau_r"]),
-        label="R_wheel_speed",
+        label="R_wheel_accel",
         lw=2,
         solid_capstyle="round",
     )
@@ -149,7 +149,7 @@ def _plot_integrals(history, dt, tax=None, aax=None):
         tax,
         L,
         color=desaturate_color(colors["tau_l"]),
-        label="L_wheel_speed",
+        label="L_wheel_accel",
         lw=2,
         solid_capstyle="round",
     )

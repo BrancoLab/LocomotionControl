@@ -1,21 +1,43 @@
 # %%
-from proj.utils.misc import load_results_from_folder
+from proj import Model
+from sympy import Matrix, symbols, sin, cos
 
-fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/tracking_200923_141709_1491_good_example/results"
-
-# %%
-config, trajectory, history, cost_history = load_results_from_folder(fld)
+model = Model()
 
 # %%
-import matplotlib.pyplot as plt
-
-plt.plot(cost_history["x"])
+(
+    x,
+    y,
+    theta,
+    L,
+    R,
+    m,
+    m_w,
+    d,
+    tau_l,
+    tau_r,
+    v,
+    omega,
+) = model.variables.values()
 
 # %%
-plt.plot(history["tau_r"])
-plt.plot(history["tau_l"])
+x_dot, y_dot, theta_dot = symbols("xdot, ydot, thetadot")
 
-# %%
-plt.plot(history["v"])
+nu_l_dot, nu_r_dot = symbols("nudot_L, nudot_R")
 
+
+vels = Matrix([x_dot, y_dot, theta_dot])
+
+K = Matrix(
+    [
+        [R / 2 * cos(theta), R / 2 * cos(theta)],
+        [R / 2 * sin(theta), R / 2 * sin(theta)],
+        [R / (2 * L), R / (2 * L)],
+    ]
+)
+
+nu = Matrix([nu_l_dot, nu_r_dot])
+
+nu = K.pinv() * vels
+nu
 # %%
