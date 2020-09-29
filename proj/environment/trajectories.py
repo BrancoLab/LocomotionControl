@@ -32,13 +32,15 @@ def complete_given_xy(x, y, params, planning_params):
 
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
     return (
-        compute_trajectory_stats(trajectory, len(trajectory), planning_params),
+        compute_trajectory_stats(
+            trajectory, len(trajectory), params, planning_params
+        ),
         None,
     )
 
 
 def compute_trajectory_stats(
-    trajectory, duration, planning_params, min_dist_travelled=150
+    trajectory, duration, params, planning_params, min_dist_travelled=150
 ):
     # Compute stats
     n_points = len(trajectory)
@@ -110,7 +112,7 @@ def compute_trajectory_stats(
             extra={"markdown": True},
         )
 
-    if distance_travelled < min_dist_travelled:
+    if distance_travelled < min_dist_travelled * params["px_to_cm"]:
         log.warning("Distance travelled below minimal requirement, erroring")
         return None, None
 
@@ -207,14 +209,15 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     except:
         fps = 60
 
-    x = trial.body_xy[:, 0]
-    y = trial.body_xy[:, 1]
+    x = trial.body_xy[:, 0] * params["px_to_cm"]
+    y = trial.body_xy[:, 1] * params["px_to_cm"]
 
     angle = interpolate_nans(trial.body_orientation)
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
     speed = line_smoother(trial.body_speed) * fps
+    speed *= params["px_to_cm"]
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     # get start frame
@@ -241,7 +244,7 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
 
     return (
         compute_trajectory_stats(
-            trajectory, len(x[start:]) / fps, planning_params
+            trajectory, len(x[start:]) / fps, params, planning_params
         ),
         trials,
     )
