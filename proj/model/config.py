@@ -63,12 +63,13 @@ class Config:
 
     trajectory = dict(  # parameters of the goals trajectory
         name="tracking",
-        nsteps=1000,
+        nsteps=10000,
         distance=150,
         max_speed=100,
         min_speed=80,
         min_dist=5,  # if agent is within this distance from trajectory end the goal is considered achieved
-        dist_th=60,  # keep frames only after moved away from start location
+        # dist_th=60,  # keep frames only after moved away from start location
+        dist_th=-1,
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
         randomize=True,  # if true when using tracking it pulls a random trial
