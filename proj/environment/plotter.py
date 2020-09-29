@@ -176,7 +176,7 @@ class Plotter:
             color=colors["v"],
             label="trajectory speed",
             lw=1,
-            edgecolors="white",
+            edgecolors=[0.8, 0.8, 0.8],
             s=100,
         )
 
@@ -268,7 +268,7 @@ class Plotter:
             s=50,
             color=colors["trajectory"],
             lw=1,
-            edgecolors="white",
+            edgecolors=[0.8, 0.8, 0.8],
         )
 
         # highlight current trajectory point
@@ -278,7 +278,7 @@ class Plotter:
             s=30,
             color="r",
             lw=1,
-            edgecolors="white",
+            edgecolors=[0.8, 0.8, 0.8],
             zorder=99,
         )
 

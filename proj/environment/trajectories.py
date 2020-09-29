@@ -201,6 +201,11 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
         trial = trials.sample().iloc[0]
 
     # Get variables
+    try:
+        fps = trial.fps
+    except:
+        fps = 60
+
     x = trial.body_xy[:, 0]
     y = trial.body_xy[:, 1]
 
@@ -208,7 +213,7 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
-    speed = line_smoother(trial.body_speed) * trial.fps
+    speed = line_smoother(trial.body_speed) * fps
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     # get start frame
@@ -234,5 +239,5 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     trajectory = np.vstack(vars.values()).T
 
     return compute_trajectory_stats(
-        trajectory, len(x[start:]) / trial.fps, planning_params
+        trajectory, len(x[start:]) / fps, planning_params
     )

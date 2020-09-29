@@ -58,7 +58,7 @@ def _plot_xy(history, trajectory, plot_every, ax=None):
         history["x"],
         y=history["y"],
         color=colors["tracking"],
-        lw=1,
+        lw=2,
         zorder=100,
         outline_color=[0.2, 0.2, 0.2],
     )
@@ -105,7 +105,7 @@ def _plot_v(history, trajectory, plot_every, ax=None):
 
     # plot history speed
     ax.plot(
-        history["trajectory_idx"], v, color=colors["v"], lw=2, zorder=100,
+        history["trajectory_idx"], v, color=colors["v"], lw=3, zorder=100,
     )
 
 
