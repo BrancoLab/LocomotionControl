@@ -18,6 +18,7 @@ requirements = [
     "fancylog",
     "slackclient",
     "dropbox",
+    "json",
 ]
 
 setup(

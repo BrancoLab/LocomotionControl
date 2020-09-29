@@ -1,8 +1,8 @@
 import shutil
 import numpy as np
 import pandas as pd
-from fancylog import fancylog
 import logging
+import json
 
 from rich.logging import RichHandler
 
@@ -10,16 +10,11 @@ from fcutils.file_io.io import save_yaml
 
 
 from proj.utils.misc import timestamp
-from proj import paths
+from proj import paths, log
 from proj.animation.animate import animate_from_images
 from proj.plotting.results import plot_results
 from proj.utils.dropbox import DropBoxUtils, upload_folder
 from proj.utils.slack import send_slack_message
-
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-)
 
 
 class Manager:
@@ -62,20 +57,10 @@ class Manager:
         self._start_logging()
 
     def _start_logging(self):
-        # Start logging
-        fancylog.start_logging(
-            output_dir=str(self.datafolder),
-            filename=self.exp_name + ".log",
-            multiprocessing_aware=False,
-            write_git=False,
-            verbose=False,
-            write_cli_args=False,
-            file_log_level="INFO",
-        )
-
-        # log main folder
-        log = logging.getLogger("rich")
-        log.setLevel(logging.INFO)
+        filename = str(self.datafolder / f"{self.exp_name}.log")
+        fh = logging.FileHandler(filename)
+        fh.setFormatter(RichHandler())
+        log.addHandler(fh)
 
         log.info(
             f"[bold green] Saving data at: {self.datafolder}",
@@ -84,12 +69,8 @@ class Manager:
 
     def _log_conf(self):
         # log config.py
-        try:
-            with open("proj/model/config.py") as f:
-                conf = "\n" + f.read()
-        except FileNotFoundError:
-            conf = self.model.config_dict()
-        logging.info(conf)
+        conf = json.dumps(self.model.config_dict(), sort_keys=True, indent=4)
+        log.info("Config parameters:\n" + conf, extra={"markup": True})
 
     def _save_results(self):
         # save config
@@ -145,7 +126,9 @@ class Manager:
     def _upload_to_dropbox(self):
         dbx = DropBoxUtils()
         dpx_path = self.datafolder.name
-        logging.info(f"Uploading data to dropbox at: {dpx_path}")
+        log.info(
+            f"Uploading data to dropbox at: {dpx_path}", extra={"markup": True}
+        )
 
         upload_folder(dbx, self.datafolder, dpx_path)
 
@@ -170,13 +153,13 @@ class Manager:
 
         # Upload results to dropbox
         if self.winstor:
-            logging.info("Uploading to dropbox")
+            log.info("Uploading to dropbox", extra={"markup": True})
             try:
                 self._upload_to_dropbox()
             except Exception as e:
                 logging.error(f"Failed to upload to dropbox: {e}")
 
-            logging.info("Sending slack message")
+            log.info("Sending slack message", extra={"markup": True})
             send_slack_message(
                 f"""
                 \n
@@ -187,10 +170,10 @@ class Manager:
                 """
             )
         else:
-            logging.info("Did not upload to dropbox")
+            log.info("Did not upload to dropbox", extra={"markup": True})
 
     def failed(self):
-        logging.info("Sending slack FAILED message")
+        log.info("Sending slack FAILED message", extra={"markup": True})
         if self.winstor:
             send_slack_message(
                 f"""

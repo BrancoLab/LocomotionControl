@@ -8,6 +8,7 @@ import numpy as np
 from rich import print
 from rich.text import Text
 import logging
+import traceback
 
 
 class SpeedColumn(TextColumn):
@@ -112,11 +113,14 @@ def run_experiment(
                 if environment.stop:
                     log.info("environment says STOP")
                     break
+
             except Exception as e:
                 logging.error(
-                    f"Failed to take next step in simulation.\n error {e}"
+                    f"Failed to take next step in simulation.\nError: {e}\n\n"
                 )
-                break
+                logging.error(traceback.print_exc())
+                environment.failed()
+                return
 
     log.info(f"Terminated after {itern} iterations.")
 
