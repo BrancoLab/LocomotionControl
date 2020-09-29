@@ -31,8 +31,9 @@ def complete_given_xy(x, y, params, planning_params):
     ang_speed = np.ones_like(speed)  # it will be ignored
 
     trajectory = np.vstack([x, y, angle, speed, ang_speed]).T
-    return compute_trajectory_stats(
-        trajectory, len(trajectory), planning_params
+    return (
+        compute_trajectory_stats(trajectory, len(trajectory), planning_params),
+        None,
     )
 
 
@@ -238,6 +239,9 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     # stack
     trajectory = np.vstack(vars.values()).T
 
-    return compute_trajectory_stats(
-        trajectory, len(x[start:]) / fps, planning_params
+    return (
+        compute_trajectory_stats(
+            trajectory, len(x[start:]) / fps, planning_params
+        ),
+        trials,
     )

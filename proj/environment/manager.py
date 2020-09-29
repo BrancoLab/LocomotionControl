@@ -149,9 +149,14 @@ class Manager:
 
         upload_folder(dbx, self.datafolder, dpx_path)
 
+    def _save_trial(self):
+        if self.trial is not None:
+            self.trial.to_hdf(str(self.datafolder / "trial.h5"), key="hdf5")
+
     def conclude(self):
         self._log_conf()
         self._save_results()
+        self._save_trial()
 
         if self.model.LIVE_PLOT:
             self._save_video()
