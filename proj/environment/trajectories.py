@@ -3,7 +3,6 @@ import pandas as pd
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 from rich.table import Table
-from rich import print
 import logging
 
 from fcutils.maths.geometry import (
@@ -15,6 +14,7 @@ from fcutils.maths.geometry import (
 from fcutils.maths.filtering import line_smoother
 
 from proj.utils.misc import interpolate_nans
+from proj import log, rich_to_txt
 
 
 def complete_given_xy(x, y, params, planning_params):
@@ -82,23 +82,7 @@ def compute_trajectory_stats(
     )
 
     # log stuff
-    log = logging.getLogger("rich")
-    log.setLevel(logging.INFO)
-
-    log.info(
-        f"""
-        n_points = {n_points}
-        distance_travelled = {distance_travelled}
-        waypoint_density = {waypoint_density}
-        start_goal_distance = {start_goal_distance}
-        duration = {duration}
-        lookahead = {lookahead}
-        perc_lookahead = {perc_lookahead}
-    """
-    )
-
-    # print stuff
-    print(table)
+    logging.info(rich_to_txt(table), extra={"markup": True})
 
     if waypoint_density < 2 or waypoint_density > 3:
         log.info(
