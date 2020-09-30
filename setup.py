@@ -18,7 +18,7 @@ requirements = [
     "fancylog",
     "slackclient",
     "dropbox",
-    "json",
+    "pyinspect",
 ]
 
 setup(
