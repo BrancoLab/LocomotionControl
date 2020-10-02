@@ -5,8 +5,8 @@ _cart_params = dict(
     STATE_SIZE=5,
     INPUT_SIZE=2,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1.0e-06, 1.0e-06]),  # control cost
-    Q=np.diag([10, 10, 10, 3, 0]),  # state cost | x, y, theta, v, omega
+    R=np.diag([1.0e-04, 1.0e-04]),  # control cost
+    Q=np.diag([30, 30, 30, 3, 0]),  # state cost | x, y, theta, v, omega
     Sf=np.diag([0, 0, 0, 0, 0]),  # final state cost
 )
 
@@ -70,7 +70,7 @@ class Config:
         min_speed=80,
         min_dist=0,  # if agent is within this distance from trajectory end the goal is considered achieved
         # ? for trajectories from data
-        px_to_cm=1 / 30.8,  # convert px values to cm
+        px_to_cm=1 / 8,  # convert px values to cm
         # dist_th=60,  # keep frames only after moved away from start location
         dist_th=-1,
         resample=True,  # if True when using tracking trajectory resamples it
@@ -115,6 +115,11 @@ class Config:
         self.R = params["R"]
         self.Q = params["Q"]
         self.Sf = params["Sf"]
+
+        # Adjust mouse length for plotting
+        self.mouse["length"] = (
+            self.mouse["length"] * self.trajectory["px_to_cm"]
+        )
 
     def config_dict(self):
         return dict(

@@ -4,6 +4,7 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 from rich.table import Table
 import logging
+from rich import print
 
 from fcutils.maths.geometry import (
     calc_angle_between_points_of_vector_2d,
@@ -14,7 +15,7 @@ from fcutils.maths.geometry import (
 from fcutils.maths.filtering import line_smoother
 
 from proj.utils.misc import interpolate_nans
-from proj import log, rich_to_txt
+from proj import log
 
 
 def complete_given_xy(x, y, params, planning_params):
@@ -82,7 +83,21 @@ def compute_trajectory_stats(
     )
 
     # log stuff
-    logging.info(rich_to_txt(table), extra={"markup": True})
+    logging.info(
+        f"""
+        Trajectory metadata 
+
+
+        n_points = {n_points}
+        distance_travelled = {round(distance_travelled, 2)}
+        waypoint_density = {round(waypoint_density, 2)}
+        start_goal_distance = {round(start_goal_distance, 2)}
+        duration = {round(duration, 2)}
+        lookahead = {lookahead}
+        perc_lookahead = {perc_lookahead}
+    """
+    )
+    print(table)
 
     if waypoint_density < 2 or waypoint_density > 3:
         log.info(

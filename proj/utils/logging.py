@@ -20,11 +20,6 @@ log = logging.getLogger("rich")
 logging_console = Console(record=True)
 
 
-def rich_to_txt(obj):
-    logging_console.print(obj)
-    return logging_console.export_text()
-
-
 # Disable logging some packages
 for module in [
     "matplotlib",

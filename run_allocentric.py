@@ -1,4 +1,10 @@
 # %%
+
+import pyinspect
+
+pyinspect.install_traceback(all_locals=False)
+
+
 from proj import (
     Model,
     Environment,
