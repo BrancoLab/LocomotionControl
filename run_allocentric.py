@@ -2,7 +2,7 @@
 
 import pyinspect
 
-pyinspect.install_traceback(all_locals=False)
+pyinspect.install_traceback()
 
 
 from proj import (

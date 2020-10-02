@@ -7,8 +7,8 @@ from rich.progress import (
 import numpy as np
 from rich import print
 from rich.text import Text
-import logging
-import traceback
+
+from loguru import logger
 
 
 class SpeedColumn(TextColumn):
@@ -55,12 +55,11 @@ def run_experiment(
 
         :returns: the history of events as stored by model
     """
-    log = logging.getLogger("rich")
 
     # reset things
     trajectory = environment.reset()
     if trajectory is None:
-        log.info("Failed to get a valid trajectory")
+        logger.info("Failed to get a valid trajectory")
         environment.failed()
         return
 
@@ -102,27 +101,26 @@ def run_experiment(
 
                 # log status once a (simulation) second
                 if itern % int(1 / model.dt) == 0:
-                    log.info(
+                    logger.info(
                         f"Iteration {itern}/{n_steps}. Current cost: {environment.curr_cost}."
                     )
 
                 # Check if we're done
                 if environment.isdone(model.curr_x, trajectory):
-                    log.info("environment says we're DONE")
+                    logger.info("environment says we're DONE")
                     break
                 if environment.stop:
-                    log.info("environment says STOP")
+                    logger.info("environment says STOP")
                     break
 
             except Exception as e:
-                logging.error(
+                logger.exception(
                     f"Failed to take next step in simulation.\nError: {e}\n\n"
                 )
-                logging.error(traceback.print_exc())
                 environment.failed()
                 return
 
-    log.info(f"Terminated after {itern} iterations.")
+    logger.info(f"Terminated after {itern} iterations.")
 
     # save data and close stuff
     environment.conclude()

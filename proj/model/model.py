@@ -271,26 +271,27 @@ class Model(Config):
             v,
             omega,
         ) = self.variables.values()
-
-        x_dot, y_dot, theta_dot = symbols("xdot, ydot, thetadot")
         nu_l_dot, nu_r_dot = symbols("nudot_L, nudot_R")
 
-        vels = Matrix([x_dot, y_dot, theta_dot])
+        # define vecs and matrices
+        vels = Matrix([v, omega])
         K = Matrix(
             [
                 [R / 2 * cos(theta), R / 2 * cos(theta)],
                 [R / 2 * sin(theta), R / 2 * sin(theta)],
-                [R / (2 * L), R / (2 * L)],
+                [R / (2 * L), -R / (2 * L)],
             ]
         )
+
+        Q = Matrix([[sin(theta), 0], [cos(theta), 0], [0, 1]])
 
         # In the model you can use the wheels accelerations
         # to get the x,y,theta velocity.
         # Here we do the inverse, given x,y,theta velocities
         # we get the wheel's accelerations
 
-        nu = K.pinv() * vels
-        args = [L, R, theta, x_dot, y_dot, theta_dot]
+        nu = K.pinv() * Q * vels
+        args = [L, R, theta, v, omega]
         self.calc_wheels_accels = lambdify(args, nu, modules="numpy")
 
     def step(self, u):
@@ -315,9 +316,8 @@ class Model(Config):
             variables["L"],
             variables["R"],
             variables["theta"],
-            self.curr_dxdt.x_dot,
-            self.curr_dxdt.y_dot,
-            self.curr_dxdt.theta_dot,
+            self.curr_x.v,
+            self.curr_x.omega,
         )
         self.curr_wheel_state = self._wheel_state(*w.ravel())
 

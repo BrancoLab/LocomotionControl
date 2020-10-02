@@ -1,23 +1,26 @@
 import logging
 from rich.logging import RichHandler
-from rich.console import Console
 
 # supress warnings
 import pandas as pd
 import warnings
 
+from loguru import logger
+
+
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 # Set up RICH logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler(rich_tracebacks=True)],
+logger.configure(
+    handlers=[
+        {
+            "sink": RichHandler(rich_tracebacks=True, markup=True),
+            "format": "{message}",
+        }
+    ]
 )
-
-log = logging.getLogger("rich")
-logging_console = Console(record=True)
+logger.debug("This is a debug statement")
+logger.info("This is an info statement")
 
 
 # Disable logging some packages

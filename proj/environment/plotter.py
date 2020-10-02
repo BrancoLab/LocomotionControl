@@ -148,6 +148,7 @@ class Plotter:
 
         ax.set(ylabel="Forces", xlabel="step n")
         ax.legend()
+        ax.set(title="Control")
 
         # mark the times a change of traj idx happened
         # for v in self.moved_to_next:
@@ -206,6 +207,7 @@ class Plotter:
         )
 
         ax.legend()
+        ax.set(title="Speed")
         ax.set(ylabel="speed", xlabel="trajectory progression")
 
     def _plot_accelerations(self):
@@ -213,11 +215,30 @@ class Plotter:
         ax.clear()
 
         ax.bar(
-            [0, 1],
-            [self.model.curr_dxdt.v_dot, self.model.curr_dxdt.omega_dot],
-            color=[colors["v"], colors["omega"]],
+            [0, 1, 2, 3],
+            [
+                self.model.curr_dxdt.v_dot,
+                self.model.curr_dxdt.omega_dot,
+                self.model.curr_wheel_state.nudot_left,
+                self.model.curr_wheel_state.nudot_right,
+            ],
+            color=[
+                colors["v"],
+                colors["omega"],
+                desaturate_color(colors["tau_l"]),
+                desaturate_color(colors["tau_r"]),
+            ],
         )
-        ax.set(xticklabels=["$\dot{v}$", "$\dot{\omega}$"], xticks=[0, 1])
+        ax.set(
+            xticklabels=[
+                "$\dot{v}$",
+                "$\dot{\omega}$",
+                "$\dot{\\nu_R}$",
+                "$\dot{\\nu_L}$",
+            ],
+            xticks=[0, 1, 2, 3],
+        )
+        ax.set(title="Acceleration")
 
     def _plot_cost(self, keep_s=1.2):
         keep_n = int(keep_s / self.model.dt)
@@ -237,6 +258,7 @@ class Plotter:
                     x, label=k, lw=3, solid_capstyle="round", color=colors[k],
                 )
         ax.legend()
+        ax.set(title="Cost")
 
     def _plot_goal(self, goal):
         self.goal_ax.clear()
@@ -256,6 +278,7 @@ class Plotter:
 
         self.goal_ax.legend()
         self.goal_ax.set(xticks=[])
+        self.goal_ax.set(title="Goal")
 
     def visualize_world_live(self, curr_goals, elapsed=None):
         ax = self.xy_ax
