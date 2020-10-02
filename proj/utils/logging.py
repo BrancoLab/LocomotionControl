@@ -19,8 +19,6 @@ logger.configure(
         }
     ]
 )
-logger.debug("This is a debug statement")
-logger.info("This is an info statement")
 
 
 # Disable logging some packages
@@ -34,3 +32,9 @@ for module in [
 ]:
     logger = logging.getLogger(module)
     logger.setLevel(logging.ERROR)
+
+
+def make_header(msg):
+    bar = "#" * 100
+
+    return bar + "\n" + msg + "\n" + bar + "\n\n"

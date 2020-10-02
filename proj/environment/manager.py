@@ -12,6 +12,7 @@ from proj.animation.animate import animate_from_images
 from proj.plotting.results import plot_results
 from proj.utils.dropbox import DropBoxUtils, upload_folder
 from proj.utils.slack import send_slack_message
+from proj.utils.logging import make_header
 
 from loguru import logger
 
@@ -58,22 +59,13 @@ class Manager:
     def _start_logging(self):
         filename = str(self.datafolder / f"{self.exp_name}.log")
         logger.add(filename)
+        logger.info(make_header(f"Starting simulation at {timestamp()}"))
         logger.info("Saving data at: {self.datafolder}")
-
-        # fh = logging.FileHandler(filename)
-        # fh.setFormatter(RichHandler(rich_tracebacks=True))
-        # log.addHandler(fh)
-        # log.addHandler(RichHandler(rich_tracebacks=True))
-
-        # log.info(
-        #     f"[bold green] Saving data at: {self.datafolder}",
-        #     extra={"markup": True},
-        # )
 
     def _log_conf(self):
         # log config.py
         conf = json.dumps(self.model.config_dict(), sort_keys=True, indent=4)
-        logger.info("Config parameters:\n" + conf, extra={"markup": True})
+        logger.info("Config parameters:\n" + conf)
 
     def _save_results(self):
         # save config
