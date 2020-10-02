@@ -1,9 +1,9 @@
 import pyinspect
 
-pyinspect.install_traceback()
+pyinspect.install_traceback(all_locals=False)
 
 # Set up logging
-from proj.utils.logging import log, rich_to_txt
+from proj.utils.logging import log
 
 # import stuff
 from proj.model.config import Config
