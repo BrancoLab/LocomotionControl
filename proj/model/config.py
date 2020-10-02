@@ -57,7 +57,7 @@ class Config:
     mouse_type = "realistic"
     model_type = "cart"
 
-    dt = 0.005
+    dt = 0.01
 
     # ------------------------------ Goal trajectory ----------------------------- #
 

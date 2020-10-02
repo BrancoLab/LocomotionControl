@@ -4,17 +4,16 @@ import pandas as pd
 import logging
 import json
 
-from rich.logging import RichHandler
-
 from fcutils.file_io.io import save_yaml
 
-
 from proj.utils.misc import timestamp
-from proj import paths, log
+from proj import paths
 from proj.animation.animate import animate_from_images
 from proj.plotting.results import plot_results
 from proj.utils.dropbox import DropBoxUtils, upload_folder
 from proj.utils.slack import send_slack_message
+
+from loguru import logger
 
 
 class Manager:
@@ -58,19 +57,23 @@ class Manager:
 
     def _start_logging(self):
         filename = str(self.datafolder / f"{self.exp_name}.log")
-        fh = logging.FileHandler(filename)
-        fh.setFormatter(RichHandler())
-        log.addHandler(fh)
+        logger.add(filename)
+        logger.info("Saving data at: {self.datafolder}")
 
-        log.info(
-            f"[bold green] Saving data at: {self.datafolder}",
-            extra={"markup": True},
-        )
+        # fh = logging.FileHandler(filename)
+        # fh.setFormatter(RichHandler(rich_tracebacks=True))
+        # log.addHandler(fh)
+        # log.addHandler(RichHandler(rich_tracebacks=True))
+
+        # log.info(
+        #     f"[bold green] Saving data at: {self.datafolder}",
+        #     extra={"markup": True},
+        # )
 
     def _log_conf(self):
         # log config.py
         conf = json.dumps(self.model.config_dict(), sort_keys=True, indent=4)
-        log.info("Config parameters:\n" + conf, extra={"markup": True})
+        logger.info("Config parameters:\n" + conf, extra={"markup": True})
 
     def _save_results(self):
         # save config
@@ -126,7 +129,7 @@ class Manager:
     def _upload_to_dropbox(self):
         dbx = DropBoxUtils()
         dpx_path = self.datafolder.name
-        log.info(
+        logger.info(
             f"Uploading data to dropbox at: {dpx_path}", extra={"markup": True}
         )
 
@@ -153,13 +156,13 @@ class Manager:
 
         # Upload results to dropbox
         if self.winstor:
-            log.info("Uploading to dropbox", extra={"markup": True})
+            logger.info("Uploading to dropbox", extra={"markup": True})
             try:
                 self._upload_to_dropbox()
             except Exception as e:
                 logging.error(f"Failed to upload to dropbox: {e}")
 
-            log.info("Sending slack message", extra={"markup": True})
+            logger.info("Sending slack message", extra={"markup": True})
             send_slack_message(
                 f"""
                 \n
@@ -170,10 +173,10 @@ class Manager:
                 """
             )
         else:
-            log.info("Did not upload to dropbox", extra={"markup": True})
+            logger.info("Did not upload to dropbox", extra={"markup": True})
 
     def failed(self):
-        log.info("Sending slack FAILED message", extra={"markup": True})
+        logger.info("Sending slack FAILED message", extra={"markup": True})
         if self.winstor:
             send_slack_message(
                 f"""
