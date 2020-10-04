@@ -5,8 +5,8 @@ _cart_params = dict(
     STATE_SIZE=5,
     INPUT_SIZE=2,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1.0e-04, 1.0e-04]),  # control cost
-    Q=np.diag([30, 30, 30, 3, 0]),  # state cost | x, y, theta, v, omega
+    R=np.diag([0.05, 0.05]),  # control cost
+    Q=np.diag([1, 1, 1, 1, 0]),  # state cost | x, y, theta, v, omega
     Sf=np.diag([0, 0, 0, 0, 0]),  # final state cost
 )
 
@@ -35,7 +35,7 @@ _realistic_mouse = dict(
     L=2,  # half body width | cm
     R=1.5,  # radius of wheels | cm
     d=2,  # distance between axel and CoM | cm
-    length=8.6,  # cm
+    length=1,  # 8.6,  # cm
     m=round(23 / 9.81, 2),  # mass | g
     m_w=0.8,  # mass of wheels/legs |g
     mouse_type="realistic",
@@ -52,19 +52,19 @@ class Config:
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = True
+    LIVE_PLOT = False
 
-    mouse_type = "realistic"
+    mouse_type = "easy"
     model_type = "cart"
 
-    dt = 0.01
+    dt = 0.005
 
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
         name="tracking",
         # ? For artificial trajectories
-        nsteps=10000,
+        nsteps=1000,
         distance=150,
         max_speed=100,
         min_speed=80,
