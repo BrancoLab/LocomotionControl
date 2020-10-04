@@ -179,3 +179,6 @@ class Manager:
                 Data folder: {self.datafolder}
                 """
             )
+
+        self._log_conf()
+        self._upload_to_dropbox()
