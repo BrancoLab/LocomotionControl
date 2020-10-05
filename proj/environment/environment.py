@@ -108,9 +108,10 @@ class Environment(World, Manager):
         if abs(start - end) != pred_len:
             g_traj = g_traj[start:end]
             len_diff = (end - start) - pred_len
-	    if len_diff <= 0:
-		len_diff = 1
-            return np.pad(g_traj, ((0, len_diff), (0, 0)), mode="edge")
+
+            if len_diff <= 0:
+                len_diff = 1
+                return np.pad(g_traj, ((0, len_diff), (0, 0)), mode="edge")
         else:
             return g_traj[start:end]
 
