@@ -48,7 +48,8 @@ _realistic_mouse = dict(
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    SIMULATION_NAME = "horix"
+    SIMULATION_NAME = "megatest
+"
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
@@ -80,12 +81,12 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=40,
+        prediction_length=80,
         n_ahead=5,  # start prediction states from N steps ahead
     )
 
     # --------------------------------- Plotting --------------------------------- #
-    traj_plot_every = 15
+    traj_plot_every = 80
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(

@@ -117,7 +117,10 @@ def run_experiment(
                 logger.exception(
                     f"Failed to take next step in simulation.\nError: {e}\n\n"
                 )
-                environment.failed()
+		try:
+		    	environment.conclude():
+		except:
+                	environment.failed()
                 return
 
     logger.info(f"Terminated after {itern} iterations.")
