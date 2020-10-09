@@ -26,7 +26,7 @@ class Plotter:
 
         self.f = plt.figure(figsize=(16, 8))
 
-        gs = self.f.add_gridspec(2, 6)
+        gs = self.f.add_gridspec(2, 3)  # 6)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
         self.xy_ax.axis("equal")
         self.xy_ax.axis("off")
@@ -35,11 +35,11 @@ class Plotter:
 
         self.sax = self.f.add_subplot(gs[1, 2:4])
 
-        self.accel_ax = self.f.add_subplot(gs[0, 4])
+        # self.accel_ax = self.f.add_subplot(gs[0, 4])
 
-        self.goal_ax = self.f.add_subplot(gs[0, 5])
+        # self.goal_ax = self.f.add_subplot(gs[0, 5])
 
-        self.cost_ax = self.f.add_subplot(gs[1, 4:])
+        # self.cost_ax = self.f.add_subplot(gs[1, 4:])
 
         clean_axes(self.f)
 
@@ -316,17 +316,17 @@ class Plotter:
         # plot control
         self._plot_control()
 
-        # plot current waypoint
+        # plot sped
         self._plot_current_variables()
 
-        # plot accelerations
-        self._plot_accelerations()
+        # # plot accelerations
+        # self._plot_accelerations()
 
-        # plot cost
-        self._plot_cost()
+        # # plot cost
+        # self._plot_cost()
 
-        # plot goal
-        self._plot_goal(curr_goals[0, :])
+        # # plot goal
+        # self._plot_goal(curr_goals[0, :])
 
         # display plot
         self.f.canvas.draw()
