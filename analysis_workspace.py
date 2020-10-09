@@ -23,6 +23,9 @@ loaded = dict(trajectory=[], history=[], cost_history=[],)
 
 config = None
 
+f, ax = plt.subplots()
+
+sim_lengths = []
 for fld in track(flds):
     _config, trajectory, history, cost_history = load_results_from_folder(fld)
 
@@ -38,7 +41,9 @@ for fld in track(flds):
     loaded["history"].append(history)
     loaded["cost_history"].append(cost_history)
 
+    sim_lengths.append(len(history))
 
+plt.hist(sim_lengths)
 pi.ok("Data loaded")
 
 # %%
