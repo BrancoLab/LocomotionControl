@@ -107,7 +107,7 @@ class Manager:
             animate_from_images(
                 str(self.frames_folder),
                 str(self.datafolder / f"{self.exp_name}.mp4"),
-                10,
+                int(round(1 / self.mouse.dt)),
             )
         except (ValueError, FileNotFoundError):
             print("Failed to generate video from frames.. ")

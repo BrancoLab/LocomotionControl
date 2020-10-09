@@ -38,7 +38,7 @@ progress = Progress(
 
 # run
 def run_experiment(
-    environment, controller, model, n_secs=10, frames_folder=None,
+    environment, controller, model, n_secs=0.5, frames_folder=None,
 ):
     """
         Runs an experiment
