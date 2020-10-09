@@ -85,12 +85,15 @@ class MyData(Dataset):
             # Get a simulation folder and load data
             fld = random.choice(self.simulation_folders)
 
-            (
-                config,
-                trajectory,
-                history,
-                cost_history,
-            ) = load_results_from_folder(fld)
+            try:
+                (
+                    config,
+                    trajectory,
+                    history,
+                    cost_history,
+                ) = load_results_from_folder(fld)
+            except ValueError:
+                continue
 
             # Get controls history
             controls = np.vstack(history[["tau_r", "tau_l"]].values)
@@ -150,7 +153,8 @@ class Model(nn.Module):
 
     def forward(self, X):
         # Reshape X: n_steps X batch_size X n_inputs
-        X = X.unsqueeze(0)
+        # X = X.unsqueeze(0)
+        X = X.permute((1, 0, 2))
 
         # for each time step
         self.hidden = self.rnn(X, self.hidden)
