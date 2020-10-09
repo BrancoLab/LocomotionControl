@@ -26,6 +26,9 @@ else:
 
     db_app = "D:\\Dropbox (UCL - SWC)\\Apps\\loco_upload"
 
+
+analysis_fld = str(Path(main_fld) / "analysis")
+
 # winstor paths
 winstor_main = Path("/nfs/winstor/branco/Federico/Locomotion/control/data")
 winstor_trial_cache = (

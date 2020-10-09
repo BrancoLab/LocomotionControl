@@ -43,7 +43,12 @@ def complete_given_xy(x, y, params, planning_params):
 
 
 def compute_trajectory_stats(
-    trajectory, duration, params, planning_params, min_dist_travelled=150
+    trajectory,
+    duration,
+    params,
+    planning_params,
+    min_dist_travelled=150,
+    mute=False,
 ):
     # Compute stats
     n_points = len(trajectory)
@@ -85,46 +90,59 @@ def compute_trajectory_stats(
     )
 
     # log stuff
-    logger.info(
-        f"""
-        Trajectory metadata 
+    if not mute:
+        logger.info(
+            f"""
+            Trajectory metadata 
 
 
-        n_points = {n_points}
-        distance_travelled = {round(distance_travelled, 2)}
-        waypoint_density = {round(waypoint_density, 2)}
-        start_goal_distance = {round(start_goal_distance, 2)}
-        duration = {round(duration, 2)}
-        lookahead = {lookahead}
-        perc_lookahead = {perc_lookahead}
-    """
+            n_points = {n_points}
+            distance_travelled = {round(distance_travelled, 2)}
+            waypoint_density = {round(waypoint_density, 2)}
+            start_goal_distance = {round(start_goal_distance, 2)}
+            duration = {round(duration, 2)}
+            lookahead = {lookahead}
+            perc_lookahead = {perc_lookahead}
+        """
+        )
+
+        print(table)
+
+    metadata = dict(
+        n_points=n_points,
+        distance_travelled=round(distance_travelled, 2),
+        waypoint_density=round(waypoint_density, 2),
+        start_goal_distance=round(start_goal_distance, 2),
+        duration=round(duration, 2),
+        lookahead=lookahead,
+        perc_lookahead=perc_lookahead,
     )
-    print(table)
 
-    if waypoint_density < 2 or waypoint_density > 3:
-        logger.info(
-            f"Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!",
-            extra={"markdown": True},
-        )
-        print(
-            f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!"
-        )
+    if not mute:
+        if waypoint_density < 2 or waypoint_density > 3:
+            logger.info(
+                f"Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!",
+                extra={"markdown": True},
+            )
+            print(
+                f"[bold red]Waypoint density of {round(waypoint_density, 3)} out of range, it should be 2 < wp < 3!"
+            )
 
-    if perc_lookahead < 0.05:
-        logger.info(
-            f"Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised.",
-            extra={"markdown": True},
-        )
-        print(
-            f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised."
-        )
-    if distance_travelled < min_dist_travelled * params["px_to_cm"]:
-        logger.warning(
-            "Distance travelled below minimal requirement, erroring"
-        )
-        return None, None
+        if perc_lookahead < 0.05:
+            logger.info(
+                f"Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised.",
+                extra={"markdown": True},
+            )
+            print(
+                f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised."
+            )
+        if distance_travelled < min_dist_travelled * params["px_to_cm"]:
+            logger.warning(
+                "Distance travelled below minimal requirement, erroring"
+            )
+            return None, None
 
-    return trajectory, duration
+    return trajectory, duration, metadata
 
 
 # ---------------------------------- Curves ---------------------------------- #
@@ -253,6 +271,6 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
     return (
         compute_trajectory_stats(
             trajectory, len(x[start:]) / fps, params, planning_params
-        ),
+        )[:2],
         trials,
     )
