@@ -5,7 +5,7 @@ _cart_params = dict(
     STATE_SIZE=5,
     INPUT_SIZE=2,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1.0e-6, 1.0e-6]),  # control cost
+    R=np.diag([1.0e-8, 1.0e-8]),  # control cost
     Q=np.diag([30, 30, 30, 10, 0]),  # state cost | x, y, theta, v, omega
     Sf=np.diag([0, 0, 0, 0, 0]),  # final state cost
 )
@@ -48,11 +48,11 @@ _realistic_mouse = dict(
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    SIMULATION_NAME = "analysis"
+    SIMULATION_NAME = "work"
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = True
+    LIVE_PLOT = False
 
     mouse_type = "realistic"
     model_type = "cart"
@@ -70,9 +70,9 @@ class Config:
         min_speed=80,
         min_dist=0,  # if agent is within this distance from trajectory end the goal is considered achieved
         # ? for trajectories from data
-        px_to_cm=1,  # 1 / 8,  # convert px values to cm
+        px_to_cm=1 / 8,  # convert px values to cm
         # dist_th=60,  # keep frames only after moved away from start location
-        dist_th=-1,
+        dist_th=20,
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
         randomize=True,  # if true when using tracking it pulls a random trial
@@ -80,7 +80,7 @@ class Config:
 
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
-        prediction_length=80,
+        prediction_length=50,
         n_ahead=5,  # start prediction states from N steps ahead
     )
 
