@@ -41,7 +41,9 @@ DATASET_LENGTH = 10000
 # Other params
 MAX_TRAJ_LEN = 800  # only simulation in which the model reached the goal within N steps are accepted
 # all simulations longer than this are rejected
-MIN_TRAJ_LEN = 400  # trajectories are truncated to be of this length
+MIN_TRAJ_LEN = (
+    N_INPUT  # 400  # trajectories are truncated to be of this length
+)
 
 # %%
 # ---------------------------------------------------------------------------- #
@@ -154,7 +156,8 @@ class Model(nn.Module):
     def forward(self, X):
         # Reshape X: n_steps X batch_size X n_inputs
         # X = X.unsqueeze(0)
-        X = X.permute((1, 0, 2))
+        # X = X.permute((1, 0, 2))
+        X = X.permute((2, 0, 1))
 
         # for each time step
         self.hidden = self.rnn(X, self.hidden)
@@ -167,7 +170,7 @@ class Model(nn.Module):
 # %%
 # ---------------------------------------------------------------------------- #
 #                                   TRAINING                                   #
-# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #ˆ
 # Get model
 model = Model(BATCH_SIZE, N_INPUT, N_NEURONS)
 
