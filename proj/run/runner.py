@@ -117,6 +117,8 @@ def run_experiment(
                 logger.exception(
                     f"Failed to take next step in simulation.\nError: {e}\n\n"
                 )
+                break
+
         try:
             environment.conclude()
         except:

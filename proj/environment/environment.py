@@ -83,6 +83,8 @@ class Environment(World, Manager):
             Given the current state and the goal trajectory, 
             find the next N sates, based on planning
         """
+
+        traj_length = len(g_traj)
         n_ahead = self.model.planning["n_ahead"]
         pred_len = self.model.planning["prediction_length"] + 1
 
@@ -96,24 +98,35 @@ class Environment(World, Manager):
         self.model.curr_traj_waypoint_idx = self.curr_traj_waypoint_idx
         self.current_traj_waypoint = g_traj[min_idx, :]
 
-        start = min_idx + n_ahead
-        if start > len(g_traj):
-            start = len(g_traj)
+        start = min_idx + n_ahead  # don't overshoot
+        if start > traj_length:
+            start = traj_length
 
         end = min_idx + n_ahead + pred_len
 
-        if start + pred_len > len(g_traj):
-            end = len(g_traj) - 2
+        if start + pred_len > traj_length:
+            end = traj_length
 
-        if abs(start - end) != pred_len:
-            g_traj = g_traj[start:end]
-            len_diff = (end - start) - pred_len
+        # Make sure planned trajectory has the correct length
+        if (end - start) != pred_len:
+            planned = g_traj[start:end]
+            len_diff = len(planned) - pred_len
 
             if len_diff <= 0:
-                len_diff = 1
-                return np.pad(g_traj, ((0, len_diff), (0, 0)), mode="edge")
+                planned = np.pad(
+                    planned, ((0, abs(len_diff)), (0, 0)), mode="edge"
+                )
+            else:
+                raise ValueError("Something went wrong")
         else:
-            return g_traj[start:end]
+            planned = g_traj[start:end]
+
+        if len(planned) != pred_len:
+            raise ValueError(
+                f"Planned trajecotry length should be {pred_len} but it is {len(planned)} instead"
+            )
+        else:
+            return planned
 
     def isdone(self, curr_x, trajectory):
         """
