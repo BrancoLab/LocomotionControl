@@ -94,6 +94,7 @@ class MyData(Dataset):
                     history,
                     cost_history,
                     _,
+                    _,
                 ) = load_results_from_folder(fld)
             except ValueError:
                 continue

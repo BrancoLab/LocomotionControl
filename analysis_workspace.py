@@ -60,7 +60,10 @@ outcomes_fld = Path(analysis_fld) / "outcomes"
 outcomes_fld.mkdir(exist_ok=True)
 
 for fld in track(flds):
-    src = list(fld.glob("outcome.png"))[0]
+    try:
+        src = list(fld.glob("outcome.png"))[0]
+    except Exception:
+        continue
     dst = outcomes_fld / (src.parent.name + "_outcome.png")
 
     shutil.copy(src, dst)

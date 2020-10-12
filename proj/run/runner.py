@@ -121,8 +121,8 @@ def run_experiment(
 
         try:
             environment.conclude()
-        except:
-            logger.info("Failed to run environment.conclude()")
+        except Exception as e:
+            logger.info(f"Failed to run environment.conclude(): {e}")
             environment.failed()
             return
 

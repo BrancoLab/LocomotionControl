@@ -194,7 +194,7 @@ def _plot_integrals(history, dt, tax=None, oax=None, sax=None):
 
 
 def plot_results(results_folder, plot_every=20, save_path=None):
-    config, trajectory, history, cost_history, _ = load_results_from_folder(
+    config, trajectory, history, cost_history, _, _ = load_results_from_folder(
         results_folder
     )
     duration = duration_from_history(history, config)

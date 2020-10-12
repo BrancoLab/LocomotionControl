@@ -15,7 +15,6 @@ requirements = [
     "numba",
     "rich",
     "sklearn",
-    "fancylog",
     "slackclient",
     "dropbox",
     "pyinspect",
