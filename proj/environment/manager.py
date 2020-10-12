@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import logging
 import json
+import pickle
 
 from fcutils.file_io.io import save_yaml
 
@@ -100,6 +101,11 @@ class Manager:
         pd.DataFrame(self.cost_history).to_hdf(
             str(self.datafolder / "cost_history.h5"), key="hdf"
         )
+
+        # Save extra info
+        info = dict(traj_duration=self.goal_duration)
+        with open(str(self.datafolder / "info.pkl"), "wb") as out:
+            pickle.dump(info, out)
 
     def _save_video(self):
         # make gif

@@ -3,6 +3,7 @@ from scipy import interpolate
 from pathlib import Path
 import pandas as pd
 import time
+import pickle
 
 from fcutils.file_io.io import load_yaml
 from fcutils.maths.geometry import calc_distance_from_point
@@ -20,6 +21,8 @@ def load_results_from_folder(folder):
         trajectory=folder / "init_trajectory.npy",
         history=folder / "history.h5",
         cost_history=folder / "cost_history.h5",
+        trial=folder / "trial.h5",
+        info=folder / "info.pkl",
     )
 
     for f in files.values():
@@ -32,8 +35,11 @@ def load_results_from_folder(folder):
     trajectory = np.load(str(files["trajectory"]))
     history = pd.read_hdf(str(files["history"]), key="hdf")
     cost_history = pd.read_hdf(str(files["cost_history"]), key="hdf")
+    trial = pd.read_hdf(str(files["trial"]))
+    with open(str(files["info"]), "rb") as f:
+        info = pickle.load(f)
 
-    return config, trajectory, history, cost_history
+    return config, trajectory, history, cost_history, trial, info
 
 
 # -------------------------------- Coordinates ------------------------------- #

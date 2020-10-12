@@ -93,6 +93,7 @@ class MyData(Dataset):
                     trajectory,
                     history,
                     cost_history,
+                    _,
                 ) = load_results_from_folder(fld)
             except ValueError:
                 continue

@@ -273,5 +273,5 @@ def from_tracking(n_steps, params, planning_params, cache_fld, *args):
         compute_trajectory_stats(
             trajectory, len(x[start:]) / fps, params, planning_params
         )[:2],
-        trials,
+        trial,
     )
