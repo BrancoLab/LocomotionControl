@@ -60,7 +60,7 @@ class Manager:
         filename = str(self.datafolder / f"{self.exp_name}.log")
         logger.add(filename)
         logger.info(make_header(f"Starting simulation at {timestamp()}"))
-        logger.info("Saving data at: {self.datafolder}")
+        logger.info(f"Saving data at: {self.datafolder}")
 
     def _log_conf(self):
         # log config.py

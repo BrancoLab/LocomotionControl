@@ -51,9 +51,6 @@ def compute_trajectory_stats(
     mute=False,
 ):
 
-    # ! shorten traj
-    trajectory = trajectory[: planning_params["prediction_length"] + 1, :]
-
     # Compute stats
     n_points = len(trajectory)
     distance_travelled = np.sum(
@@ -140,11 +137,11 @@ def compute_trajectory_stats(
             print(
                 f"[bold red]Lookahead of {lookahead} is {perc_lookahead} of the # of waypoints, that might be too low. Values closer to 5% are advised."
             )
-        # if distance_travelled < min_dist_travelled * params["px_to_cm"]:
-        #     logger.warning(
-        #         "Distance travelled below minimal requirement, erroring"
-        #     )
-        #     return None, None
+        if distance_travelled < min_dist_travelled * params["px_to_cm"]:
+            logger.warning(
+                "Distance travelled below minimal requirement, erroring"
+            )
+            return None, None
 
     return trajectory, duration, metadata
 

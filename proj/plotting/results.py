@@ -7,37 +7,38 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 from fcutils.maths.utils import derivative
 
-from proj.utils.misc import load_results_from_folder
+from proj.utils.misc import load_results_from_folder, duration_from_history
 from proj.animation import variables_colors as colors
 
 
 def _make_figure():
-    f = plt.figure(figsize=(20, 8))
+    f = plt.figure(figsize=(20, 12))
 
-    gs = f.add_gridspec(2, 8)
+    gs = f.add_gridspec(3, 6)
 
-    xy_ax = f.add_subplot(gs[:, :2])
+    xy_ax = f.add_subplot(gs[:2, :2])
     xy_ax.axis("equal")
-    xy_ax.axis("off")
+    # xy_ax.axis("off")
 
     tau_ax = f.add_subplot(gs[0, 2:4])
-    sax = f.add_subplot(gs[1, 2:4])
-    accel_ax = f.add_subplot(gs[0, 4:6])
-    cost_ax = f.add_subplot(gs[1, 4:6])
+    sax = f.add_subplot(gs[2, :2])  # speed trajectory
+    # accel_ax = f.add_subplot(gs[0, 4:6])
+    # cost_ax = f.add_subplot(gs[1, 4:6])
 
-    tau_int_ax = f.add_subplot(gs[0, 6:])
-    acc_int_ax = f.add_subplot(gs[1, 6:])
+    tau_int_ax = f.add_subplot(gs[0, 4:6])
+    omega_ax = f.add_subplot(gs[1, 4:6])
+    speed_ax = f.add_subplot(gs[1, 2:4])
 
-    return f, xy_ax, tau_ax, sax, accel_ax, cost_ax, tau_int_ax, acc_int_ax
+    return f, xy_ax, tau_ax, sax, tau_int_ax, omega_ax, speed_ax
 
 
-def _plot_xy(history, trajectory, plot_every, ax=None):
+def _plot_xy(history, trajectory, plot_every, duration, ax=None):
     # plot trajectory
     plot_line_outlined(
         ax,
         trajectory[:, 0],
         trajectory[:, 1],
-        lw=1.5,
+        lw=2.5,
         color=colors["trajectory"],
         outline=0.5,
         outline_color="white",
@@ -63,6 +64,9 @@ def _plot_xy(history, trajectory, plot_every, ax=None):
         outline_color=[0.2, 0.2, 0.2],
     )
 
+    # Set ax properties
+    ax.set(xlabel="cm", ylabel="cm", title=f"Duration: {duration}s")
+
 
 def _plot_control(history, ax=None):
     R, L = history["tau_r"], history["tau_l"]
@@ -85,6 +89,7 @@ def _plot_control(history, ax=None):
         solid_capstyle="round",
     )
     ax.legend()
+    ax.set(xlabel="# frames", ylabel="Force", title="Control history")
 
 
 def _plot_v(history, trajectory, plot_every, ax=None):
@@ -106,6 +111,12 @@ def _plot_v(history, trajectory, plot_every, ax=None):
     # plot history speed
     ax.plot(
         history["trajectory_idx"], v, color=colors["v"], lw=3, zorder=100,
+    )
+
+    ax.set(
+        xlabel="Trajectory idx",
+        ylabel="Speed (cm/s)",
+        title="Speed trajectory",
     )
 
 
@@ -134,7 +145,7 @@ def _plot_cost(cost_history, ax=None):
     ax.legend()
 
 
-def _plot_integrals(history, dt, tax=None, aax=None):
+def _plot_integrals(history, dt, tax=None, oax=None, sax=None):
     R, L = history["nudot_right"], history["nudot_left"]
 
     plot_line_outlined(
@@ -153,54 +164,56 @@ def _plot_integrals(history, dt, tax=None, aax=None):
         lw=2,
         solid_capstyle="round",
     )
+    tax.set(title="Wheels accelerations", xlabel="# Frames", ylabel="accel")
     tax.legend()
 
     # plot v and omega
     v, omega = history["v"], history["omega"]
 
     plot_line_outlined(
-        aax,
+        sax,
         v,
         color=desaturate_color(colors["v"]),
         label="$v$",
         lw=2,
         solid_capstyle="round",
     )
+    sax.legend()
+    sax.set(title="Running speed", xlabel="# frames", ylabel="$v$")
+
     plot_line_outlined(
-        aax,
+        oax,
         omega,
         color=desaturate_color(colors["omega"]),
         label="$\\omega$",
         lw=2,
         solid_capstyle="round",
     )
-    aax.legend()
+    oax.legend()
+    oax.set(title="Angular velocity", xlabel="# frames", ylabel="$\\omega$")
 
 
 def plot_results(results_folder, plot_every=20, save_path=None):
     config, trajectory, history, cost_history = load_results_from_folder(
         results_folder
     )
+    duration = duration_from_history(history, config)
 
-    (
-        f,
-        xy_ax,
-        tau_ax,
-        sax,
-        accel_ax,
-        cost_ax,
-        tau_int_ax,
-        acc_int_ax,
-    ) = _make_figure()
+    f, xy_ax, tau_ax, sax, tau_int_ax, omega_ax, speed_ax = _make_figure()
 
-    _plot_xy(history, trajectory, plot_every, ax=xy_ax)
+    _plot_xy(history, trajectory, plot_every, duration, ax=xy_ax)
     _plot_control(history, ax=tau_ax)
-    _plot_v(history, trajectory, plot_every, ax=sax)
-    _plot_accel(history, ax=accel_ax)
-    _plot_cost(cost_history, ax=cost_ax)
-    _plot_integrals(history, config["dt"], tax=tau_int_ax, aax=acc_int_ax)
+    _plot_v(
+        history, trajectory, plot_every, ax=sax
+    )  # plot v against the trajectory
+    # _plot_accel(history, ax=accel_ax)
+    # _plot_cost(cost_history, ax=cost_ax)
+    _plot_integrals(
+        history, config["dt"], tax=tau_int_ax, oax=omega_ax, sax=speed_ax
+    )
 
     clean_axes(f)
+    f.tight_layout()
 
     if save_path is not None:
         save_figure(f, str(save_path))
