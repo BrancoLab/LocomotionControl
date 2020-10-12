@@ -92,7 +92,7 @@ ax.scatter(
     lw=1,
     ec=[0.3, 0.3, 0.3],
 )
-ax.plot([400, 1000], [400, 1000], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
+ax.plot([0, 400], [0, 400], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
 
 ax.set(xlabel="Trajectory length", ylabel="Distance travelled")
 # %%
