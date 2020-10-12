@@ -67,6 +67,11 @@ def traj_to_polar(traj):
 
 
 # ----------------------------------- Misc ----------------------------------- #
+def duration_from_history(history, config):
+    nframes = len(history)
+    return round(nframes * config["dt"], 3)
+
+
 def timeit(method):
     def timed(*args, **kw):
         ts = time.time()

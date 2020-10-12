@@ -108,14 +108,23 @@ class Environment(World, Manager):
             end = traj_length
 
         # Make sure planned trajectory has the correct length
+        if start == end:
+            return None
+
         if (end - start) != pred_len:
             planned = g_traj[start:end]
             len_diff = len(planned) - pred_len
 
             if len_diff <= 0:
-                planned = np.pad(
-                    planned, ((0, abs(len_diff)), (0, 0)), mode="edge"
-                )
+                try:
+                    planned = np.pad(
+                        planned, ((0, abs(len_diff)), (0, 0)), mode="edge"
+                    )
+                except ValueError:
+                    raise ValueError(
+                        f"Padding went wrong for planned with shape {planned.shape} and len_diff {len_diff}"
+                    )
+
             else:
                 raise ValueError("Something went wrong")
         else:

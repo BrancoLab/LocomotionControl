@@ -122,6 +122,7 @@ def run_experiment(
         try:
             environment.conclude()
         except:
+            logger.info("Failed to run environment.conclude()")
             environment.failed()
             return
 
