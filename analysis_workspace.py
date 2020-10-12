@@ -71,14 +71,19 @@ for traj, hist in track(
     zip(loaded["trajectory"], loaded["history"]),
     total=len(loaded["trajectory"]),
 ):
+    last_idx = hist.trajectory_idx.values[-1]
     metad = compute_trajectory_stats(
-        traj, 1, config["trajectory"], config["planning"], mute=True
+        traj[:last_idx, :],
+        1,
+        config["trajectory"],
+        config["planning"],
+        mute=True,
     )[-1]
+
     traj_dist.append(metad["distance_travelled"])
 
     actual_dist.append(
         np.sum(calc_distance_between_points_in_a_vector_2d(hist.x, hist.y))
-        + config["trajectory"]["dist_th"]
     )
 
 # %%
@@ -92,7 +97,7 @@ ax.scatter(
     lw=1,
     ec=[0.3, 0.3, 0.3],
 )
-ax.plot([0, 400], [0, 400], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
+ax.plot([25, 130], [25, 130], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
 
 ax.set(xlabel="Trajectory length", ylabel="Distance travelled")
 # %%
