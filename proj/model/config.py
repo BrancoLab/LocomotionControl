@@ -5,7 +5,7 @@ _cart_params = dict(
     STATE_SIZE=5,
     INPUT_SIZE=2,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1.0e-8, 1.0e-8]),  # control cost
+    R=np.diag([1.0e-7, 1.0e-7]),  # control cost
     Q=np.diag([30, 30, 30, 10, 0]),  # state cost | x, y, theta, v, omega
     Sf=np.diag([0, 0, 0, 0, 0]),  # final state cost
 )
@@ -64,7 +64,7 @@ class Config:
     trajectory = dict(  # parameters of the goals trajectory
         name="tracking",
         # ? For artificial trajectories
-        nsteps=1000,
+        nsteps=500,
         distance=150,
         max_speed=100,
         min_speed=80,
