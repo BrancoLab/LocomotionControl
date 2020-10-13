@@ -89,7 +89,11 @@ def _plot_control(history, ax=None):
         solid_capstyle="round",
     )
     ax.legend()
-    ax.set(xlabel="# frames", ylabel="Force", title="Control history")
+    ax.set(
+        xlabel="# frames",
+        ylabel="Torque\n($\\frac{cm^2 g}{s^2}$)",
+        title="Control history",
+    )
 
 
 def _plot_v(history, trajectory, plot_every, ax=None):

@@ -6,7 +6,12 @@ import pyinspect as pi
 import matplotlib.pyplot as plt
 import shutil
 
-from fcutils.maths.geometry import calc_distance_between_points_in_a_vector_2d
+from fcutils.maths.geometry import (
+    calc_distance_between_points_in_a_vector_2d,
+    calc_angle_between_points_of_vector_2d,
+    calc_distance_between_points_two_vectors_2d,
+)
+from fcutils.plotting.utils import clean_axes
 
 from proj.paths import analysis_fld, db_app
 from proj.utils.misc import load_results_from_folder, duration_from_history
@@ -19,7 +24,9 @@ from analysis.utils import check_two_conf_equal
 flds = [f for f in Path(db_app).glob("*") if f.is_dir()]
 
 
-loaded = dict(trajectory=[], history=[], cost_history=[], trials=[])
+loaded = dict(
+    trajectory=[], history=[], cost_history=[], trials=[], duration=[]
+)
 
 config = None
 
@@ -48,6 +55,7 @@ for fld in track(flds):
     loaded["history"].append(history)
     loaded["cost_history"].append(cost_history)
     loaded["trials"].append(trial)
+    loaded["duration"].append(info["traj_duration"])
 
     sim_lengths.append(len(history))
 
@@ -76,35 +84,43 @@ pi.ok("All outcome images copied", str(outcomes_fld))
     and escape duration vs trajectory duration
 """
 
-traj_dist, traj_dur = [], []
-actual_dist, actual_dur = [], []
+traj_ang, traj_dist, traj_dur = [], [], []
+actual_ang, actual_dist, actual_dur = [], [], []
 
-for traj, hist in track(
-    zip(loaded["trajectory"], loaded["history"]),
+
+for traj, hist, dur in track(
+    zip(loaded["trajectory"], loaded["history"], loaded["duration"]),
     total=len(loaded["trajectory"]),
 ):
     last_idx = hist.trajectory_idx.values[-1]
 
-    # TODO get trial FPS and duration from that
-    duration = len(traj[:last_idx, :]) / 40  # get FPS
-
+    # Get trajectory metadata
+    # traj = traj[:last_idx, :]
     metad = compute_trajectory_stats(
-        traj[:last_idx, :],
-        duration,
-        config["trajectory"],
-        config["planning"],
-        mute=True,
+        traj, 1, config["trajectory"], config["planning"], mute=True,
     )[-1]
 
     traj_dist.append(metad["distance_travelled"])
-    traj_dur.append(metad["duration"])
+    traj_dur.append(dur)
+    traj_ang.append(
+        np.sum(calc_angle_between_points_of_vector_2d(traj[:, 0], traj[:, 1]))
+        / len(traj)
+    )
 
+    # Compute stuff on simulation
     actual_dist.append(
         np.sum(calc_distance_between_points_in_a_vector_2d(hist.x, hist.y))
     )
     actual_dur.append(duration_from_history(hist, config))
+    actual_ang.append(
+        np.sum(calc_angle_between_points_of_vector_2d(hist.x, hist.y))
+        / len(hist)
+    )
 
-f, axarr = plt.subplots(ncols=2, figsize=(18, 9))
+
+# ? Plotting
+f, axarr = plt.subplots(ncols=2, nrows=2, figsize=(18, 15))
+axarr = axarr.flatten()
 
 # Plot distance
 axarr[0].scatter(
@@ -116,9 +132,11 @@ axarr[0].scatter(
     lw=1,
     ec=[0.3, 0.3, 0.3],
 )
-axarr[0].plot([25, 130], [25, 130], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
+axarr[0].plot([25, 120], [25, 120], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
 
-axarr[0].set(xlabel="Trajectory length", ylabel="Distance travelled")
+axarr[0].set(
+    xlabel="Trajectory length", ylabel="Distance travelled", title="Distance"
+)
 
 # Plot duration
 axarr[1].scatter(
@@ -130,16 +148,75 @@ axarr[1].scatter(
     lw=1,
     ec=[0.3, 0.3, 0.3],
 )
-# axarr[1].plot([25, 130], [25, 130], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
+axarr[1].plot([0.5, 6], [0.5, 6], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
+axarr[1].set(
+    xlabel="Trajectory duration",
+    ylabel="Simulation duration",
+    title="Duration",
+)
 
-axarr[1].set(xlabel="Trajectory duration", ylabel="Simulation duration")
+# Plot turn angle
+# Plot duration
+axarr[2].scatter(
+    traj_ang,
+    actual_ang,
+    s=100,
+    color=[0.8, 0.4, 0.4],
+    alpha=0.4,
+    lw=1,
+    ec=[0.3, 0.3, 0.3],
+)
+axarr[2].plot([80, 320], [80, 320], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
+axarr[2].set(
+    xlabel="Trajectory norm angle",
+    ylabel="Simulation norm angle",
+    title="Turn angle",
+)
+
+for ax in axarr:
+    ax.axis("equal")
+axarr[-1].axis("off")
+_ = clean_axes(f)
+
 
 # %%
 """
-# TODO look 
-    - distance from XY trajectory
-    - distance from speed trajectory
-    - total ammount of turn vs expected
-    - duration vs expected
-
+    Compute normalized distance from trajectory
 """
+xy_dist, v_dist = [], []
+
+for traj, hist in track(
+    zip(loaded["trajectory"], loaded["history"]),
+    total=len(loaded["trajectory"]),
+):
+    last_idx = hist.trajectory_idx.values[-1]
+
+    # Get trajectory point at each simulation step
+    traj_sim = np.vstack([traj[i, :] for i in hist.trajectory_idx])
+
+    # Get tracking
+    sim = np.vstack([hist.x, hist.y])
+
+    xy_dist.append(
+        np.sum(
+            calc_distance_between_points_two_vectors_2d(traj_sim[:, :2], sim.T)
+        )
+        / len(hist)
+    )
+
+    v_dist.append(np.sum(np.sqrt((traj_sim[:, 2] - hist.v) ** 2)) / len(hist))
+
+f, ax = plt.subplots(figsize=(10, 10))
+
+ax.hist(
+    xy_dist,
+    color=[0.5, 0.5, 0.5],
+    bins=15,
+    density=True,
+    alpha=0.5,
+    label="XY traj",
+)
+ax.hist(v_dist, color="m", bins=15, density=True, alpha=0.5, label="Speed")
+
+ax.legend()
+_ = ax.set(xlabel="Normalized distance", ylabel="density")

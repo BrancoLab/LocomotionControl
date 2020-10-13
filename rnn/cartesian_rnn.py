@@ -20,7 +20,7 @@ import pyinspect as pi
 from pathlib import Path
 from rich.progress import track
 
-pi.install_traceback()
+pi.install_traceback(hide_locals=True, keep_frames=0)
 
 import sys
 
@@ -164,9 +164,10 @@ class Model(nn.Module):
         # for each time step
         self.hidden = self.rnn(X, self.hidden)
 
-        return [
-            s.reshape(self.batch_size, self.n_neurons) for s in self.hidden
-        ]
+        # return [
+        #     s.reshape(self.batch_size, self.n_neurons, s.shape[0]) for s in self.hidden
+        # ]
+        return [s.permute((1, 2, 0)) for s in self.hidden]
 
 
 # %%
@@ -191,6 +192,7 @@ def getloss(activations, target):
         Output is the sum of each units' activation
         and needs to match the target
     """
+    # a = 1
     return lossfn(activations.sum(axis=1), target)
 
 

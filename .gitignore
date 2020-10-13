@@ -4,6 +4,7 @@ proj/secrets.py
 .vscode/*
 .vscode/
 .vscode
+.vscode\settings.json
 
 vscode/*
 vscode/
