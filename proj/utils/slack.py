@@ -1,7 +1,11 @@
 from slack import WebClient
 from slack.errors import SlackApiError
 
-from proj.secrets import SLACK_TOKEN, SLACK_USER_ID
+try:
+    from proj.secrets import SLACK_TOKEN, SLACK_USER_ID
+except ModuleNotFoundError:
+    SLACK_TOKEN = None
+    SLACK_USER_ID = None
 
 
 def send_slack_message(message):

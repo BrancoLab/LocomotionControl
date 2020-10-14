@@ -178,6 +178,22 @@ for ax in axarr:
 axarr[-1].axis("off")
 _ = clean_axes(f)
 
+# %%
+
+f, axarr = plt.subplots(ncols=3)
+for n, hist in enumerate(loaded["history"]):
+    if n == 2:
+        axarr[0].plot(hist["x"], hist["y"])
+        axarr[1].plot(hist["v"])
+
+        axarr[2].plot(hist["nudot_left"], label="left")
+        axarr[2].plot(hist["nudot_right"], label="right")
+
+
+axarr[2].legend()
+# ax.set(ylim=[-1000, 1000])
+
+# %%
 
 # %%
 """
