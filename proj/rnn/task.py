@@ -10,7 +10,9 @@ from proj.utils.misc import load_results_from_folder
 
 
 class ControlTask(Task):
-    def __init__(self, dt, tau, T, N_batch, n_inputs=5, n_outputs=2):
+    def __init__(
+        self, dt, tau, T, N_batch, n_inputs=5, n_outputs=2, data_path=None
+    ):
         """
             Args:
                 N_in (int): The number of network inputs.
@@ -25,7 +27,9 @@ class ControlTask(Task):
             n_inputs, n_outputs, dt, tau, T, N_batch
         )
 
-        self.trials_folders = subdirs(Path(rnn_trainig))
+        if data_path is None:
+            data_path = rnn_trainig
+        self.trials_folders = subdirs(Path(data_path))
 
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.
