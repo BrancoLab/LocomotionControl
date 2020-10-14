@@ -4,7 +4,10 @@ from dropbox.exceptions import ApiError, AuthError
 
 from pathlib import Path
 
-from proj.secrets import DB_TOKEN
+try:
+    from proj.secrets import DB_TOKEN
+except ModuleNotFoundError:
+    DB_TOKEN = None
 from proj.paths import db_app
 
 

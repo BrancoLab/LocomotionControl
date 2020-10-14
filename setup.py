@@ -18,6 +18,7 @@ requirements = [
     "slackclient",
     "dropbox",
     "pyinspect",
+    "loguru",
 ]
 
 setup(
