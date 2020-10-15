@@ -90,13 +90,14 @@ class ControlTask(Task):
             norm_output = output_scaler.transform(output)
 
             params["trajectory"].append(normalized)
-            params["tau_r"].append(norm_output[:, 0])
-            params["tau_l"].append(norm_output[:, 1])
+            params["tau_r"].append(norm_output[0, :])
+            params["tau_l"].append(norm_output[1, :])
             params["sim_dt"].append(config["dt"])
 
         pd.DataFrame(params).to_hdf(self.data_store, key="hdf")
         self._data = pd.read_hdf(self.data_store, key="hdf")
         self._n_trials = len(self.trials_folders)
+        print(f"Saved at {self.data_store}")
 
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.
@@ -109,9 +110,9 @@ class ControlTask(Task):
         """
 
         # Get a random trial dir
-        # trial_n = np.random.randint(0, self._n_trials)
+        trial_n = np.random.randint(0, self._n_trials)
         # trial_n = 1
-        trial_n = (self.N_batch * batch) + trial
+        # trial_n = (self.N_batch * batch) + trial
 
         # ----------------------------------
         # Define parameters of a trial
@@ -146,14 +147,14 @@ class ControlTask(Task):
         N = len(params["trajectory"])
         step = np.int(np.floor((N * time) / self.T))
 
-        # if step >= N - 2:
-        #     x_t = params["trajectory"][-1, :] - params["trajectory"][-2, :]
-        # else:
-        #     x_t = (
-        #         params["trajectory"][step + 1, :]
-        #         - params["trajectory"][step, :]
-        #     )
-        x_t = params["trajectory"][step, :]
+        if step >= N - 2:
+            x_t = params["trajectory"][-1, :] - params["trajectory"][-2, :]
+        else:
+            x_t = (
+                params["trajectory"][step + 1, :]
+                - params["trajectory"][step, :]
+            )
+        # x_t = params["trajectory"][step, :]
         y_t = np.hstack([params["tau_r"][step], params["tau_r"][step]])
 
         return x_t, y_t, np.ones(self.N_out)
