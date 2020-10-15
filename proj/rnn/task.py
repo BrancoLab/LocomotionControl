@@ -3,7 +3,7 @@ from pyinspect.utils import subdirs
 import numpy as np
 from pathlib import Path
 
-from random import choice
+from random import choice, choices
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import load_results_from_folder
@@ -31,6 +31,15 @@ class ControlTask(Task):
             data_path = rnn_trainig
         self.trials_folders = subdirs(Path(data_path))
 
+        n_test_set = int(len(self.trials_folders) / 3)
+
+        self.train_set = choices(
+            self.trials_folders, len(self.trials_folders) - n_test_set
+        )
+        self.test_set = [
+            f for f in self.trials_folders if f not in self.train_set
+        ]
+
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.
 
@@ -42,7 +51,7 @@ class ControlTask(Task):
         """
 
         # Get a random trial dir
-        tdir = choice(self.trials_folders)
+        tdir = choice(self.train_set)
 
         (
             config,
