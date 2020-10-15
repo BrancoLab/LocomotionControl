@@ -121,14 +121,9 @@ def run_experiment(
                 )
                 break
 
-        try:
-            environment.conclude()
-        except Exception as e:
-            logger.info(f"Failed to run environment.conclude(): {e}")
-            environment.failed()
-            return
-
-    logger.info(f"Terminated after {itern} iterations.")
-
-    # save data and close stuff
-    environment.conclude()
+    try:
+        environment.conclude()
+    except Exception as e:
+        logger.info(f"Failed to run environment.conclude(): {e}")
+        environment.failed()
+        return
