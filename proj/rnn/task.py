@@ -42,6 +42,8 @@ class ControlTask(Task):
             f for f in self.trials_folders if f not in self.train_set
         ]
 
+        self.load_up_data()
+
     def load_up_data(self):
         params = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
 

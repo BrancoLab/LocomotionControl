@@ -25,7 +25,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 # ---------------------- Set up a basic model ---------------------------
-task = ControlTask(dt=10, tau=100, T=3000, N_batch=256)
+task = ControlTask(dt=10, tau=100, T=3000, N_batch=64)
 network_params = (
     task.get_task_params()
 )  # get the params passed in and defined in task
