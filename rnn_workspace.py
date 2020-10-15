@@ -15,15 +15,24 @@ from proj.rnn.task import ControlTask
 from psychrnn.backend.models.basic import Basic
 
 
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+import tensorflow as tf
+
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+
 # ---------------------- Set up a basic model ---------------------------
-task = ControlTask(dt=10, tau=100, T=2000, N_batch=128)
+task = ControlTask(dt=10, tau=100, T=3000, N_batch=256)
 network_params = (
     task.get_task_params()
 )  # get the params passed in and defined in task
 network_params[
     "name"
 ] = "Control"  # name the model uniquely if running mult models in unison
-network_params["N_rec"] = 50  # set the number of recurrent units in the model
+network_params["N_rec"] = 10  # set the number of recurrent units in the model
 
 save_path = (
     Path(proj.paths.rnn_trainig).parent
@@ -39,10 +48,10 @@ train_params[
 ] = save_path  # Where to save the model after training. Default: None
 train_params[
     "training_iters"
-] = 100000  # number of iterations to train for Default: 50000
+] = 300000  # number of iterations to train for Default: 50000
 train_params[
     "learning_rate"
-] = 0.0025  # Sets learning rate if use default optimizer Default: .001
+] = 0.001  # Sets learning rate if use default optimizer Default: .001
 
 
 losses, initialTime, trainTime = model.train(
