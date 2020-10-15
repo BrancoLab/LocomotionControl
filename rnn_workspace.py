@@ -25,14 +25,14 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 # ---------------------- Set up a basic model ---------------------------
-task = ControlTask(dt=10, tau=100, T=3000, N_batch=64)
+task = ControlTask(dt=10, tau=100, T=3000, N_batch=128)
 network_params = (
     task.get_task_params()
 )  # get the params passed in and defined in task
 network_params[
     "name"
 ] = "Control"  # name the model uniquely if running mult models in unison
-network_params["N_rec"] = 10  # set the number of recurrent units in the model
+network_params["N_rec"] = 100  # set the number of recurrent units in the model
 
 save_path = (
     Path(proj.paths.rnn_trainig).parent
@@ -51,7 +51,7 @@ train_params[
 ] = 300000  # number of iterations to train for Default: 50000
 train_params[
     "learning_rate"
-] = 0.001  # Sets learning rate if use default optimizer Default: .001
+] = 0.005  # Sets learning rate if use default optimizer Default: .001
 
 
 losses, initialTime, trainTime = model.train(

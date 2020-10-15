@@ -74,7 +74,8 @@ class ControlTask(Task):
             params["tau_l"].append(history["tau_l"])
             params["sim_dt"].append(config["dt"])
 
-        self._data = params
+        pd.DataFrame(params).to_hdf(self.data_store, key="hdf")
+        self._data = pd.read_hdf(self.data_store, key="hdf")
         self._n_trials = len(self.trials_folders)
 
     def generate_trial_params(self, batch, trial):
@@ -89,6 +90,7 @@ class ControlTask(Task):
 
         # Get a random trial dir
         trial_n = np.random.randint(0, self._n_trials)
+        # trial_n = 1
 
         # ----------------------------------
         # Define parameters of a trial
@@ -114,7 +116,8 @@ class ControlTask(Task):
 
             x_t (ndarray(dtype=float, shape=(N_in,))): Trial input at time given params.
             y_t (ndarray(dtype=float, shape=(N_out,))): Correct trial output at time given params.
-            mask_t (ndarray(dtype=bool, shape=(N_out,))): True if the network should train to match the y_t, False if the network should ignore y_t when training.
+            mask_t (ndarray(dtype=bool, shape=(N_out,))): True if the network should train to match the y_t,
+                            False if the network should ignore y_t when training.
         
         """
 
@@ -131,4 +134,4 @@ class ControlTask(Task):
             )
         y_t = np.hstack([params["tau_r"][step], params["tau_r"][step]])
 
-        return x_t, y_t, True
+        return x_t, y_t, np.ones(self.N_out)
