@@ -111,7 +111,7 @@ class Environment(World, Manager):
 
         # Make sure planned trajectory has the correct length
         if start == end:
-            return None
+            return None  # finished!
 
         if (end - start) != pred_len:
             planned = g_traj[start:end]

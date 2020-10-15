@@ -52,7 +52,7 @@ class Config:
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = False
+    LIVE_PLOT = True
 
     mouse_type = "realistic"
     model_type = "cart"

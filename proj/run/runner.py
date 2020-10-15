@@ -83,6 +83,8 @@ def run_experiment(
 
                 # plan
                 g_xs = environment.plan(curr_x, trajectory, itern)
+                if g_xs is None:
+                    break  # we're done here
 
                 # obtain sol
                 u = controller.obtain_sol(curr_x, g_xs)
