@@ -9,6 +9,7 @@ import pandas as pd
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import load_results_from_folder
+from sklearn.preprocessing import MinMaxScaler
 
 
 class ControlTask(Task):
@@ -66,12 +67,31 @@ class ControlTask(Task):
 
             # Get trajectory point at each simulation step
             traj_sim = np.vstack(
-                [trajectory[i, :] for i in history.trajectory_idx]
+                [
+                    trajectory[i, :]
+                    for i in history.trajectory_idx
+                    if i < len(trajectory) - 50
+                ]  # ! skipping the end artefacts
             )
 
-            params["trajectory"].append(traj_sim)
-            params["tau_r"].append(history["tau_r"])
-            params["tau_l"].append(history["tau_l"])
+            # normalize inputs and outputs
+            input_scaler = MinMaxScaler(feature_range=(0, 1))
+            input_scaler = input_scaler.fit(traj_sim)
+            normalized = input_scaler.transform(traj_sim)
+
+            output_scaler = MinMaxScaler(feature_range=(0, 1))
+            output = np.vstack(
+                [
+                    history["tau_r"][: len(traj_sim)],
+                    history["tau_l"][: len(traj_sim)],
+                ]
+            )
+            output_scaler = output_scaler.fit(output)
+            norm_output = output_scaler.transform(output)
+
+            params["trajectory"].append(normalized)
+            params["tau_r"].append(norm_output[:, 0])
+            params["tau_l"].append(norm_output[:, 1])
             params["sim_dt"].append(config["dt"])
 
         pd.DataFrame(params).to_hdf(self.data_store, key="hdf")
@@ -90,7 +110,8 @@ class ControlTask(Task):
 
         # Get a random trial dir
         # trial_n = np.random.randint(0, self._n_trials)
-        trial_n = 1
+        # trial_n = 1
+        trial_n = (self.N_batch * batch) + trial
 
         # ----------------------------------
         # Define parameters of a trial
