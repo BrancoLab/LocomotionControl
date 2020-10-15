@@ -1,11 +1,13 @@
 from psychrnn.tasks.task import Task
-from pyinspect.utils import subdirs
+
+# from pyinspect.utils import subdirs
 import numpy as np
 from pathlib import Path
 from rich import print
 from rich.progress import track
+import pandas as pd
 
-from random import choices
+# from random import choices
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import load_results_from_folder
@@ -31,32 +33,41 @@ class ControlTask(Task):
 
         if data_path is None:
             data_path = rnn_trainig
-        self.trials_folders = subdirs(Path(data_path))
 
-        n_test_set = int(len(self.trials_folders) / 3)
+        data_path = Path(rnn_trainig).parent / "training_data.h5"
 
-        self.train_set = choices(
-            self.trials_folders, k=len(self.trials_folders) - n_test_set
-        )
-        self.test_set = [
-            f for f in self.trials_folders if f not in self.train_set
-        ]
+        self._data = pd.read_hdf(data_path, key="hdf")
+        self._n_trials = len(self._data)
 
-        self.load_up_data()
+        # self.trials_folders = subdirs(Path(data_path))
+
+        # n_test_set = int(len(self.trials_folders) / 3)
+
+        # self.train_set = choices(
+        #     self.trials_folders, k=len(self.trials_folders) - n_test_set
+        # )
+        # self.test_set = [
+        #     f for f in self.trials_folders if f not in self.train_set
+        # ]
+
+        # self.load_up_data()
 
     def load_up_data(self):
         params = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
 
         print("Creating training data")
         for fld in track(self.train_set):
-            (
-                config,
-                trajectory,
-                history,
-                cost_history,
-                trial,
-                info,
-            ) = load_results_from_folder(fld)
+            try:
+                (
+                    config,
+                    trajectory,
+                    history,
+                    cost_history,
+                    trial,
+                    info,
+                ) = load_results_from_folder(fld)
+            except Exception:
+                continue
 
             # Get trajectory point at each simulation step
             traj_sim = np.vstack(
@@ -88,10 +99,10 @@ class ControlTask(Task):
         # Define parameters of a trial
         # ----------------------------------
         return dict(
-            trajectory=self._data["trajectory"][trial_n],
-            tau_r=self._data["tau_r"][trial_n],
-            tau_l=self._data["tau_l"][trial_n],
-            sim_dt=self._data["sim_dt"][trial_n],
+            trajectory=self._data["trajectory"].values[trial_n],
+            tau_r=self._data["tau_r"].values[trial_n],
+            tau_l=self._data["tau_l"].values[trial_n],
+            sim_dt=self._data["sim_dt"].values[trial_n],
         )
 
     def trial_function(self, time, params):
