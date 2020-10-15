@@ -10,6 +10,8 @@ from rich.text import Text
 
 from loguru import logger
 
+from pyinspect.utils import timestamp
+
 
 class SpeedColumn(TextColumn):
     _renderable_cache = {}
@@ -72,6 +74,7 @@ def run_experiment(
     )
 
     # RUN
+    start = timestamp(just_time=True)
     with progress:
         task_id = progress.add_task("running", start=True, total=n_steps)
 
@@ -83,6 +86,8 @@ def run_experiment(
 
                 # plan
                 g_xs = environment.plan(curr_x, trajectory, itern)
+                if g_xs is None:
+                    break  # we're done here
 
                 # obtain sol
                 u = controller.obtain_sol(curr_x, g_xs)
@@ -119,14 +124,10 @@ def run_experiment(
                 )
                 break
 
-        try:
-            environment.conclude()
-        except Exception as e:
-            logger.info(f"Failed to run environment.conclude(): {e}")
-            environment.failed()
-            return
-
-    logger.info(f"Terminated after {itern} iterations.")
-
-    # save data and close stuff
-    environment.conclude()
+    logger.info(f"Started at {start}, finished at {timestamp(just_time=True)}")
+    try:
+        environment.conclude()
+    except Exception as e:
+        logger.info(f"Failed to run environment.conclude(): {e}")
+        environment.failed()
+        return

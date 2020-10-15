@@ -10,6 +10,7 @@ from proj.environment.trajectories import (
     line,
     point,
     from_tracking,
+    simulated_but_realistic,
 )
 from proj.environment.world import World
 from proj.environment.manager import Manager
@@ -27,6 +28,7 @@ class Environment(World, Manager):
         line=line,
         point=point,
         tracking=from_tracking,
+        real_simulated=simulated_but_realistic,
     )
 
     def __init__(self, model, winstor=False):
@@ -109,7 +111,7 @@ class Environment(World, Manager):
 
         # Make sure planned trajectory has the correct length
         if start == end:
-            return None
+            return None  # finished!
 
         if (end - start) != pred_len:
             planned = g_traj[start:end]

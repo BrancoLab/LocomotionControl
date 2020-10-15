@@ -140,7 +140,11 @@ class Manager:
     def conclude(self):
         self._log_conf()
         self._save_results()
-        self._save_trial()
+
+        try:
+            self._save_trial()
+        except Exception:
+            pass
 
         if self.model.LIVE_PLOT:
             self._save_video()
