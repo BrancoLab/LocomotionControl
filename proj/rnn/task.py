@@ -1,13 +1,11 @@
 from psychrnn.tasks.task import Task
 
-# from pyinspect.utils import subdirs
+from pyinspect.utils import subdirs
 import numpy as np
 from pathlib import Path
 from rich import print
 from rich.progress import track
 import pandas as pd
-
-# from random import choices
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import load_results_from_folder
@@ -32,31 +30,28 @@ class ControlTask(Task):
         )
 
         if data_path is None:
-            data_path = rnn_trainig
+            self.data_path = rnn_trainig
+        else:
+            self.data_path = data_path
 
-        data_path = Path(rnn_trainig).parent / "training_data.h5"
+        self.data_store = Path(self.data_path).parent / "training_data.h5"
 
-        self._data = pd.read_hdf(data_path, key="hdf")
-        self._n_trials = len(self._data)
+        try:
+            self._data = pd.read_hdf(self.data_store, key="hdf")
+            self._n_trials = len(self._data)
+        except FileNotFoundError:
+            print("Did not find data file, make data?")
+            self._make_data()
 
-        # self.trials_folders = subdirs(Path(data_path))
+    def _make_data(self):
+        print("Making")
+        self.trials_folders = subdirs(Path(self.data_path))
 
-        # n_test_set = int(len(self.trials_folders) / 3)
-
-        # self.train_set = choices(
-        #     self.trials_folders, k=len(self.trials_folders) - n_test_set
-        # )
-        # self.test_set = [
-        #     f for f in self.trials_folders if f not in self.train_set
-        # ]
-
-        # self.load_up_data()
-
-    def load_up_data(self):
+        print(f"Len dataset = {len(self.trials_folders)}")
         params = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
 
         print("Creating training data")
-        for fld in track(self.train_set):
+        for fld in track(self.trials_folders):
             try:
                 (
                     config,
@@ -67,7 +62,7 @@ class ControlTask(Task):
                     info,
                 ) = load_results_from_folder(fld)
             except Exception:
-                continue
+                raise ValueError
 
             # Get trajectory point at each simulation step
             traj_sim = np.vstack(
@@ -80,7 +75,7 @@ class ControlTask(Task):
             params["sim_dt"].append(config["dt"])
 
         self._data = params
-        self._n_trials = len(self.train_set)
+        self._n_trials = len(self.trials_folders)
 
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.
