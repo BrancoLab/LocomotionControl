@@ -220,18 +220,18 @@ def _interpol(x, max_deg, n_steps):
 def simulated_but_realistic(
     n_steps, params, planning_params, cache_fld, *args
 ):
-    duration = np.random.uniform(1.5, 4)
+    duration = np.random.uniform(1.5, 6)
     n_simulation_steps = int(duration / params["dt"])
 
     # Define start and end of traj
     p0 = np.array([0, 0])
-    p1 = np.array([0, 100])
+    p1 = np.array([0, 80])
 
     # Define an additional random point
     p2 = np.array(
         [
             np.random.uniform(low=-120, high=120),
-            np.random.uniform(low=20, high=80),
+            np.random.uniform(low=10, high=70),
         ]
     )
 
