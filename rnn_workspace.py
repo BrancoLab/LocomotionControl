@@ -25,7 +25,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 # ---------------------- Set up a basic model ---------------------------
-task = ControlTask(dt=10, tau=100, T=3000, N_batch=128)
+task = ControlTask(dt=10, tau=100, T=2000, N_batch=64)
 network_params = (
     task.get_task_params()
 )  # get the params passed in and defined in task
@@ -51,7 +51,7 @@ train_params[
 ] = 300000  # number of iterations to train for Default: 50000
 train_params[
     "learning_rate"
-] = 0.005  # Sets learning rate if use default optimizer Default: .001
+] = 0.001  # Sets learning rate if use default optimizer Default: .001
 
 
 losses, initialTime, trainTime = model.train(

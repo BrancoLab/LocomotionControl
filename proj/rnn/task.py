@@ -89,8 +89,8 @@ class ControlTask(Task):
         """
 
         # Get a random trial dir
-        trial_n = np.random.randint(0, self._n_trials)
-        # trial_n = 1
+        # trial_n = np.random.randint(0, self._n_trials)
+        trial_n = 1
 
         # ----------------------------------
         # Define parameters of a trial
@@ -125,13 +125,14 @@ class ControlTask(Task):
         N = len(params["trajectory"])
         step = np.int(np.floor((N * time) / self.T))
 
-        if step >= N - 2:
-            x_t = params["trajectory"][-1, :] - params["trajectory"][-2, :]
-        else:
-            x_t = (
-                params["trajectory"][step + 1, :]
-                - params["trajectory"][step, :]
-            )
+        # if step >= N - 2:
+        #     x_t = params["trajectory"][-1, :] - params["trajectory"][-2, :]
+        # else:
+        #     x_t = (
+        #         params["trajectory"][step + 1, :]
+        #         - params["trajectory"][step, :]
+        #     )
+        x_t = params["trajectory"][step, :]
         y_t = np.hstack([params["tau_r"][step], params["tau_r"][step]])
 
         return x_t, y_t, np.ones(self.N_out)
