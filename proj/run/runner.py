@@ -124,11 +124,10 @@ def run_experiment(
                 )
                 break
 
+    logger.info(f"Started at {start}, finished at {timestamp(just_time=True)}")
     try:
         environment.conclude()
     except Exception as e:
         logger.info(f"Failed to run environment.conclude(): {e}")
         environment.failed()
         return
-
-    logger.info(f"Started at {start}, finished at {timestamp(just_time=True)}")

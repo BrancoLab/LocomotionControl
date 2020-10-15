@@ -230,7 +230,7 @@ def simulated_but_realistic(
     # Define an additional random point
     p2 = np.array(
         [
-            np.random.uniform(low=-80, high=80),
+            np.random.uniform(low=-120, high=120),
             np.random.uniform(low=20, high=80),
         ]
     )
