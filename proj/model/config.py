@@ -35,7 +35,7 @@ _realistic_mouse = dict(
     L=2,  # half body width | cm
     R=1.5,  # radius of wheels | cm
     d=2,  # distance between axel and CoM | cm
-    length=1,  # 8.6,  # cm
+    length=2,  # cm
     m=round(23 / 9.81, 2),  # mass | g
     m_w=0.8,  # mass of wheels/legs |g
     mouse_type="realistic",
@@ -48,7 +48,7 @@ _realistic_mouse = dict(
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    SIMULATION_NAME = "work"
+    SIMULATION_NAME = "SimulatedRealistic"
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
@@ -62,7 +62,7 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="tracking",
+        name="real_simulated",
         # ? For artificial trajectories
         nsteps=500,
         distance=150,
@@ -76,6 +76,7 @@ class Config:
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
         randomize=True,  # if true when using tracking it pulls a random trial
+        dt=0.005,  # used to simulate trajectories, should match simulation
     )
 
     # ------------------------------ Planning params ----------------------------- #
@@ -98,6 +99,11 @@ class Config:
     )
 
     def __init__(self,):
+        if self.trajectory["dt"] != self.dt:
+            raise ValueError(
+                "Trajectory dt and simulation dt dont match, forgot something Fede?"
+            )
+
         # get mouse params
         self.mouse = (
             _easy_mouse if self.mouse_type == "easy" else _realistic_mouse

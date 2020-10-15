@@ -11,6 +11,7 @@ from fcutils.maths.geometry import (
     calc_distance_between_points_in_a_vector_2d,
     calc_distance_between_points_2d,
     calc_distance_from_point,
+    calc_ang_velocity,
 )
 from fcutils.maths.filtering import line_smoother
 
@@ -214,6 +215,78 @@ def _interpol(x, max_deg, n_steps):
     best_deg = np.argmin(errs) + 3
     f = np.poly1d(np.polyfit(l, x, best_deg))
     return f(l2)
+
+
+def simulated_but_realistic(
+    n_steps, params, planning_params, cache_fld, *args
+):
+    duration = np.random.uniform(1.5, 4)
+    n_simulation_steps = int(duration / params["dt"])
+
+    # Define start and end of traj
+    p0 = np.array([0, 0])
+    p1 = np.array([0, 100])
+
+    # Define an additional random point
+    p2 = np.array(
+        [
+            np.random.uniform(low=-80, high=80),
+            np.random.uniform(low=20, high=80),
+        ]
+    )
+
+    # Get distance of each segment
+    d1 = np.sqrt((p0[0] - p2[0]) ** 2 + (p0[1] - p2[1]) ** 2)
+    d2 = np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+    d = d1 + d2
+
+    # Get the number of points in each segment
+    n1 = int((n_steps * d1) / d)
+    n2 = int((n_steps * d2) / d)
+
+    # Generate line segments
+    segment1 = np.array(
+        [np.linspace(p0[0], p2[0], n1), np.linspace(p0[1], p2[1], n1)]
+    )
+    segment2 = np.array(
+        [np.linspace(p2[0], p1[0], n2), np.linspace(p2[1], p1[1], n2)]
+    )
+
+    # Interpolate line segments
+    xy = np.hstack([segment1, segment2])
+    x, y = xy[0, :], xy[1, :]
+
+    x = _interpol(x, 5, n_steps)
+    y = _interpol(y, 5, n_steps)
+
+    # Get theta
+    theta = calc_angle_between_points_of_vector_2d(x, y)
+    theta = np.radians(90 - theta)
+    theta = np.unwrap(theta)
+    theta[0] = theta[1]
+
+    # Get ang vel
+    omega = calc_ang_velocity(theta)
+    omega[0] = omega[2]
+    omega[1] = omega[2]
+
+    # Get speed
+    v = calc_distance_between_points_in_a_vector_2d(x, y)
+    v[0] = v[1]
+
+    speedup_factor = n_steps / n_simulation_steps
+    v *= speedup_factor
+    v *= 1 / params["dt"]
+
+    # stack
+    trajectory = np.vstack([x, y, theta, v, omega]).T
+
+    return (
+        compute_trajectory_stats(
+            trajectory, duration, params, planning_params
+        )[:2],
+        None,
+    )
 
 
 def from_tracking(n_steps, params, planning_params, cache_fld, *args):

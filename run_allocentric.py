@@ -25,7 +25,7 @@ control = Controller(model)
 # plot_trajectory(env.reset())
 
 # %%
-run_experiment(env, control, model, n_secs=0.05)
+run_experiment(env, control, model, n_secs=10)
 
 
 # %%

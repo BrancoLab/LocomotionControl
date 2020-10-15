@@ -80,10 +80,10 @@ class Plotter:
         # plot current position
         x, y = self.model_position_world.x, self.model_position_world.y
 
-        ax.scatter(
+        ax.scatter(  # plot body
             x,
             y,
-            s=350,
+            s=200,
             color=colors["tracking"],
             lw=1.5,
             edgecolors=[0.3, 0.3, 0.3],
@@ -92,14 +92,21 @@ class Plotter:
         if self.model.MODEL_TYPE == "cartesian":
             # plot body axis
             t = self.model_position_world.t
-            dx = np.cos(t) * self.model.mouse["length"]
-            dy = np.sin(t) * self.model.mouse["length"]
+            dx = np.cos(t) * (
+                self.model.mouse["length"]
+                * (1 / self.model.trajectory["px_to_cm"])
+                - 0.5
+            )
+            dy = np.sin(t) * (
+                self.model.mouse["length"]
+                * (1 / self.model.trajectory["px_to_cm"])
+            )
 
             ax.plot([x, x + dx], [y, y + dy], lw=8, color=colors["tracking"])
-            ax.scatter(
+            ax.scatter(  # plot head
                 x + dx,
                 y + dy,
-                s=225,
+                s=125,
                 color=colors["tracking"],
                 lw=1.5,
                 edgecolors=[0.3, 0.3, 0.3],
@@ -146,7 +153,7 @@ class Plotter:
 
             ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
 
-        ax.set(ylabel="Forces", xlabel="step n")
+        ax.set(ylabel="Torque\n($\\frac{cm^2 g}{s^2}$)", xlabel="step n")
         ax.legend()
         ax.set(title="Control")
 
