@@ -34,7 +34,7 @@ class ControlTask(Task):
         n_test_set = int(len(self.trials_folders) / 3)
 
         self.train_set = choices(
-            self.trials_folders, len(self.trials_folders) - n_test_set
+            self.trials_folders, k=len(self.trials_folders) - n_test_set
         )
         self.test_set = [
             f for f in self.trials_folders if f not in self.train_set
