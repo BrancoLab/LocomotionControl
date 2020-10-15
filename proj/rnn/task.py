@@ -90,7 +90,7 @@ class ControlTask(Task):
         N = len(params["trajectory"])
         step = np.int(np.floor((N * time) / self.T))
 
-        x_t = params["trajectory"][step, :]
+        x_t = params["trajectory"][step + 1, :] - params["trajectory"][step, :]
         y_t = np.hstack([params["tau_r"][step], params["tau_r"][step]])
 
         return x_t, y_t, True
