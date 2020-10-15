@@ -39,7 +39,7 @@ train_params[
 ] = save_path  # Where to save the model after training. Default: None
 train_params[
     "training_iters"
-] = 5000  # number of iterations to train for Default: 50000
+] = 100000  # number of iterations to train for Default: 50000
 train_params[
     "learning_rate"
 ] = 0.0025  # Sets learning rate if use default optimizer Default: .001
