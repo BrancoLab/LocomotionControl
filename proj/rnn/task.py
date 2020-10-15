@@ -99,7 +99,7 @@ class ControlTask(Task):
         N = len(params["trajectory"])
         step = np.int(np.floor((N * time) / self.T))
 
-        if step == N:
+        if step >= N - 1:
             x_t = params["trajectory"][-1, :] - params["trajectory"][-2, :]
         else:
             x_t = (
