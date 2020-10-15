@@ -27,6 +27,8 @@ def load_results_from_folder(folder):
 
     for f in files.values():
         if not f.exists():
+            if "trial.h5" in str(f):
+                continue
             raise ValueError(
                 f"Data folder incomplete, something missing in : {str(folder)}.\n {f} is missing"
             )
@@ -35,7 +37,12 @@ def load_results_from_folder(folder):
     trajectory = np.load(str(files["trajectory"]))
     history = pd.read_hdf(str(files["history"]), key="hdf")
     cost_history = pd.read_hdf(str(files["cost_history"]), key="hdf")
-    trial = pd.read_hdf(str(files["trial"]))
+
+    try:
+        trial = pd.read_hdf(str(files["trial"]))
+    except Exception:
+        trial = None
+
     with open(str(files["info"]), "rb") as f:
         info = pickle.load(f)
 
