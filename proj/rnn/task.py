@@ -2,8 +2,10 @@ from psychrnn.tasks.task import Task
 from pyinspect.utils import subdirs
 import numpy as np
 from pathlib import Path
+from rich import print
+from rich.progress import track
 
-from random import choice, choices
+from random import choices
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import load_results_from_folder
@@ -40,6 +42,33 @@ class ControlTask(Task):
             f for f in self.trials_folders if f not in self.train_set
         ]
 
+    def load_up_data(self):
+        params = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
+
+        print("Creating training data")
+        for fld in track(self.train_set):
+            (
+                config,
+                trajectory,
+                history,
+                cost_history,
+                trial,
+                info,
+            ) = load_results_from_folder(fld)
+
+            # Get trajectory point at each simulation step
+            traj_sim = np.vstack(
+                [trajectory[i, :] for i in history.trajectory_idx]
+            )
+
+            params["trajectory"].append(traj_sim)
+            params["tau_r"].append(history["tau_r"])
+            params["tau_l"].append(history["tau_l"])
+            params["sim_dt"].append(config["dt"])
+
+        self._data = params
+        self._n_trials = len(self.train_set)
+
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.
 
@@ -51,30 +80,16 @@ class ControlTask(Task):
         """
 
         # Get a random trial dir
-        tdir = choice(self.train_set)
-
-        (
-            config,
-            trajectory,
-            history,
-            cost_history,
-            trial,
-            info,
-        ) = load_results_from_folder(tdir)
-
-        # Get trajectory point at each simulation step
-        traj_sim = np.vstack(
-            [trajectory[i, :] for i in history.trajectory_idx]
-        )
+        trial_n = np.random.randint(0, self._n_trials)
 
         # ----------------------------------
         # Define parameters of a trial
         # ----------------------------------
         return dict(
-            trajectory=traj_sim,
-            tau_r=history["tau_r"],
-            tau_l=history["tau_l"],
-            sim_dt=config["dt"],
+            trajectory=self._data["trajectory"][trial_n],
+            tau_r=self._data["tau_r"][trial_n],
+            tau_l=self._data["tau_l"][trial_n],
+            sim_dt=self._data["sim_dt"][trial_n],
         )
 
     def trial_function(self, time, params):
