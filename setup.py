@@ -19,11 +19,13 @@ requirements = [
     "dropbox",
     "pyinspect",
     "loguru",
+    "gputils",
+    "tensorflow",
 ]
 
 setup(
     name="locoproj",
-    version="0.0.0",
+    version="0.0.1",
     description="Physical locomotion model",
     long_description=long_description,
     long_description_content_type="text/markdown",
