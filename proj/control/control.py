@@ -1,7 +1,75 @@
 import numpy as np
+import joblib
+from pathlib import Path
+import tensorflow as tf
 
 from proj.control.utils import calc_cost
 from proj.control.cost import Cost
+from proj.rnn import RNN
+
+# TODO make network_params be saved/loaded without having to pass them manually
+
+
+class RNNController:
+    def __init__(self, model, rnn_folder, network_params):
+        # Load saved data
+        try:
+            self._load_from_folder(rnn_folder)
+        except Exception as e:
+            raise FileExistsError(
+                f"Failed to load model from folder {rnn_folder} with error:\n:{e}"
+            )
+
+        self.model = model
+
+        # Make model
+        network_params["load_weights_path"] = self.weights_path
+        self.rnn = RNN(network_params)
+        self.rnn._state = self.rnn.init_state  # initialize RNN state
+        self.rnn.build()
+
+        # Initialize variables
+        self.rnn_input = tf.Variable(np.zeros((1, 5), np.float32))
+        self.rnn.sess.run(tf.global_variables_initializer())
+
+    def _load_from_folder(self, rnn_folder):
+        fld = Path(rnn_folder)
+
+        self.input_scaler = joblib.load(fld / "input_scaler.gz")
+        self.output_scaler = joblib.load(fld / "output_scaler.gz")
+        self.weights_path = list(fld.glob("*.npz"))[0]
+
+    def obtain_sol(self, curr_x, g_xs):
+        """ calculate the optimal inputs
+
+        Args:
+            curr_x (numpy.ndarray): current state, shape(state_size, )
+            g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
+        Returns:
+            opt_input (numpy.ndarray): optimal input, shape(input_size, )
+        """
+        # Structure inputs to RNN in a way it can accept it
+        x = g_xs[1, :] - curr_x  # delta state
+        x = self.input_scaler.transform(x.reshape(1, -1))  # normalize
+        rnn_input = self.rnn_input.assign(x.astype(np.float32))
+
+        # step rnn
+        self.rnn._state = self.rnn.recurrent_timestep(
+            rnn_input, self.rnn._state
+        )
+        output = self.rnn.output_timestep(self.rnn._state).eval(
+            session=self.rnn.sess
+        )
+
+        # Structure output to work with experiment runner
+        # output = self.output_scaler.inverse_transform(output)  # un-normalize
+        return output[0, :].ravel()  # * self.model.dt
+
+    def calc_step_cost(*args):
+        """
+            Not used by this controller
+        """
+        return dict(control=0, state=0, total=0.0)
 
 
 class Controller(Cost):

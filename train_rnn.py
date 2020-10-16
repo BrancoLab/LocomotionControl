@@ -37,7 +37,7 @@ save_path = Path(proj.paths.rnn_trainig).parent / fname
 train_params["save_weights_path"] = save_path
 
 # number of iterations to train for
-train_params["training_iters"] = 150000
+train_params["training_iters"] = 200000
 
 # Sets learning rate if use
 train_params["learning_rate"] = 0.001
@@ -52,6 +52,7 @@ send_slack_message(
                     Completed RNN training
                     Start time: {start}
                     End time: {timestamp(just_time=True)}
+                    Final loss: {losses[-1]:.3e}
                 """
 )
 

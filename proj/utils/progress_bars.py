@@ -7,11 +7,13 @@ from rich.progress import (
 from rich.text import Text
 import GPUtil as GPU
 
-GPUs = GPU.getGPUs()
-if GPUs:
-    gpu = GPUs[0]
-else:
-    gpu = None
+
+def get_gpu():
+    GPUs = GPU.getGPUs()
+    if GPUs:
+        return GPUs[0]
+    else:
+        return None
 
 
 class SpeedColumn(TextColumn):
@@ -35,10 +37,10 @@ class LossColumn(TextColumn):
 
     def render(self, task):
         try:
-            return Text(f"loss: {task.loss:e}")
+            return Text(f"loss: {task.loss:.3e}")
         except AttributeError:
             try:
-                return Text(f"loss: {task.fields['loss']:e}")
+                return Text(f"loss: {task.fields['loss']:.3e}")
             except AttributeError:
                 print("failed")
             return "no loss"
@@ -51,11 +53,12 @@ class GPUColumn(TextColumn):
         pass
 
     def render(self, task):
+        gpu = get_gpu()
         if gpu is None:
             return Text("no gpu")
         else:
             return Text(
-                f"Used mem: {gpu.memoryUsed:.3f} MB / Tot mem: {gpu.memoryTotal:.3f} MB"
+                f"Used GPU mem: {int(gpu.memoryUsed)}/{int(gpu.memoryTotal)} MB"
             )
 
 

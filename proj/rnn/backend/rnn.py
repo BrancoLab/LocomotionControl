@@ -320,13 +320,6 @@ class RNN(ABC):
         # Open a session
         # --------------------------------------------------
         self.sess = tf.compat.v1.Session()
-        # self.sess = tf.Session()
-        if not tf.test.is_gpu_available():
-            print(
-                f"[green]Started session on GPU: {tf.test.gpu_device_name()}"
-            )
-        else:
-            print("[red]Failed to start tensorflow on a GPU!!")
 
         # --------------------------------------------------
         # Record successful build
@@ -667,7 +660,7 @@ class RNN(ABC):
                 # --------------------------------------------------
                 # Output batch loss
                 # --------------------------------------------------
-                if epoch % loss_epoch == 0:
+                if epoch % loss_epoch == 0 or epoch == 0:
                     reg_loss = self.sess.run(
                         self.reg_loss,
                         feed_dict={
@@ -679,7 +672,7 @@ class RNN(ABC):
                     losses.append(reg_loss)
                     if is_colab:
                         print(
-                            f"epoch {epoch}/{int(training_iters/ batch_size)} - loss: {reg_loss:e}"
+                            f"epoch {epoch}/{int(training_iters/ batch_size)} - loss: {reg_loss:.3e}"
                         )
 
                 # --------------------------------------------------

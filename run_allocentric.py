@@ -1,5 +1,3 @@
-# %%
-
 import pyinspect
 
 pyinspect.install_traceback()
@@ -10,7 +8,6 @@ from proj import (
     Environment,
     Controller,
     run_experiment,
-    # ModelPolar,
 )
 
 
@@ -22,10 +19,5 @@ model = Model()
 env = Environment(model)
 control = Controller(model)
 
-# plot_trajectory(env.reset())
 
-# %%
-run_experiment(env, control, model, n_secs=0.01)
-
-
-# %%
+run_experiment(env, control, model, n_secs=1, wrap_up=False)

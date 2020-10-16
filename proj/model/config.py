@@ -57,7 +57,7 @@ class Config:
     mouse_type = "realistic"
     model_type = "cart"
 
-    dt = 0.005
+    dt = 0.01  # 0.005
 
     # ------------------------------ Goal trajectory ----------------------------- #
 
@@ -76,7 +76,7 @@ class Config:
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
         randomize=True,  # if true when using tracking it pulls a random trial
-        dt=0.005,  # used to simulate trajectories, should match simulation
+        dt=0.01,  # 0.005,  # used to simulate trajectories, should match simulation
     )
 
     # ------------------------------ Planning params ----------------------------- #

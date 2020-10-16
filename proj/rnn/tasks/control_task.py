@@ -25,6 +25,7 @@ class ControlTask(Task):
         n_outputs=2,
         data_path=None,
         trim_controls=50000,
+        skip_frames=0,
     ):
         """
             Args:
@@ -40,6 +41,7 @@ class ControlTask(Task):
             n_inputs, n_outputs, dt, tau, T, N_batch
         )
         self.trim_controls = trim_controls
+        self.skip_frames = skip_frames
 
         if data_path is None:
             self.data_path = rnn_trainig
@@ -78,12 +80,22 @@ class ControlTask(Task):
             except Exception:
                 continue
 
-            all_trajs.append(trajectory)
+            if info["traj_duration"] < 1:
+                continue
+
+            n = len(trajectory)
+            all_trajs.append(
+                trajectory[self.skip_frames : n - self.skip_frames, :]
+            )  # ! skipping the start/end artefacts
             all_outputs.append(
                 np.vstack(
                     [
-                        history["tau_r"][: len(trajectory)],
-                        history["tau_l"][: len(trajectory)],
+                        history["tau_r"][
+                            self.skip_frames : n - self.skip_frames
+                        ],  # ! skipping the start/end artefacts
+                        history["tau_l"][
+                            self.skip_frames : n - self.skip_frames
+                        ],  # ! skipping the start/end artefacts
                     ]
                 )
             )
@@ -140,8 +152,8 @@ class ControlTask(Task):
                     [
                         trajectory[i, :]
                         for i in history.trajectory_idx
-                        if i < len(trajectory) - 50 and i > 50
-                    ]  # ! skipping the start/end artefacts
+                        # if i < len(trajectory) - self.skip_frames and i > self.skip_frames
+                    ]
                 )
 
                 # normalize inputs and outputs
@@ -183,12 +195,7 @@ class ControlTask(Task):
 
         # Get a random trial dir
         trial_n = np.random.randint(0, self._n_trials)
-        # trial_n = 1
-        # trial_n = (self.N_batch * batch) + trial
 
-        # ----------------------------------
-        # Define parameters of a trial
-        # ----------------------------------
         return dict(
             trajectory=self._data["trajectory"].values[trial_n],
             tau_r=self._data["tau_r"].values[trial_n],
@@ -227,6 +234,6 @@ class ControlTask(Task):
                 - params["trajectory"][step, :]
             )
         # x_t = params["trajectory"][step, :]
-        y_t = np.hstack([params["tau_r"][step], params["tau_r"][step]])
+        y_t = np.hstack([params["tau_r"][step], params["tau_l"][step]])
 
         return x_t, y_t, np.ones(self.N_out)

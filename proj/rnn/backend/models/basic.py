@@ -12,7 +12,8 @@ class Basic(RNN):
     Basic implementation of :class:`psychrnn.backend.rnn.RNN` with a simple RNN, enabling biological constraints.
 
     Args:
-       params (dict): See :class:`psychrnn.backend.rnn.RNN` for details.
+       params (dict):
+            See :class:`psychrnn.backend.rnn.RNN` for details.
 
     """
 
@@ -22,11 +23,14 @@ class Basic(RNN):
         Given input and previous state, outputs the next state of the network.
 
         Arguments:
-            rnn_in (*tf.Tensor(dtype=float, shape=(?*, :attr:`N_in` *))*): Input to the rnn at a certain time point.
-            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*): State of network at previous time point.
+            rnn_in (*tf.Tensor(dtype=float, shape=(?*, :attr:`N_in` *))*):
+                    Input to the rnn at a certain time point.
+            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*):
+                    State of network at previous time point.
 
         Returns:
-            new_state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*): New state of the network.
+            new_state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*):
+                    New state of the network.
 
         """
 
@@ -58,10 +62,12 @@ class Basic(RNN):
         """Returns the output node activity for a given timestep.
 
         Arguments:
-            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*): State of network at a given timepoint for each trial in the batch.
+            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*):
+                    State of network at a given timepoint for each trial in the batch.
 
         Returns:
-            output (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_out` *))*): Output of the network at a given timepoint for each trial in the batch.
+            output (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_out` *))*):
+                    Output of the network at a given timepoint for each trial in the batch.
 
         """
 
@@ -113,7 +119,8 @@ class BasicScan(Basic):
     Produces the same results as :class:`Basic`, with possible differences in execution time.
 
     Args:
-       params (dict): See :class:`psychrnn.backend.rnn.RNN` for details.
+       params (dict):
+            See :class:`psychrnn.backend.rnn.RNN` for details.
 
     """
 
@@ -121,11 +128,14 @@ class BasicScan(Basic):
         """ Wrapper function for :func:`psychrnn.backend.models.basic.Basic.recurrent_timestep`. 
 
         Arguments:
-            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*): State of network at previous time point.
-            rnn_in (*tf.Tensor(dtype=float, shape=(?*, :attr:`N_in` *))*): Input to the rnn at a certain time point.
+            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*):
+                    State of network at previous time point.
+            rnn_in (*tf.Tensor(dtype=float, shape=(?*, :attr:`N_in` *))*):
+                    Input to the rnn at a certain time point.
  
         Returns:
-            new_state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*): New state of the network.
+            new_state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*):
+                    New state of the network.
 
         """
 
@@ -137,11 +147,14 @@ class BasicScan(Basic):
         Includes additional dummy argument to facilitate `tf.scan <https://www.tensorflow.org/api_docs/python/tf/scan>`_.
 
         Arguments:
-            dummy: Dummy variable provided by tf.scan. Not actually used by the function.
-            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*): State of network at a given timepoint for each trial in the batch.
+            dummy:
+                    Dummy variable provided by tf.scan. Not actually used by the function.
+            state (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_rec` *))*):
+                    State of network at a given timepoint for each trial in the batch.
 
         Returns:
-            output (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_out` *))*): Output of the network at a given timepoint for each trial in the batch.
+            output (*tf.Tensor(dtype=float, shape=(* :attr:`N_batch` , :attr:`N_out` *))*):
+                    Output of the network at a given timepoint for each trial in the batch.
 
         """
         return super(BasicScan, self).output_timestep(state)

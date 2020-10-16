@@ -153,7 +153,10 @@ class World(Plotter):
             self.cost_history[k].append(self.curr_cost["control"]._asdict()[k])
 
     def update_world(self, curr_goals, elapsed=None):
-        self._update_cost_history()
+        try:
+            self._update_cost_history()
+        except Exception:
+            pass
 
         # Get model's position
         if self.model.MODEL_TYPE == "cartesian":

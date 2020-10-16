@@ -10,7 +10,7 @@ from proj.utils.progress_bars import progress
 
 # run
 def run_experiment(
-    environment, controller, model, n_secs=8, frames_folder=None,
+    environment, controller, model, n_secs=8, frames_folder=None, wrap_up=True
 ):
     """
         Runs an experiment
@@ -95,9 +95,11 @@ def run_experiment(
                 break
 
     logger.info(f"Started at {start}, finished at {timestamp(just_time=True)}")
-    try:
-        environment.conclude()
-    except Exception as e:
-        logger.info(f"Failed to run environment.conclude(): {e}")
-        environment.failed()
-        return
+
+    if wrap_up:
+        try:
+            environment.conclude()
+        except Exception as e:
+            logger.info(f"Failed to run environment.conclude(): {e}")
+            environment.failed()
+            return
