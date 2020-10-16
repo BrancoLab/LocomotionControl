@@ -21,7 +21,7 @@ from proj.rnn.backend.initializations import (
     WeightInitializer,
     GaussianSpectralRadius,
 )
-from proj.rnn.backend.utils import train_progress
+from proj.utils.progress_bars import train_progress
 
 tf.compat.v1.disable_eager_execution()
 

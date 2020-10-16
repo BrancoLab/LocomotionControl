@@ -1,41 +1,11 @@
-from rich.progress import (
-    Progress,
-    BarColumn,
-    TimeRemainingColumn,
-    TextColumn,
-)
 import numpy as np
 from rich import print
-from rich.text import Text
 
 from loguru import logger
 
 from pyinspect.utils import timestamp
 
-
-class SpeedColumn(TextColumn):
-    _renderable_cache = {}
-
-    def __init__(self, *args):
-        pass
-
-    def render(self, task):
-        if task.speed is None:
-            return Text(" ")
-        else:
-            return Text(f"{task.speed:.3f} steps/s")
-
-
-progress = Progress(
-    TextColumn("[bold magenta]Step {task.completed}/{task.total}"),
-    "•",
-    SpeedColumn(),
-    # "[progress.description]{task.description}",
-    BarColumn(bar_width=None),
-    "•",
-    "[progress.percentage]{task.percentage:>3.0f}%",
-    TimeRemainingColumn(),
-)
+from proj.utils.progress_bars import progress
 
 
 # run

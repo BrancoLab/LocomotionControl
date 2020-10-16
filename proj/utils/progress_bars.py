@@ -73,3 +73,15 @@ train_progress = Progress(
     "•",
     GPUColumn(),
 )
+
+
+progress = Progress(
+    TextColumn("[bold magenta]Step {task.completed}/{task.total}"),
+    "•",
+    SpeedColumn(),
+    # "[progress.description]{task.description}",
+    BarColumn(bar_width=None),
+    "•",
+    "[progress.percentage]{task.percentage:>3.0f}%",
+    TimeRemainingColumn(),
+)

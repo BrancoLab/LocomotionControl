@@ -1,21 +1,30 @@
-from proj.rnn.tasks.task import Task
-
 from pyinspect.utils import subdirs
 import numpy as np
 from pathlib import Path
 from rich import print
 from rich.progress import track
+from rich.prompt import Confirm
 import pandas as pd
 import joblib
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import load_results_from_folder
-from sklearn.preprocessing import MinMaxScaler
+from proj.rnn.tasks.task import Task
 
 
 class ControlTask(Task):
     def __init__(
-        self, dt, tau, T, N_batch, n_inputs=5, n_outputs=2, data_path=None
+        self,
+        dt,
+        tau,
+        T,
+        N_batch,
+        n_inputs=5,
+        n_outputs=2,
+        data_path=None,
+        trim_controls=50000,
     ):
         """
             Args:
@@ -30,6 +39,7 @@ class ControlTask(Task):
         super(ControlTask, self).__init__(
             n_inputs, n_outputs, dt, tau, T, N_batch
         )
+        self.trim_controls = trim_controls
 
         if data_path is None:
             self.data_path = rnn_trainig
@@ -78,59 +88,88 @@ class ControlTask(Task):
                 )
             )
 
-        input_scaler = input_scaler.fit(np.vstack(all_trajs))
-        output_scaler = output_scaler.fit(np.hstack(all_outputs).T)
+        # plot a histogram of all variables for inspection
+        print("Visualizing dataset")
+        _in, _out = np.vstack(all_trajs), np.hstack(all_outputs).T
+        _out[_out > self.trim_controls] = self.trim_controls
+        _out[_out < -self.trim_controls] = -self.trim_controls
 
-        # Save normalizer to invert the process in the future
-        joblib.dump(input_scaler, str(self.input_scaler_path))
-        joblib.dump(output_scaler, str(self.output_scaler_path))
+        f, axarr = plt.subplots(ncols=4, nrows=2, figsize=(20, 12))
+        titles = [
+            "X",
+            "Y",
+            "\\theta",
+            "v",
+            "\\omega",
+            "\\tau_{R}",
+            "\\tau_{L}",
+        ]
+        for n, (ax, ttl) in enumerate(zip(axarr.flatten(), titles)):
+            if n <= 4:
+                ax.hist(_in[:, n], bins=50)
+            else:
+                ax.hist(_out[:, n - 5], bins=50)
+            ax.set(title=f"${ttl}$")
+        plt.show()
 
-        print("Creating training data")
-        data = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
-        for fld in track(trials_folders):
-            try:
-                (
-                    config,
-                    trajectory,
-                    history,
-                    cost_history,
-                    trial,
-                    info,
-                ) = load_results_from_folder(fld)
-            except Exception:
-                raise ValueError
+        if Confirm.ask("Continue with [b]dataset creation?", default=True):
+            input_scaler = input_scaler.fit(_in)
+            output_scaler = output_scaler.fit(_out)
 
-            # Get trajectory point at each simulation step
-            traj_sim = np.vstack(
-                [
-                    trajectory[i, :]
-                    for i in history.trajectory_idx
-                    if i < len(trajectory) - 50 and i > 50
-                ]  # ! skipping the start/end artefacts
-            )
+            # Save normalizer to invert the process in the future
+            joblib.dump(input_scaler, str(self.input_scaler_path))
+            joblib.dump(output_scaler, str(self.output_scaler_path))
 
-            # normalize inputs and outputs
-            norm_input = input_scaler.transform(traj_sim)
-            norm_output = output_scaler.transform(
-                np.vstack(
+            print("Creating training data")
+            data = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
+            for fld in track(trials_folders):
+                try:
+                    (
+                        config,
+                        trajectory,
+                        history,
+                        cost_history,
+                        trial,
+                        info,
+                    ) = load_results_from_folder(fld)
+                except Exception:
+                    raise ValueError
+
+                # Get trajectory point at each simulation step
+                traj_sim = np.vstack(
+                    [
+                        trajectory[i, :]
+                        for i in history.trajectory_idx
+                        if i < len(trajectory) - 50 and i > 50
+                    ]  # ! skipping the start/end artefacts
+                )
+
+                # normalize inputs and outputs
+                norm_input = input_scaler.transform(traj_sim)
+
+                _out = np.vstack(
                     [
                         history["tau_r"][: len(traj_sim)],
                         history["tau_l"][: len(traj_sim)],
                     ]
                 ).T
-            )
+                _out[_out > self.trim_controls] = self.trim_controls
+                _out[_out < -self.trim_controls] = -self.trim_controls
+                norm_output = output_scaler.transform(_out)
 
-            # Append to dataset
-            data["trajectory"].append(norm_input)
-            data["tau_r"].append(norm_output[:, 0])
-            data["tau_l"].append(norm_output[:, 1])
-            data["sim_dt"].append(config["dt"])
+                # Append to dataset
+                data["trajectory"].append(norm_input)
+                data["tau_r"].append(norm_output[:, 0])
+                data["tau_l"].append(norm_output[:, 1])
+                data["sim_dt"].append(config["dt"])
 
-        # Save data to file
-        pd.DataFrame(data).to_hdf(self.dataset_path, key="hdf")
-        self._data = pd.read_hdf(self.dataset_path, key="hdf")
-        self._n_trials = len(data["sim_dt"])
-        print(f"Saved at {self.dataset_path}, {self._n_trials} trials")
+            # Save data to file
+            pd.DataFrame(data).to_hdf(self.dataset_path, key="hdf")
+            self._data = pd.read_hdf(self.dataset_path, key="hdf")
+            self._n_trials = len(data["sim_dt"])
+            print(f"Saved at {self.dataset_path}, {self._n_trials} trials")
+        else:
+            print("Did not create a dataset")
 
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.
