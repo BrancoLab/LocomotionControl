@@ -19,7 +19,7 @@ requirements = [
     "dropbox",
     "pyinspect",
     "loguru",
-    "gputils",
+    "gputil",
     "tensorflow",
 ]
 
