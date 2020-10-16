@@ -97,7 +97,7 @@ class ControlTask(Task):
         pd.DataFrame(params).to_hdf(self.data_store, key="hdf")
         self._data = pd.read_hdf(self.data_store, key="hdf")
         self._n_trials = len(self.trials_folders)
-        print(f"Saved at {self.data_store}")
+        print(f"Saved at {self.data_store}, {self._n_trials} trials")
 
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.
