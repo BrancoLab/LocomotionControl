@@ -55,6 +55,9 @@ class Model(Config):
 
     _control = namedtuple("control", "tau_r, tau_l")
     _state = namedtuple("state", "x, y, theta, v, omega")
+    _goal = namedtuple(
+        "state", "goal_x, goal_y, goal_theta, goal_v, goal_omega"
+    )
     _dxdt = namedtuple("dxdt", "x_dot, y_dot, theta_dot, v_dot, omega_dot")
     _wheel_state = namedtuple("wheel_state", "nudot_right, nudot_left")
 
@@ -83,6 +86,11 @@ class Model(Config):
             theta=[],
             v=[],
             omega=[],
+            goal_x=[],
+            goal_y=[],
+            goal_theta=[],
+            goal_v=[],
+            goal_omega=[],
             tau_r=[],
             tau_l=[],
             r=[],
@@ -93,7 +101,12 @@ class Model(Config):
         )
 
     def _append_history(self):
-        for ntuple in [self.curr_x, self.curr_control, self.curr_wheel_state]:
+        for ntuple in [
+            self.curr_x,
+            self.curr_control,
+            self.curr_wheel_state,
+            self.curr_goal,
+        ]:
             for k, v in ntuple._asdict().items():
                 self.history[k].append(v)
 
@@ -294,7 +307,7 @@ class Model(Config):
         args = [L, R, theta, v, omega]
         self.calc_wheels_accels = lambdify(args, nu, modules="numpy")
 
-    def step(self, u):
+    def step(self, u, curr_goal):
         u = self._control(*np.array(u))
         self.curr_x = self._state(*self.curr_x)
 
@@ -323,6 +336,7 @@ class Model(Config):
 
         # Update history
         self.curr_control = u
+        self.curr_goal = self._goal(*curr_goal)
         self._append_history()
 
     def _fake_step(self, x, u):

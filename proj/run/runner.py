@@ -86,7 +86,7 @@ def run_experiment(
                     compare_controllers(curr_x, g_xs, u, *extra_controllers)
 
                 # step
-                model.step(u)
+                model.step(u, g_xs[0, :])
 
                 # get current cost
                 environment.curr_cost = controller.calc_step_cost(
