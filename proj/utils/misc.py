@@ -8,6 +8,11 @@ import pickle
 from fcutils.file_io.io import load_yaml
 from fcutils.maths.geometry import calc_distance_from_point
 
+
+def trajectory_at_each_simulation_step(trajectory, history):
+    return np.vstack([trajectory[i, :] for i in history.trajectory_idx])
+
+
 # ---------------------------------- Data IO --------------------------------- #
 
 

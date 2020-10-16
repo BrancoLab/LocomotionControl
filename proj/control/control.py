@@ -2,12 +2,11 @@ import numpy as np
 import joblib
 from pathlib import Path
 import tensorflow as tf
+from rich import print
 
 from proj.control.utils import calc_cost
 from proj.control.cost import Cost
 from proj.rnn import RNN
-
-# TODO make network_params be saved/loaded without having to pass them manually
 
 
 class RNNController:
@@ -30,13 +29,14 @@ class RNNController:
 
         # Initialize variables
         self.rnn_input = tf.Variable(np.zeros((1, 5), np.float32))
-        self.rnn.sess.run(tf.global_variables_initializer())
+        # self.rnn.sess.run(tf.global_variables_initializer())
+        self.rnn.sess.run(tf.compat.v1.global_variables_initializer())
 
     def _load_from_folder(self, rnn_folder):
         fld = Path(rnn_folder)
 
-        self.input_scaler = joblib.load(fld / "input_scaler.gz")
-        self.output_scaler = joblib.load(fld / "output_scaler.gz")
+        self.input_scaler = joblib.load(str(fld / "input_scaler.gz"))
+        self.output_scaler = joblib.load(str(fld / "output_scaler.gz"))
         self.weights_path = list(fld.glob("*.npz"))[0]
 
     def obtain_sol(self, curr_x, g_xs):
@@ -49,9 +49,13 @@ class RNNController:
             opt_input (numpy.ndarray): optimal input, shape(input_size, )
         """
         # Structure inputs to RNN in a way it can accept it
-        x = g_xs[1, :] - curr_x  # delta state
+        x = g_xs[0, :] - curr_x  # delta state
         x = self.input_scaler.transform(x.reshape(1, -1))  # normalize
         rnn_input = self.rnn_input.assign(x.astype(np.float32))
+        _rnn_input = rnn_input.eval(session=self.rnn.sess)
+
+        if _rnn_input.min() < 0 or _rnn_input.max() > 1:
+            print(f"[bold red]:bomb:  Something wrong with rnn input")
 
         # step rnn
         self.rnn._state = self.rnn.recurrent_timestep(
@@ -62,7 +66,7 @@ class RNNController:
         )
 
         # Structure output to work with experiment runner
-        # output = self.output_scaler.inverse_transform(output)  # un-normalize
+        output = self.output_scaler.inverse_transform(output)  # un-normalize
         return output[0, :].ravel()  # * self.model.dt
 
     def calc_step_cost(*args):

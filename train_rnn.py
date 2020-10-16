@@ -13,7 +13,7 @@ from proj.utils.slack import send_slack_message
 
 
 # ---------------------- Set up a basic model ---------------------------
-task = ControlTask(dt=10, tau=100, T=2000, N_batch=128)
+task = ControlTask(dt=5, tau=100, T=2000, N_batch=128)
 
 # get the params passed in and defined in task
 network_params = task.get_task_params()
@@ -37,7 +37,7 @@ save_path = Path(proj.paths.rnn_trainig).parent / fname
 train_params["save_weights_path"] = save_path
 
 # number of iterations to train for
-train_params["training_iters"] = 200000
+train_params["training_iters"] = 50000
 
 # Sets learning rate if use
 train_params["learning_rate"] = 0.001

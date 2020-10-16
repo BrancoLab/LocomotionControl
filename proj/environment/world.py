@@ -92,7 +92,7 @@ class World(Plotter):
                 trajectory[0, 1],
                 trajectory[0, 2],
                 trajectory[0, 3],
-                omega,
+                trajectory[0, 4],
             )
 
             # keep track of model's position

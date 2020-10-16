@@ -6,11 +6,31 @@ from loguru import logger
 from pyinspect.utils import timestamp
 
 from proj.utils.progress_bars import progress
+from pyinspect._colors import mocassin, salmon, green
+
+
+def compare_controllers(curr_x, g_xs, main_controller_u, *controllers):
+
+    print(
+        f"[{mocassin}]Main controllers solution: [bold {green}]{[round(x) for x in main_controller_u]}[/bold {green}]"
+    )
+
+    for con in controllers:
+        print(
+            f"[{mocassin}]   alternative controller: [{salmon}] {[round(x) for x in con.obtain_sol(curr_x, g_xs)]}"
+        )
+    print("\n\n")
 
 
 # run
 def run_experiment(
-    environment, controller, model, n_secs=8, frames_folder=None, wrap_up=True
+    environment,
+    controller,
+    model,
+    n_secs=8,
+    frames_folder=None,
+    wrap_up=True,
+    extra_controllers=None,
 ):
     """
         Runs an experiment
@@ -61,6 +81,9 @@ def run_experiment(
 
                 # obtain sol
                 u = controller.obtain_sol(curr_x, g_xs)
+
+                if extra_controllers is not None:
+                    compare_controllers(curr_x, g_xs, u, *extra_controllers)
 
                 # step
                 model.step(u)
