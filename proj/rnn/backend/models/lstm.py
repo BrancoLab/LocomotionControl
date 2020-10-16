@@ -1,6 +1,6 @@
 from __future__ import division
 
-from psychrnn.backend.rnn import RNN
+from proj.rnn.backend.rnn import RNN
 import tensorflow as tf
 
 tf.compat.v1.disable_eager_execution()

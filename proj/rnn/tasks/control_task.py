@@ -1,4 +1,4 @@
-from psychrnn.tasks.task import Task
+from proj.rnn.tasks.task import Task
 
 from pyinspect.utils import subdirs
 import numpy as np
@@ -6,6 +6,7 @@ from pathlib import Path
 from rich import print
 from rich.progress import track
 import pandas as pd
+import joblib
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import load_results_from_folder
@@ -35,24 +36,58 @@ class ControlTask(Task):
         else:
             self.data_path = data_path
 
-        self.data_store = Path(self.data_path).parent / "training_data.h5"
+        self._folder = Path(self.data_path).parent
+        self.dataset_path = self._folder / "training_data.h5"
+        self.input_scaler_path = self._folder / "input_scaler.gz"
+        self.output_scaler_path = self._folder / "output_scaler.gz"
 
         try:
-            self._data = pd.read_hdf(self.data_store, key="hdf")
+            self._data = pd.read_hdf(self.dataset_path, key="hdf")
             self._n_trials = len(self._data)
         except FileNotFoundError:
             print("Did not find data file, make data?")
             self._make_data()
 
     def _make_data(self):
-        print("Making")
-        self.trials_folders = subdirs(Path(self.data_path))
+        trials_folders = subdirs(Path(self.data_path))
+        print("Normalizing dataset")
+        input_scaler = MinMaxScaler(feature_range=(0, 1))
+        output_scaler = MinMaxScaler(feature_range=(0, 1))
 
-        print(f"Len dataset = {len(self.trials_folders)}")
-        params = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
+        all_trajs, all_outputs = [], []
+        for fld in track(trials_folders):
+            try:
+                (
+                    config,
+                    trajectory,
+                    history,
+                    cost_history,
+                    trial,
+                    info,
+                ) = load_results_from_folder(fld)
+            except Exception:
+                continue
+
+            all_trajs.append(trajectory)
+            all_outputs.append(
+                np.vstack(
+                    [
+                        history["tau_r"][: len(trajectory)],
+                        history["tau_l"][: len(trajectory)],
+                    ]
+                )
+            )
+
+        input_scaler = input_scaler.fit(np.vstack(all_trajs))
+        output_scaler = output_scaler.fit(np.hstack(all_outputs).T)
+
+        # Save normalizer to invert the process in the future
+        joblib.dump(input_scaler, str(self.input_scaler_path))
+        joblib.dump(output_scaler, str(self.output_scaler_path))
 
         print("Creating training data")
-        for fld in track(self.trials_folders):
+        data = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
+        for fld in track(trials_folders):
             try:
                 (
                     config,
@@ -70,34 +105,32 @@ class ControlTask(Task):
                 [
                     trajectory[i, :]
                     for i in history.trajectory_idx
-                    if i < len(trajectory) - 50
-                ]  # ! skipping the end artefacts
+                    if i < len(trajectory) - 50 and i > 50
+                ]  # ! skipping the start/end artefacts
             )
 
             # normalize inputs and outputs
-            input_scaler = MinMaxScaler(feature_range=(0, 1))
-            input_scaler = input_scaler.fit(traj_sim)
-            normalized = input_scaler.transform(traj_sim)
-
-            output_scaler = MinMaxScaler(feature_range=(0, 1))
-            output = np.vstack(
-                [
-                    history["tau_r"][: len(traj_sim)],
-                    history["tau_l"][: len(traj_sim)],
-                ]
+            norm_input = input_scaler.transform(traj_sim)
+            norm_output = output_scaler.transform(
+                np.vstack(
+                    [
+                        history["tau_r"][: len(traj_sim)],
+                        history["tau_l"][: len(traj_sim)],
+                    ]
+                ).T
             )
-            output_scaler = output_scaler.fit(output)
-            norm_output = output_scaler.transform(output)
 
-            params["trajectory"].append(normalized)
-            params["tau_r"].append(norm_output[0, :])
-            params["tau_l"].append(norm_output[1, :])
-            params["sim_dt"].append(config["dt"])
+            # Append to dataset
+            data["trajectory"].append(norm_input)
+            data["tau_r"].append(norm_output[:, 0])
+            data["tau_l"].append(norm_output[:, 1])
+            data["sim_dt"].append(config["dt"])
 
-        pd.DataFrame(params).to_hdf(self.data_store, key="hdf")
-        self._data = pd.read_hdf(self.data_store, key="hdf")
-        self._n_trials = len(self.trials_folders)
-        print(f"Saved at {self.data_store}, {self._n_trials} trials")
+        # Save data to file
+        pd.DataFrame(data).to_hdf(self.dataset_path, key="hdf")
+        self._data = pd.read_hdf(self.dataset_path, key="hdf")
+        self._n_trials = len(data["sim_dt"])
+        print(f"Saved at {self.dataset_path}, {self._n_trials} trials")
 
     def generate_trial_params(self, batch, trial):
         """"Define parameters for each trial.

@@ -15,13 +15,13 @@ from os import makedirs, path
 from inspect import isgenerator
 from rich.progress import track
 
-from psychrnn.backend.regularizations import Regularizer
-from psychrnn.backend.loss_functions import LossFunction
-from psychrnn.backend.initializations import (
+from proj.rnn.backend.regularizations import Regularizer
+from proj.rnn.backend.loss_functions import LossFunction
+from proj.rnn.backend.initializations import (
     WeightInitializer,
     GaussianSpectralRadius,
 )
-from psychrnn.backend.utils import train_progress
+from proj.rnn.backend.utils import train_progress
 
 tf.compat.v1.disable_eager_execution()
 
