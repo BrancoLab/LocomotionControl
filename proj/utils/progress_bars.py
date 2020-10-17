@@ -8,6 +8,7 @@ from tensorflow import keras
 from tensorflow.keras import backend as K
 import GPUtil as GPU
 from pyinspect._colors import orange, mocassin
+from rich import print
 
 
 def get_gpu():

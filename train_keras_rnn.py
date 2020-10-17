@@ -7,7 +7,6 @@ from tensorflow.keras.optimizers.schedules import PiecewiseConstantDecay
 from pathlib import Path
 from pyinspect.utils import timestamp
 import matplotlib.pyplot as plt
-import tensorflow as tf
 
 
 from fcutils.plotting.utils import clean_axes, save_figure
@@ -21,11 +20,11 @@ from proj.utils.slack import send_slack_message
 install()
 
 # ---------------------------------- Params ---------------------------------- #
-BATCH = 128
+BATCH = 64
 T = 2000
 
-EPOCHS = 5
-steps_per_epoch = 25
+EPOCHS = 60
+steps_per_epoch = 50
 
 task = ControlTask(dt=5, tau=100, T=T, N_batch=BATCH)
 x, y, mask, trial_params = task.get_trial_batch()
@@ -44,17 +43,17 @@ N_outputs = y.shape[2]
     
 """
 
-schedule = PiecewiseConstantDecay([5, 30], [0.01, 0.001, 0.0001])
+schedule = PiecewiseConstantDecay([20, 40], [0.001, 0.0001, 0.00001])
 
 
-optimizer = Adam(learning_rate=schedule, name="Adam",)
+optimizer = Adam(learning_rate=schedule, name="Adam", clipvalue=0.5)
 
 
 # ----------------------------------- Model ---------------------------------- #
 model = keras.Sequential()
 model.add(
     SimpleRNN(
-        units=50,
+        units=250,
         input_shape=(STEP, N_inputs),
         batch_input_shape=x.shape,
         activation="relu",
@@ -62,7 +61,7 @@ model.add(
         stateful=True,
     )
 )
-model.add(Dense(units=2, activation="sigmoid"))
+model.add(Dense(units=2, activation="relu"))
 model.compile(loss="mean_squared_error", optimizer=optimizer)
 
 model.summary()
@@ -82,17 +81,15 @@ print(f'\n\n[green]Saving model at: "{savepath}"')
 callback = CustomCallback(EPOCHS, train_progress, steps_per_epoch, schedule)
 start = timestamp(just_time=True)
 
-sess = tf.compat.v1.Session()
 
-with sess:
-    with train_progress:
-        history = model.fit_generator(
-            train_generator(),
-            steps_per_epoch=steps_per_epoch,
-            epochs=EPOCHS,
-            verbose=0,
-            callbacks=[callback],
-        )
+with train_progress:
+    history = model.fit_generator(
+        train_generator(),
+        steps_per_epoch=steps_per_epoch,
+        epochs=EPOCHS,
+        verbose=0,
+        callbacks=[callback],
+    )
 
 model.save(savepath)
 

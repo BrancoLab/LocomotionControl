@@ -178,6 +178,13 @@ class ControlTask(Task):
             out[out < -self.trim_controls] = -self.trim_controls
             norm_output = output_scaler.transform(out)
 
+            n = len(history["tau_r"])
+            if (
+                np.max(norm_output[50 : n - 50]) < 0.7
+                and np.min(norm_output[50 : n - 50]) > 0.3
+            ):
+                continue
+
             # Append to dataset
             data["trajectory"].append(norm_input)
             data["tau_r"].append(norm_output[:, 0])
@@ -212,6 +219,7 @@ class ControlTask(Task):
 
         # Get a random trial dir
         trial_n = np.random.randint(0, self._n_trials)
+        # trial_n = 1
 
         return dict(
             trajectory=self._data["trajectory"].values[trial_n],
