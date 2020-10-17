@@ -82,7 +82,9 @@ print(f'\n\n[green]Saving model at: "{savepath}"')
 callback = CustomCallback(EPOCHS, train_progress, steps_per_epoch, schedule)
 start = timestamp(just_time=True)
 
-with tf.device("/gpu:0"):
+sess = tf.compat.v1.Session()
+
+with sess:
     with train_progress:
         history = model.fit_generator(
             train_generator(),
