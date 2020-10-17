@@ -12,9 +12,8 @@ import matplotlib.pyplot as plt
 from proj.rnn import ControlTask
 from proj.paths import rnn_trainig
 from proj.utils.progress_bars import train_progress
+from proj.utils.slack import send_slack_message
 
-# TODO make it plot losses
-# TODO make it send a slack message
 
 install()
 
@@ -22,7 +21,7 @@ install()
 BATCH = 128
 T = 2000
 
-EPOCHS = 50
+EPOCHS = 160
 steps_per_epoch = 25
 
 task = ControlTask(dt=5, tau=100, T=T, N_batch=BATCH)
@@ -65,7 +64,7 @@ model.add(
         return_sequences=True,
     )
 )
-model.add(Dense(units=2, activation="sigmoid"))
+model.add(Dense(units=2, activation="relu"))
 model.compile(loss="mean_squared_error", optimizer=optimizer)
 
 model.summary()
@@ -106,7 +105,6 @@ class CustomCallback(keras.callbacks.Callback):
         print("[bold green]:tada:  Done!!")
 
     def on_epoch_begin(self, epoch, logs=None):
-        self.lr = K.eval(self.lr_schedule(epoch))
         self.step = 0
         self.pbar.update(
             self.task_id, completed=epoch, loss=self.loss, lr=self.lr,
@@ -121,6 +119,7 @@ class CustomCallback(keras.callbacks.Callback):
         )
 
     def on_epoch_end(self, epoch, logs=None):
+        self.lr = K.eval(self.lr_schedule(epoch))
         self.loss = logs["loss"]
         self.pbar.update(
             self.task_id, completed=epoch, loss=self.loss, lr=self.lr,
@@ -172,6 +171,7 @@ savepath = Path(rnn_trainig).parent / f"keras_model{timestamp()}.h5"
 print(f'\n\n[green]Saving model at: "{savepath}"')
 
 
+start = timestamp(just_time=True)
 with train_progress:
 
     callback = CustomCallback(
@@ -188,6 +188,16 @@ with train_progress:
 
 model.save(savepath)
 
+send_slack_message(
+    f"""
+                    \n
+                    Completed RNN training
+                    Start time: {start}
+                    End time: {timestamp(just_time=True)}
+                    Final loss: {history.history['loss'][-1]:.3e}
+                """
+)
+
 # Plot loss
 f, ax = plt.subplots(figsize=(12, 8))
 ax.plot(history.history["loss"], color="k", lw=2)
@@ -201,14 +211,15 @@ x, y, mask, trial_params = task.get_trial_batch()
 # predict
 y_pred = model.predict(x)
 
-f2, axarr = plt.subplots(ncols=4, nrows=4, figsize=(16, 9))
+f2, axarr = plt.subplots(
+    ncols=4, nrows=4, figsize=(16, 9), sharex=True, sharey=True
+)
 
-for ax in axarr.flatten():
-    x, y, mask, trial_params = task.get_trial_batch()
-    ax.plot(y[0, :, :], color="red", label="true", lw=2)
-    ax.plot(y_pred[0, :, :], color="blue", label="predicted")
+for n, ax in enumerate(axarr.flatten()):
+    ax.plot(y[n, :, :], color="red", label="true", lw=2)
+    ax.plot(y_pred[n, :, :], color="blue", label="predicted")
 
-    ax.set(title="Validation", ylabel="Torque", xlabel="Frame")
+    ax.set(ylabel="Torque", xlabel="Frame", ylim=[0.2, 0.8])
 
 axarr[0, 0].legend()
 
