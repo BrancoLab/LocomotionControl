@@ -308,6 +308,8 @@ class Model(Config):
         self.calc_wheels_accels = lambdify(args, nu, modules="numpy")
 
     def step(self, u, curr_goal):
+        self.curr_goal = self._goal(*curr_goal)
+
         u = self._control(*np.array(u))
         self.curr_x = self._state(*self.curr_x)
 
@@ -336,7 +338,6 @@ class Model(Config):
 
         # Update history
         self.curr_control = u
-        self.curr_goal = self._goal(*curr_goal)
         self._append_history()
 
     def _fake_step(self, x, u):

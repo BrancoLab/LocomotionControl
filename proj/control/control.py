@@ -8,6 +8,8 @@ from proj.control.utils import calc_cost
 from proj.control.cost import Cost
 from proj.rnn import RNN
 
+from sklearn.preprocessing import MinMaxScaler
+
 
 class RNNController:
     def __init__(self, model, rnn_folder, network_params):
@@ -32,6 +34,8 @@ class RNNController:
         # self.rnn.sess.run(tf.global_variables_initializer())
         self.rnn.sess.run(tf.compat.v1.global_variables_initializer())
 
+        self.transformer = MinMaxScaler(feature_range=(0, 1))
+
     def _load_from_folder(self, rnn_folder):
         fld = Path(rnn_folder)
 
@@ -51,6 +55,8 @@ class RNNController:
         # Structure inputs to RNN in a way it can accept it
         x = g_xs[0, :] - curr_x  # delta state
         x = self.input_scaler.transform(x.reshape(1, -1))  # normalize
+        x[x > 1] = 1
+        x[x < 0] = 0
         rnn_input = self.rnn_input.assign(x.astype(np.float32))
         _rnn_input = rnn_input.eval(session=self.rnn.sess)
 
@@ -66,6 +72,8 @@ class RNNController:
         )
 
         # Structure output to work with experiment runner
+        output[output < 0] = 0
+        output[output > 1] = 1
         output = self.output_scaler.inverse_transform(output)  # un-normalize
         return output[0, :].ravel()  # * self.model.dt
 

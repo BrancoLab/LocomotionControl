@@ -8,6 +8,7 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from scipy.signal import medfilt
 
 from proj.paths import rnn_trainig
 from proj.utils.misc import (
@@ -62,7 +63,20 @@ class ControlTask(Task):
             self._make_data()
 
     @staticmethod
-    def plot_dataset(inputs, outputs):
+    def get_delta_traj(trajectory, history):
+        traj_sim = trajectory_at_each_simulation_step(trajectory, history)
+        goal_traj = history[
+            ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
+        ].values
+        delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
+
+        smoothed = np.zeros_like(delta_traj)
+        for i in range(delta_traj.shape[1]):
+            smoothed[:, i] = medfilt(delta_traj[:, i], 5)
+
+        return smoothed
+
+    def plot_dataset(self, inputs, outputs):
         f, axarr = plt.subplots(ncols=4, nrows=2, figsize=(20, 12))
         titles = [
             "X",
@@ -75,9 +89,9 @@ class ControlTask(Task):
         ]
         for n, (ax, ttl) in enumerate(zip(axarr.flatten(), titles)):
             if n <= 4:
-                ax.hist(inputs[:, n], bins=50)
+                ax.hist(inputs[:, n], bins=100)
             else:
-                ax.hist(outputs[:, n - 5], bins=50)
+                ax.hist(outputs[:, n - 5], bins=100)
             ax.set(title=f"${ttl}$")
         plt.show()
 
@@ -104,8 +118,7 @@ class ControlTask(Task):
                 continue
 
             # stack inputs
-            traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-            delta_traj = traj_sim[1:, :] - traj_sim[:-1, :]
+            delta_traj = self.get_delta_traj(trajectory, history)
             all_trajs.append(delta_traj)
 
             # stack outputs
@@ -154,14 +167,13 @@ class ControlTask(Task):
                     info,
                 ) = load_results_from_folder(fld)
             except Exception:
-                raise ValueError
+                continue
 
             # Get trajectory point at each simulation step
-            traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-            delta_traj = traj_sim[1:, :] - traj_sim[:-1, :]
+            delta_traj = self.get_delta_traj(trajectory, history)
             norm_input = input_scaler.transform(delta_traj)
 
-            out = np.vstack([history["tau_r"][1:], history["tau_l"][1:]]).T
+            out = np.vstack([history["tau_r"][:-1], history["tau_l"][:-1]]).T
             out[out > self.trim_controls] = self.trim_controls
             out[out < -self.trim_controls] = -self.trim_controls
             norm_output = output_scaler.transform(out)

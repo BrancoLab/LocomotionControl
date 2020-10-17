@@ -6,19 +6,23 @@ from loguru import logger
 from pyinspect.utils import timestamp
 
 from proj.utils.progress_bars import progress
-from pyinspect._colors import mocassin, salmon, green
+from pyinspect._colors import mocassin, salmon, green, lilla
 
 
 def compare_controllers(curr_x, g_xs, main_controller_u, *controllers):
 
     print(
-        f"[{mocassin}]Main controllers solution: [bold {green}]{[round(x) for x in main_controller_u]}[/bold {green}]"
+        f"[{mocassin}]Main controllers solution: [bold {green}]{[int(round(x)) for x in main_controller_u]}[/bold {green}]"
     )
 
     for con in controllers:
+        sol = con.obtain_sol(curr_x, g_xs)
         print(
-            f"[{mocassin}]   alternative controller: [{salmon}] {[round(x) for x in con.obtain_sol(curr_x, g_xs)]}"
+            f"[{mocassin}]   alternative controller: [{salmon}]{[int(round(x)) for x in sol]}"
         )
+    print(
+        f"[{mocassin}]               difference: [{lilla}]{[int(round(x-y)) for x,y in zip(sol, main_controller_u)]}"
+    )
     print("\n\n")
 
 

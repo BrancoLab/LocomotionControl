@@ -34,6 +34,15 @@ network_params["N_rec"] = 50  # set the number of recurrent units in the model
 control = RNNController(model, fld, network_params)
 alt_control = Controller(model)
 
+# ---------------------- Test the trained model ---------------------------
+(
+    x,
+    target_output,
+    mask,
+    trial_params,
+) = task.get_trial_batch()  # get pd task inputs and outputs
+model_output, model_state = control.rnn.test(x)  # run the model on input x
+
 
 # ? RUN
 run_experiment(

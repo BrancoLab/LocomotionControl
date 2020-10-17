@@ -4,8 +4,8 @@ from rich.progress import (
     TimeRemainingColumn,
     TextColumn,
 )
-from rich.text import Text
 import GPUtil as GPU
+from pyinspect._colors import orange, mocassin
 
 
 def get_gpu():
@@ -24,9 +24,9 @@ class SpeedColumn(TextColumn):
 
     def render(self, task):
         if task.speed is None:
-            return Text(" ")
+            return " "
         else:
-            return Text(f"{task.speed:.3f} steps/s")
+            return f"{task.speed:.1f} steps/s"
 
 
 class LossColumn(TextColumn):
@@ -37,13 +37,24 @@ class LossColumn(TextColumn):
 
     def render(self, task):
         try:
-            return Text(f"loss: {task.loss:.3e}")
+            return (
+                f"[{mocassin}]loss: [bold {orange}]{task.fields['loss']:.5f}"
+            )
         except AttributeError:
-            try:
-                return Text(f"loss: {task.fields['loss']:.3e}")
-            except AttributeError:
-                print("failed")
             return "no loss"
+
+
+class LearningRateColumn(TextColumn):
+    _renderable_cache = {}
+
+    def __init__(self, *args):
+        pass
+
+    def render(self, task):
+        try:
+            return f"[{mocassin}]lr: [bold {orange}]{task.fields['lr']:.4f}"
+        except AttributeError:
+            return "no lr"
 
 
 class GPUColumn(TextColumn):
@@ -55,11 +66,9 @@ class GPUColumn(TextColumn):
     def render(self, task):
         gpu = get_gpu()
         if gpu is None:
-            return Text("no gpu")
+            return "no gpu"
         else:
-            return Text(
-                f"Used GPU mem: {int(gpu.memoryUsed)}/{int(gpu.memoryTotal)} MB"
-            )
+            return f"Used GPU mem: {int(gpu.memoryUsed)}/{int(gpu.memoryTotal)} MB"
 
 
 train_progress = Progress(
@@ -73,6 +82,7 @@ train_progress = Progress(
     TimeRemainingColumn(),
     "•",
     LossColumn(),
+    LearningRateColumn(),
     "•",
     GPUColumn(),
 )

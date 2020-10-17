@@ -7,6 +7,7 @@ from pyinspect.utils import timestamp
 import proj
 import matplotlib.pyplot as plt
 from pathlib import Path
+import tensorflow as tf
 
 from proj.rnn import ControlTask, RNN
 from proj.utils.slack import send_slack_message
@@ -23,7 +24,7 @@ network_params[
 ] = "Control"  # name the model uniquely if running mult models in unison
 
 network_params["N_rec"] = 50  # set the number of recurrent units in the model
-
+network_params["transfer_function"] = tf.nn.sigmoid
 
 model = RNN(network_params)  # instantiate a basic vanilla RNN
 

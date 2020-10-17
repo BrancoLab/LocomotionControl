@@ -34,14 +34,18 @@ f, ax = plt.subplots()
 
 sim_lengths = []
 for fld in track(flds):
-    (
-        _config,
-        trajectory,
-        history,
-        cost_history,
-        trial,
-        info,
-    ) = load_results_from_folder(fld)
+    try:
+        (
+            _config,
+            trajectory,
+            history,
+            cost_history,
+            trial,
+            info,
+        ) = load_results_from_folder(fld)
+    except ValueError:
+        print("skipping")
+        continue
 
     # Check that all data have the same config
     if config is None:
