@@ -14,7 +14,7 @@ if sys.platform == "darwin":
 
     db_app = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Apps/loco_upload"
 
-    rnn_trainig = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/RNN/training_data"
+    rnn = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/RNN"
 else:
     trials_cache = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\behav_data\\m46_cache.h5"
     # trials_cache = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\behav_data\\zanes.h5"
@@ -28,7 +28,7 @@ else:
 
     db_app = "D:\\Dropbox (UCL - SWC)\\Apps\\loco_upload"
 
-    rnn_trainig = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\RNN\\training_data"
+    rnn = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\RNN"
 
 
 analysis_fld = str(Path(main_fld) / "analysis")

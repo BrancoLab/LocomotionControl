@@ -41,7 +41,7 @@ class LossColumn(TextColumn):
     def render(self, task):
         try:
             return (
-                f"[{mocassin}]loss: [bold {orange}]{task.fields['loss']:.5f}"
+                f"[{mocassin}]loss: [bold {orange}]{task.fields['loss']:.6f}"
             )
         except AttributeError:
             return "no loss"
@@ -55,7 +55,7 @@ class LearningRateColumn(TextColumn):
 
     def render(self, task):
         try:
-            return f"[{mocassin}]lr: [bold {orange}]{task.fields['lr']:.4f}"
+            return f"[{mocassin}]lr: [bold {orange}]{task.fields['lr']:.6f}"
         except AttributeError:
             return "no lr"
 
@@ -108,7 +108,7 @@ progress = Progress(
 
 class CustomCallback(keras.callbacks.Callback):
     def __init__(
-        self, epochs, pbar, steps_per_epoch, lr_schedule, *args, **kwargs
+        self, epochs, pbar, steps_per_epoch, lr_schedule, log, *args, **kwargs
     ):
         keras.callbacks.Callback.__init__(self, *args, **kwargs)
 
@@ -117,8 +117,10 @@ class CustomCallback(keras.callbacks.Callback):
         self.lr = 0
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
+
         self.pbar = pbar
         self.lr_schedule = lr_schedule
+        self.log = log
 
     def on_train_begin(self, logs=None):
         print("[bold magenta]Starting training!")
@@ -155,6 +157,11 @@ class CustomCallback(keras.callbacks.Callback):
         )
 
         self.pbar.remove_task(self.epoch_task_id)
+
+        if epoch % 5 == 0 or epoch == 1:
+            self.log.add(
+                f"[dim]Iter {epoch}/{self.epochs}  -- loss: {self.loss:.5f} -- lr: {self.lr:.5f}"
+            )
 
     def on_train_batch_begin(self, batch, logs=None):
         self.step += 1

@@ -1,0 +1,53 @@
+name: RNN
+
+# ---------------------------------------------------------------------------- #
+#                                    datast                                    #
+# ---------------------------------------------------------------------------- #
+interactive: False
+
+training_data_description: ''
+dataset_normalizer: 'standardize'  # or scale
+n_trials_training: ''
+n_trials_test: ''
+
+single_trial_mode: True  # for debugging
+
+
+# ---------------------------------------------------------------------------- #
+#                                    params                                    #
+# ---------------------------------------------------------------------------- #
+
+# ----------------------------------- Task ----------------------------------- #
+BATCH: 64
+T: 2000
+dt: 5
+tau: 100
+
+# --------------------------------- Training --------------------------------- #
+EPOCHS: 10  # ! EPOCHS
+steps_per_epoch: 16
+
+lr_schedule:
+      boundaries: [10, 100, 6000]
+      values: [0.01, 0.001, 0.0001, 0.00001]
+      name: 'PiecewiseConstantDecay'
+
+optimizer: 'Adam'
+clipvalue: null
+amsgrad: True
+sample_weight: null
+
+# ----------------------------------- Model ---------------------------------- #
+layers:
+  - 
+        name: simpleRNN
+        units: 25
+        activation: 'tanh'
+        stateful: False
+  - 
+        name: dense
+        units: 2
+        activation: 'relu'
+        stateful: null
+
+loss: 'mse'

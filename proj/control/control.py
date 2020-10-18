@@ -1,87 +1,89 @@
 import numpy as np
-import joblib
-from pathlib import Path
-import tensorflow as tf
+
+# import joblib
+
+# from pathlib import Path
+# import tensorflow as tf
 from rich import print
 
 from proj.control.utils import calc_cost
 from proj.control.cost import Cost
-from proj.rnn import RNN
-
-from sklearn.preprocessing import MinMaxScaler
 
 
-class RNNController:
-    def __init__(self, model, rnn_folder, network_params):
-        # Load saved data
-        try:
-            self._load_from_folder(rnn_folder)
-        except Exception as e:
-            raise FileExistsError(
-                f"Failed to load model from folder {rnn_folder} with error:\n:{e}"
-            )
+# from sklearn.preprocessing import MinMaxScaler
 
-        self.model = model
 
-        # Make model
-        network_params["load_weights_path"] = self.weights_path
-        self.rnn = RNN(network_params)
-        self.rnn._state = self.rnn.init_state  # initialize RNN state
-        self.rnn.build()
+# class RNNController:
+#     def __init__(self, model, rnn_folder, network_params):
+#         # Load saved data
+#         try:
+#             self._load_from_folder(rnn_folder)
+#         except Exception as e:
+#             raise FileExistsError(
+#                 f"Failed to load model from folder {rnn_folder} with error:\n:{e}"
+#             )
 
-        # Initialize variables
-        self.rnn_input = tf.Variable(np.zeros((1, 5), np.float32))
-        # self.rnn.sess.run(tf.global_variables_initializer())
-        self.rnn.sess.run(tf.compat.v1.global_variables_initializer())
+#         self.model = model
 
-        self.transformer = MinMaxScaler(feature_range=(0, 1))
+#         # Make model
+#         network_params["load_weights_path"] = self.weights_path
+#         self.rnn = RNN(network_params)
+#         self.rnn._state = self.rnn.init_state  # initialize RNN state
+#         self.rnn.build()
 
-    def _load_from_folder(self, rnn_folder):
-        fld = Path(rnn_folder)
+#         # Initialize variables
+#         self.rnn_input = tf.Variable(np.zeros((1, 5), np.float32))
+#         # self.rnn.sess.run(tf.global_variables_initializer())
+#         self.rnn.sess.run(tf.compat.v1.global_variables_initializer())
 
-        self.input_scaler = joblib.load(str(fld / "input_scaler.gz"))
-        self.output_scaler = joblib.load(str(fld / "output_scaler.gz"))
-        self.weights_path = list(fld.glob("*.npz"))[0]
+#         self.transformer = MinMaxScaler(feature_range=(0, 1))
 
-    def obtain_sol(self, curr_x, g_xs):
-        """ calculate the optimal inputs
+#     def _load_from_folder(self, rnn_folder):
+#         fld = Path(rnn_folder)
 
-        Args:
-            curr_x (numpy.ndarray): current state, shape(state_size, )
-            g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
-        Returns:
-            opt_input (numpy.ndarray): optimal input, shape(input_size, )
-        """
-        # Structure inputs to RNN in a way it can accept it
-        x = g_xs[0, :] - curr_x  # delta state
-        x = self.input_scaler.transform(x.reshape(1, -1))  # normalize
-        x[x > 1] = 1
-        x[x < 0] = 0
-        rnn_input = self.rnn_input.assign(x.astype(np.float32))
-        _rnn_input = rnn_input.eval(session=self.rnn.sess)
+#         self.input_scaler = joblib.load(str(fld / "input_scaler.gz"))
+#         self.output_scaler = joblib.load(str(fld / "output_scaler.gz"))
+#         self.weights_path = list(fld.glob("*.npz"))[0]
 
-        if _rnn_input.min() < 0 or _rnn_input.max() > 1:
-            print(f"[bold red]:bomb:  Something wrong with rnn input")
+#     def obtain_sol(self, curr_x, g_xs):
+#         """ calculate the optimal inputs
 
-        # step rnn
-        self.rnn._state = self.rnn.recurrent_timestep(
-            rnn_input, self.rnn._state
-        )
-        output = self.rnn.output_timestep(self.rnn._state).eval(
-            session=self.rnn.sess
-        )
+#         Args:
+#             curr_x (numpy.ndarray): current state, shape(state_size, )
+#             g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
+#         Returns:
+#             opt_input (numpy.ndarray): optimal input, shape(input_size, )
+#         """
+#         # Structure inputs to RNN in a way it can accept it
+#         x = g_xs[0, :] - curr_x  # delta state
+#         x = self.input_scaler.transform(x.reshape(1, -1))  # normalize
+#         x[x > 1] = 1
+#         x[x < 0] = 0
+#         rnn_input = self.rnn_input.assign(x.astype(np.float32))
+#         _rnn_input = rnn_input.eval(session=self.rnn.sess)
 
-        # Structure output to work with experiment runner
-        output[output < 0] = 0
-        output[output > 1] = 1
-        output = self.output_scaler.inverse_transform(output)  # un-normalize
-        return output[0, :].ravel()  # * self.model.dt
+#         if _rnn_input.min() < 0 or _rnn_input.max() > 1:
+#             print(f"[bold red]:bomb:  Something wrong with rnn input")
 
-    def calc_step_cost(*args):
-        """
-            Not used by this controller
-        """
-        return dict(control=0, state=0, total=0.0)
+#         # step rnn
+#         self.rnn._state = self.rnn.recurrent_timestep(
+#             rnn_input, self.rnn._state
+#         )
+#         output = self.rnn.output_timestep(self.rnn._state).eval(
+#             session=self.rnn.sess
+#         )
+
+#         # Structure output to work with experiment runner
+#         output[output < 0] = 0
+#         output[output > 1] = 1
+#         output = self.output_scaler.inverse_transform(output)  # un-normalize
+#         return output[0, :].ravel()  # * self.model.dt
+
+#     def calc_step_cost(*args):
+#         """
+#             Not used by this controller
+#         """
+#         return dict(control=0, state=0, total=0.0)
 
 
 class Controller(Cost):

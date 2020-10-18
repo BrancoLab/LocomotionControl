@@ -7,5 +7,5 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
-from proj.rnn.tasks.control_task import ControlTask
-from proj.rnn.backend.models.basic import Basic as RNN
+from proj.rnn.task import ControlTask
+from proj.rnn.train import RNNTrainer
