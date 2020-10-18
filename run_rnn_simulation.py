@@ -9,7 +9,6 @@ from proj import (
     run_experiment,
     Controller,
 )
-from proj.rnn import ControlTask
 
 # ? setup other stuff
 model = Model()
@@ -18,38 +17,17 @@ env = Environment(model)
 
 
 # ? Setup RNN controller
-# fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\RNN\\working_model"
-fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/RNN/working_model"
-task = ControlTask(dt=10, tau=100, T=2000, N_batch=1)
+fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/RNN/RNN_good"
 
-# get the params passed in and defined in task
-network_params = task.get_task_params()
-
-network_params[
-    "name"
-] = "Control"  # name the model uniquely if running mult models in unison
-
-network_params["N_rec"] = 50  # set the number of recurrent units in the model
-
-control = RNNController(model, fld, network_params)
+control = RNNController(fld)
 alt_control = Controller(model)
-
-# ---------------------- Test the trained model ---------------------------
-(
-    x,
-    target_output,
-    mask,
-    trial_params,
-) = task.get_trial_batch()  # get pd task inputs and outputs
-model_output, model_state = control.rnn.test(x)  # run the model on input x
-
 
 # ? RUN
 run_experiment(
     env,
-    alt_control,
+    control,
     model,
     n_secs=3,
     wrap_up=False,
-    extra_controllers=[control],
+    extra_controllers=[alt_control],
 )

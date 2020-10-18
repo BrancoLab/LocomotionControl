@@ -55,7 +55,7 @@ def plot_dataset(inputs, outputs):
 
 class DatasetMaker(RNNLog):
     def __init__(self, trim_controls=50000):
-        super(DatasetMaker, self).__init__()
+        RNNLog.__init__(self, mk_dir=False)
         self.trim_controls = trim_controls
 
     def _standardize_dataset(self, trials_folders):
@@ -153,10 +153,13 @@ class DatasetMaker(RNNLog):
             out[out < -self.trim_controls] = -self.trim_controls
             norm_output = output_scaler.transform(out)
 
-            # if self.config["dataset_normalizer"] == "scale":
-            #     # ? When scaling ignore small trials
-            #     if np.max(norm_output) < 0.2 and np.min(norm_output) > -0.2:
-            #         continue
+            if self.config["dataset_normalizer"] == "scale":
+                # ? When scaling ignore small trials
+                if (
+                    np.max(norm_output[50:-50, :]) < 0.2
+                    and np.min(norm_output[50:-50, :]) > -0.2
+                ):
+                    continue
 
             # Append to dataset
             data["trajectory"].append(norm_input)

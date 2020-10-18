@@ -67,6 +67,9 @@ def run_experiment(
         f"\n\n[bold  green]Starting simulation with {n_steps} steps [{n_secs}s at {model.dt} s/step][/bold  green]"
     )
 
+    # Try to predict the whole trace
+    controller = controller.predict(trajectory)
+
     # RUN
     start = timestamp(just_time=True)
     with progress:
@@ -84,18 +87,23 @@ def run_experiment(
                     break  # we're done here
 
                 # obtain sol
-                u = controller.obtain_sol(curr_x, g_xs)
+                if isinstance(controller, np.ndarray):
+                    u = controller[itern, :]
+
+                    environment.curr_cost = dict(control=0, state=0, total=0)
+                else:
+                    u = controller.obtain_sol(curr_x, g_xs)
+
+                    # get current cost
+                    environment.curr_cost = controller.calc_step_cost(
+                        np.array(model.curr_x), u, g_xs[0, :]
+                    )
 
                 if extra_controllers is not None:
                     compare_controllers(curr_x, g_xs, u, *extra_controllers)
 
                 # step
                 model.step(u, g_xs[0, :])
-
-                # get current cost
-                environment.curr_cost = controller.calc_step_cost(
-                    np.array(model.curr_x), u, g_xs[0, :]
-                )
 
                 # update world
                 environment.itern = itern

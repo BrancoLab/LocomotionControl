@@ -20,4 +20,4 @@ env = Environment(model)
 control = Controller(model)
 
 
-run_experiment(env, control, model, n_secs=0.1, wrap_up=True)
+run_experiment(env, control, model, n_secs=0.1, wrap_up=False)

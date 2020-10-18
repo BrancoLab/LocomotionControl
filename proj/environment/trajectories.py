@@ -228,12 +228,16 @@ def simulated_but_realistic(
     p1 = np.array([0, 80])
 
     # Define an additional random point
-    p2 = np.array(
-        [
-            np.random.uniform(low=-120, high=120),
-            np.random.uniform(low=10, high=70),
-        ]
-    )
+    while True:
+        p2 = np.array(
+            [
+                np.random.uniform(low=-120, high=120),
+                np.random.uniform(low=10, high=70),
+            ]
+        )
+
+        if np.abs(p2[0]) > 50:
+            break
 
     # Get distance of each segment
     d1 = np.sqrt((p0[0] - p2[0]) ** 2 + (p0[1] - p2[1]) ** 2)

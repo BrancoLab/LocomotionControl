@@ -4,6 +4,8 @@ from pyinspect._colors import orange, lightorange
 from pyinspect import Report
 from pyinspect import install_traceback
 from pyinspect.utils import stringify
+import joblib
+from tensorflow.keras import models
 
 from fcutils.file_io.io import load_yaml, save_yaml
 
@@ -17,14 +19,20 @@ class RNNLog:
 
     _history = {"lr": [], "loss": []}
 
-    def __init__(self):
+    def __init__(self, mk_dir=True, folder=None):
         self.main_fld = Path(paths.rnn)
 
         self.load_config()
 
         # make a folder
-        self.folder = self.main_fld / f'{self.config["name"]}_{timestamp()}'
-        self.folder.mkdir(exist_ok=True)
+        if folder is None:
+            self.folder = (
+                self.main_fld / f'{self.config["name"]}_{timestamp()}'
+            )
+            if mk_dir:
+                self.folder.mkdir(exist_ok=True)
+        else:
+            self.folder = Path(folder)
 
         # make useful paths
         self.trials_folder = self.main_fld / "training_data"
@@ -34,8 +42,8 @@ class RNNLog:
         self.dataset_folder.mkdir(exist_ok=True)
 
         self.dataset_path = self.dataset_folder / "training_data.h5"
-        self.input_scaler_path = self.dataset_folder / "input_scaler.gz"
-        self.output_scaler_path = self.dataset_folder / "output_scaler.gz"
+        self.input_scaler_path = self.dataset_folder / "input_scaler.pkl"
+        self.output_scaler_path = self.dataset_folder / "output_scaler.pkl"
 
         self.rnn_weights_save_path = self.folder / "trained_model.h5"
 
@@ -87,3 +95,12 @@ class RNNLog:
 
         with open(str(savepath), "w") as f:
             f.write(log)
+
+    def load_normalizers(self):
+        _inp = joblib.load(self.input_scaler_path)
+        _out = joblib.load(self.output_scaler_path)
+
+        return _inp, _out
+
+    def load_model(self):
+        return models.load_model(self.rnn_weights_save_path)

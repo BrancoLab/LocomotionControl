@@ -46,6 +46,7 @@ class RNNTrainer(RNNLog):
             units=layer_params["units"],
             activation=layer_params["activation"],
             name="Dense",
+            trainable=layer_params["trainable"],
         )
 
     def _make_rnn_layer(self, layer_params):
@@ -56,6 +57,7 @@ class RNNTrainer(RNNLog):
             batch_input_shape=self.batch_input_shape,
             return_sequences=True,
             name="Recurrent",
+            trainable=layer_params["trainable"],
         )
 
     def make_model(self):
@@ -255,13 +257,20 @@ class RNNTrainer(RNNLog):
 
     def plot_training_evaluation(self, model):
         # Get an example trial
-        x, y, mask, trial_params = self.task.get_trial_batch()
+        y_pred = None
+        for i in range(10):
+            x, y, mask, trial_params = self.task.get_trial_batch()
 
-        # predict
-        try:
-            y_pred = model.predict(x)
-        except Exception as e:
-            print(f"Failed to get prediction with error: {e}")
+            # predict
+            try:
+                y_pred = model.predict(x)
+            except Exception:
+                pass
+            else:
+                break
+
+        if y_pred is None:
+            print(f"Failed to get prediction")
             return
 
         f, axarr = plt.subplots(ncols=2)

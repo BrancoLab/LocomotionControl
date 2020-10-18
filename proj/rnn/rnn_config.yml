@@ -24,7 +24,7 @@ dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 2000  # ! EPOCHS
+EPOCHS: 50  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:
@@ -44,10 +44,12 @@ layers:
         units: 50
         activation: 'tanh'
         stateful: False
+        trainable: True
   - 
         name: dense
         units: 2
         activation: 'tanh'
         stateful: null
+        trainable: False
 
 loss: 'mse'
