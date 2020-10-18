@@ -24,7 +24,7 @@ dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 350  # ! EPOCHS
+EPOCHS: 50  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:

@@ -14,5 +14,8 @@ if train:
     trainer = RNNTrainer()
     trainer.train()
 
-# TODO think about how to improve dataset creation for real trajectory as input
-# TODO make simulator work
+# TODO copy dataset to saved RNN folder?
+# TODO look into normalizations etc.
+# TODO parameters grid search
+# TODO set it up to work on HPC
+# TODO train/test split
