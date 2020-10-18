@@ -24,11 +24,11 @@ dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 50  # ! EPOCHS
+EPOCHS: 350  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:
-      boundaries: [10, 100, 1200]
+      boundaries: [10, 500, 1200]
       values: [0.01, 0.001, 0.0001, 0.00001]
       name: 'PiecewiseConstantDecay'
 
@@ -41,7 +41,7 @@ sample_weight: null
 layers:
   - 
         name: simpleRNN
-        units: 50
+        units: 5
         activation: 'tanh'
         stateful: False
         trainable: True

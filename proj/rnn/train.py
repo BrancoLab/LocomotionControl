@@ -1,6 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Dense, SimpleRNN
+from tensorflow.keras.layers import Dense, SimpleRNN, Masking
 from tensorflow.keras.optimizers.schedules import PiecewiseConstantDecay
 
 
@@ -95,7 +95,19 @@ class RNNTrainer(RNNLog):
 
         self.log.spacer(2)
         self.log.add(f"[{orange}]Layers")
+
         model = keras.Sequential()
+
+        # Add masking layer
+        model.add(
+            Masking(
+                mask_value=0.0,
+                input_shape=(self.STEP, self.N_inputs),
+                name="mask",
+            ),
+        )
+
+        # Add RNN and Dense layers
         for n, layer in enumerate(self.config["layers"]):
             if layer["name"] == "dense":
                 l = self._make_dense_layer(layer)
@@ -138,7 +150,7 @@ class RNNTrainer(RNNLog):
                 X.append(x)
                 Y.append(y)
 
-            return np.concatenate(X), np.concatenate(Y)
+            return np.concatenate(X), np.concatenate(Y), mask
 
         # If it's a lot of epochs it's faster to just get the whole thing at once
         self.task = ControlTask(
@@ -148,15 +160,13 @@ class RNNTrainer(RNNLog):
             N_batch=2000,
         )
         x, y, mask, trial_params = self.task.get_trial_batch()
-        return x, y
+        return x, y, mask
 
     def train(self):
         self.save_config()
 
         model = self.make_model()
-        x, y = self.make_data()
-
-        print(x.shape)
+        x, y, mask = self.make_data()
 
         start = timestamp(just_time=True)
         self.log.spacer(2)
@@ -206,7 +216,10 @@ class RNNTrainer(RNNLog):
 
         self.plot_weights(model)
         self.plot_training_history(history)
-        self.plot_training_evaluation(model)
+        try:
+            self.plot_training_evaluation(model)
+        except Exception:
+            pass
         plt.show()
 
     def plot_weights(self, model):
@@ -214,6 +227,10 @@ class RNNTrainer(RNNLog):
         f, axarr = plt.subplots(
             ncols=3, nrows=len(model.layers), figsize=(16, 9)
         )
+
+        for ax in axarr.flatten():
+            ax.axis("equal")
+            ax.axis("off")
 
         for ln, layer in enumerate(model.layers):
             weights = layer.get_weights()
@@ -229,8 +246,6 @@ class RNNTrainer(RNNLog):
                     + ttl
                     + f" - vmin:{w.min():.2f} - vmax:{w.max():.2f}"
                 )
-                ax.axis("equal")
-                ax.axis("off")
 
         clean_axes(f)
         save_figure(f, self.folder / "weights", verbose=False)
@@ -257,20 +272,20 @@ class RNNTrainer(RNNLog):
 
     def plot_training_evaluation(self, model):
         # Get an example trial
-        y_pred = None
+        y_pred, exc = None, None
         for i in range(10):
             x, y, mask, trial_params = self.task.get_trial_batch()
 
             # predict
             try:
                 y_pred = model.predict(x)
-            except Exception:
-                pass
+            except Exception as e:
+                exc = e
             else:
                 break
 
         if y_pred is None:
-            print(f"Failed to get prediction")
+            print(f"Failed to get prediction: {exc}")
             return
 
         f, axarr = plt.subplots(ncols=2)

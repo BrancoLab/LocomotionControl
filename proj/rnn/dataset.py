@@ -1,36 +1,40 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from scipy.signal import medfilt
+
+# from scipy.signal import medfilt
 from rich.progress import track
 from rich.prompt import Confirm
 from rich import print
 import numpy as np
 import joblib
 
+# from scipy.signal import resample
+
 from pyinspect.utils import subdirs
 
 from proj.rnn._utils import RNNLog
 from proj.utils.misc import (
     load_results_from_folder,
-    trajectory_at_each_simulation_step,
+    # trajectory_at_each_simulation_step,
 )
 
 
 def get_delta_traj(trajectory, history):
-    traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-    # goal_traj = history[
-    #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
-    # ].values
+    # traj_sim = trajectory_at_each_simulation_step(trajectory, history)
+    # # goal_traj = history[
+    # #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
+    # # ].values
 
-    # delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
-    delta_traj = traj_sim[1:]  # ! Not using delta trajectory
+    # # delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
+    # delta_traj = traj_sim[1:]  # ! Not using delta trajectory
 
-    smoothed = np.zeros_like(delta_traj)
-    for i in range(delta_traj.shape[1]):
-        smoothed[:, i] = medfilt(delta_traj[:, i], 5)
+    # smoothed = np.zeros_like(delta_traj)
+    # for i in range(delta_traj.shape[1]):
+    #     smoothed[:, i] = medfilt(delta_traj[:, i], 5)
 
-    return smoothed[:-50, :]  # ! skipping the last few
+    # return smoothed[:-50, :]  # ! skipping the last few
+    return trajectory
 
 
 def plot_dataset(inputs, outputs):
@@ -144,13 +148,21 @@ class DatasetMaker(RNNLog):
             except Exception:
                 continue
 
-            # Get trajectory point at each simulation step
+            # Get inputs and outputs
             delta_traj = get_delta_traj(trajectory, history)
-            norm_input = input_scaler.transform(delta_traj)
 
             out = np.vstack([history["tau_r"][:-1], history["tau_l"][:-1]]).T
             out[out > self.trim_controls] = self.trim_controls
             out[out < -self.trim_controls] = -self.trim_controls
+
+            # Resample imput trajectory
+            start_idx = history.trajectory_idx.values[0]
+            end_idx = history.trajectory_idx.values[-1] - 30
+            delta_traj = delta_traj[start_idx:end_idx, :]
+            # delta_traj = resample(delta_traj[start_idx:end_idx, :], out.shape[0])
+
+            # Normalize data
+            norm_input = input_scaler.transform(delta_traj)
             norm_output = output_scaler.transform(out)
 
             if self.config["dataset_normalizer"] == "scale":

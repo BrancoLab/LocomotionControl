@@ -20,7 +20,7 @@ class ControlTask(Task, RNNLog):
 
         """
         Task.__init__(self, n_inputs, n_outputs, dt, tau, T, N_batch)
-        RNNLog.__init__(self)
+        RNNLog.__init__(self, mk_dir=False)
 
         try:
             self._data = pd.read_hdf(self.dataset_path, key="hdf")
@@ -74,6 +74,10 @@ class ControlTask(Task, RNNLog):
         N = len(params["trajectory"])
         step = np.int(np.floor((N * time) / self.T))
 
-        x_t = params["trajectory"][step, :]
-        y_t = np.hstack([params["tau_r"][step], params["tau_l"][step]])
-        return x_t, y_t, np.ones(self.N_out)
+        try:
+            x_t = params["trajectory"][step, :]
+            y_t = np.hstack([params["tau_r"][step], params["tau_l"][step]])
+        except IndexError:
+            return 0, 0, np.zeros(self.N_out)
+        else:
+            return x_t, y_t, np.ones(self.N_out)
