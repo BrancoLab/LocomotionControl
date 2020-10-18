@@ -19,16 +19,18 @@ from proj.utils.misc import (
 
 def get_delta_traj(trajectory, history):
     traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-    goal_traj = history[
-        ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
-    ].values
-    delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
+    # goal_traj = history[
+    #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
+    # ].values
+
+    # delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
+    delta_traj = traj_sim[1:]  # ! Not using delta trajectory
 
     smoothed = np.zeros_like(delta_traj)
     for i in range(delta_traj.shape[1]):
         smoothed[:, i] = medfilt(delta_traj[:, i], 5)
 
-    return smoothed
+    return smoothed[:-50, :]  # ! skipping the last few
 
 
 def plot_dataset(inputs, outputs):
@@ -52,18 +54,16 @@ def plot_dataset(inputs, outputs):
 
 
 class DatasetMaker(RNNLog):
-    def __init__(
-        self, trim_controls=50000,
-    ):
+    def __init__(self, trim_controls=50000):
         super(DatasetMaker, self).__init__()
         self.trim_controls = trim_controls
 
     def _standardize_dataset(self, trials_folders):
         print("Normalizing dataset")
         # Get normalizer
-        if self.config["dataset_normalizer"] == "scaler":
-            input_scaler = MinMaxScaler(feature_range=(0, 1))
-            output_scaler = MinMaxScaler(feature_range=(0, 1))
+        if self.config["dataset_normalizer"] == "scale":
+            input_scaler = MinMaxScaler(feature_range=(-1, 1))
+            output_scaler = MinMaxScaler(feature_range=(-1, 1))
         else:
             input_scaler = StandardScaler()
             output_scaler = StandardScaler()
@@ -153,12 +153,10 @@ class DatasetMaker(RNNLog):
             out[out < -self.trim_controls] = -self.trim_controls
             norm_output = output_scaler.transform(out)
 
-            n = len(history["tau_r"])
-            if (
-                np.max(norm_output[50 : n - 50]) < 0.7
-                and np.min(norm_output[50 : n - 50]) > 0.3
-            ):
-                continue
+            # if self.config["dataset_normalizer"] == "scale":
+            #     # ? When scaling ignore small trials
+            #     if np.max(norm_output) < 0.2 and np.min(norm_output) > -0.2:
+            #         continue
 
             # Append to dataset
             data["trajectory"].append(norm_input)

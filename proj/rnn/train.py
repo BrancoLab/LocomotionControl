@@ -9,6 +9,7 @@ from pyinspect.utils import timestamp
 from pyinspect._colors import orange, lightorange
 import matplotlib.pyplot as plt
 from rich.progress import track
+from rich import print
 
 from fcutils.plotting.utils import clean_axes, save_figure
 
@@ -58,7 +59,6 @@ class RNNTrainer(RNNLog):
         )
 
     def make_model(self):
-        self.log.spacer(2)
         self.log.add(f"[b {orange}]Creating model")
 
         # --------------------------------- scheduler -------------------------------- #
@@ -109,6 +109,9 @@ class RNNTrainer(RNNLog):
 
         model.compile(loss=self.config["loss"], optimizer=optimizer)
 
+        self.log.spacer(1)
+        model.summary(print_fn=self.log.add)
+
         self.callback = CustomCallback(
             self.config["EPOCHS"],
             train_progress,
@@ -120,7 +123,9 @@ class RNNTrainer(RNNLog):
         return model
 
     def make_data(self):
-        print("[bold magenta]Creating training data...")
+        print(
+            f"[bold magenta]Creating training data... [dim]from: {self.dataset_path.parent.name}"
+        )
 
         X, Y = [], []
         if self.config["EPOCHS"] < 101:
@@ -149,9 +154,17 @@ class RNNTrainer(RNNLog):
         model = self.make_model()
         x, y = self.make_data()
 
+        print(x.shape)
+
         start = timestamp(just_time=True)
         self.log.spacer(2)
         self.log.add(f"[b {orange}]Starting training at: {start}")
+
+        sw = (
+            np.array(self.config["sample_weight"])
+            if self.config["sample_weight"] is not None
+            else None
+        )
 
         with train_progress:
             history = model.fit(
@@ -164,9 +177,7 @@ class RNNTrainer(RNNLog):
                 use_multiprocessing=True,
                 workers=8,
                 # validation_split=0.2,
-                sample_weight=np.array(self.config["sample_weight"])
-                if self.config["sample_weight"] is not None
-                else None,
+                sample_weight=sw,
             )
 
         send_slack_message(
@@ -247,7 +258,28 @@ class RNNTrainer(RNNLog):
         x, y, mask, trial_params = self.task.get_trial_batch()
 
         # predict
-        y_pred = model.predict(x)
+        try:
+            y_pred = model.predict(x)
+        except Exception as e:
+            print(f"Failed to get prediction with error: {e}")
+            return
+
+        f, axarr = plt.subplots(ncols=2)
+        for i, label in enumerate(["x", "y", "\\theta", "v", "\\omega"]):
+            axarr[0].plot(x[0, :, i], label="true " + f"${label}$")
+
+        for i, label in enumerate(["\\tau_{R}", "\\tau_{L}"]):
+            axarr[1].plot(
+                y[0, :, i], lw=2, ls="--", label="true " + f"${label}$"
+            )
+            axarr[1].plot(y_pred[0, :, i], label="pred " + f"${label}$")
+
+        axarr[0].legend()
+        axarr[1].legend()
+        axarr[0].set(title="input", xlabel="epoch", ylabel="val")
+        axarr[1].set(title="Control", xlabel="epoch", ylabel="val")
+        clean_axes(f)
+        save_figure(f, self.folder / "example", verbose=False)
 
         f2, axarr = plt.subplots(
             ncols=4, nrows=4, figsize=(16, 9), sharex=True, sharey=True
