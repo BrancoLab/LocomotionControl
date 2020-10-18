@@ -68,7 +68,10 @@ def run_experiment(
     )
 
     # Try to predict the whole trace
-    controller = controller.predict(trajectory)
+    try:
+        controller = controller.predict(trajectory)
+    except AttributeError:
+        pass
 
     # RUN
     start = timestamp(just_time=True)
