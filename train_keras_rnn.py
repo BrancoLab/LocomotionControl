@@ -1,7 +1,7 @@
 from proj.rnn.dataset import DatasetMaker
 from proj.rnn.train import RNNTrainer
 
-train = True
+train = False
 
 # ? Make dataset
 if not train:
@@ -17,5 +17,5 @@ if train:
 # TODO copy dataset to saved RNN folder?
 # TODO look into normalizations etc.
 # TODO parameters grid search
-# TODO set it up to work on HPC
+# TODO set it up to work on HPC and use GPU
 # TODO train/test split

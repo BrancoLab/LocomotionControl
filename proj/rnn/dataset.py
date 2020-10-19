@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.model_selection import train_test_split
 
 # from scipy.signal import medfilt
 from rich.progress import track
@@ -126,6 +127,16 @@ class DatasetMaker(RNNLog):
 
             return input_scaler, output_scaler
 
+    def _split_and_save(self, data):
+        data = pd.DataFrame(data)  # .to_hdf(self.dataset_path, key="hdf")
+
+        train, test = train_test_split(data)
+
+        train.to_hdf(self.dataset_train_path, key="hdf")
+        test.to_hdf(self.dataset_test_path, key="hdf")
+
+        print(f"Saved at {self.dataset_path}, {len(data)} trials")
+
     def make_dataset(self):
         trials_folders = subdirs(self.trials_folder)
 
@@ -192,14 +203,8 @@ class DatasetMaker(RNNLog):
             )
 
             if Confirm.ask("Save dataset?", default=True):
-                pd.DataFrame(data).to_hdf(self.dataset_path, key="hdf")
-                self._data = pd.read_hdf(self.dataset_path, key="hdf")
-                self._n_trials = len(data["sim_dt"])
-                print(f"Saved at {self.dataset_path}, {self._n_trials} trials")
+                self._split_and_save(data)
             else:
                 print("Did not save dataset")
         else:
-            pd.DataFrame(data).to_hdf(self.dataset_path, key="hdf")
-            self._data = pd.read_hdf(self.dataset_path, key="hdf")
-            self._n_trials = len(data["sim_dt"])
-            print(f"Saved at {self.dataset_path}, {self._n_trials} trials")
+            self._split_and_save(data)

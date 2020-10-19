@@ -1,4 +1,4 @@
-name: RNN
+name: RNN_100units
 
 # ---------------------------------------------------------------------------- #
 #                                    datast                                    #
@@ -24,7 +24,7 @@ dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 50  # ! EPOCHS
+EPOCHS: 500  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:
@@ -41,7 +41,7 @@ sample_weight: null
 layers:
   - 
         name: simpleRNN
-        units: 5
+        units: 100
         activation: 'tanh'
         stateful: False
         trainable: True

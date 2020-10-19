@@ -7,7 +7,7 @@ from proj.rnn._utils import RNNLog
 
 class ControlTask(Task, RNNLog):
     def __init__(
-        self, dt, tau, T, N_batch, n_inputs=5, n_outputs=2,
+        self, dt, tau, T, N_batch, n_inputs=5, n_outputs=2, test_data=False,
     ):
         """
             Args:
@@ -23,7 +23,11 @@ class ControlTask(Task, RNNLog):
         RNNLog.__init__(self, mk_dir=False)
 
         try:
-            self._data = pd.read_hdf(self.dataset_path, key="hdf")
+            if not test_data:
+                self._data = pd.read_hdf(self.dataset_train_path, key="hdf")
+            else:
+                self._data = pd.read_hdf(self.dataset_test_path, key="hdf")
+
             self._n_trials = len(self._data)
         except FileNotFoundError:
             raise ValueError("Did not find data file, make data?")

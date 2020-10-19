@@ -209,6 +209,9 @@ class RNNTrainer(RNNLog):
         self.log.add(f"Saving model at: {self.rnn_weights_save_path}")
         model.save(self.rnn_weights_save_path)
 
+        self.wrap_up(model, history)
+
+    def wrap_up(self, model, history):
         self.log.print()
         self.save_log(self.log)
 
@@ -273,7 +276,7 @@ class RNNTrainer(RNNLog):
     def plot_training_evaluation(self, model):
         # Get an example trial
         y_pred, exc = None, None
-        for i in range(10):
+        for i in range(5):
             x, y, mask, trial_params = self.task.get_trial_batch()
 
             # predict

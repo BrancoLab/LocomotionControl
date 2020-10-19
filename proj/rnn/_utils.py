@@ -41,7 +41,9 @@ class RNNLog:
         )
         self.dataset_folder.mkdir(exist_ok=True)
 
-        self.dataset_path = self.dataset_folder / "training_data.h5"
+        self.dataset_train_path = self.dataset_folder / "training_data.h5"
+        self.dataset_test_path = self.dataset_folder / "test_data.h5"
+
         self.input_scaler_path = self.dataset_folder / "input_scaler.pkl"
         self.output_scaler_path = self.dataset_folder / "output_scaler.pkl"
 
