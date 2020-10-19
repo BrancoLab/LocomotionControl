@@ -103,8 +103,8 @@ class DatasetMaker(RNNLog):
         _out[_out > self.trim_controls] = self.trim_controls
         _out[_out < -self.trim_controls] = -self.trim_controls
 
-        input_scaler = input_scaler.fit(_in)
-        output_scaler = output_scaler.fit(_out)
+        input_scaler = input_scaler.fit(_in * 3)
+        output_scaler = output_scaler.fit(_out * 3)
 
         if self.config["interactive"]:
             print("Visualizing dataset")
@@ -177,13 +177,13 @@ class DatasetMaker(RNNLog):
             norm_input = input_scaler.transform(delta_traj)
             norm_output = output_scaler.transform(out)
 
-            if self.config["dataset_normalizer"] == "scale":
-                # ? When scaling ignore small trials
-                if (
-                    np.max(norm_output[50:-50, :]) < 0.2
-                    and np.min(norm_output[50:-50, :]) > -0.2
-                ):
-                    continue
+            # if self.config["dataset_normalizer"] == "scale":
+            #     # ? When scaling ignore small trials
+            #     if (
+            #         np.max(norm_output[50:-50, :]) < 0.2
+            #         and np.min(norm_output[50:-50, :]) > -0.2
+            #     ):
+            #         continue
 
             # Append to dataset
             data["trajectory"].append(norm_input)

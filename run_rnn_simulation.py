@@ -17,7 +17,8 @@ env = Environment(model)
 
 
 # ? Setup RNN controller
-fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\RNN\\RNN_100units_good"
+# fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\RNN\\RNN_100units_good"
+fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/RNN/RNN_100units_good"
 
 control = RNNController(fld)
 alt_control = Controller(model)

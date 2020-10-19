@@ -29,7 +29,9 @@ class ControlTask(Task, RNNLog):
 
         """
         Task.__init__(self, n_inputs, n_outputs, dt, tau, T, N_batch)
-        RNNLog.__init__(self, *args, mk_dir=False, **kwargs)
+
+        mkdir = kwargs.pop("mk_dir", False)
+        RNNLog.__init__(self, *args, mk_dir=mkdir, **kwargs)
 
         try:
             if not test_data:

@@ -1,120 +1,34 @@
 import numpy as np
-from tensorflow import keras
-from tensorflow.keras.layers import Dense, SimpleRNN, Masking
-
 from rich import print
 
 from proj.control.utils import calc_cost
 from proj.control.cost import Cost
-from proj.rnn import RNNLog, ControlTask
+from proj.rnn import ControlRNN
 
 
-class RNNController(RNNLog):
+class RNNController(ControlRNN):
     def __init__(self, folder):
-        RNNLog.__init__(self, folder=folder, mk_dir=False)
+        ControlRNN.__init__(self, folder=folder, mk_dir=False)
 
-        self.rnn = self.make_model()
+        self.rnn = self.make_model_for_prediction()
         self.in_normalizer, self.out_normalizer = self.load_normalizers(
             from_model_folder=True
         )
 
-    def make_model(self):
-        """
-            Creates a new instance of the RNN which can predict single steps
-        """
-        # Get input shapes
-        self.task = ControlTask(
-            dt=self.config["dt"],
-            tau=self.config["tau"],
-            T=self.config["T"],
-            N_batch=1,
-        )
-        x, y, mask, trial_params = self.task.get_trial_batch()
-
-        # Load trained RNN
-        trained_rnn = self.load_model()
-
-        # Make new stateful model
-        model = keras.Sequential()
-
-        # Add masking layer
-        model.add(
-            Masking(
-                mask_value=0.0,
-                input_shape=(1, x.shape[2]),
-                batch_input_shape=(1, 1, x.shape[2]),
-                name="mask",
-            ),
-        )
-
-        # Add RNN layer
-        layer_params = self.config["layers"][0]
-        model.add(
-            SimpleRNN(
-                units=layer_params["units"],
-                activation=layer_params["activation"],
-                batch_input_shape=(1, 1, x.shape[2]),
-                return_sequences=True,
-                name="Recurrent",
-                trainable=False,
-                kernel_initializer=layer_params["kernel_initializer"],
-                stateful=True,
-            )
-        )
-
-        # Add Dense layer
-        layer_params = self.config["layers"][1]
-        model.add(
-            Dense(
-                units=layer_params["units"],
-                activation=layer_params["activation"],
-                name="Dense",
-                trainable=False,
-                kernel_initializer=layer_params["kernel_initializer"],
-            )
-        )
-
-        # Set weights and return
-        model.build()
-        model.set_weights(trained_rnn.get_weights())
-        return model
-
-    def predict(self, trajectory):
-        traj = self.in_normalizer.transform(trajectory[:-50, :])
-
-        if np.min(traj) < -1 or np.max(traj) > 1:
-            raise ValueError(
-                ":bomb: Something went wrong while normalizing input trajectory"
-            )
-
-        traj = traj.reshape((-1, traj.shape[0], traj.shape[1]))
-
-        pred = self.rnn.predict(traj)
-
-        return self.out_normalizer.inverse_transform(pred[0, :, :])
-
     def obtain_sol(self, curr_x, g_xs):
         delta = g_xs[0, :] - curr_x
 
-        # if np.any(delta > self.in_normalizer.data_max_) or np.any(delta < self.in_normalizer.data_min_):
-        #     raise ValueError(
-        #         ":bomb: Data outside of normalizer's range!!"
-        #     )
+        if np.any(delta > self.in_normalizer.data_max_) or np.any(
+            delta < self.in_normalizer.data_min_
+        ):
+            raise ValueError(":bomb: Data outside of normalizer's range!!")
 
         delta = self.in_normalizer.transform(delta.reshape(1, -1))
-
-        # ! testing stuff
-        delta[delta > 1] = 1
-        delta[delta < -1] = -1
-
         delta = delta.reshape(1, 1, -1)
-
-        print(delta)
 
         u = self.rnn.predict(delta)[0, 0, :]
         u = self.out_normalizer.inverse_transform(u.reshape(1, -1))
 
-        print(u)
         return u[0, :]
 
 

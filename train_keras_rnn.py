@@ -14,7 +14,12 @@ if train:
     trainer.train()
 
 # ! TODO look into time steps resolution and match it to simulations
-# TODO ! https://stackoverflow.com/questions/54009661/what-is-the-timestep-in-keras-lstm
+
+# TODO make winstor save to dropbox
 
 # TODO look into normalizations etc.
 # TODO parameters grid search
+
+
+# TODO implement continous time RNN to match other stuff
+# see https://github.com/Faur/CTRNN/blob/master/CTRNN.py

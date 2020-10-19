@@ -1,39 +1,22 @@
-from tensorflow import keras
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Dense, SimpleRNN, Masking
-from tensorflow.keras.optimizers.schedules import PiecewiseConstantDecay
-
 import numpy as np
 from pyinspect.utils import timestamp
-from pyinspect._colors import orange, lightorange
+from pyinspect._colors import orange
 import matplotlib.pyplot as plt
 from rich.progress import track
 from rich import print
 
 from fcutils.plotting.utils import clean_axes, save_figure
 
-from proj.rnn._utils import RNNLog
-from proj.rnn.task import ControlTask
-from proj.utils.progress_bars import train_progress, CustomCallback
+from proj.rnn.rnn import ControlRNN
+from proj.utils.progress_bars import train_progress
 from proj.utils.slack import send_slack_message
+from proj.rnn import ControlTask
 
 
-_layers = dict(simpleRNN=SimpleRNN, dense=Dense,)
-
-
-class RNNTrainer(RNNLog):
+class RNNTrainer(ControlRNN):
     def __init__(self, *args, wrap_up=True, **kwargs):
-        RNNLog.__init__(self, *args, **kwargs)
-
-        # Get a few useful variabels
-        self.task = ControlTask(
-            *args,
-            dt=self.config["dt"],
-            tau=self.config["tau"],
-            T=self.config["T"],
-            N_batch=self.config["BATCH"],
-            **kwargs,
-        )
+        ControlRNN.__init__(self, *args, **kwargs)
+        self._wrap_up = wrap_up
 
         self.eval_task = ControlTask(
             dt=self.config["dt"],
@@ -43,113 +26,6 @@ class RNNTrainer(RNNLog):
             test_data=True,
             **kwargs,
         )
-
-        x, y, mask, trial_params = self.task.get_trial_batch()
-
-        self.STEP = x.shape[1]
-        self.N_inputs = x.shape[2]
-        self.N_outputs = y.shape[2]
-        self.batch_input_shape = x.shape
-
-        self._wrap_up = wrap_up
-
-    def _make_dense_layer(self, layer_params):
-        return _layers[layer_params["name"]](
-            units=layer_params["units"],
-            activation=layer_params["activation"],
-            name="Dense",
-            trainable=layer_params["trainable"],
-            kernel_initializer=layer_params["kernel_initializer"],
-        )
-
-    def _make_rnn_layer(self, layer_params):
-        return _layers[layer_params["name"]](
-            units=layer_params["units"],
-            activation=layer_params["activation"],
-            input_shape=(self.STEP, self.N_inputs),
-            batch_input_shape=self.batch_input_shape,
-            return_sequences=True,
-            name="Recurrent",
-            trainable=layer_params["trainable"],
-            kernel_initializer=layer_params["kernel_initializer"],
-            stateful=layer_params["stateful"],
-        )
-
-    def make_model(self):
-        self.log.add(f"[b {orange}]Creating model")
-
-        # --------------------------------- scheduler -------------------------------- #
-
-        schedule = PiecewiseConstantDecay(
-            self.config["lr_schedule"]["boundaries"],
-            self.config["lr_schedule"]["values"],
-        )
-        self.log.add(
-            f'Learning rate scheduler: {self.config["lr_schedule"]["name"]}\n bounds: {self.config["lr_schedule"]["boundaries"]} - vals: {self.config["lr_schedule"]["values"]} '
-        )
-
-        # --------------------------------- optimzer --------------------------------- #
-
-        if self.config["optimizer"] != "Adam":
-            raise NotImplementedError(
-                f"Needs to be setup to work with optimizer {self.config['optimizer']}"
-            )
-        optimizer = Adam(
-            learning_rate=schedule,
-            name="Adam",
-            clipvalue=self.config["clipvalue"],
-            amsgrad=self.config["amsgrad"],
-        )
-
-        self.log.add(
-            f'Optimizer: {self.config["optimizer"]} with clipvalue: {self.config["clipvalue"]}'
-        )
-        self.log.add(f'Loss function: {self.config["loss"]}')
-
-        # ----------------------------------- model ---------------------------------- #
-
-        self.log.spacer(2)
-        self.log.add(f"[{orange}]Layers")
-
-        model = keras.Sequential()
-
-        # Add masking layer
-        model.add(
-            Masking(
-                mask_value=0.0,
-                input_shape=(self.STEP, self.N_inputs),
-                name="mask",
-            ),
-        )
-
-        # Add RNN and Dense layers
-        for n, layer in enumerate(self.config["layers"]):
-            if layer["name"] == "dense":
-                l = self._make_dense_layer(layer)
-            else:
-                l = self._make_rnn_layer(layer)
-
-            model.add(l)
-            self.log.add(
-                f'[green]Layer {n}[/green]  --  [b {lightorange}]{layer["name"]}[/b {lightorange}] - [blue]{layer["units"]}[/blue] units - [green]{layer["activation"]}[/green] activation'
-            )
-
-        # ---------------------------------- compile --------------------------------- #
-
-        model.compile(loss=self.config["loss"], optimizer=optimizer)
-
-        self.log.spacer(1)
-        model.summary(print_fn=self.log.add)
-
-        self.callback = CustomCallback(
-            self.config["EPOCHS"],
-            train_progress,
-            self.config["steps_per_epoch"],
-            schedule,
-            self.log,
-        )
-
-        return model
 
     def make_data(self):
         print(
