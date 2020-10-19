@@ -22,8 +22,8 @@ _layers = dict(simpleRNN=SimpleRNN, dense=Dense,)
 
 
 class RNNTrainer(RNNLog):
-    def __init__(self,):
-        super(RNNTrainer, self).__init__()
+    def __init__(self, *args, **kwargs):
+        RNNLog.__init__(self, *args, **kwargs)
 
         # Get a few useful variabels
         self.task = ControlTask(

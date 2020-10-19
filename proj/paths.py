@@ -38,9 +38,5 @@ winstor_main = Path("/nfs/winstor/branco/Federico/Locomotion/control/data")
 winstor_trial_cache = (
     "/nfs/winstor/branco/Federico/Locomotion/control/m46_cache.h5"
 )
-
-# winstor_trial_cache = (
-#     "/nfs/winstor/branco/Federico/Locomotion/control/zanes.h5"
-# )
-
+winstor_rnn = "/nfs/winstor/branco/Federico/Locomotion/control/RNN"
 winstor_db_app = ""

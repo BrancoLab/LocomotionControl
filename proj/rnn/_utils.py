@@ -20,8 +20,10 @@ class RNNLog:
 
     _history = {"lr": [], "loss": []}
 
-    def __init__(self, mk_dir=True, folder=None):
-        self.main_fld = Path(paths.rnn)
+    def __init__(self, mk_dir=True, folder=None, winstor=False):
+        self.main_fld = (
+            Path(paths.rnn) if not winstor else Path(paths.winstor_rnn)
+        )
 
         self.load_config()
 
