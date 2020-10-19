@@ -71,10 +71,10 @@ def run_experiment(
     )
 
     # Try to predict the whole trace
-    try:
-        controller = controller.predict(trajectory)
-    except AttributeError:
-        pass
+    # try:
+    #     controller = controller.predict(trajectory)
+    # except AttributeError:
+    #     pass
 
     # RUN
     start = timestamp(just_time=True)
@@ -95,15 +95,16 @@ def run_experiment(
                 # obtain sol
                 if isinstance(controller, np.ndarray):
                     u = controller[itern, :]
-
-                    environment.curr_cost = dict(control=0, state=0, total=0)
                 else:
                     u = controller.obtain_sol(curr_x, g_xs)
 
-                    # get current cost
+                # get current cost
+                try:
                     environment.curr_cost = controller.calc_step_cost(
                         np.array(model.curr_x), u, g_xs[0, :]
                     )
+                except AttributeError:
+                    environment.curr_cost = dict(control=0, state=0, total=0)
 
                 if extra_controllers is not None:
                     compare_controllers(curr_x, g_xs, u, *extra_controllers)

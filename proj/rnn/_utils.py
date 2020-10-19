@@ -6,6 +6,7 @@ from pyinspect import install_traceback
 from pyinspect.utils import stringify
 import joblib
 from tensorflow.keras import models
+import shutil
 
 from fcutils.file_io.io import load_yaml, save_yaml
 
@@ -95,12 +96,29 @@ class RNNLog:
         log = stringify(log, maxlen=-1)
         savepath = self.folder / "log.txt"
 
-        with open(str(savepath), "w") as f:
+        with open(str(savepath), "w", encoding="utf-8") as f:
             f.write(log)
 
-    def load_normalizers(self):
-        _inp = joblib.load(self.input_scaler_path)
-        _out = joblib.load(self.output_scaler_path)
+    def save_data_to_training_folder(self):
+        # Save regularizers to RNN folder
+        _in, _out = self.load_normalizers()
+        joblib.dump(_in, str(self.folder / "input_scaler.pkl"))
+        joblib.dump(_out, str(self.folder / "output_scaler.pkl"))
+
+        # Save data to RNN folder
+        training_new_path = str(self.folder / "training_data.h5")
+        test_new_path = str(self.folder / "test_data.h5")
+
+        shutil.copy(self.dataset_train_path, training_new_path)
+        shutil.copy(self.dataset_test_path, test_new_path)
+
+    def load_normalizers(self, from_model_folder=False):
+        if from_model_folder:
+            _inp = joblib.load(self.folder / "input_scaler.pkl")
+            _out = joblib.load(self.folder / "output_scaler.pkl")
+        else:
+            _inp = joblib.load(self.input_scaler_path)
+            _out = joblib.load(self.output_scaler_path)
 
         return _inp, _out
 

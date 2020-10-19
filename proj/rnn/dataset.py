@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 
-# from scipy.signal import medfilt
+from scipy.signal import medfilt
 from rich.progress import track
 from rich.prompt import Confirm
 from rich import print
@@ -17,25 +17,23 @@ from pyinspect.utils import subdirs
 from proj.rnn._utils import RNNLog
 from proj.utils.misc import (
     load_results_from_folder,
-    # trajectory_at_each_simulation_step,
+    trajectory_at_each_simulation_step,
 )
 
 
 def get_delta_traj(trajectory, history):
-    # traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-    # # goal_traj = history[
-    # #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
-    # # ].values
+    traj_sim = trajectory_at_each_simulation_step(trajectory, history)
+    goal_traj = history[
+        ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
+    ].values
 
-    # # delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
-    # delta_traj = traj_sim[1:]  # ! Not using delta trajectory
+    delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
 
-    # smoothed = np.zeros_like(delta_traj)
-    # for i in range(delta_traj.shape[1]):
-    #     smoothed[:, i] = medfilt(delta_traj[:, i], 5)
+    smoothed = np.zeros_like(delta_traj)
+    for i in range(delta_traj.shape[1]):
+        smoothed[:, i] = medfilt(delta_traj[:, i], 5)
 
-    # return smoothed[:-50, :]  # ! skipping the last few
-    return trajectory
+    return smoothed[:-30, :]
 
 
 def plot_dataset(inputs, outputs):
@@ -139,6 +137,9 @@ class DatasetMaker(RNNLog):
 
     def make_dataset(self):
         trials_folders = subdirs(self.trials_folder)
+        print(
+            f"[bold magenta]Creating dataset...\nFound {len(trials_folders)} trials folders."
+        )
 
         input_scaler, output_scaler = self._standardize_dataset(trials_folders)
         if input_scaler is None:

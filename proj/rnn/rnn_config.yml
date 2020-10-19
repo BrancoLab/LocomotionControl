@@ -18,13 +18,13 @@ single_trial_mode: False  # for debugging
 # ---------------------------------------------------------------------------- #
 
 # ----------------------------------- Task ----------------------------------- #
-BATCH: 64
+BATCH: 128
 T: 2000
 dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 500  # ! EPOCHS
+EPOCHS: 200  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:
@@ -45,11 +45,12 @@ layers:
         activation: 'tanh'
         stateful: False
         trainable: True
+        kernel_initializer: null
   - 
         name: dense
         units: 2
         activation: 'tanh'
-        stateful: null
         trainable: False
+        kernel_initializer: 'uniform'
 
 loss: 'mse'

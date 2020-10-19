@@ -3,7 +3,6 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Dense, SimpleRNN, Masking
 from tensorflow.keras.optimizers.schedules import PiecewiseConstantDecay
 
-
 import numpy as np
 from pyinspect.utils import timestamp
 from pyinspect._colors import orange, lightorange
@@ -47,6 +46,7 @@ class RNNTrainer(RNNLog):
             activation=layer_params["activation"],
             name="Dense",
             trainable=layer_params["trainable"],
+            kernel_initializer=layer_params["kernel_initializer"],
         )
 
     def _make_rnn_layer(self, layer_params):
@@ -58,6 +58,8 @@ class RNNTrainer(RNNLog):
             return_sequences=True,
             name="Recurrent",
             trainable=layer_params["trainable"],
+            kernel_initializer=layer_params["kernel_initializer"],
+            stateful=layer_params["stateful"],
         )
 
     def make_model(self):
@@ -116,7 +118,7 @@ class RNNTrainer(RNNLog):
 
             model.add(l)
             self.log.add(
-                f'[green]Layer {n}[/green]  --  [b {lightorange}]{layer["name"]}[/b {lightorange}] - [blue]{layer["units"]}[/blue] units - [green]{layer["activation"]}[/green] activation - stateful {layer["stateful"]}'
+                f'[green]Layer {n}[/green]  --  [b {lightorange}]{layer["name"]}[/b {lightorange}] - [blue]{layer["units"]}[/blue] units - [green]{layer["activation"]}[/green] activation'
             )
 
         # ---------------------------------- compile --------------------------------- #
@@ -138,7 +140,7 @@ class RNNTrainer(RNNLog):
 
     def make_data(self):
         print(
-            f"[bold magenta]Creating training data... [dim]from: {self.dataset_path.parent.name}"
+            f"[bold magenta]Creating training data... [dim]from: {self.dataset_test_path.parent.name}"
         )
 
         X, Y = [], []
@@ -187,7 +189,7 @@ class RNNTrainer(RNNLog):
                 verbose=0,
                 callbacks=[self.callback],
                 use_multiprocessing=True,
-                workers=8,
+                workers=24,
                 # validation_split=0.2,
                 sample_weight=sw,
             )
@@ -206,17 +208,20 @@ class RNNTrainer(RNNLog):
         )
 
         self.log.spacer(2)
-        self.log.add(f"Saving model at: {self.rnn_weights_save_path}")
+        self.log.add(f"Saving model at:\n {self.rnn_weights_save_path}")
         model.save(self.rnn_weights_save_path)
 
         self.wrap_up(model, history)
 
     def wrap_up(self, model, history):
         self.log.print()
-        self.save_log(self.log)
 
+        # Save a bunch of stuff
+        self.save_log(self.log)
+        self.save_data_to_training_folder()
         self.save_config()
 
+        # Plot a bunch of stuff
         self.plot_weights(model)
         self.plot_training_history(history)
         try:
@@ -274,7 +279,16 @@ class RNNTrainer(RNNLog):
         save_figure(f, self.folder / "loss", verbose=False)
 
     def plot_training_evaluation(self, model):
-        # Get an example trial
+        # Get a new task with the training set
+        self.task = ControlTask(
+            dt=self.config["dt"],
+            tau=self.config["tau"],
+            T=self.config["T"],
+            N_batch=16,
+            test_data=True,
+        )
+
+        # Get an example batch
         y_pred, exc = None, None
         for i in range(5):
             x, y, mask, trial_params = self.task.get_trial_batch()

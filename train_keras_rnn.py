@@ -8,14 +8,15 @@ if not train:
     maker = DatasetMaker()
     maker.make_dataset()
 
-
 # ? Train
 if train:
     trainer = RNNTrainer()
     trainer.train()
 
-# TODO copy dataset to saved RNN folder?
 # TODO look into normalizations etc.
 # TODO parameters grid search
-# TODO set it up to work on HPC and use GPU
-# TODO train/test split
+# TODO set it up to work on HPC
+
+"""
+C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\libnvvp;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\bin;
+"""
