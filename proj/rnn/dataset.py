@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 
-from scipy.signal import medfilt
+# from scipy.signal import medfilt
 from rich.progress import track
 from rich.prompt import Confirm
 from rich import print
@@ -29,11 +29,11 @@ def get_delta_traj(trajectory, history):
 
     delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
 
-    smoothed = np.zeros_like(delta_traj)
-    for i in range(delta_traj.shape[1]):
-        smoothed[:, i] = medfilt(delta_traj[:, i], 5)
+    # smoothed = np.zeros_like(delta_traj)
+    # for i in range(delta_traj.shape[1]):
+    #     smoothed[:, i] = medfilt(delta_traj[:, i], 5)
 
-    return smoothed[:-30, :]
+    return delta_traj
 
 
 def plot_dataset(inputs, outputs):

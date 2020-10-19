@@ -94,13 +94,18 @@ class RNNController(RNNLog):
         return self.out_normalizer.inverse_transform(pred[0, :, :])
 
     def obtain_sol(self, curr_x, g_xs):
-        delta = (g_xs - curr_x)[0, :]
+        delta = g_xs[0, :] - curr_x
+
+        # if np.any(delta > self.in_normalizer.data_max_) or np.any(delta < self.in_normalizer.data_min_):
+        #     raise ValueError(
+        #         ":bomb: Data outside of normalizer's range!!"
+        #     )
+
         delta = self.in_normalizer.transform(delta.reshape(1, -1))
 
-        if delta.max() > 1 or delta.min() < -1:
-            raise ValueError(
-                ":bomb: something went wrong normalizing inputs!!"
-            )
+        # ! testing stuff
+        delta[delta > 1] = 1
+        delta[delta < -1] = -1
 
         delta = delta.reshape(1, 1, -1)
 

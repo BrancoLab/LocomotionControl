@@ -13,10 +13,8 @@ if train:
     trainer = RNNTrainer()
     trainer.train()
 
+# ! TODO look into time steps resolution and match it to simulations
+# TODO ! https://stackoverflow.com/questions/54009661/what-is-the-timestep-in-keras-lstm
+
 # TODO look into normalizations etc.
 # TODO parameters grid search
-# TODO set it up to work on HPC
-
-"""
-C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\libnvvp;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.1\\bin;
-"""
