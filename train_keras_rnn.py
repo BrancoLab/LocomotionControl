@@ -1,7 +1,7 @@
 from proj.rnn.dataset import DatasetMaker
 from proj.rnn.train import RNNTrainer
 
-train = False
+train = True
 
 # ? Make dataset
 if not train:

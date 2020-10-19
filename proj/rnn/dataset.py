@@ -135,7 +135,7 @@ class DatasetMaker(RNNLog):
         train.to_hdf(self.dataset_train_path, key="hdf")
         test.to_hdf(self.dataset_test_path, key="hdf")
 
-        print(f"Saved at {self.dataset_path}, {len(data)} trials")
+        print(f"Saved at {self.dataset_train_path}, {len(data)} trials")
 
     def make_dataset(self):
         trials_folders = subdirs(self.trials_folder)
