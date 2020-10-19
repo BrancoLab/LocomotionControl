@@ -168,12 +168,7 @@ class RNNTrainer(RNNLog):
             return np.concatenate(X), np.concatenate(Y), mask
 
         # If it's a lot of epochs it's faster to just get the whole thing at once
-        self.task = ControlTask(
-            dt=self.config["dt"],
-            tau=self.config["tau"],
-            T=self.config["T"],
-            N_batch=2000,
-        )
+        self.task.N_batch = self.task._n_trials
         x, y, mask, trial_params = self.task.get_trial_batch()
         return x, y, mask
 
