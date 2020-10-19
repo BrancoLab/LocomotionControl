@@ -22,15 +22,26 @@ _layers = dict(simpleRNN=SimpleRNN, dense=Dense,)
 
 
 class RNNTrainer(RNNLog):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, wrap_up=True, **kwargs):
         RNNLog.__init__(self, *args, **kwargs)
 
         # Get a few useful variabels
         self.task = ControlTask(
+            *args,
             dt=self.config["dt"],
             tau=self.config["tau"],
             T=self.config["T"],
             N_batch=self.config["BATCH"],
+            **kwargs,
+        )
+
+        self.eval_task = ControlTask(
+            dt=self.config["dt"],
+            tau=self.config["tau"],
+            T=self.config["T"],
+            N_batch=16,
+            test_data=True,
+            **kwargs,
         )
 
         x, y, mask, trial_params = self.task.get_trial_batch()
@@ -39,6 +50,8 @@ class RNNTrainer(RNNLog):
         self.N_inputs = x.shape[2]
         self.N_outputs = y.shape[2]
         self.batch_input_shape = x.shape
+
+        self._wrap_up = wrap_up
 
     def _make_dense_layer(self, layer_params):
         return _layers[layer_params["name"]](
@@ -279,19 +292,10 @@ class RNNTrainer(RNNLog):
         save_figure(f, self.folder / "loss", verbose=False)
 
     def plot_training_evaluation(self, model):
-        # Get a new task with the training set
-        self.task = ControlTask(
-            dt=self.config["dt"],
-            tau=self.config["tau"],
-            T=self.config["T"],
-            N_batch=16,
-            test_data=True,
-        )
-
         # Get an example batch
         y_pred, exc = None, None
         for i in range(5):
-            x, y, mask, trial_params = self.task.get_trial_batch()
+            x, y, mask, trial_params = self.eval_task.get_trial_batch()
 
             # predict
             try:
