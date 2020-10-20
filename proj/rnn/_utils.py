@@ -38,7 +38,7 @@ class RNNLog:
             self.folder = Path(folder)
 
         # make useful paths
-        self.trials_folder = self.main_fld / "training_data"
+        self.trials_folder = self.main_fld / self.config["dataset_folder"]
         self.dataset_folder = (
             self.main_fld / f'dataset_{self.config["dataset_normalizer"]}'
         )

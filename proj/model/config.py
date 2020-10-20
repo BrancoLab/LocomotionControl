@@ -82,7 +82,7 @@ class Config:
     # ------------------------------ Planning params ----------------------------- #
     planning = dict(  # params used to compute goal states to be used for control
         prediction_length=50,
-        n_ahead=5,  # start prediction states from N steps ahead
+        n_ahead=0,  # start prediction states from N steps ahead
     )
 
     # --------------------------------- Plotting --------------------------------- #

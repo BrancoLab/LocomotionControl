@@ -21,12 +21,28 @@ class RNNController(ControlRNN):
         if np.any(delta > self.in_normalizer.data_max_) or np.any(
             delta < self.in_normalizer.data_min_
         ):
-            raise ValueError(":bomb: Data outside of normalizer's range!!")
+            # raise ValueError(":bomb: Data outside of normalizer's range!!")
+            print(":bomb: Data outside of normalizer's range!!")
 
         delta = self.in_normalizer.transform(delta.reshape(1, -1))
+
+        delta[delta > 1] = 1
+        delta[delta < -1] = -1
+        # TODO remove
+
         delta = delta.reshape(1, 1, -1)
 
         u = self.rnn.predict(delta)[0, 0, :]
+
+        if np.any(u > self.out_normalizer.data_max_) or np.any(
+            u < self.out_normalizer.data_min_
+        ):
+            # raise ValueError(":bomb: Data outside of normalizer's range!!")
+            print(":x: Control outside of normalizer's range!!")
+            u[u > 1] = 1
+            u[u < -1] = -1
+            # TODO remove
+
         u = self.out_normalizer.inverse_transform(u.reshape(1, -1))
 
         return u[0, :]

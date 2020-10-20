@@ -24,7 +24,6 @@ def compare_controllers(curr_x, g_xs, main_controller_u, *controllers):
         )
     print(
         f"[{mocassin}]               difference: [{lilla}]{[int(round(x-y)) for x,y in zip(sol, main_controller_u)]}"
-        + f"   sum: {np.sum(main_controller_u):.0f}  diff: {np.diff(main_controller_u)[0]:.0f}"
     )
     print("\n\n")
 
@@ -61,7 +60,6 @@ def run_experiment(
         logger.info("Failed to get a valid trajectory")
         environment.failed()
         return
-
     model.reset()
 
     # Get number of steps

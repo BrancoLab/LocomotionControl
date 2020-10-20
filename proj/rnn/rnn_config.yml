@@ -1,10 +1,11 @@
-name: RNN_100units_scale
+name: RNN_test
 
 # ---------------------------------------------------------------------------- #
 #                                    datast                                    #
 # ---------------------------------------------------------------------------- #
 interactive: False
 
+dataset_folder: 'test_dataset'
 training_data_description: ''
 dataset_normalizer: 'scale'  # or scale / standardize
 n_trials_training: ''
@@ -24,7 +25,7 @@ dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 100  # ! EPOCHS
+EPOCHS: 250  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:

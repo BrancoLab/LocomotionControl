@@ -26,9 +26,9 @@ alt_control = Controller(model)
 # ? RUN
 run_experiment(
     env,
-    control,
+    alt_control,
     model,
     n_secs=3,
     wrap_up=False,
-    # extra_controllers=[alt_control],
+    extra_controllers=[control],
 )

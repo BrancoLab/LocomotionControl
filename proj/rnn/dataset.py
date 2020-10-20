@@ -2,14 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
-
-# from scipy.signal import medfilt
 from rich.progress import track
 from rich.prompt import Confirm
 from rich import print
 import numpy as np
 
-# from scipy.signal import resample
 
 from pyinspect.utils import subdirs
 
@@ -26,13 +23,10 @@ def get_delta_traj(trajectory, history):
         ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
     ].values
 
-    delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
+    delta_traj = goal_traj - traj_sim
 
-    # smoothed = np.zeros_like(delta_traj)
-    # for i in range(delta_traj.shape[1]):
-    #     smoothed[:, i] = medfilt(delta_traj[:, i], 5)
-
-    return delta_traj
+    # TODO remove this scaling factor
+    return delta_traj * 5
 
 
 def plot_dataset(inputs, outputs):
@@ -102,14 +96,8 @@ class DatasetMaker(RNNLog):
         _out[_out > self.trim_controls] = self.trim_controls
         _out[_out < -self.trim_controls] = -self.trim_controls
 
-        input_scaler = input_scaler.fit(
-            _in * 3
-        )  # ! multiplyin stuff before scaling
-        # TODO remove this scaling factor
-        output_scaler = output_scaler.fit(
-            _out * 3
-        )  # ! multiplyin stuff before scaling
-        # TODO remove this scaling factor
+        input_scaler = input_scaler.fit(_in)
+        output_scaler = output_scaler.fit(_out)
 
         if self.config["interactive"]:
             print("Visualizing dataset")
