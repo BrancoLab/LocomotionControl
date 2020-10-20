@@ -103,8 +103,14 @@ class DatasetMaker(RNNLog):
         _out[_out > self.trim_controls] = self.trim_controls
         _out[_out < -self.trim_controls] = -self.trim_controls
 
-        input_scaler = input_scaler.fit(_in * 3)
-        output_scaler = output_scaler.fit(_out * 3)
+        input_scaler = input_scaler.fit(
+            _in * 3
+        )  # ! multiplyin stuff before scaling
+        # TODO remove this scaling factor
+        output_scaler = output_scaler.fit(
+            _out * 3
+        )  # ! multiplyin stuff before scaling
+        # TODO remove this scaling factor
 
         if self.config["interactive"]:
             print("Visualizing dataset")

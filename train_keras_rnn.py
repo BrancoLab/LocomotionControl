@@ -13,7 +13,7 @@ if train:
     trainer = RNNTrainer()
     trainer.train()
 
-# ! TODO look into time steps resolution and match it to simulations
+#   TODO look into time steps resolution and match it to simulations
 
 # TODO make winstor save to dropbox
 

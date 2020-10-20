@@ -22,7 +22,7 @@ class RNNTrainer(ControlRNN):
             dt=self.config["dt"],
             tau=self.config["tau"],
             T=self.config["T"],
-            N_batch=16,
+            N_batch=self.config["BATCH"],
             test_data=True,
             **kwargs,
         )

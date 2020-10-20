@@ -1,4 +1,4 @@
-name: RNN_100units
+name: RNN_100units_scale
 
 # ---------------------------------------------------------------------------- #
 #                                    datast                                    #
@@ -18,13 +18,13 @@ single_trial_mode: False  # for debugging
 # ---------------------------------------------------------------------------- #
 
 # ----------------------------------- Task ----------------------------------- #
-BATCH: 128
+BATCH: 32
 T: 2000
 dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 100  # ! EPOCHS
+EPOCHS: 30  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:
@@ -46,6 +46,8 @@ layers:
         stateful: False
         trainable: True
         kernel_initializer: null
+        dt: 0.005
+        tau: 0.1
   - 
         name: dense
         units: 2
