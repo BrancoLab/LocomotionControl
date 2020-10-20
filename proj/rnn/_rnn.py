@@ -3,7 +3,7 @@ from tensorflow.keras.layers import (
     Masking,
     Layer,
     RNN,
-    # SimpleRNN,
+    SimpleRNN,
     # SimpleRNNCell,
 )
 from tensorflow.python.keras.layers.recurrent import DropoutRNNCellMixin
@@ -308,16 +308,14 @@ class CTRNN(RNN):
             "dropout": self.dropout,
             "recurrent_dropout": self.recurrent_dropout,
         }
+
         base_config = super(CTRNN, self).get_config()
-        del base_config["cell"]
         return dict(list(base_config.items()) + list(config.items()))
 
     @classmethod
     def from_config(cls, config):
-        if "implementation" in config:
-            config.pop("implementation")
-        print(config.keys())
-        return cls(**config)
+        cell = config.pop("cell", None)
+        return cls(cell, **config)
 
 
 # ---------------------------------------------------------------------------- #
@@ -348,7 +346,7 @@ def make_rnn_layer(
     layer_params, batch_input_shape, input_shape=None, for_prediction=False
 ):
     if not for_prediction:
-        return CTRNN(
+        return SimpleRNN(
             units=layer_params["units"],
             activation=layer_params["activation"],
             input_shape=input_shape,
@@ -358,11 +356,11 @@ def make_rnn_layer(
             trainable=layer_params["trainable"],
             kernel_initializer=layer_params["kernel_initializer"],
             stateful=layer_params["stateful"],
-            dt=layer_params["dt"],
-            tau=layer_params["tau"],
+            # dt=layer_params["dt"],
+            # tau=layer_params["tau"],
         )
     else:
-        return CTRNN(
+        return SimpleRNN(
             units=layer_params["units"],
             activation=layer_params["activation"],
             batch_input_shape=(1, 1, batch_input_shape[2]),
@@ -371,8 +369,8 @@ def make_rnn_layer(
             trainable=False,
             kernel_initializer=layer_params["kernel_initializer"],
             stateful=True,
-            dt=layer_params["dt"],
-            tau=layer_params["tau"],
+            # dt=layer_params["dt"],
+            # tau=layer_params["tau"],
         )
 
 
@@ -382,8 +380,9 @@ def changes_batch_size(n_batch):
         def wrapper(instance, *args, **kwargs):
             _n_batch = instance.task.N_batch
             instance.task.N_batch = n_batch
-            method(instance, *args, **kwargs)
+            out = method(instance, *args, **kwargs)
             instance.task.N_batch = _n_batch
+            return out
 
         return wrapper
 

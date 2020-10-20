@@ -8,7 +8,6 @@ from rich.progress import track
 from rich.prompt import Confirm
 from rich import print
 import numpy as np
-import joblib
 
 # from scipy.signal import resample
 
@@ -118,17 +117,13 @@ class DatasetMaker(RNNLog):
 
             if Confirm.ask("Continue with [b]dataset creation?", default=True):
                 # Save normalizer to invert the process in the future
-                joblib.dump(input_scaler, str(self.input_scaler_path))
-                joblib.dump(output_scaler, str(self.output_scaler_path))
-
+                self.save_normalizers(input_scaler, output_scaler, _in, _out)
                 return input_scaler, output_scaler
             else:
                 print("Did not create dataset")
                 return None, None
         else:
-            joblib.dump(input_scaler, str(self.input_scaler_path))
-            joblib.dump(output_scaler, str(self.output_scaler_path))
-
+            self.save_normalizers(input_scaler, output_scaler, _in, _out)
             return input_scaler, output_scaler
 
     def _split_and_save(self, data):

@@ -1,6 +1,7 @@
 from tensorflow import keras
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import PiecewiseConstantDecay
+from tensorflow.keras import models
 
 from pyinspect._colors import orange, lightorange
 
@@ -37,6 +38,11 @@ class ControlRNN(RNNLog):
         self.N_inputs = x.shape[2]
         self.N_outputs = y.shape[2]
         self.batch_input_shape = x.shape
+
+    def load_model(self, custom_objects=None):
+        return models.load_model(
+            self.rnn_weights_save_path, custom_objects=custom_objects
+        )
 
     @changes_batch_size(1)
     def make_model_for_prediction(self):

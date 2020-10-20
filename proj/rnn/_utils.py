@@ -5,8 +5,8 @@ from pyinspect import Report
 from pyinspect import install_traceback
 from pyinspect.utils import stringify
 import joblib
-from tensorflow.keras import models
 import shutil
+import numpy as np
 
 from fcutils.file_io.io import load_yaml, save_yaml
 
@@ -47,8 +47,23 @@ class RNNLog:
         self.dataset_train_path = self.dataset_folder / "training_data.h5"
         self.dataset_test_path = self.dataset_folder / "test_data.h5"
 
-        self.input_scaler_path = self.dataset_folder / "input_scaler.pkl"
-        self.output_scaler_path = self.dataset_folder / "output_scaler.pkl"
+        self.input_scaler_path = self.dataset_folder / "input_scaler.joblib"
+        self.output_scaler_path = self.dataset_folder / "output_scaler.joblib"
+        self.input_scaler_data_path = (
+            self.dataset_folder / "input_scaler_data.npy"
+        )
+        self.output_scaler_data_path = (
+            self.dataset_folder / "output_scaler_data.npy"
+        )
+
+        self.input_scaler_folder_path = self.folder / "input_scaler.joblib"
+        self.output_scaler_folder_path = self.folder / "output_scaler.joblib"
+        self.input_scaler_data_folder_path = (
+            self.folder / "input_scaler_data.npy"
+        )
+        self.output_scaler_data_folder_path = (
+            self.folder / "output_scaler_data.npy"
+        )
 
         self.rnn_weights_save_path = self.folder / "trained_model.h5"
 
@@ -104,27 +119,47 @@ class RNNLog:
     def save_data_to_training_folder(self):
         # Save regularizers to RNN folder
         _in, _out = self.load_normalizers()
-        joblib.dump(_in, str(self.folder / "input_scaler.pkl"))
-        joblib.dump(_out, str(self.folder / "output_scaler.pkl"))
+        joblib.dump(_in, str(self.input_scaler_folder_path))
+        joblib.dump(_out, str(self.output_scaler_folder_path))
 
         # Save data to RNN folder
         training_new_path = str(self.folder / "training_data.h5")
         test_new_path = str(self.folder / "test_data.h5")
 
+        # Copy datasets and normalizers
         shutil.copy(self.dataset_train_path, training_new_path)
         shutil.copy(self.dataset_test_path, test_new_path)
 
+        shutil.copy(self.input_scaler_path, self.input_scaler_folder_path)
+        shutil.copy(self.output_scaler_path, self.output_scaler_folder_path)
+
+        shutil.copy(
+            self.input_scaler_data_path, self.input_scaler_data_folder_path
+        )
+        shutil.copy(
+            self.output_scaler_data_path, self.output_scaler_data_folder_path
+        )
+
     def load_normalizers(self, from_model_folder=False):
         if from_model_folder:
-            _inp = joblib.load(self.folder / "input_scaler.pkl")
-            _out = joblib.load(self.folder / "output_scaler.pkl")
+            _inp = joblib.load(self.input_scaler_folder_path)
+            _out = joblib.load(self.output_scaler_folder_path)
+            _in_data = np.load(self.input_scaler_data_folder_path)
+            _out_data = np.load(self.output_scaler_data_folder_path)
         else:
             _inp = joblib.load(self.input_scaler_path)
             _out = joblib.load(self.output_scaler_path)
+            _in_data = np.load(self.input_scaler_data_path)
+            _out_data = np.load(self.output_scaler_data_path)
+
+        _inp = _inp.fit(_in_data)
+        _out = _out.fit(_out_data)
 
         return _inp, _out
 
-    def load_model(self, custom_objects=None):
-        return models.load_model(
-            self.rnn_weights_save_path, custom_objects=custom_objects
-        )
+    def save_normalizers(self, _in, _out, _in_data, _out_data):
+        joblib.dump(_in, str(self.input_scaler_path))
+        joblib.dump(_out, str(self.output_scaler_path))
+
+        np.save(str(self.input_scaler_data_path), _in_data)
+        np.save(str(self.output_scaler_data_path), _out_data)

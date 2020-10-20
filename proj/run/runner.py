@@ -70,12 +70,6 @@ def run_experiment(
         f"\n\n[bold  green]Starting simulation with {n_steps} steps [{n_secs}s at {model.dt} s/step][/bold  green]"
     )
 
-    # Try to predict the whole trace
-    # try:
-    #     controller = controller.predict(trajectory)
-    # except AttributeError:
-    #     pass
-
     # RUN
     start = timestamp(just_time=True)
     with progress:
@@ -93,10 +87,7 @@ def run_experiment(
                     break  # we're done here
 
                 # obtain sol
-                if isinstance(controller, np.ndarray):
-                    u = controller[itern, :]
-                else:
-                    u = controller.obtain_sol(curr_x, g_xs)
+                u = controller.obtain_sol(curr_x, g_xs)
 
                 # get current cost
                 try:
@@ -110,7 +101,9 @@ def run_experiment(
                     compare_controllers(curr_x, g_xs, u, *extra_controllers)
 
                 # step
-                model.step(u, g_xs[0, :])
+                model.step(
+                    u, g_xs[1, :]
+                )  # g_xs[1, :] is used to keep a history of state delta
 
                 # update world
                 environment.itern = itern

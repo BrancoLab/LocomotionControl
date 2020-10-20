@@ -2,6 +2,7 @@ import pyinspect
 
 pyinspect.install_traceback()
 
+from pathlib import Path
 from proj import (
     Model,
     Environment,
@@ -9,6 +10,7 @@ from proj import (
     run_experiment,
     Controller,
 )
+from proj import paths
 
 # ? setup other stuff
 model = Model()
@@ -17,9 +19,7 @@ env = Environment(model)
 
 
 # ? Setup RNN controller
-# fld = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\RNN\\RNN_100units_good"
-fld = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/RNN/RNN_100units_scale_201020_092402"
-
+fld = Path(paths.rnn) / "RNN_100units_good"
 control = RNNController(fld)
 alt_control = Controller(model)
 
