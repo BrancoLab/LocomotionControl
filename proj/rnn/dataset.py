@@ -24,9 +24,7 @@ def get_delta_traj(trajectory, history):
     ].values
 
     delta_traj = goal_traj - traj_sim
-
-    # TODO remove this scaling factor
-    return delta_traj * 5
+    return delta_traj
 
 
 def plot_dataset(inputs, outputs):

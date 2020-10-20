@@ -307,10 +307,13 @@ class Model(Config):
         args = [L, R, theta, v, omega]
         self.calc_wheels_accels = lambdify(args, nu, modules="numpy")
 
-    def step(self, u, curr_goal):
+    def step(self, u, curr_goal, save_first=False):
         self.curr_goal = self._goal(*curr_goal)
-
         u = self._control(*np.array(u))
+
+        if save_first:
+            self._append_history()
+
         self.curr_x = self._state(*self.curr_x)
 
         # Compute dxdt
