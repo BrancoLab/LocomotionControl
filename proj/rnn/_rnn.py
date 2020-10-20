@@ -316,6 +316,7 @@ class CTRNN(RNN):
     def from_config(cls, config):
         if "implementation" in config:
             config.pop("implementation")
+        print(config.keys())
         return cls(**config)
 
 

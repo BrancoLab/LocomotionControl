@@ -13,6 +13,7 @@ from proj.rnn._rnn import (
 from proj.rnn._utils import RNNLog
 from proj.rnn.task import ControlTask
 from proj.utils.progress_bars import train_progress, CustomCallback
+from proj.rnn._rnn import CTRNN
 
 
 class ControlRNN(RNNLog):
@@ -46,7 +47,7 @@ class ControlRNN(RNNLog):
         x, y, mask, trial_params = self.task.get_trial_batch()
 
         # Load trained RNN
-        trained_rnn = self.load_model()
+        trained_rnn = self.load_model(custom_objects={"CTRNN": CTRNN})
 
         # Make new stateful model
         model = keras.Sequential()

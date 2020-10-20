@@ -124,5 +124,7 @@ class RNNLog:
 
         return _inp, _out
 
-    def load_model(self):
-        return models.load_model(self.rnn_weights_save_path)
+    def load_model(self, custom_objects=None):
+        return models.load_model(
+            self.rnn_weights_save_path, custom_objects=custom_objects
+        )
