@@ -23,7 +23,10 @@ def get_delta_traj(trajectory, history):
         ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
     ].values
 
-    delta_traj = goal_traj - traj_sim
+    # delta_traj = goal_traj - traj_sim
+    delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
+
+    # TODO Fix this once new data come in
     return delta_traj
 
 

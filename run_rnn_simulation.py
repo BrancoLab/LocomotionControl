@@ -19,16 +19,16 @@ env = Environment(model)
 
 
 # ? Setup RNN controller
-fld = Path(paths.rnn) / "RNN_100units_good"
+fld = Path(paths.rnn) / "RNN_test_201020_143921"
 control = RNNController(fld)
 alt_control = Controller(model)
 
 # ? RUN
 run_experiment(
     env,
-    alt_control,
+    control,
     model,
     n_secs=3,
     wrap_up=False,
-    extra_controllers=[control],
+    # extra_controllers=[control],
 )

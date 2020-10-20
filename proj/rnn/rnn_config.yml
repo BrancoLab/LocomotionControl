@@ -5,7 +5,7 @@ name: RNN_test
 # ---------------------------------------------------------------------------- #
 interactive: False
 
-dataset_folder: 'test_dataset'
+dataset_folder: 'training_data'
 training_data_description: ''
 dataset_normalizer: 'scale'  # or scale / standardize
 n_trials_training: ''

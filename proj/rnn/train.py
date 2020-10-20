@@ -33,20 +33,20 @@ class RNNTrainer(ControlRNN):
         )
 
         X, Y = [], []
-        if self.config["EPOCHS"] < 101:
-            for i in track(
-                range(self.config["EPOCHS"]), description="Preparing data..."
-            ):
-                x, y, mask, trial_params = self.task.get_trial_batch()
-                X.append(x)
-                Y.append(y)
+        # if self.config["EPOCHS"] < 101:
+        for i in track(
+            range(self.config["EPOCHS"]), description="Preparing data..."
+        ):
+            x, y, mask, trial_params = self.task.get_trial_batch()
+            X.append(x)
+            Y.append(y)
 
-            return np.concatenate(X), np.concatenate(Y), mask
+        return np.concatenate(X), np.concatenate(Y), mask
 
         # If it's a lot of epochs it's faster to just get the whole thing at once
-        self.task.N_batch = self.task._n_trials
-        x, y, mask, trial_params = self.task.get_trial_batch()
-        return x, y, mask
+        # self.task.N_batch = self.task._n_trials
+        # x, y, mask, trial_params = self.task.get_trial_batch()
+        # return x, y, mask
 
     def train(self):
         self.save_config()
