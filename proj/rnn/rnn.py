@@ -99,6 +99,7 @@ class ControlRNN(RNNLog):
             name="Adam",
             clipvalue=self.config["clipvalue"],
             amsgrad=self.config["amsgrad"],
+            clipnorm=self.config["clipnorm "],
         )
 
         self.log.add(

@@ -3,6 +3,8 @@ from proj.rnn.train import RNNTrainer
 
 train = True
 
+# TODO make it predict wheels velocity instead of controls
+
 # ? Make dataset
 if not train:
     maker = DatasetMaker()

@@ -17,17 +17,22 @@ from proj.utils.misc import (
 )
 
 
-def get_delta_traj(trajectory, history):
+def get_inputs(trajectory, history):
     traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-    goal_traj = history[
-        ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
-    ].values
+    # goal_traj = history[
+    #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
+    # ].values
 
     # delta_traj = goal_traj - traj_sim
-    delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
+    # delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
 
     # TODO Fix this once new data come in
-    return delta_traj
+    return traj_sim
+
+
+def get_outputs(history):
+    # return np.vstack([history["tau_r"][1:], history["tau_l"][1:]])
+    return np.vstack([history["nudot_right"][1:], history["nudot_left"][1:]])
 
 
 def plot_dataset(inputs, outputs):
@@ -84,13 +89,11 @@ class DatasetMaker(RNNLog):
                 continue
 
             # stack inputs
-            delta_traj = get_delta_traj(trajectory, history)
+            delta_traj = get_inputs(trajectory, history)
             all_trajs.append(delta_traj)
 
             # stack outputs
-            all_outputs.append(
-                np.vstack([history["tau_r"][1:], history["tau_l"][1:]])
-            )
+            all_outputs.append(get_outputs(history))
 
         # fit normalizer
         _in, _out = np.vstack(all_trajs), np.hstack(all_outputs).T
@@ -151,9 +154,9 @@ class DatasetMaker(RNNLog):
                 continue
 
             # Get inputs and outputs
-            delta_traj = get_delta_traj(trajectory, history)
+            delta_traj = get_inputs(trajectory, history)
 
-            out = np.vstack([history["tau_r"][:-1], history["tau_l"][:-1]]).T
+            out = get_outputs(history).T
             out[out > self.trim_controls] = self.trim_controls
             out[out < -self.trim_controls] = -self.trim_controls
 

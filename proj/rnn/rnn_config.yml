@@ -1,4 +1,4 @@
-name: RNN_test
+name: RNN_wheel_speeds
 
 # ---------------------------------------------------------------------------- #
 #                                    datast                                    #
@@ -25,7 +25,7 @@ dt: 5
 tau: 100
 
 # --------------------------------- Training --------------------------------- #
-EPOCHS: 250  # ! EPOCHS
+EPOCHS: 500  # ! EPOCHS
 steps_per_epoch: 16
 
 lr_schedule:
@@ -35,6 +35,7 @@ lr_schedule:
 
 optimizer: 'Adam'
 clipvalue: null
+clipnorm: 1
 amsgrad: True
 sample_weight: null
 
@@ -49,6 +50,9 @@ layers:
         kernel_initializer: null
         dt: 0.005
         tau: 0.1
+        bias_regularizer: null
+        recurrent_regularizer: null
+        kernel_regularizer: null
   - 
         name: dense
         units: 2
