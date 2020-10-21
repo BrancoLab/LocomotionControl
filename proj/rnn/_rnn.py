@@ -18,6 +18,92 @@ from tensorflow.python.keras.utils import tf_utils
 from tensorflow.python.util import nest
 from tensorflow.python.keras import backend as K
 
+"""
+    Utility functions to help with the creation of RNNs in Keras
+"""
+
+
+# ---------------------------------------------------------------------------- #
+#                                 Layers Makers                                #
+# ---------------------------------------------------------------------------- #
+
+
+def make_masking_layer(input_shape, batch_input_shape=None):
+    return Masking(
+        mask_value=0.0,
+        input_shape=input_shape,
+        batch_input_shape=batch_input_shape,
+        name="mask",
+    )
+
+
+def make_dense_layer(layer_params):
+    return Dense(
+        units=layer_params["units"],
+        activation=layer_params["activation"],
+        name="Dense",
+        trainable=layer_params["trainable"],
+        kernel_initializer=layer_params["kernel_initializer"],
+    )
+
+
+def make_rnn_layer(
+    layer_params, batch_input_shape, input_shape=None, for_prediction=False
+):
+    if not for_prediction:
+        return SimpleRNN(
+            units=layer_params["units"],
+            activation=layer_params["activation"],
+            input_shape=input_shape,
+            batch_input_shape=batch_input_shape,
+            return_sequences=True,
+            name="Recurrent",
+            trainable=layer_params["trainable"],
+            kernel_initializer=layer_params["kernel_initializer"],
+            stateful=layer_params["stateful"],
+            # dt=layer_params["dt"],
+            # tau=layer_params["tau"],
+        )
+    else:
+        return SimpleRNN(
+            units=layer_params["units"],
+            activation=layer_params["activation"],
+            batch_input_shape=(1, 1, batch_input_shape[2]),
+            return_sequences=True,
+            name="Recurrent",
+            trainable=False,
+            kernel_initializer=layer_params["kernel_initializer"],
+            stateful=True,
+            # dt=layer_params["dt"],
+            # tau=layer_params["tau"],
+        )
+
+
+def changes_batch_size(n_batch):
+    """
+        A decorator for RNNLog (and children) methods than 
+        need to change the batch size of the `task` used to generate
+        trial data for the RNN (e.g. for validation vs training)
+    """
+
+    def inner(method):
+        @wraps(method)
+        def wrapper(instance, *args, **kwargs):
+            _n_batch = instance.task.N_batch
+            instance.task.N_batch = n_batch
+            out = method(instance, *args, **kwargs)
+            instance.task.N_batch = _n_batch
+            return out
+
+        return wrapper
+
+    return inner
+
+
+# ---------------------------------------------------------------------------- #
+#                          Continuous Time RNN layers                          #
+# ---------------------------------------------------------------------------- #
+
 
 class CTRNNCell(DropoutRNNCellMixin, Layer):
     def __init__(
@@ -316,74 +402,3 @@ class CTRNN(RNN):
     def from_config(cls, config):
         cell = config.pop("cell", None)
         return cls(cell, **config)
-
-
-# ---------------------------------------------------------------------------- #
-#                                 Layers Makers                                #
-# ---------------------------------------------------------------------------- #
-
-
-def make_masking_layer(input_shape, batch_input_shape=None):
-    return Masking(
-        mask_value=0.0,
-        input_shape=input_shape,
-        batch_input_shape=batch_input_shape,
-        name="mask",
-    )
-
-
-def make_dense_layer(layer_params):
-    return Dense(
-        units=layer_params["units"],
-        activation=layer_params["activation"],
-        name="Dense",
-        trainable=layer_params["trainable"],
-        kernel_initializer=layer_params["kernel_initializer"],
-    )
-
-
-def make_rnn_layer(
-    layer_params, batch_input_shape, input_shape=None, for_prediction=False
-):
-    if not for_prediction:
-        return SimpleRNN(
-            units=layer_params["units"],
-            activation=layer_params["activation"],
-            input_shape=input_shape,
-            batch_input_shape=batch_input_shape,
-            return_sequences=True,
-            name="Recurrent",
-            trainable=layer_params["trainable"],
-            kernel_initializer=layer_params["kernel_initializer"],
-            stateful=layer_params["stateful"],
-            # dt=layer_params["dt"],
-            # tau=layer_params["tau"],
-        )
-    else:
-        return SimpleRNN(
-            units=layer_params["units"],
-            activation=layer_params["activation"],
-            batch_input_shape=(1, 1, batch_input_shape[2]),
-            return_sequences=True,
-            name="Recurrent",
-            trainable=False,
-            kernel_initializer=layer_params["kernel_initializer"],
-            stateful=True,
-            # dt=layer_params["dt"],
-            # tau=layer_params["tau"],
-        )
-
-
-def changes_batch_size(n_batch):
-    def inner(method):
-        @wraps(method)
-        def wrapper(instance, *args, **kwargs):
-            _n_batch = instance.task.N_batch
-            instance.task.N_batch = n_batch
-            out = method(instance, *args, **kwargs)
-            instance.task.N_batch = _n_batch
-            return out
-
-        return wrapper
-
-    return inner

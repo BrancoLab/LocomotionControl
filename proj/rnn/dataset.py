@@ -56,11 +56,20 @@ def plot_dataset(inputs, outputs):
 
 
 class DatasetMaker(RNNLog):
-    def __init__(self, trim_controls=50000):
+    """
+        Class to take the results of iLQR and organize them
+        into a structured dataset that can be used for training RNNs
+    """
+
+    def __init__(self):
         RNNLog.__init__(self, mk_dir=False)
-        self.trim_controls = trim_controls
 
     def _standardize_dataset(self, trials_folders):
+        """ 
+            Creates preprocessing tools to standardize the dataset's
+            inputs and outputs to facilitate RNN training.
+            It pools data for the whole dataset to fit the standardizers.
+        """
         print("Normalizing dataset")
         # Get normalizer
         if self.config["dataset_normalizer"] == "scale":
@@ -97,8 +106,6 @@ class DatasetMaker(RNNLog):
 
         # fit normalizer
         _in, _out = np.vstack(all_trajs), np.hstack(all_outputs).T
-        _out[_out > self.trim_controls] = self.trim_controls
-        _out[_out < -self.trim_controls] = -self.trim_controls
 
         input_scaler = input_scaler.fit(_in)
         output_scaler = output_scaler.fit(_out)
@@ -119,6 +126,10 @@ class DatasetMaker(RNNLog):
             return input_scaler, output_scaler
 
     def _split_and_save(self, data):
+        """ 
+            Splits the dataset into training and test data
+            before saving.
+        """
         data = pd.DataFrame(data)  # .to_hdf(self.dataset_path, key="hdf")
 
         train, test = train_test_split(data)
@@ -129,6 +140,9 @@ class DatasetMaker(RNNLog):
         print(f"Saved at {self.dataset_train_path}, {len(data)} trials")
 
     def make_dataset(self):
+        """ 
+            Organizes the standardized data into a single dataframe.
+        """
         trials_folders = subdirs(self.trials_folder)
         print(
             f"[bold magenta]Creating dataset...\nFound {len(trials_folders)} trials folders."
@@ -157,8 +171,6 @@ class DatasetMaker(RNNLog):
             delta_traj = get_inputs(trajectory, history)
 
             out = get_outputs(history).T
-            out[out > self.trim_controls] = self.trim_controls
-            out[out < -self.trim_controls] = -self.trim_controls
 
             # Resample imput trajectory
             start_idx = history.trajectory_idx.values[0]

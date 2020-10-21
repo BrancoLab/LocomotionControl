@@ -7,15 +7,31 @@ from proj.rnn import ControlRNN
 
 
 class RNNController(ControlRNN):
+    """
+        A class to implement control of the 2WDD 'mouse'
+        using an RNN trained to predict the output of 
+        the iLQR algorithm given an input trajectory.
+    """
+
     def __init__(self, folder):
         ControlRNN.__init__(self, folder=folder, mk_dir=False)
 
+        # Load RNN model designed to make predictions
         self.rnn = self.make_model_for_prediction()
         self.in_normalizer, self.out_normalizer = self.load_normalizers(
             from_model_folder=True
         )
 
     def obtain_sol(self, curr_x, g_xs):
+        """ 
+            Args:
+                curr_x (numpy.ndarray): current state, shape(state_size, )
+                g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
+                
+            Normalize the input data to get the 
+            RNN to predict the control u given the current
+            state and the goal trajectory
+        """
         delta = g_xs[0, :] - curr_x
 
         if np.any(delta > self.in_normalizer.data_max_) or np.any(
@@ -43,9 +59,8 @@ class RNNController(ControlRNN):
             u[u < -1] = -1
             # TODO remove
 
-        u = self.out_normalizer.inverse_transform(u.reshape(1, -1))
-
-        return u[0, :]
+        u = self.out_normalizer.inverse_transform(u.reshape(1, -1))[0, :]
+        return u
 
 
 class Controller(Cost):

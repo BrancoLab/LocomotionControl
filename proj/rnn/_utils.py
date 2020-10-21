@@ -16,6 +16,12 @@ install_traceback()
 
 
 class RNNLog:
+    """
+        Helper class that takes care of setting up paths
+        used for RNN training and datasets, helps loading and saving
+        RNN models and data normalizers etc...
+    """
+
     base_config_path = "proj/rnn/rnn_config.yml"
 
     _history = {"lr": [], "loss": []}

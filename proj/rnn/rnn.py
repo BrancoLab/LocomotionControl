@@ -18,6 +18,11 @@ from proj.rnn._rnn import CTRNN
 
 
 class ControlRNN(RNNLog):
+    """
+        This class takes care of building RNN models
+        for training and prediction as well as saving/loading them.
+    """
+
     def __init__(self, *args, **kwargs):
         RNNLog.__init__(self, *args, **kwargs)
 
@@ -110,6 +115,10 @@ class ControlRNN(RNNLog):
         return optimizer
 
     def make_model(self):
+        """ 
+            Creates a Keras Sequential RNN model + optimizer and scheduler
+            for training an RNN.
+        """
         self.log.add(f"[b {orange}]Creating model")
 
         # scheduler

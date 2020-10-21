@@ -19,7 +19,7 @@ env = Environment(model)
 
 
 # ? Setup RNN controller
-fld = Path(paths.rnn) / "RNN_test_201020_143921"
+fld = Path(paths.rnn) / "RNN_wheel_speeds_good"
 control = RNNController(fld)
 alt_control = Controller(model)
 

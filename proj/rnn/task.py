@@ -6,6 +6,11 @@ from proj.rnn._utils import RNNLog
 
 
 class ControlTask(Task, RNNLog):
+    """
+        Task class used to load a dataset
+        and split it into batches to train the RNNs
+    """
+
     def __init__(
         self,
         dt,

@@ -220,6 +220,12 @@ def _interpol(x, max_deg, n_steps):
 def simulated_but_realistic(
     n_steps, params, planning_params, cache_fld, *args
 ):
+
+    """
+        Creates an artificial trajectory similar to the ones
+        you'd get by loading trajectories from tracking data.
+    """
+
     duration = 2  # make it last 2 seconds # np.random.uniform(1.5, 6)
     n_simulation_steps = int(duration / params["dt"])
 
@@ -294,6 +300,10 @@ def simulated_but_realistic(
 
 
 def from_tracking(n_steps, params, planning_params, cache_fld, *args):
+    """
+        Get a trajectory from real tracking data, cleaning it up
+        a little in the process.
+    """
     # Keep only trials with enough frames
     trials = pd.read_hdf(cache_fld, key="hdf")
     trials["length"] = [len(t.body_xy) for i, t in trials.iterrows()]

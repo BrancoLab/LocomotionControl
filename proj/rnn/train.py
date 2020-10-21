@@ -14,6 +14,11 @@ from proj.rnn import ControlTask
 
 
 class RNNTrainer(ControlRNN):
+    """
+        Main class taking care of training RNNs
+        to fit the predictions of the iLQR algorithm.
+    """
+
     def __init__(self, *args, wrap_up=True, **kwargs):
         ControlRNN.__init__(self, *args, **kwargs)
         self._wrap_up = wrap_up
