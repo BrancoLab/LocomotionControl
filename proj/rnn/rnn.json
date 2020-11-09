@@ -1,0 +1,12 @@
+{
+    "n_units": 128,
+    "input_size": 5,
+    "output_size": 2,
+    "dale_ratio": null,
+    "autopses": true,
+    "connectivity": null,
+    "w_in_bias": false,
+    "w_in_train": false,
+    "w_out_bias": false,
+    "w_out_train": false
+}

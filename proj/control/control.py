@@ -3,64 +3,65 @@ from rich import print
 
 from proj.control.utils import calc_cost
 from proj.control.cost import Cost
-from proj.rnn import ControlRNN
+
+# from proj.rnn import ControlRNN
 
 
-class RNNController(ControlRNN):
-    """
-        A class to implement control of the 2WDD 'mouse'
-        using an RNN trained to predict the output of 
-        the iLQR algorithm given an input trajectory.
-    """
+# class RNNController(ControlRNN):
+#     """
+#         A class to implement control of the 2WDD 'mouse'
+#         using an RNN trained to predict the output of
+#         the iLQR algorithm given an input trajectory.
+#     """
 
-    def __init__(self, folder):
-        ControlRNN.__init__(self, folder=folder, mk_dir=False)
+#     def __init__(self, folder):
+#         ControlRNN.__init__(self, folder=folder, mk_dir=False)
 
-        # Load RNN model designed to make predictions
-        self.rnn = self.make_model_for_prediction()
-        self.in_normalizer, self.out_normalizer = self.load_normalizers(
-            from_model_folder=True
-        )
+#         # Load RNN model designed to make predictions
+#         self.rnn = self.make_model_for_prediction()
+#         self.in_normalizer, self.out_normalizer = self.load_normalizers(
+#             from_model_folder=True
+#         )
 
-    def obtain_sol(self, curr_x, g_xs):
-        """ 
-            Args:
-                curr_x (numpy.ndarray): current state, shape(state_size, )
-                g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
-                
-            Normalize the input data to get the 
-            RNN to predict the control u given the current
-            state and the goal trajectory
-        """
-        delta = g_xs[0, :] - curr_x
+#     def obtain_sol(self, curr_x, g_xs):
+#         """
+#             Args:
+#                 curr_x (numpy.ndarray): current state, shape(state_size, )
+#                 g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
 
-        if np.any(delta > self.in_normalizer.data_max_) or np.any(
-            delta < self.in_normalizer.data_min_
-        ):
-            # raise ValueError(":bomb: Data outside of normalizer's range!!")
-            print(":bomb: Data outside of normalizer's range!!")
+#             Normalize the input data to get the
+#             RNN to predict the control u given the current
+#             state and the goal trajectory
+#         """
+#         delta = g_xs[0, :] - curr_x
 
-        delta = self.in_normalizer.transform(delta.reshape(1, -1))
+#         if np.any(delta > self.in_normalizer.data_max_) or np.any(
+#             delta < self.in_normalizer.data_min_
+#         ):
+#             # raise ValueError(":bomb: Data outside of normalizer's range!!")
+#             print(":bomb: Data outside of normalizer's range!!")
 
-        delta[delta > 1] = 1
-        delta[delta < -1] = -1
-        # TODO remove
+#         delta = self.in_normalizer.transform(delta.reshape(1, -1))
 
-        delta = delta.reshape(1, 1, -1)
+#         delta[delta > 1] = 1
+#         delta[delta < -1] = -1
+#         # TODO remove
 
-        u = self.rnn.predict(delta)[0, 0, :]
+#         delta = delta.reshape(1, 1, -1)
 
-        if np.any(u > self.out_normalizer.data_max_) or np.any(
-            u < self.out_normalizer.data_min_
-        ):
-            # raise ValueError(":bomb: Data outside of normalizer's range!!")
-            print(":x: Control outside of normalizer's range!!")
-            u[u > 1] = 1
-            u[u < -1] = -1
-            # TODO remove
+#         u = self.rnn.predict(delta)[0, 0, :]
 
-        u = self.out_normalizer.inverse_transform(u.reshape(1, -1))[0, :]
-        return u
+#         if np.any(u > self.out_normalizer.data_max_) or np.any(
+#             u < self.out_normalizer.data_min_
+#         ):
+#             # raise ValueError(":bomb: Data outside of normalizer's range!!")
+#             print(":x: Control outside of normalizer's range!!")
+#             u[u > 1] = 1
+#             u[u < -1] = -1
+#             # TODO remove
+
+#         u = self.out_normalizer.inverse_transform(u.reshape(1, -1))[0, :]
+#         return u
 
 
 class Controller(Cost):

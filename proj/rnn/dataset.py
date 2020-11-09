@@ -1,216 +1,122 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.model_selection import train_test_split
-from rich.progress import track
-from rich.prompt import Confirm
-from rich import print
 import numpy as np
-
-
-from pyinspect.utils import subdirs
-
-from proj.rnn._utils import RNNLog
-from proj.utils.misc import (
-    load_results_from_folder,
-    trajectory_at_each_simulation_step,
+from numpy import random as rnd
+import matplotlib.pyplot as plt
+from myterial import (
+    salmon,
+    salmon_dark,
+    light_green,
+    light_green_dark,
 )
+import torch.utils.data as data
+import sys
+import pandas as pd
+
+from proj.rnn._utils import RNNPaths
+
+from pyrnn._plot import clean_axes
+from pyrnn._utils import torchify
 
 
-def get_inputs(trajectory, history):
-    traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-    # goal_traj = history[
-    #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
-    # ].values
-
-    # delta_traj = goal_traj - traj_sim
-    # delta_traj = goal_traj[1:, :] - traj_sim[:-1, :]
-
-    # TODO Fix this once new data come in
-    return traj_sim
+is_win = sys.platform == "win32"
 
 
-def get_outputs(history):
-    # return np.vstack([history["tau_r"][1:], history["tau_l"][1:]])
-    return np.vstack([history["nudot_right"][1:], history["nudot_left"][1:]])
-
-
-def plot_dataset(inputs, outputs):
-    f, axarr = plt.subplots(ncols=4, nrows=2, figsize=(20, 12))
-    titles = [
-        "X",
-        "Y",
-        "\\theta",
-        "v",
-        "\\omega",
-        "\\tau_{R}",
-        "\\tau_{L}",
-    ]
-    for n, (ax, ttl) in enumerate(zip(axarr.flatten(), titles)):
-        if n <= 4:
-            ax.hist(inputs[:, n], bins=100)
-        else:
-            ax.hist(outputs[:, n - 5], bins=100)
-        ax.set(title=f"${ttl}$")
-    plt.show()
-
-
-class DatasetMaker(RNNLog):
+class DeltaStateDataSet(data.Dataset, RNNPaths):
     """
-        Class to take the results of iLQR and organize them
-        into a structured dataset that can be used for training RNNs
+    creates a pytorch dataset for loading
+    the data during training.
     """
 
-    def __init__(self):
-        RNNLog.__init__(self, mk_dir=False)
+    def __init__(self, name=None, dataset_length=-1):
+        self.name = name or "test"
+        RNNPaths.__init__(self)
 
-    def _standardize_dataset(self, trials_folders):
-        """ 
-            Creates preprocessing tools to standardize the dataset's
-            inputs and outputs to facilitate RNN training.
-            It pools data for the whole dataset to fit the standardizers.
-        """
-        print("Normalizing dataset")
-        # Get normalizer
-        if self.config["dataset_normalizer"] == "scale":
-            input_scaler = MinMaxScaler(feature_range=(-1, 1))
-            output_scaler = MinMaxScaler(feature_range=(-1, 1))
-        else:
-            input_scaler = StandardScaler()
-            output_scaler = StandardScaler()
+        self.dataset = pd.read_hdf(self.dataset_train_path, key="hdf")[
+            :dataset_length
+        ]
+        self.get_max_trial_length()
 
-        # Get ALL data to fit the normalizer
-        all_trajs, all_outputs = [], []
-        for fld in track(trials_folders):
-            try:
-                (
-                    config,
-                    trajectory,
-                    history,
-                    cost_history,
-                    trial,
-                    info,
-                ) = load_results_from_folder(fld)
-            except Exception:
-                continue
+    def __len__(self):
+        return len(self.dataset)
 
-            if info["traj_duration"] < 1:
-                continue
-
-            # stack inputs
-            delta_traj = get_inputs(trajectory, history)
-            all_trajs.append(delta_traj)
-
-            # stack outputs
-            all_outputs.append(get_outputs(history))
-
-        # fit normalizer
-        _in, _out = np.vstack(all_trajs), np.hstack(all_outputs).T
-
-        input_scaler = input_scaler.fit(_in)
-        output_scaler = output_scaler.fit(_out)
-
-        if self.config["interactive"]:
-            print("Visualizing dataset")
-            plot_dataset(_in, _out)
-
-            if Confirm.ask("Continue with [b]dataset creation?", default=True):
-                # Save normalizer to invert the process in the future
-                self.save_normalizers(input_scaler, output_scaler, _in, _out)
-                return input_scaler, output_scaler
-            else:
-                print("Did not create dataset")
-                return None, None
-        else:
-            self.save_normalizers(input_scaler, output_scaler, _in, _out)
-            return input_scaler, output_scaler
-
-    def _split_and_save(self, data):
-        """ 
-            Splits the dataset into training and test data
-            before saving.
-        """
-        data = pd.DataFrame(data)  # .to_hdf(self.dataset_path, key="hdf")
-
-        train, test = train_test_split(data)
-
-        train.to_hdf(self.dataset_train_path, key="hdf")
-        test.to_hdf(self.dataset_test_path, key="hdf")
-
-        print(f"Saved at {self.dataset_train_path}, {len(data)} trials")
-
-    def make_dataset(self):
-        """ 
-            Organizes the standardized data into a single dataframe.
-        """
-        trials_folders = subdirs(self.trials_folder)
-        print(
-            f"[bold magenta]Creating dataset...\nFound {len(trials_folders)} trials folders."
+    def get_max_trial_length(self):
+        self.n_samples = max(
+            [len(t.trajectory) for i, t in self.dataset.iterrows()]
         )
 
-        input_scaler, output_scaler = self._standardize_dataset(trials_folders)
-        if input_scaler is None:
-            return
+    def _pad(self, arr):
+        l, m = arr.shape
+        padded = np.zeros((self.n_samples, m))
+        padded[:l, :] = arr
+        return padded
 
-        print("Creating training data")
-        data = dict(trajectory=[], tau_r=[], tau_l=[], sim_dt=[],)
-        for fld in track(trials_folders):
-            try:
-                (
-                    config,
-                    trajectory,
-                    history,
-                    cost_history,
-                    trial,
-                    info,
-                ) = load_results_from_folder(fld)
-            except Exception:
-                continue
+    def _get_random(self):
+        idx = rnd.randint(0, len(self))
+        trial = self.dataset.iloc[idx]
 
-            # Get inputs and outputs
-            delta_traj = get_inputs(trajectory, history)
+        X = torchify(self._pad(trial.trajectory))
+        Y = torchify(self._pad(trial.controls))
 
-            out = get_outputs(history).T
+        if len(X) != len(Y):
+            raise ValueError("Length of X and Y must match")
 
-            # Resample imput trajectory
-            start_idx = history.trajectory_idx.values[0]
-            end_idx = history.trajectory_idx.values[-1] - 30
-            delta_traj = delta_traj[start_idx:end_idx, :]
-            # delta_traj = resample(delta_traj[start_idx:end_idx, :], out.shape[0])
+        return (
+            X.reshape(1, self.n_samples, -1),
+            Y.reshape(1, self.n_samples, -1),
+        )
 
-            # Normalize data
-            norm_input = input_scaler.transform(delta_traj)
-            norm_output = output_scaler.transform(out)
+    def __getitem__(self, item):
+        """
+            1. get a random trial from dataset
+            2. shape and pad it
+            3. create batch
+            4. enjoy
+        """
+        trial = self.dataset.iloc[item]
 
-            # if self.config["dataset_normalizer"] == "scale":
-            #     # ? When scaling ignore small trials
-            #     if (
-            #         np.max(norm_output[50:-50, :]) < 0.2
-            #         and np.min(norm_output[50:-50, :]) > -0.2
-            #     ):
-            #         continue
+        X = torchify(self._pad(trial.trajectory))
+        Y = torchify(self._pad(trial.controls))
 
-            # Append to dataset
-            data["trajectory"].append(norm_input)
-            data["tau_r"].append(norm_output[:, 0])
-            data["tau_l"].append(norm_output[:, 1])
-            data["sim_dt"].append(config["dt"])
+        if len(X) != len(Y):
+            raise ValueError("Length of X and Y must match")
 
-        # Save data to file
-        if self.config["interactive"]:
-            plot_dataset(
-                np.vstack(data["trajectory"]),
-                np.vstack(
-                    [
-                        np.concatenate(data["tau_r"]),
-                        np.concatenate(data["tau_l"]),
-                    ]
-                ).T,
-            )
+        return X, Y
 
-            if Confirm.ask("Save dataset?", default=True):
-                self._split_and_save(data)
-            else:
-                print("Did not save dataset")
-        else:
-            self._split_and_save(data)
+
+def make_batch(**kwargs):
+    """
+    Return a single batch of given length    
+    """
+    batch = DeltaStateDataSet(dataset_length=500, **kwargs)._get_random()
+    return batch
+
+
+def plot_predictions(model, batch_size, **kwargs):
+    """
+    Run the model on a single batch and plot
+    the model's prediction's against the
+    input data and labels.
+    """
+    X, Y = make_batch(**kwargs)
+    o, h = model.predict(X)
+
+    n_inputs = X.shape[-1]
+    n_outputs = Y.shape[-1]
+
+    f, axarr = plt.subplots(nrows=2, figsize=(12, 9))
+
+    for n in range(n_inputs):
+        axarr[0].plot(X[0, :, n], lw=2)
+    axarr[0].set(title="inputs")
+
+    cc = [salmon, light_green]
+    oc = [salmon_dark, light_green_dark]
+    for n in range(n_outputs):
+        axarr[1].plot(Y[0, :, n], lw=2, color=cc[n], label="correct")
+        axarr[1].plot(
+            o[0, :, n], lw=1, ls="--", color=oc[n], label="model output"
+        )
+    axarr[1].legend()
+    axarr[1].set(title="outputs")
+
+    f.tight_layout()
+    clean_axes(f)
