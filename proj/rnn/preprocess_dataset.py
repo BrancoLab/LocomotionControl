@@ -18,12 +18,12 @@ from proj.utils.misc import (
 
 def get_inputs(trajectory, history):
     traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-    goal_traj = history[
-        ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
-    ].values
+    # goal_traj = history[
+    #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
+    # ].values
 
-    delta_traj = goal_traj - traj_sim
-    return delta_traj
+    # delta_traj = goal_traj - traj_sim
+    return traj_sim
 
 
 def get_outputs(history):

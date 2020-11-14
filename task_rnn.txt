@@ -1,21 +1,20 @@
-╭───────────────────────────────────────────╮
-│                                           │
-│   Training report                         │
-│   ───────────────                         │
-│                                           │
-│   Final loss: 0.02296 after 100 epochs.   │
-│                                           │
-│       batch_size  64                      │
-│            gamma  0.1                     │
-│     input_length  100                     │
-│           l2norm  0                       │
-│               lr  1e-05                   │
-│    lr_milestones  [100, 1300]             │
-│         n_epochs  100                     │
-│        stop_loss  0.002                   │
-│                                           │
-│   Training losses                         │
-│   0: 0.883                                │
-│   100: 0.023                              │
-│                                           │
-╰───────────────────────────────────────────╯
+╭──────────────────────────────────────────╮
+│                                          │
+│   Training report                        │
+│   ───────────────                        │
+│                                          │
+│   Final loss: 0.04654 after 57 epochs.   │
+│                                          │
+│       batch_size  64                     │
+│            gamma  0.1                    │
+│     input_length  100                    │
+│           l2norm  0                      │
+│               lr  1e-05                  │
+│    lr_milestones  [100, 1300]            │
+│         n_epochs  100                    │
+│        stop_loss  0.002                  │
+│                                          │
+│   Training losses                        │
+│   0: 1.4615                              │
+│                                          │
+╰──────────────────────────────────────────╯

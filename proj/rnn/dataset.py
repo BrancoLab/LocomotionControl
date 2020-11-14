@@ -9,6 +9,7 @@ from myterial import (
 )
 import torch.utils.data as data
 import sys
+import torch
 import pandas as pd
 
 from proj.rnn._utils import RNNPaths
@@ -82,12 +83,33 @@ class DeltaStateDataSet(data.Dataset, RNNPaths):
         return X, Y
 
 
-def make_batch(**kwargs):
+def make_batch(n_trials, **kwargs):
     """
     Return a single batch of given length    
     """
-    batch = DeltaStateDataSet(dataset_length=500, **kwargs)._get_random()
-    return batch
+    ds = DeltaStateDataSet(dataset_length=500, **kwargs)
+    batch = [ds._get_random() for i in range(n_trials)]
+
+    X = torch.cat([b[0] for b in batch])
+    Y = torch.cat([b[1] for b in batch])
+
+    return X, Y
+
+
+# def make_batch(batch_size=1, **kwargs):
+#     """
+#     Return a single batch of given length
+#     """
+#     dataloader = torch.utils.data.DataLoader(
+#         DeltaStateDataSet(dataset_length=batch_size, **kwargs),
+#         batch_size=batch_size,
+#         num_workers=0 if is_win else 2,
+#         shuffle=True,
+#         worker_init_fn=lambda x: np.random.seed(),
+#     )
+
+#     batch = [b for b in dataloader][0]
+#     return batch
 
 
 def plot_predictions(model, batch_size, **kwargs):
