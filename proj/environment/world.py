@@ -1,8 +1,6 @@
 from collections import namedtuple
 import numpy as np
 
-from fcutils.maths.geometry import calc_distance_between_points_2d
-
 from proj.environment.plotter import Plotter
 from proj.utils.misc import polar_to_cartesian
 
@@ -54,63 +52,22 @@ class World(Plotter):
 
         return world_size
 
-    def _spawn_model_random(self, trajectory, v=0, omega=0):
-        # start as a point in the plane with theta 0
-        x = np.random.randint(self.world_size.x[0], self.world_size.x[1] / 5)
-        y = np.random.randint(self.world_size.y[0], self.world_size.y[1] / 5)
-
-        traj_start = _xy(trajectory[0, 0], trajectory[0, 1])
-
-        if self.model.MODEL_TYPE == "cartesian":
-            raise NotImplementedError(
-                "Compute theta given position and trajectory"
-            )
-
-            # keep track of model's position
-            # self.model_position_world = _xyt(x, y, t)
-
-        elif self.model.MODEL_TYPE == "polar":
-            # compute r and gamma
-            r = calc_distance_between_points_2d(
-                [x, y], [traj_start.x, traj_start.y]
-            )
-            gamma = np.arctan2(traj_start.x - x, traj_start.y - y)
-
-            # update model state
-            self.model.curr_x = self.model._state(r, gamma, v, omega)
-
-            # keep track of model's position
-            self.model_position_world = _xy(x, y)
-
     def _spawn_model_trajectory(self, trajectory, v=0, omega=0):
         """
             Spawn model at start/end of trajectory
         """
-        if self.model.MODEL_TYPE == "cartesian":
-            self.model.curr_x = self.model._state(
-                trajectory[0, 0],
-                trajectory[0, 1],
-                trajectory[0, 2],
-                trajectory[0, 3],
-                trajectory[0, 4],
-            )
+        self.model.curr_x = self.model._state(
+            trajectory[0, 0],
+            trajectory[0, 1],
+            trajectory[0, 2],
+            trajectory[0, 3],
+            trajectory[0, 4],
+        )
 
-            # keep track of model's position
-            self.model_position_world = _xyt(
-                trajectory[0, 0], trajectory[0, 1], trajectory[0, 2]
-            )
-
-        elif self.model.MODEL_TYPE == "polar":
-            raise ValueError
-            self.model.curr_x = self.model._state(
-                trajectory[-1, 0], trajectory[-1, 1], v, omega
-            )
-
-            # keep track of model's position
-            self.model_position_world = _xy(
-                *polar_to_cartesian(trajectory[-1, 0], trajectory[-1, 1])
-            )
-            polar_to_cartesian
+        # keep track of model's position
+        self.model_position_world = _xyt(
+            trajectory[0, 0], trajectory[0, 1], trajectory[0, 2]
+        )
 
     def _reset_world_history(self, trajectory):
         # trajectory
@@ -131,10 +88,7 @@ class World(Plotter):
         self.world_size = self._initialize_world(trajectory)
 
         # spawn model
-        if self.model.SPAWN_TYPE == "random":
-            self._spawn_model_random(trajectory)
-        else:
-            self._spawn_model_trajectory(trajectory)
+        self._spawn_model_trajectory(trajectory)
 
         # reset history
         self._reset_world_history(trajectory)

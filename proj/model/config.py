@@ -48,11 +48,11 @@ _realistic_mouse = dict(
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    SIMULATION_NAME = "SimulatedRealistic"
+    SIMULATION_NAME = "Testing"
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = False
+    LIVE_PLOT = True
 
     mouse_type = "realistic"
     model_type = "cart"
@@ -62,19 +62,19 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="real_simulated",
+        name="tracking",
         # ? For artificial trajectories
-        nsteps=500,
+        n_steps=500,
         distance=150,
         max_speed=100,
         min_speed=80,
         min_dist=0,  # if agent is within this distance from trajectory end the goal is considered achieved
         # ? for trajectories from data
         px_to_cm=1 / 8,  # convert px values to cm
-        dist_th=0,  # keep frames only after moved away from start location
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
-        randomize=True,  # if true when using tracking it pulls a random trial
+        randomize=False,  # if true when using tracking it pulls a random trial
+        trial_n=0,  # if not picking a random trial, which one should we use
         dt=0.005,  # used to simulate trajectories, should match simulation
     )
 
@@ -85,7 +85,7 @@ class Config:
     )
 
     # --------------------------------- Plotting --------------------------------- #
-    traj_plot_every = 15
+    traj_plot_every = 5
 
     # ------------------------------ Control params ------------------------------ #
     iLQR = dict(

@@ -53,11 +53,8 @@ class Environment(World, Manager):
             follow, given a dictionary of params.
             Path is shaped as a parabola
         """
-        params = self.model.trajectory
-        n_steps = int(params["nsteps"])
-
         traj = self._traj_func(
-            n_steps, params, self.model.planning, self.trials_cache
+            self.model.trajectory, self.model.planning, self.trials_cache
         )
 
         return traj

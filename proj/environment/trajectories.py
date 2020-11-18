@@ -3,19 +3,18 @@ import pandas as pd
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 from rich.table import Table
-import logging
+
 from rich import print
 
 from fcutils.maths.geometry import (
     calc_angle_between_points_of_vector_2d,
     calc_distance_between_points_in_a_vector_2d,
     calc_distance_between_points_2d,
-    calc_distance_from_point,
     calc_ang_velocity,
 )
-from fcutils.maths.filtering import line_smoother
 
 from proj.utils.misc import interpolate_nans
+from proj.environment.bezier import calc_bezier_path
 
 # from proj import log
 from loguru import logger
@@ -148,22 +147,22 @@ def compute_trajectory_stats(
 
 
 # ---------------------------------- Curves ---------------------------------- #
-def point(n_steps, params, planning_params, *akrgs):
-    x = np.zeros(n_steps)
-    y = np.zeros(n_steps)
+def point(params, planning_params, *akrgs):
+    x = np.zeros(params["n_steps"])
+    y = np.zeros(params["n_steps"])
 
     return complete_given_xy(x, y, params, planning_params)
 
 
-def line(n_steps, params, planning_params, *akrgs):
-    y = np.linspace(0, params["distance"], n_steps)
+def line(params, planning_params, *akrgs):
+    y = np.linspace(0, params["distance"], params["n_steps"])
     x = np.zeros_like(y)
 
     return complete_given_xy(x, y, params, planning_params)
 
 
-def circle(n_steps, params, planning_params, *akrgs):
-    p = np.linspace(0, 2 * np.pi, n_steps)
+def circle(params, planning_params, *akrgs):
+    p = np.linspace(0, 2 * np.pi, params["n_steps"])
     r = params["distance"] / 2
 
     x = np.cos(p) * r
@@ -172,14 +171,14 @@ def circle(n_steps, params, planning_params, *akrgs):
     return complete_given_xy(x, y, params, planning_params)
 
 
-def sin(n_steps, params, planning_params, *akrgs):
-    x = np.linspace(0, params["distance"], n_steps)
+def sin(params, planning_params, *akrgs):
+    x = np.linspace(0, params["distance"], params["n_steps"])
     y = 5 * np.sin(0.1 * x)
 
     return complete_given_xy(x, y, params, planning_params)
 
 
-def parabola(n_steps, params, planning_params, *akrgs):
+def parabola(params, planning_params, *akrgs):
     def curve(x, a, b, c):
         return (a * (x - b) ** 2) + +c
 
@@ -190,7 +189,7 @@ def parabola(n_steps, params, planning_params, *akrgs):
     # fit curve and make trace
     coef, _ = curve_fit(curve, X, Y)
 
-    y = np.linspace(0, params["distance"], n_steps)
+    y = np.linspace(0, params["distance"], params["n_steps"])
     x = curve(y, *coef)
 
     return complete_given_xy(x, y, params, planning_params)
@@ -217,9 +216,7 @@ def _interpol(x, max_deg, n_steps):
     return f(l2)
 
 
-def simulated_but_realistic(
-    n_steps, params, planning_params, cache_fld, *args
-):
+def simulated_but_realistic(params, planning_params, cache_fld, *args):
 
     """
         Creates an artificial trajectory similar to the ones
@@ -227,7 +224,7 @@ def simulated_but_realistic(
     """
 
     duration = np.random.uniform(1.5, 6)
-    n_simulation_steps = int(duration / params["dt"])
+    n_steps = int(duration / params["dt"])
 
     # Define start and end of traj
     p0 = np.array([0, 0])
@@ -251,8 +248,8 @@ def simulated_but_realistic(
     d = d1 + d2
 
     # Get the number of points in each segment
-    n1 = int((n_steps * d1) / d)
-    n2 = int((n_steps * d2) / d)
+    n1 = int((params["n_steps"] * d1) / d)
+    n2 = int((params["n_steps"] * d2) / d)
 
     # Generate line segments
     segment1 = np.array(
@@ -266,8 +263,8 @@ def simulated_but_realistic(
     xy = np.hstack([segment1, segment2])
     x, y = xy[0, :], xy[1, :]
 
-    x = _interpol(x, 5, n_steps)
-    y = _interpol(y, 5, n_steps)
+    x = _interpol(x, 5, params["n_steps"])
+    y = _interpol(y, 5, params["n_steps"])
 
     # Get theta
     theta = calc_angle_between_points_of_vector_2d(x, y)
@@ -284,7 +281,7 @@ def simulated_but_realistic(
     v = calc_distance_between_points_in_a_vector_2d(x, y)
     v[0] = v[1]
 
-    speedup_factor = n_steps / n_simulation_steps
+    speedup_factor = params["n_steps"] / n_steps
     v *= speedup_factor
     v *= 1 / params["dt"]
 
@@ -299,66 +296,46 @@ def simulated_but_realistic(
     )
 
 
-def from_tracking(n_steps, params, planning_params, cache_fld, *args):
+def from_tracking(params, planning_params, cache_fld, *args):
     """
         Get a trajectory from real tracking data, cleaning it up
         a little in the process.
     """
     # Keep only trials with enough frames
     trials = pd.read_hdf(cache_fld, key="hdf")
-    trials["length"] = [len(t.body_xy) for i, t in trials.iterrows()]
-    trials = trials.loc[
-        trials.length > 50
-    ]  # at least N frames in tracking data
 
     # select a single trials
     if not params["randomize"]:
-        trial = trials.iloc[0]
+        trial = trials.iloc[params["trial_n"]]
     else:
         trial = trials.sample().iloc[0]
 
     # Get variables
-    try:
-        fps = trial.fps
-    except:
-        fps = 60
+    fps = trial.fps
+    x = trial.x * params["px_to_cm"]
+    y = trial.y * params["px_to_cm"]
 
-    x = trial.body_xy[:, 0] * params["px_to_cm"]
-    y = trial.body_xy[:, 1] * params["px_to_cm"]
-
-    angle = interpolate_nans(trial.body_orientation)
+    angle = interpolate_nans(trial.orientation)
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
-    speed = line_smoother(trial.body_speed) * fps
-    speed *= params["px_to_cm"]
+    speed = trial.speed * fps * params["px_to_cm"]
     ang_speed = np.ones_like(speed)  # it will be ignored
 
-    # get start frame
-    from_start = calc_distance_from_point(np.array([x, y]), [x[0], y[0]])
-    start = np.where(from_start > params["dist_th"])[0][0]
-
-    if start >= len(x):
-        logging.error("Bad trajectory")
-        raise ValueError("Bad trajectory")
-
     # resample variables so that samples are uniformly distributed
-    vars = dict(x=x, y=y, angle=angle, speed=speed, ang_speed=ang_speed)
+    vrs = (x, y, angle, speed, ang_speed)
     if params["resample"]:
-        for k, v in vars.items():
-            try:
-                vars[k] = _interpol(
-                    v[start:-1], params["max_deg_interpol"], n_steps
-                )
-            except ValueError:  # there were nans in the array
-                return None, None
+        t = np.arange(len(x))
+        vrs = [
+            calc_bezier_path(np.vstack([t, v]).T, params["n_steps"])
+            for v in vrs
+        ]
 
     # stack
-    trajectory = np.vstack(vars.values()).T
-
+    trajectory = np.vstack(vrs).T
     return (
         compute_trajectory_stats(
-            trajectory, len(x[start:]) / fps, params, planning_params
+            trajectory, len(x) / fps, params, planning_params
         )[:2],
         trial,
     )

@@ -26,7 +26,6 @@ for module in [
     "matplotlib",
     "pandas",
     "numpy",
-    "tensorflow",
     "pandas",
     "tables",
 ]:

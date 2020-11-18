@@ -20,7 +20,6 @@ requirements = [
     "pyinspect",
     "loguru",
     "gputil",
-    "tensorflow",
 ]
 
 setup(

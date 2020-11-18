@@ -15,7 +15,7 @@ from proj import (
 
 
 # model = ModelPolar()
-model = Model()
+model = Model(trial_n=1)
 env = Environment(model)
 control = Controller(model)
 

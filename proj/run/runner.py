@@ -4,9 +4,8 @@ from rich import print
 from loguru import logger
 
 from pyinspect.utils import timestamp
-
-from proj.utils.progress_bars import progress
 from pyinspect._colors import mocassin, salmon, green, lilla
+from pyrnn._progress import base_progress as progress
 
 
 def compare_controllers(curr_x, g_xs, main_controller_u, *controllers):

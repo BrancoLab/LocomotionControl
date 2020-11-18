@@ -61,8 +61,9 @@ class Model(Config):
     _dxdt = namedtuple("dxdt", "x_dot, y_dot, theta_dot, v_dot, omega_dot")
     _wheel_state = namedtuple("wheel_state", "nudot_right, nudot_left")
 
-    def __init__(self, startup=True):
+    def __init__(self, startup=True, trial_n=0):
         Config.__init__(self)
+        self.trajectory["trial_n"] = trial_n
 
         self._make_simbols()
 
@@ -307,27 +308,14 @@ class Model(Config):
         args = [L, R, theta, v, omega]
         self.calc_wheels_accels = lambdify(args, nu, modules="numpy")
 
-    def step(self, u, curr_goal, save_first=False):
+    def step(self, u, curr_goal):
+        # prep some variables
+        self.curr_x = self._state(*self.curr_x)
         self.curr_goal = self._goal(*curr_goal)
         u = self._control(*np.array(u))
 
-        if save_first:
-            self._append_history()
-
-        self.curr_x = self._state(*self.curr_x)
-
-        # Compute dxdt
         variables = merge(u, self.curr_x, self.mouse)
         inputs = [variables[a] for a in self._M_args]
-        dxdt = self.calc_dqdt(*inputs).ravel()
-        self.curr_dxdt = self._dxdt(*dxdt)
-
-        if np.any(np.isnan(dxdt)) or np.any(np.isinf(dxdt)):
-            raise ValueError("Nans in dxdt")
-
-        # Step
-        next_x = np.array(self.curr_x) + dxdt * self.dt
-        self.curr_x = self._state(*next_x)
 
         # Compute wheel accelerations
         w = self.calc_wheels_accels(
@@ -342,6 +330,17 @@ class Model(Config):
         # Update history
         self.curr_control = u
         self._append_history()
+
+        # Compute dxdt
+        dxdt = self.calc_dqdt(*inputs).ravel()
+        self.curr_dxdt = self._dxdt(*dxdt)
+
+        if np.any(np.isnan(dxdt)) or np.any(np.isinf(dxdt)):
+            raise ValueError("Nans in dxdt")
+
+        # Step
+        next_x = np.array(self.curr_x) + dxdt * self.dt
+        self.curr_x = self._state(*next_x)
 
     def _fake_step(self, x, u):
         """
