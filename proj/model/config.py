@@ -52,7 +52,7 @@ class Config:
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = True
+    LIVE_PLOT = False
 
     mouse_type = "realistic"
     model_type = "cart"
@@ -71,8 +71,7 @@ class Config:
         min_dist=0,  # if agent is within this distance from trajectory end the goal is considered achieved
         # ? for trajectories from data
         px_to_cm=1 / 8,  # convert px values to cm
-        # dist_th=60,  # keep frames only after moved away from start location
-        dist_th=20,
+        dist_th=0,  # keep frames only after moved away from start location
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
         randomize=True,  # if true when using tracking it pulls a random trial

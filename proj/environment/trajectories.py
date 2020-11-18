@@ -226,7 +226,7 @@ def simulated_but_realistic(
         you'd get by loading trajectories from tracking data.
     """
 
-    duration = 2  # make it last 2 seconds # np.random.uniform(1.5, 6)
+    duration = np.random.uniform(1.5, 6)
     n_simulation_steps = int(duration / params["dt"])
 
     # Define start and end of traj
