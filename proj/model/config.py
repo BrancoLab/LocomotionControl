@@ -1,7 +1,7 @@
 import numpy as np
 
-# ------------------------------- Model specific params ------------------------------ #
-_cart_params = dict(
+# ------------------------------- Control params ------------------------------ #
+control_params = dict(
     STATE_SIZE=5,
     INPUT_SIZE=2,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
@@ -10,36 +10,6 @@ _cart_params = dict(
     Sf=np.diag([0, 0, 0, 0, 0]),  # final state cost
 )
 
-_polar_params = dict(
-    STATE_SIZE=4,
-    INPUT_SIZE=2,
-    ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([0.05, 0.05]),  # control cost
-    Q=np.diag([2.5, 2.5, 0, 0]),  # state cost | r, omega, v, omega
-    Sf=np.diag([2.5, 2.5, 0, 0]),  # final state cost
-)
-
-# -------------------------------- Mouse types ------------------------------- #
-
-_easy_mouse = dict(
-    L=1.5,  # half body width | cm
-    R=1,  # radius of wheels | cm
-    d=0.1,  # distance between axel and CoM | cm
-    length=3,  # cm
-    m=round(20 / 9.81, 2),  # mass | g
-    m_w=round(2 / 9.81, 2),  # mass of wheels/legs |g
-    mouse_type="easy",
-)
-
-_realistic_mouse = dict(
-    L=2,  # half body width | cm
-    R=1.5,  # radius of wheels | cm
-    d=2,  # distance between axel and CoM | cm
-    length=2,  # cm
-    m=round(23 / 9.81, 2),  # mass | g
-    m_w=0.8,  # mass of wheels/legs |g
-    mouse_type="realistic",
-)
 
 # ---------------------------------------------------------------------------- #
 #                                    CONFIG                                    #
@@ -48,11 +18,11 @@ _realistic_mouse = dict(
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    SIMULATION_NAME = "Testing"
+    SIMULATION_NAME = "cleaned"
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = True
+    LIVE_PLOT = False
 
     mouse_type = "realistic"
     model_type = "cart"
@@ -87,7 +57,7 @@ class Config:
     # --------------------------------- Plotting --------------------------------- #
     traj_plot_every = 5
 
-    # ------------------------------ Control params ------------------------------ #
+    # ------------------------------ LQR     params ------------------------------ #
     iLQR = dict(
         max_iter=500,
         init_mu=1.0,
@@ -103,28 +73,28 @@ class Config:
                 "Trajectory dt and simulation dt dont match, forgot something Fede?"
             )
 
-        # get mouse params
-        self.mouse = (
-            _easy_mouse if self.mouse_type == "easy" else _realistic_mouse
+        # mouse params
+        self.mouse = dict(
+            L=2,  # half body width | cm
+            R=1.5,  # radius of wheels | cm
+            d=2,  # distance between axel and CoM | cm
+            length=2,  # cm
+            m=round(23 / 9.81, 2),  # mass | g
+            m_w=0.8,  # mass of wheels/legs |g
+            mouse_type="realistic",
         )
-
-        # set model params
-        if self.model_type == "cart":
-            params = _cart_params
-        else:
-            params = _polar_params
-
-        self.STATE_SIZE = params["STATE_SIZE"]
-        self.INPUT_SIZE = params["INPUT_SIZE"]
-        self.ANGLE_IDX = params["ANGLE_IDX"]
-        self.R = params["R"]
-        self.Q = params["Q"]
-        self.Sf = params["Sf"]
-
         # Adjust mouse length for plotting
         self.mouse["length"] = (
             self.mouse["length"] * self.trajectory["px_to_cm"]
         )
+
+        # control
+        self.STATE_SIZE = control_params["STATE_SIZE"]
+        self.INPUT_SIZE = control_params["INPUT_SIZE"]
+        self.ANGLE_IDX = control_params["ANGLE_IDX"]
+        self.R = control_params["R"]
+        self.Q = control_params["Q"]
+        self.Sf = control_params["Sf"]
 
     def config_dict(self):
         return dict(
