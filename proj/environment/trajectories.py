@@ -327,7 +327,7 @@ def from_tracking(params, planning_params, cache_fld, *args):
     if params["resample"]:
         t = np.arange(len(x))
         vrs = [
-            calc_bezier_path(np.vstack([t, v]).T, params["n_steps"])
+            calc_bezier_path(np.vstack([t, v]).T[:, 1], params["n_steps"])
             for v in vrs
         ]
 
