@@ -46,9 +46,9 @@ print(f"Loaded {len(trials)} trials")
 
 
 # %%
-for i, t in track(trials.iterrows(), total=len(trials)):
-    txt = template.replace("NNN", str(i))
+for n, (i, t) in track(enumerate(trials.iterrows()), total=len(trials)):
+    txt = template.replace("NNN", str(n))
 
-    with open(save_fld / f"trial_{i}.sh", "w") as out:
+    with open(save_fld / f"trial_{n}.sh", "w") as out:
         out.write(txt)
 # %%
