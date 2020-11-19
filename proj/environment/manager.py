@@ -130,8 +130,11 @@ class Manager:
         logger.info(
             f"Uploading data to dropbox at: {dpx_path}", extra={"markup": True}
         )
-
-        upload_folder(dbx, self.datafolder, dpx_path)
+        try:
+            upload_folder(dbx, self.datafolder, dpx_path)
+        except Exception as e:
+            logger.info(f"Failed to upload to dropbox with error: {e}")
+            raise ValueError(f"Failed to upload to dropbox with error: {e}")
 
     def _save_trial(self):
         if self.trial is not None:
@@ -165,15 +168,15 @@ class Manager:
                 logging.error(f"Failed to upload to dropbox: {e}")
 
             logger.info("Sending slack message", extra={"markup": True})
-            send_slack_message(
-                f"""
-                \n
-                Completed simulation
-                Start time: {self.simstart}
-                End time: {timestamp()}
-                Data folder: {self.datafolder}
-                """
-            )
+            # send_slack_message(
+            #     f"""
+            #     \n
+            #     Completed simulation
+            #     Start time: {self.simstart}
+            #     End time: {timestamp()}
+            #     Data folder: {self.datafolder}
+            #     """
+            # )
 
             # delete folder
             self.datafolder.unlink()
