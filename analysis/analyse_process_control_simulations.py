@@ -12,7 +12,9 @@ from fcutils.maths.geometry import (
     calc_distance_between_points_two_vectors_2d,
 )
 from fcutils.plotting.utils import clean_axes
+import sys
 
+sys.path.append("./")
 from proj.paths import analysis_fld, db_app
 from proj.utils.misc import load_results_from_folder, duration_from_history
 from proj.environment.trajectories import compute_trajectory_stats

@@ -15,7 +15,7 @@ template = """#! /bin/bash
 #SBATCH -p cpu # partition (queue)
 #SBATCH -N 1   # number of nodes
 #SBATCH --mem 1gb # memory pool for all cores
-#SBATCH --job-name="control"
+#SBATCH --job-name="tr NNN"
 #SBATCH -n 1
 #SBATCH --time=00:30:00
 #SBATCH	-o out.out

@@ -216,7 +216,7 @@ class ModelDynamics(object):
         # nu = K.pinv() * vels # * Q * vels
         args = [L, R, v, omega]
         vels = Matrix([v, omega])
-        K = Matrix([[1, +L / R], [1, -L / R]])
+        K = Matrix([[1 / R, 1 / R], [1 / R, -1 / R]])
         nu = K * vels
         self.calc_wheels_ang_vels = lambdify(args, nu, modules="numpy")
 
