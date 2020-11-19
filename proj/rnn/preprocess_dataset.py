@@ -1,5 +1,4 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from rich.progress import track
@@ -16,39 +15,30 @@ from proj.utils.misc import (
 )
 
 
-def get_inputs(trajectory, history):
-    traj_sim = trajectory_at_each_simulation_step(trajectory, history)
-    # goal_traj = history[
-    #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
-    # ].values
+"""
+    Preprocess results from running the control
+    algorithm on a number of trials to create a 
+    normalized dataset for using with RNNs.
+"""
 
-    # delta_traj = goal_traj - traj_sim
-    return traj_sim
+# ------------------------- old inputs outputs funcs ------------------------- #
+
+# def get_inputs(trajectory, history):
+#     traj_sim = trajectory_at_each_simulation_step(trajectory, history)
+#     # goal_traj = history[
+#     #     ["goal_x", "goal_y", "goal_theta", "goal_v", "goal_omega"]
+#     # ].values
+
+#     # delta_traj = goal_traj - traj_sim
+#     return traj_sim
 
 
-def get_outputs(history):
-    # return np.vstack([history["tau_r"][1:], history["tau_l"][1:]])
-    return np.vstack([history["nudot_right"], history["nudot_left"]])
+# def get_outputs(history):
+#     # return np.vstack([history["tau_r"][1:], history["tau_l"][1:]])
+#     return np.vstack([history["nudot_right"], history["nudot_left"]])
 
 
-def plot_dataset(inputs, outputs):
-    f, axarr = plt.subplots(ncols=4, nrows=2, figsize=(20, 12))
-    titles = [
-        "X",
-        "Y",
-        "\\theta",
-        "v",
-        "\\omega",
-        "\\tau_{R}",
-        "\\tau_{L}",
-    ]
-    for n, (ax, ttl) in enumerate(zip(axarr.flatten(), titles)):
-        if n <= 4:
-            ax.hist(inputs[:, n], bins=100)
-        else:
-            ax.hist(outputs[:, n - 5], bins=100)
-        ax.set(title=f"${ttl}$")
-    plt.show()
+# ------------------------- base pre-processing class ------------------------ #
 
 
 class Preprocessing(RNNPaths):
@@ -57,9 +47,21 @@ class Preprocessing(RNNPaths):
         into a structured dataset that can be used for training RNNs
     """
 
+    description = "base"  # updated in subclasses to describe dataset
+
     def __init__(self):
         self.name = "preprocessing"
         RNNPaths.__init__(self, mk_dir=False)
+
+    def get_inputs(self, trajectory, history):
+        return NotImplementedError(
+            "get_inputs should be implemented in your dataset preprocessing"
+        )
+
+    def get_outputs(self, history):
+        return NotImplementedError(
+            "get_outputs should be implemented in your dataset preprocessing"
+        )
 
     def _standardize_dataset(self, trials_folders):
         """ 
@@ -92,11 +94,11 @@ class Preprocessing(RNNPaths):
                 continue
 
             # stack inputs
-            delta_traj = get_inputs(trajectory, history)
+            delta_traj = self.get_inputs(trajectory, history)
             all_trajs.append(delta_traj)
 
             # stack outputs
-            all_outputs.append(get_outputs(history))
+            all_outputs.append(self.get_outputs(history))
 
         # fit normalizer
         _in, _out = np.vstack(all_trajs), np.hstack(all_outputs).T
@@ -104,7 +106,7 @@ class Preprocessing(RNNPaths):
         input_scaler = input_scaler.fit(_in)
         output_scaler = output_scaler.fit(_out)
 
-        self.save_normalizers(input_scaler, output_scaler, _in, _out)
+        self.save_normalizers(input_scaler, output_scaler)
         return input_scaler, output_scaler
 
     def _split_and_save(self, data):
@@ -120,7 +122,11 @@ class Preprocessing(RNNPaths):
 
         print(f"Saved at {self.dataset_train_path}, {len(data)} trials")
 
-    def make_dataset(self):
+    def describe(self):
+        with open(self.dataset_folder / "description.txt", "w") as out:
+            out.write(self.description)
+
+    def make(self):
         """ 
             Organizes the standardized data into a single dataframe.
         """
@@ -147,8 +153,8 @@ class Preprocessing(RNNPaths):
                 continue
 
             # Get inputs and outputs
-            delta_traj = get_inputs(trajectory, history)
-            out = get_outputs(history).T
+            delta_traj = self.get_inputs(trajectory, history)
+            out = self.get_outputs(history).T
 
             if len(delta_traj) != len(out):
                 raise ValueError(f"Length of input and outputs doesnt match")
@@ -173,3 +179,31 @@ class Preprocessing(RNNPaths):
 
         # Save data to file
         self._split_and_save(data)
+
+
+# ---------------------------------------------------------------------------- #
+#                             preprocessing classes                            #
+# ---------------------------------------------------------------------------- #
+
+
+class PredictNudotPreProcessing(Preprocessing):
+    description = """
+        Predict wheel velocityies (nudot right/left) from 
+        the 'trajectory at each step' (i.e. the next trajectory waypoint
+        at each frame in the simulation, to match the inputs 
+        and controls produced by the control model).
+
+        The model predicts the wheels velocities, **not** the controls (taus)
+
+        Data are normalized in range (-1, 1) with a MinMaxScaler for each
+        variable independently.
+    """
+
+    def __init__(self):
+        Preprocessing.__init__(self)
+
+    def get_inputs(self, trajectory, history):
+        return trajectory_at_each_simulation_step(trajectory, history)
+
+    def get_outputs(self, history):
+        return np.vstack([history["nudot_right"], history["nudot_left"]])

@@ -116,6 +116,7 @@ def run_experiment(
                 if environment.isdone(model.curr_x, trajectory):
                     logger.info("environment says we're DONE")
                     break
+
                 if environment.stop:
                     logger.info("environment says STOP")
                     break
@@ -134,4 +135,3 @@ def run_experiment(
         except Exception as e:
             logger.info(f"Failed to run environment.conclude(): {e}")
             environment.failed()
-            return

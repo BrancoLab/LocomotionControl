@@ -16,11 +16,6 @@ def upload_folder(dbx, fld, base):
     base = Path(base)
 
     # loop subfolders
-    for subf in fld.glob("*"):
-        if not subf.is_dir():
-            continue
-        upload_folder(dbx, subf, base / subf.name)
-
     for f in fld.glob("*.*"):
         if not f.is_file():
             continue

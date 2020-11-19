@@ -17,9 +17,9 @@ template = """#! /bin/bash
 #SBATCH --mem 1gb # memory pool for all cores
 #SBATCH --job-name="tr NNN"
 #SBATCH -n 1
-#SBATCH --time=00:30:00
-#SBATCH	-o out.out
-#SBATCH -e err.err
+#SBATCH --time=02:00:00
+#SBATCH	-o logs/tr_NNN.out
+#SBATCH -e logs/tr_NNN.err
 
 
 echo "loading conda env"

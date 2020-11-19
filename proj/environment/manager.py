@@ -26,7 +26,14 @@ class Manager:
         self.simstart = timestamp()
 
         self.model = model
-        self.exp_name = f'{model.SIMULATION_NAME}_{model.trajectory["name"]}_{timestamp()}_{np.random.randint(low=0, high=10000)}'
+
+        if (
+            model.trajectory["name"] == "tracking"
+            and not model.trajectory["randomize"]
+        ):
+            self.exp_name = f'trial_{model.trajectory["trial_n"]}'
+        else:
+            self.exp_name = f'{model.SIMULATION_NAME}_{model.trajectory["name"]}_{timestamp()}_{np.random.randint(low=0, high=10000)}'
 
         # get main folder
         if winstor:
@@ -46,14 +53,14 @@ class Manager:
                 shutil.rmtree(str(self.datafolder))
             except (FileNotFoundError, PermissionError):
                 pass
+        self.datafolder.mkdir(exist_ok=True)
 
         # get subfolders
-        self.frames_folder = self.datafolder / "frames"
-
-        # create folders
-        folders = [self.datafolder, self.frames_folder]
-        for fld in folders:
-            fld.mkdir(exist_ok=True)
+        if self.model.PLOT_LIVE:
+            self.frames_folder = self.datafolder / "frames"
+            self.frames_folder.mkdir(exist_ok=True)
+        else:
+            self.frames_folder = None
 
         self._start_logging()
 
@@ -141,6 +148,13 @@ class Manager:
             self.trial.to_hdf(str(self.datafolder / "trial.h5"), key="hdf5")
 
     def conclude(self):
+        send_slack_message(
+            f"""
+                \n
+                Sim {self.datafolder.name} started at {self.simstart} finished at {timestamp()}.
+                """
+        )
+
         self._log_conf()
         self._save_results()
 
@@ -164,22 +178,14 @@ class Manager:
             logger.info("Uploading to dropbox", extra={"markup": True})
             try:
                 self._upload_to_dropbox()
+
+                # delete data folder if data are on dropbox
+                logger.info("Removing data folder")
+                shutil.rmtree(str(self.datafolder))
             except Exception as e:
-                logging.error(f"Failed to upload to dropbox: {e}")
-
-            logger.info("Sending slack message", extra={"markup": True})
-            # send_slack_message(
-            #     f"""
-            #     \n
-            #     Completed simulation
-            #     Start time: {self.simstart}
-            #     End time: {timestamp()}
-            #     Data folder: {self.datafolder}
-            #     """
-            # )
-
-            # delete folder
-            self.datafolder.unlink()
+                logging.info(
+                    f"Failed to upload to dropbox and delete data: {e}"
+                )
         else:
             logger.info("Did not upload to dropbox", extra={"markup": True})
 

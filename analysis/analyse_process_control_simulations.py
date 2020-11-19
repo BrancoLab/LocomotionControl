@@ -19,7 +19,7 @@ from proj.paths import analysis_fld, db_app
 from proj.utils.misc import load_results_from_folder, duration_from_history
 from proj.environment.trajectories import compute_trajectory_stats
 
-from analysis.utils import check_two_conf_equal
+# from analysis.utils import check_two_conf_equal
 
 # %%
 # Load all data in DB upload folder
@@ -52,9 +52,9 @@ for fld in track(flds):
     # Check that all data have the same config
     if config is None:
         config = _config
-    else:
-        if not check_two_conf_equal(config, _config):
-            raise ValueError("Not all simulations have the same config")
+    # else:
+    #     if not check_two_conf_equal(config, _config):
+    #         raise ValueError("Not all simulations have the same config")
 
     # stash
     loaded["trajectory"].append(trajectory)
