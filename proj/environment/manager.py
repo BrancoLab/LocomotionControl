@@ -174,6 +174,9 @@ class Manager:
                 Data folder: {self.datafolder}
                 """
             )
+
+            # delete folder
+            self.datafolder.unlink()
         else:
             logger.info("Did not upload to dropbox", extra={"markup": True})
 

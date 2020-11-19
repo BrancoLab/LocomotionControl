@@ -10,11 +10,6 @@ from proj import (
     run_experiment,
 )
 
-
-# from proj.plotting.trajectories import plot_trajectory
-
-
-# model = ModelPolar()
 model = Model(trial_n=1)
 env = Environment(model)
 control = Controller(model)

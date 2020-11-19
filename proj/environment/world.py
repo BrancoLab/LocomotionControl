@@ -2,7 +2,6 @@ from collections import namedtuple
 import numpy as np
 
 from proj.environment.plotter import Plotter
-from proj.utils.misc import polar_to_cartesian
 
 _xy = namedtuple("xy", "x, y")
 _xyt = namedtuple("xyt", "x, y, t")
@@ -113,20 +112,9 @@ class World(Plotter):
             pass
 
         # Get model's position
-        if self.model.MODEL_TYPE == "cartesian":
-            x, y = self.model.curr_x.x, self.model.curr_x.y
-            t = self.model.curr_x.theta
-
-            self.model_position_history_world.append(_xyt(x, y, t))
-
-        else:
-            print("polar to cartesian is incorrect in world history")
-            x, y = polar_to_cartesian(
-                self.model.curr_x.r, self.model.curr_x.gamma
-            )
-
-            self.model_position_history_world.append(_xy(x, y))
-
+        x, y = self.model.curr_x.x, self.model.curr_x.y
+        t = self.model.curr_x.theta
+        self.model_position_history_world.append(_xyt(x, y, t))
         self.model_position_world = self.model_position_history_world[-1]
 
         # Update plots

@@ -26,8 +26,6 @@ init_printing()
 
 
 class Model(Config):
-    MODEL_TYPE = "cartesian"
-
     _M_args = [
         "theta",
         "v",

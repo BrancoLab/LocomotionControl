@@ -50,19 +50,15 @@ class Plotter:
     # ------------------------------- Live plotting ------------------------------ #
     def _plot_xy(self, ax, curr_goals):
         # plot currently selected goals
-        if self.model.MODEL_TYPE == "cartesian":
-            ax.plot(
-                curr_goals[:, 0],
-                curr_goals[:, 1],
-                lw=10,
-                color="r",
-                alpha=0.5,
-                zorder=-1,
-                solid_capstyle="round",
-            )
-        else:
-            print("current goals for polar")
-            # raise NotImplementedError("current goals for polar")
+        ax.plot(
+            curr_goals[:, 0],
+            curr_goals[:, 1],
+            lw=10,
+            color="r",
+            alpha=0.5,
+            zorder=-1,
+            solid_capstyle="round",
+        )
 
         # plot position history
         X = [pos.x for pos in self.model_position_history_world]
@@ -89,28 +85,27 @@ class Plotter:
             edgecolors=[0.3, 0.3, 0.3],
         )
 
-        if self.model.MODEL_TYPE == "cartesian":
-            # plot body axis
-            t = self.model_position_world.t
-            dx = np.cos(t) * (
-                self.model.mouse["length"]
-                * (1 / self.model.trajectory["px_to_cm"])
-                - 0.5
-            )
-            dy = np.sin(t) * (
-                self.model.mouse["length"]
-                * (1 / self.model.trajectory["px_to_cm"])
-            )
+        # plot body axis
+        t = self.model_position_world.t
+        dx = np.cos(t) * (
+            self.model.mouse["length"]
+            * (1 / self.model.trajectory["px_to_cm"])
+            - 0.5
+        )
+        dy = np.sin(t) * (
+            self.model.mouse["length"]
+            * (1 / self.model.trajectory["px_to_cm"])
+        )
 
-            ax.plot([x, x + dx], [y, y + dy], lw=8, color=colors["tracking"])
-            ax.scatter(  # plot head
-                x + dx,
-                y + dy,
-                s=125,
-                color=colors["tracking"],
-                lw=1.5,
-                edgecolors=[0.3, 0.3, 0.3],
-            )
+        ax.plot([x, x + dx], [y, y + dy], lw=8, color=colors["tracking"])
+        ax.scatter(  # plot head
+            x + dx,
+            y + dy,
+            s=125,
+            color=colors["tracking"],
+            lw=1.5,
+            edgecolors=[0.3, 0.3, 0.3],
+        )
 
         ax.axis("equal")
         ax.axis("off")
@@ -170,17 +165,9 @@ class Plotter:
         ax.clear()
 
         # plot speed trajectory
-
-        if self.model.MODEL_TYPE == "cartesian":
-            idx = 3
-        else:
-            idx = 2
-
         ax.scatter(
-            np.arange(len(self.initial_trajectory[:, idx]))[
-                :: self.plot_every
-            ],
-            self.initial_trajectory[:, idx][:: self.plot_every],
+            np.arange(len(self.initial_trajectory[:, 3]))[:: self.plot_every],
+            self.initial_trajectory[:, 3][:: self.plot_every],
             color=colors["v"],
             label="trajectory speed",
             lw=1,

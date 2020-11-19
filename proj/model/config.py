@@ -24,9 +24,6 @@ class Config:
     SPAWN_TYPE = "trajectory"
     LIVE_PLOT = False
 
-    mouse_type = "realistic"
-    model_type = "cart"
-
     dt = 0.005
 
     # ------------------------------ Goal trajectory ----------------------------- #
@@ -80,8 +77,7 @@ class Config:
             d=2,  # distance between axel and CoM | cm
             length=2,  # cm
             m=round(23 / 9.81, 2),  # mass | g
-            m_w=0.8,  # mass of wheels/legs |g
-            mouse_type="realistic",
+            m_w=round(7.8 / 9.81, 2),  # mass of wheels/legs |g
         )
         # Adjust mouse length for plotting
         self.mouse["length"] = (

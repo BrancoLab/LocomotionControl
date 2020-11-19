@@ -104,7 +104,8 @@ class Environment(World, Manager):
         end = min_idx + n_ahead + pred_len
 
         if start + pred_len > traj_length:
-            end = traj_length
+            return None  # finished!
+            # end = traj_length
 
         # Make sure planned trajectory has the correct length
         if start == end:
@@ -141,13 +142,9 @@ class Environment(World, Manager):
             Checks if the task is complited by seeing if the mouse
             is close enough to the end of the trajectory
         """
-        if self.model.MODEL_TYPE == "cartesian":
-            mouse_xy = np.array([curr_x.x, curr_x.y])
-            goal_xy = trajectory[-1, :2]
-
-            dist = calc_distance_between_points_2d(mouse_xy, goal_xy)
-        else:
-            dist = curr_x.r
+        mouse_xy = np.array([curr_x.x, curr_x.y])
+        goal_xy = trajectory[-1, :2]
+        dist = calc_distance_between_points_2d(mouse_xy, goal_xy)
 
         if dist <= self.model.trajectory["min_dist"]:
             logging.info(
