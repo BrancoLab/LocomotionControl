@@ -20,6 +20,7 @@ requirements = [
     "pyinspect",
     "loguru",
     "gputil",
+    "pyrnn",
 ]
 
 setup(
