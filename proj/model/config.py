@@ -18,7 +18,7 @@ control_params = dict(
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    SIMULATION_NAME = "wheel_dynamics"
+    SIMULATION_NAME = "all_trials"
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
@@ -40,7 +40,7 @@ class Config:
         px_to_cm=1 / 8,  # convert px values to cm
         resample=True,  # if True when using tracking trajectory resamples it
         max_deg_interpol=8,  # if using track fit a N degree polynomial to daa to smoothen
-        randomize=True,  # if true when using tracking it pulls a random trial
+        randomize=False,  # if true when using tracking it pulls a random trial
         trial_n=0,  # if not picking a random trial, which one should we use
         dt=0.005,  # used to simulate trajectories, should match simulation
     )
