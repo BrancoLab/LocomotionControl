@@ -38,8 +38,8 @@ class Model(Config, ModelDynamics):
             r=[],
             gamma=[],
             trajectory_idx=[],
-            nudot_left=[],  # acceleration of left wheel
-            nudot_right=[],  # acceleration of right wheel
+            nudot_left=[],  # angular velocity of left wheel
+            nudot_right=[],  # angular velocity of right wheel
         )
 
     def _append_history(self):
@@ -65,13 +65,9 @@ class Model(Config, ModelDynamics):
         variables = merge(u, self.curr_x, self.mouse)
         inputs = [variables[a] for a in self._M_args]
 
-        # Compute wheel accelerations
-        w = self.calc_wheels_accels(
-            variables["L"],
-            variables["R"],
-            variables["theta"],
-            self.curr_x.v,
-            self.curr_x.omega,
+        # Compute wheel velocities
+        w = self.calc_wheels_ang_vels(
+            variables["L"], variables["R"], self.curr_x.v, self.curr_x.omega,
         )
         self.curr_wheel_state = self._wheel_state(*w.ravel())
 

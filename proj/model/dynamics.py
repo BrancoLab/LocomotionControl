@@ -192,29 +192,33 @@ class ModelDynamics(object):
             omega,
         ) = self.variables.values()
         """
-            In the model you can use the wheels accelerations
+            In the model you can use the wheels angular velocity
             to get the x,y,theta velocity.
             Here we do the inverse, given x,y,theta velocities
-            we get the wheel's accelerations
+            we get the wheel's angular velocity.
+            
+            Using eqs 15 and 16 from the paper
         """
 
         nu_l_dot, nu_r_dot = symbols("nudot_L, nudot_R")
 
-        # define vecs and matrices
+        # # define vecs and matrices
+        # K = Matrix(
+        #     [
+        #         [R / 2 * cos(theta), R / 2 * cos(theta)],
+        #         [R / 2 * sin(theta), R / 2 * sin(theta)],
+        #         [R / (2 * L), -R / (2 * L)],
+        #     ]
+        # )
+
+        # Q = Matrix([[sin(theta), 0], [cos(theta), 0], [0, 1]])
+
+        # nu = K.pinv() * vels # * Q * vels
+        args = [L, R, v, omega]
         vels = Matrix([v, omega])
-        K = Matrix(
-            [
-                [R / 2 * cos(theta), R / 2 * cos(theta)],
-                [R / 2 * sin(theta), R / 2 * sin(theta)],
-                [R / (2 * L), -R / (2 * L)],
-            ]
-        )
-
-        Q = Matrix([[sin(theta), 0], [cos(theta), 0], [0, 1]])
-
-        nu = K.pinv() * Q * vels
-        args = [L, R, theta, v, omega]
-        self.calc_wheels_accels = lambdify(args, nu, modules="numpy")
+        K = Matrix([[1, +L / R], [1, -L / R]])
+        nu = K * vels
+        self.calc_wheels_ang_vels = lambdify(args, nu, modules="numpy")
 
     def get_inverse_dynamics(self):
         """

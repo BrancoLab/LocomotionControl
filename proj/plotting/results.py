@@ -149,14 +149,14 @@ def _plot_cost(cost_history, ax=None):
     ax.legend()
 
 
-def _plot_integrals(history, dt, tax=None, oax=None, sax=None):
+def _plot_wheel_velocity(history, dt, tax=None, oax=None, sax=None):
     R, L = history["nudot_right"], history["nudot_left"]
 
     plot_line_outlined(
         tax,
         R,
         color=desaturate_color(colors["tau_r"]),
-        label="R_wheel_accel",
+        label="R_wheel_angular_velocity",
         lw=2,
         solid_capstyle="round",
     )
@@ -164,11 +164,15 @@ def _plot_integrals(history, dt, tax=None, oax=None, sax=None):
         tax,
         L,
         color=desaturate_color(colors["tau_l"]),
-        label="L_wheel_accel",
+        label="L_wheel_angular_velocity",
         lw=2,
         solid_capstyle="round",
     )
-    tax.set(title="Wheels accelerations", xlabel="# Frames", ylabel="accel")
+    tax.set(
+        title="Wheels angular velocities",
+        xlabel="# Frames",
+        ylabel="ang. velocity\n$(deg/s)$",
+    )
     tax.legend()
 
     # plot v and omega
@@ -212,7 +216,7 @@ def plot_results(results_folder, plot_every=20, save_path=None):
     )  # plot v against the trajectory
     # _plot_accel(history, ax=accel_ax)
     # _plot_cost(cost_history, ax=cost_ax)
-    _plot_integrals(
+    _plot_wheel_velocity(
         history, config["dt"], tax=tau_int_ax, oax=omega_ax, sax=speed_ax
     )
 
