@@ -56,7 +56,7 @@ class Manager:
         self.datafolder.mkdir(exist_ok=True)
 
         # get subfolders
-        if self.model.PLOT_LIVE:
+        if self.model.LIVE_PLOT:
             self.frames_folder = self.datafolder / "frames"
             self.frames_folder.mkdir(exist_ok=True)
         else:
