@@ -1,4 +1,4 @@
-# *.pt
+*.pt
 
 .vscode/settings.json
 proj/secrets.py

@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from vedo import Plotter, interactive, Text2D
 
+import sys
+
+sys.path.append("./")
 from proj.rnn.dataset import make_batch
 
 from pyrnn import RNN

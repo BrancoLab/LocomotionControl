@@ -21,45 +21,42 @@ from pyrnn._utils import torchify
 is_win = sys.platform == "win32"
 
 
-class DeltaStateDataSet(data.Dataset, RNNPaths):
-    """
-    creates a pytorch dataset for loading
-    the data during training.
-    """
+class DataSet(data.Dataset, RNNPaths):
+    # preprocessed dataset name
+    dataset_name = "replace"
 
-    def __init__(self, name=None, dataset_length=-1):
-        self.name = name or "test"
-        RNNPaths.__init__(self)
+    # input and outputs names
+    _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
+
+    def __init__(self, dataset_length=-1):
+        RNNPaths.__init__(self, dataset_name=self.dataset_name)
 
         self.dataset = pd.read_hdf(self.dataset_train_path, key="hdf")[
             :dataset_length
         ]
         self.get_max_trial_length()
 
+        self.inputs = self.dataset[list(self._data[0])]
+        self.outputs = self.dataset[list(self._data[1])]
+
     def __len__(self):
         return len(self.dataset)
 
     def get_max_trial_length(self):
         self.n_samples = max(
-            [len(t.trajectory) for i, t in self.dataset.iterrows()]
+            [len(t[self._data[0][0]]) for i, t in self.dataset.iterrows()]
         )
 
-    def _pad(self, arr):
-        l, m = arr.shape
-        padded = np.zeros((self.n_samples, m))
-        padded[:l, :] = arr
-        return padded
+    # def _pad(self, arr):
+    #     arr = np.vstack(arr).T
+    #     l, m = arr.shape
+    #     padded = np.zeros((self.n_samples, m))
+    #     padded[:l, :] = arr
+    #     return padded
 
     def _get_random(self):
         idx = rnd.randint(0, len(self))
-        trial = self.dataset.iloc[idx]
-
-        X = torchify(self._pad(trial.trajectory))
-        Y = torchify(self._pad(trial.controls))
-
-        if len(X) != len(Y):
-            raise ValueError("Length of X and Y must match")
-
+        X, Y = self.__getitem__(idx)
         return (
             X.reshape(1, self.n_samples, -1),
             Y.reshape(1, self.n_samples, -1),
@@ -72,70 +69,80 @@ class DeltaStateDataSet(data.Dataset, RNNPaths):
             3. create batch
             4. enjoy
         """
-        trial = self.dataset.iloc[item]
-
-        X = torchify(self._pad(trial.trajectory))
-        Y = torchify(self._pad(trial.controls))
+        # X = torchify(self._pad(self.inputs.iloc[item].values))
+        # Y = torchify(self._pad(self.outputs.iloc[item].values))
+        X = torchify(np.vstack(self.inputs.iloc[item].values).T)
+        Y = torchify(np.vstack(self.outputs.iloc[item].values).T)
 
         if len(X) != len(Y):
             raise ValueError("Length of X and Y must match")
 
         return X, Y
 
+    @classmethod
+    def get_one_batch(cls, n_trials, **kwargs):
+        """
+        Return a single batch of given length    
+        """
+        ds = cls(dataset_length=500, **kwargs)
+        batch = [ds._get_random() for i in range(n_trials)]
 
-def make_batch(n_trials, **kwargs):
+        X = torch.cat([b[0] for b in batch])
+        Y = torch.cat([b[1] for b in batch])
+
+        return X, Y
+
+
+class TrajAtEachFrame(DataSet):
     """
-    Return a single batch of given length    
+    creates a pytorch dataset for loading
+    the data during training.
     """
-    ds = DeltaStateDataSet(dataset_length=500, **kwargs)
-    batch = [ds._get_random() for i in range(n_trials)]
 
-    X = torch.cat([b[0] for b in batch])
-    Y = torch.cat([b[1] for b in batch])
+    # preprocessed dataset name
+    dataset_name = "dataset_predict_nudot_from_XYT"
 
-    return X, Y
+    # input and outputs names
+    _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
 
-
-# def make_batch(batch_size=1, **kwargs):
-#     """
-#     Return a single batch of given length
-#     """
-#     dataloader = torch.utils.data.DataLoader(
-#         DeltaStateDataSet(dataset_length=batch_size, **kwargs),
-#         batch_size=batch_size,
-#         num_workers=0 if is_win else 2,
-#         shuffle=True,
-#         worker_init_fn=lambda x: np.random.seed(),
-#     )
-
-#     batch = [b for b in dataloader][0]
-#     return batch
+    def __init__(self, *args, **kwargs):
+        DataSet.__init__(self, *args, **kwargs)
 
 
-def plot_predictions(model, batch_size, **kwargs):
+def plot_predictions(model, batch_size, dataset, **kwargs):
     """
     Run the model on a single batch and plot
     the model's prediction's against the
     input data and labels.
     """
-    X, Y = make_batch(**kwargs)
+    X, Y = dataset.get_one_batch(1, **kwargs)
+
+    if model.on_gpu:
+        model.cpu()
+        model.on_gpu = False
+
     o, h = model.predict(X)
 
     n_inputs = X.shape[-1]
     n_outputs = Y.shape[-1]
+    labels = ["x", "y", "$\\theta$", "v", "$\\omega$"]
 
     f, axarr = plt.subplots(nrows=2, figsize=(12, 9))
 
     for n in range(n_inputs):
-        axarr[0].plot(X[0, :, n], lw=2)
+        axarr[0].plot(X[0, :, n], lw=2, label=labels[n])
     axarr[0].set(title="inputs")
+    axarr[0].legend()
 
     cc = [salmon, light_green]
     oc = [salmon_dark, light_green_dark]
+    labels = ["nudot_R", "nudot_L"]
     for n in range(n_outputs):
-        axarr[1].plot(Y[0, :, n], lw=2, color=cc[n], label="correct")
         axarr[1].plot(
-            o[0, :, n], lw=1, ls="--", color=oc[n], label="model output"
+            Y[0, :, n], lw=2, color=cc[n], label="correct " + labels[n]
+        )
+        axarr[1].plot(
+            o[0, :, n], lw=2, ls="--", color=oc[n], label="model output"
         )
     axarr[1].legend()
     axarr[1].set(title="outputs")
