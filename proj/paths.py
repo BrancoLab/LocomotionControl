@@ -3,7 +3,6 @@ from pathlib import Path
 
 if sys.platform == "darwin":
     trials_cache = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/behav_data/psychometric_trials_augmented.h5"
-    # trials_cache = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/behav_data/zanes.h5"
 
     main_fld = Path(
         "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control"
@@ -16,8 +15,9 @@ if sys.platform == "darwin":
 
     rnn = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/control/RNN"
 else:
-    trials_cache = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\behav_data\\psychometric_trials_augmented.h5"
-    # trials_cache = "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control\\behav_data\\zanes.h5"
+    trials_cache = Path(
+        "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\psychometric_trials_augmented.h5"
+    )
 
     main_fld = Path(
         "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\control"

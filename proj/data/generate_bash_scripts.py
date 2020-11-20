@@ -1,7 +1,12 @@
-# %%
 from pathlib import Path
 import pandas as pd
+
+import sys
+
+sys.path.append("./")
 from proj.paths import trials_cache
+
+# import shutil
 from rich.progress import track
 
 """
@@ -39,16 +44,16 @@ python winstor.py  --trialn NNN
 save_fld = Path(
     "Z:\\swc\\branco\\Federico\\Locomotion\\control\\trials_bash_files"
 )
+# shutil.rmtree(str(save_fld))
+save_fld.mkdir(exist_ok=True)
 
-# %%
-trials = pd.read_hdf(trials_cache)
+trials = pd.read_hdf(trials_cache, key="hdf",)
+print(trials_cache)
 print(f"Loaded {len(trials)} trials")
 
 
-# %%
 for n, (i, t) in track(enumerate(trials.iterrows()), total=len(trials)):
     txt = template.replace("NNN", str(n))
 
     with open(save_fld / f"trial_{n}.sh", "w") as out:
         out.write(txt)
-# %%
