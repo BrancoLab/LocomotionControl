@@ -138,7 +138,7 @@ axarr[0].scatter(
     lw=1,
     ec=[0.3, 0.3, 0.3],
 )
-axarr[0].plot([90, 200], [90, 200], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
+axarr[0].plot([50, 125], [40, 100], lw=2, color=[0.6, 0.6, 0.6], zorder=-1)
 
 axarr[0].set(
     xlabel="Trajectory length", ylabel="Distance travelled", title="Distance"
@@ -226,3 +226,5 @@ ax.hist(v_dist, color="m", bins=15, density=True, alpha=0.5, label="Speed")
 
 ax.legend()
 _ = ax.set(xlabel="Normalized distance", ylabel="density")
+
+# %%
