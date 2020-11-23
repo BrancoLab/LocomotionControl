@@ -12,6 +12,7 @@ from fcutils.maths.geometry import (
     calc_distance_between_points_2d,
     calc_ang_velocity,
 )
+from fcutils.maths.utils import derivative
 
 from proj.utils.misc import interpolate_nans
 from proj.environment.bezier import calc_bezier_path
@@ -320,7 +321,7 @@ def from_tracking(params, planning_params, cache_fld, *args):
     angle = np.unwrap(angle)
 
     speed = trial.speed * fps * params["px_to_cm"]
-    ang_speed = np.ones_like(speed)  # it will be ignored
+    ang_speed = derivative(angle)
 
     # resample variables so that samples are uniformly distributed
     vrs = (x, y, angle, speed, ang_speed)

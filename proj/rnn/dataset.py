@@ -70,8 +70,6 @@ class DataSet(data.Dataset, RNNPaths):
             3. create batch
             4. enjoy
         """
-        # X = torchify(self._pad(self.inputs.iloc[item].values))
-        # Y = torchify(self._pad(self.outputs.iloc[item].values))
         X = torchify(np.vstack(self.inputs.iloc[item].values).T)
         Y = torchify(np.vstack(self.outputs.iloc[item].values).T)
 

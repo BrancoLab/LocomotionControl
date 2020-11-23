@@ -6,7 +6,6 @@ from pyrnn.plot import plot_training_loss
 import sys
 
 sys.path.append("./")
-# from proj.rnn.preprocess_dataset import PredictNudotFromDeltaXYT
 from proj.rnn.dataset import (
     TrajAtEachFrame,
     plot_predictions,
@@ -16,6 +15,7 @@ from proj.rnn.dataset import (
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 # ---------------------------- Preprocess dataset ---------------------------- #
+# from proj.rnn.preprocess_dataset import PredictNudotFromDeltaXYT
 # PredictNudotFromDeltaXYT().make()
 
 # ---------------------------------- Params ---------------------------------- #
