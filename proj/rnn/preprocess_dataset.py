@@ -130,7 +130,7 @@ class Preprocessing(RNNPaths):
                     info,
                 ) = load_results_from_folder(fld)
             except Exception:
-                print(f"Could not open a trial folder, skipping [{fld.name}]")
+                print(f"Could not open a trial folder, skipping: {fld.name}")
                 continue
 
             # Get inputs
@@ -182,6 +182,40 @@ class PredictNudotFromXYT(Preprocessing):
         trj = trajectory_at_each_simulation_step(trajectory, history)
         x, y, theta = trj[:, 0], trj[:, 1], trj[:, 2]
         return x, y, theta
+
+    def get_outputs(self, history):
+        return (
+            np.array(history["nudot_right"]),
+            np.array(history["nudot_left"]),
+        )
+
+
+class PredictNudotFromDeltaXYT(Preprocessing):
+    description = """
+        Predict wheel velocityies (nudot right/left) from 
+        the 'trajectory at each step' (i.e. the next trajectory waypoint
+        at each frame in the simulation, to match the inputs 
+        and controls produced by the control model).
+
+        The model predicts the wheels velocities, **not** the controls (taus)
+
+        Data are normalized in range (-1, 1) with a MinMaxScaler for each
+        variable independently.
+    """
+
+    name = "dataset_predict_nudot_from_deltaXYT"
+    _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
+
+    def __init__(self):
+        Preprocessing.__init__(self)
+
+    def get_inputs(self, trajectory, history):
+        trj = trajectory_at_each_simulation_step(trajectory, history)
+        x, y, theta = trj[:, 0], trj[:, 1], trj[:, 2]
+
+        gtraj = history[["goal_x", "goal_y", "goal_theta"]].values
+
+        return x - gtraj[:, 0], y - gtraj[:, 1], theta - gtraj[:, 2]
 
     def get_outputs(self, history):
         return (

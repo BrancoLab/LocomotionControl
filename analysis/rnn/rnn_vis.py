@@ -6,13 +6,13 @@ from vedo import Plotter, interactive, Text2D
 import sys
 
 sys.path.append("./")
-from proj.rnn.dataset import make_batch
+from proj.rnn.dataset import TrajAtEachFrame
 
 from pyrnn import RNN
 from pyrnn.render import render_state_history_pca_3d
 from pyrnn._utils import npify
 
-rnn = RNN.load("task_rnn.pt", n_units=128, input_size=5, output_size=2)
+rnn = RNN.load("task_rnn.pt", n_units=128, input_size=3, output_size=2)
 
 n_frames = 350
 n_trials = 25
@@ -21,7 +21,7 @@ n_trials = 25
 actors = []
 f, axarr = plt.subplots(ncols=2, figsize=(16, 9))
 
-X, Y = make_batch(n_trials)
+X, Y = TrajAtEachFrame.get_one_batch(n_trials)
 
 X = X[:, :n_frames, :]
 o, h = rnn.predict_with_history(X)
@@ -35,8 +35,8 @@ vars = [
     (0, "x pos"),
     (1, "y pos"),
     (2, "theta"),
-    (3, "speed"),
-    (4, "omega"),
+    # (3, "speed"),
+    # (4, "omega"),
     (5, "time"),
 ]
 

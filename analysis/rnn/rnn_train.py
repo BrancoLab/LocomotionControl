@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import os
 
 from pyrnn import RNN
 from pyrnn.plot import plot_training_loss
@@ -7,23 +6,23 @@ from pyrnn.plot import plot_training_loss
 import sys
 
 sys.path.append("./")
-# from proj.rnn.preprocess_dataset import PredictNudotFromXYT
+# from proj.rnn.preprocess_dataset import PredictNudotFromDeltaXYT
 from proj.rnn.dataset import (
     TrajAtEachFrame,
     plot_predictions,
 )
 
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+# os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 # ---------------------------- Preprocess dataset ---------------------------- #
-# PredictNudotFromXYT().make()
+# PredictNudotFromDeltaXYT().make()
 
 # ---------------------------------- Params ---------------------------------- #
 name = None
 batch_size = 512
-epochs = 300  # 300
-lr_milestones = [100, 200, 1300]
+epochs = 2000  # 300
+lr_milestones = [10, 1000, 1900]
 lr = 0.01
 stop_loss = 0.002
 
@@ -32,7 +31,7 @@ stop_loss = 0.002
 rnn = RNN(
     input_size=3,
     output_size=2,
-    n_units=128,
+    n_units=64,
     dale_ratio=None,
     autopses=True,
     on_gpu=True,

@@ -8,8 +8,8 @@ from myterial import (
     light_green_dark,
 )
 import torch.utils.data as data
+from torch.nn.utils.rnn import pad_sequence
 import sys
-import torch
 import pandas as pd
 
 from proj.rnn._utils import RNNPaths
@@ -47,20 +47,21 @@ class DataSet(data.Dataset, RNNPaths):
             [len(t[self._data[0][0]]) for i, t in self.dataset.iterrows()]
         )
 
-    # def _pad(self, arr):
-    #     arr = np.vstack(arr).T
-    #     l, m = arr.shape
-    #     padded = np.zeros((self.n_samples, m))
-    #     padded[:l, :] = arr
-    #     return padded
+    def _pad(self, arr):
+        arr = np.vstack(arr).T
+        l, m = arr.shape
+        padded = np.zeros((self.n_samples, m))
+        padded[:l, :] = arr
+        return padded
 
     def _get_random(self):
         idx = rnd.randint(0, len(self))
         X, Y = self.__getitem__(idx)
-        return (
-            X.reshape(1, self.n_samples, -1),
-            Y.reshape(1, self.n_samples, -1),
-        )
+
+        X = torchify(self._pad(X)).reshape(1, self.n_samples, -1)
+        Y = torchify(self._pad(Y)).reshape(1, self.n_samples, -1)
+
+        return X, Y
 
     def __getitem__(self, item):
         """
@@ -84,13 +85,17 @@ class DataSet(data.Dataset, RNNPaths):
         """
         Return a single batch of given length    
         """
-        ds = cls(dataset_length=500, **kwargs)
-        batch = [ds._get_random() for i in range(n_trials)]
+        ds = cls(dataset_length=n_trials, **kwargs)
+        batch = [b for b in ds]
 
-        X = torch.cat([b[0] for b in batch])
-        Y = torch.cat([b[1] for b in batch])
+        x_padded = pad_sequence(
+            [b[0] for b in batch], batch_first=True, padding_value=0
+        )
+        y_padded = pad_sequence(
+            [b[1] for b in batch], batch_first=True, padding_value=0
+        )
 
-        return X, Y
+        return x_padded, y_padded
 
 
 class TrajAtEachFrame(DataSet):
@@ -100,7 +105,7 @@ class TrajAtEachFrame(DataSet):
     """
 
     # preprocessed dataset name
-    dataset_name = "dataset_predict_nudot_from_XYT"
+    dataset_name = "dataset_predict_nudot_from_deltaXYT"
 
     # input and outputs names
     _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
