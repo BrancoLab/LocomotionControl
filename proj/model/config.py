@@ -22,7 +22,7 @@ class Config:
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
-    LIVE_PLOT = True
+    LIVE_PLOT = False
 
     dt = 0.005
 
@@ -35,7 +35,7 @@ class Config:
         distance=150,
         max_speed=100,
         min_speed=80,
-        min_dist=0,  # if agent is within this distance from trajectory end the goal is considered achieved
+        min_dist=10,  # if agent is within this distance from trajectory end the goal is considered achieved
         # ? for trajectories from data
         px_to_cm=1 / 8,  # convert px values to cm
         resample=True,  # if True when using tracking trajectory resamples it

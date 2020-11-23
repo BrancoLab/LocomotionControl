@@ -125,3 +125,34 @@ for i, t in trials.iterrows():
     ax.plot(t.x, t.y, color="k", lw=1)
 
 # %%
+# Do anouther round of Manual curation to discard bad trials + smoothing
+trials = pd.read_hdf(
+    "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\psychometric_trials_augmented.h5",
+    key="hdf",
+)
+
+to_keep = dict(x=[], y=[], orientation=[], speed=[], fps=[],)
+for i, t in trials.iterrows():
+    if t.fps == 30:
+        wnd = 8
+    else:
+        wnd = 10
+
+    # plot and choose
+    f, ax = plt.subplots(figsize=(8, 8))
+    ax.plot(t.x, t.y, color="k", lw=1)
+    plt.show()
+
+    if Confirm.ask(f"Keep {i} of {len(trials)}?"):
+        to_keep["x"].append(t.x)
+        to_keep["y"].append(t.y)
+        to_keep["orientation"].append(t.orientation)
+        to_keep["speed"].append(t.speed)
+        to_keep["fps"].append(t.fps)
+
+print(f'Keeping {len(to_keep["x"])} trials')
+pd.DataFrame(to_keep).to_hdf(
+    "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\psychometric_trials_augmented.h5",
+    key="hdf",
+)
+# %%

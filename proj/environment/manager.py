@@ -93,17 +93,6 @@ class Manager:
             str(self.datafolder / "history.h5"), key="hdf"
         )
 
-        # save the last frame as a results image
-        try:
-            last_frame = [
-                f for f in self.frames_folder.glob("*.png") if f.is_file()
-            ][-1]
-            shutil.copy(
-                str(last_frame), str(self.datafolder / "final_frame.png")
-            )
-        except IndexError:
-            pass  # no frames were saved
-
         # save cost history
         pd.DataFrame(self.cost_history).to_hdf(
             str(self.datafolder / "cost_history.h5"), key="hdf"
