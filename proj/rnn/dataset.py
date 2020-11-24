@@ -32,8 +32,8 @@ class PredictNudotFromXYT(Dataset, Preprocessing):
     name = "dataset_predict_nudot_from_XYT"
     _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
 
-    def __init__(self, *args, **kwargs):
-        Preprocessing.__init__(self)
+    def __init__(self, *args, truncate_at=None, **kwargs):
+        Preprocessing.__init__(self, truncate_at=truncate_at)
         Dataset.__init__(self, *args, **kwargs)
 
     def get_inputs(self, trajectory, history):
@@ -64,8 +64,8 @@ class PredictNudotFromDeltaXYT(Dataset, Preprocessing):
     name = "dataset_predict_nudot_from_deltaXYT"
     _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
 
-    def __init__(self, *args, **kwargs):
-        Preprocessing.__init__(self)
+    def __init__(self, *args, truncate_at=None, **kwargs):
+        Preprocessing.__init__(self, truncate_at=truncate_at)
         Dataset.__init__(self, *args, **kwargs)
 
     def get_inputs(self, trajectory, history):

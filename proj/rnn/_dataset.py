@@ -113,9 +113,10 @@ class Preprocessing(RNNPaths):
     # names of inputs and outputs of dataset
     _data = (("x", "y", "theta", "v", "omega"), ("out1", "out2"))
 
-    def __init__(self, test_size=0.1):
+    def __init__(self, test_size=0.1, truncate_at=None):
         RNNPaths.__init__(self, dataset_name=self.name)
         self.test_size = test_size
+        self.truncate_at = truncate_at
 
     def get_inputs(self, trajectory, history):
         return NotImplementedError(
@@ -128,6 +129,21 @@ class Preprocessing(RNNPaths):
             "get_outputs should be implemented in your dataset preprocessing"
         )
         # should return output1, output2
+
+    def truncate(self, train, test):
+        def run_one(df, dct):
+            for i, t in df.iterrows():
+                for k in dct.keys():
+                    dct[k].append(t[k][: self.truncate_at])
+            return pd.DataFrame(dct)
+
+        truncated_train = {k: [] for k in train.columns}
+        truncated_test = {k: [] for k in test.columns}
+
+        truncated_train = run_one(train, truncated_train)
+        truncated_test = run_one(test, truncated_test)
+
+        return truncated_train, truncated_test
 
     def fit_scaler(self, df):
         # concatenate the values under each columns to fit a scaler
@@ -209,6 +225,10 @@ class Preprocessing(RNNPaths):
 
         # split and normalize
         train, test = self.split_and_normalize(data)
+
+        # truncate if necessary
+        if self.truncate_at is not None:
+            train, test = self.truncate(train, test)
 
         # save
         self.save_dataset(train, test)
