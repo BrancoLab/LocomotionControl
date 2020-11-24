@@ -20,7 +20,7 @@ name = None
 batch_size = 580
 epochs = 2000  # 300
 lr_milestones = [10, 1000, 1900]
-lr = 0.01
+lr = 0.002
 stop_loss = 0.002
 
 # ------------------------------- Fit/load RNN ------------------------------- #
