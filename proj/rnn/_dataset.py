@@ -131,17 +131,33 @@ class Preprocessing(RNNPaths):
         # should return output1, output2
 
     def truncate(self, train, test):
-        def run_one(df, dct):
+        """
+            Splits each trial into
+            chunks, all chunks will
+            have the same length, the number of chunks
+            per trial depends on the trial length.
+        """
+
+        def run_one(df):
+            truncated = {k: [] for k in df.columns}
             for i, t in df.iterrows():
-                for k in dct.keys():
-                    dct[k].append(t[k][: self.truncate_at])
-            return pd.DataFrame(dct)
+                n = t.x.shape[0]
+                n_chunks = int(np.floor(n / self.truncate_at)) - 1
 
-        truncated_train = {k: [] for k in train.columns}
-        truncated_test = {k: [] for k in test.columns}
+                for chunk in np.arange(n_chunks):
+                    for k in df.columns:
+                        truncated[k].append(
+                            t[k][
+                                self.truncate_at
+                                * chunk : self.truncate_at
+                                * (chunk + 1)
+                            ]
+                        )
 
-        truncated_train = run_one(train, truncated_train)
-        truncated_test = run_one(test, truncated_test)
+            return pd.DataFrame(truncated)
+
+        truncated_train = run_one(train)
+        truncated_test = run_one(test)
 
         return truncated_train, truncated_test
 
