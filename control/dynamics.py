@@ -8,14 +8,127 @@ from sympy import (
     SparseMatrix,
 )
 
-from proj.model._dynamics import (
-    fast_dqdt,
-    fast_model_jacobian_state,
-    fast_model_jacobian_input,
-)
+import numpy as np
+from numba import jit
+
+from .config import MANAGER_CONFIG
 
 
 init_printing()
+
+
+@jit(nopython=True)
+def fast_dqdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r):
+    res = np.zeros(5)
+
+    res[0] = v * np.cos(theta)
+    res[1] = v * np.sin(theta)
+    res[2] = omega
+    res[3] = L * tau_l / (R * m) + L * tau_r / (R * m) + d * omega ** 2
+    res[4] = (
+        -L
+        * tau_l
+        / (
+            R
+            * (
+                2 * L ** 2 * m_w
+                + R ** 2 * m_w
+                + 2 * d ** 2 * m
+                + 2
+                * m_w
+                * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
+            )
+        )
+        + L
+        * tau_r
+        / (
+            R
+            * (
+                2 * L ** 2 * m_w
+                + R ** 2 * m_w
+                + 2 * d ** 2 * m
+                + 2
+                * m_w
+                * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
+            )
+        )
+        - d
+        * m
+        * omega
+        * v
+        / (
+            2 * L ** 2 * m_w
+            + R ** 2 * m_w
+            + 2 * d ** 2 * m
+            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
+        )
+    )
+
+    return res
+
+
+@jit(nopython=True)
+def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
+    res = np.zeros((5, 5))
+
+    res[0, 2] = -v * np.sin(theta)
+    res[0, 3] = np.cos(theta)
+    res[1, 2] = v * np.cos(theta)
+    res[1, 3] = np.sin(theta)
+    res[2, 4] = 1
+    res[3, 4] = 2 * d * omega
+    res[4, 3] = (
+        -d
+        * m
+        * omega
+        / (
+            2 * L ** 2 * m_w
+            + R ** 2 * m_w
+            + 2 * d ** 2 * m
+            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
+        )
+    )
+    res[4, 4] = (
+        -d
+        * m
+        * v
+        / (
+            2 * L ** 2 * m_w
+            + R ** 2 * m_w
+            + 2 * d ** 2 * m
+            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
+        )
+    )
+
+    return res
+
+
+@jit(nopython=True)
+def fast_model_jacobian_input(L, R, m, d, m_w):
+    res = np.zeros((5, 2))
+
+    res[3, 0] = L / (R * m)
+    res[3, 1] = L / (R * m)
+    res[4, 0] = L / (
+        R
+        * (
+            2 * L ** 2 * m_w
+            + R ** 2 * m_w
+            + 2 * d ** 2 * m
+            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
+        )
+    )
+    res[4, 1] = -L / (
+        R
+        * (
+            2 * L ** 2 * m_w
+            + R ** 2 * m_w
+            + 2 * d ** 2 * m
+            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
+        )
+    )
+
+    return res
 
 
 class ModelDynamics(object):
@@ -43,10 +156,9 @@ class ModelDynamics(object):
         """
         self._make_simbols()
 
-        if not self.USE_FAST:  # USE Fast is defined in config
+        if not MANAGER_CONFIG["use_fast"]:  # USE Fast is defined in config
             # Get sympy expressions to compute dynamics
             self.get_combined_dynamics_kinematics()
-            # self.get_inverse_dynamics()
             self.get_jacobians()
         else:
             # Get numba expressions for the dynamics
@@ -201,19 +313,6 @@ class ModelDynamics(object):
         """
 
         nu_l_dot, nu_r_dot = symbols("nudot_L, nudot_R")
-
-        # # define vecs and matrices
-        # K = Matrix(
-        #     [
-        #         [R / 2 * cos(theta), R / 2 * cos(theta)],
-        #         [R / 2 * sin(theta), R / 2 * sin(theta)],
-        #         [R / (2 * L), -R / (2 * L)],
-        #     ]
-        # )
-
-        # Q = Matrix([[sin(theta), 0], [cos(theta), 0], [0, 1]])
-
-        # nu = K.pinv() * vels # * Q * vels
         args = [L, R, v, omega]
         vels = Matrix([v, omega])
         K = Matrix([[1 / R, 1 / R], [1 / R, -1 / R]])

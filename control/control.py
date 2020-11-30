@@ -1,94 +1,287 @@
 import numpy as np
-from rich import print
 
-from proj.control.utils import calc_cost
-from proj.control.cost import Cost
-
-# from proj.rnn import ControlRNN
+from .config import iLQR_CONFIG, CONTROL_CONFIG, PLANNING_CONFIG
 
 
-# class RNNController(ControlRNN):
-#     """
-#         A class to implement control of the 2WDD 'mouse'
-#         using an RNN trained to predict the output of
-#         the iLQR algorithm given an input trajectory.
-#     """
+def fit_angle_in_range(
+    angles, min_angle=-np.pi, max_angle=np.pi, is_deg=False
+):
+    """ Check angle range and correct the range
+    it assumes that the angles are passed ind degrees
+    
+    Args:
+        angle (numpy.ndarray): in radians
+        min_angle (float): maximum of range in radians, default -pi
+        max_angle (float): minimum of range in radians, default pi
+    Returns: 
+        fitted_angle (numpy.ndarray): range angle in radians
+    """
+    if max_angle < min_angle:
+        raise ValueError("max angle must be greater than min angle")
+    if (max_angle - min_angle) < 2.0 * np.pi:
+        raise ValueError(
+            "difference between max_angle \
+                          and min_angle must be greater than 2.0 * pi"
+        )
+    if is_deg:
+        output = np.radians(angles)
+    else:
+        output = np.array(angles)
 
-#     def __init__(self, folder):
-#         ControlRNN.__init__(self, folder=folder, mk_dir=False)
+    output_shape = output.shape
 
-#         # Load RNN model designed to make predictions
-#         self.rnn = self.make_model_for_prediction()
-#         self.in_normalizer, self.out_normalizer = self.load_normalizers(
-#             from_model_folder=True
-#         )
+    output = output.flatten()
+    output -= min_angle
+    output %= 2 * np.pi
+    output += 2 * np.pi
+    output %= 2 * np.pi
+    output += min_angle
 
-#     def obtain_sol(self, curr_x, g_xs):
-#         """
-#             Args:
-#                 curr_x (numpy.ndarray): current state, shape(state_size, )
-#                 g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
+    output = np.minimum(max_angle, np.maximum(min_angle, output))
+    output = output.reshape(output_shape)
 
-#             Normalize the input data to get the
-#             RNN to predict the control u given the current
-#             state and the goal trajectory
-#         """
-#         delta = g_xs[0, :] - curr_x
+    # if is_deg:
+    #     output = np.degrees(output)
+    return output
 
-#         if np.any(delta > self.in_normalizer.data_max_) or np.any(
-#             delta < self.in_normalizer.data_min_
-#         ):
-#             # raise ValueError(":bomb: Data outside of normalizer's range!!")
-#             print(":bomb: Data outside of normalizer's range!!")
 
-#         delta = self.in_normalizer.transform(delta.reshape(1, -1))
+def calc_cost(
+    pred_xs,
+    input_sample,
+    g_xs,
+    state_cost_fn,
+    input_cost_fn,
+    terminal_state_cost_fn,
+):
+    """ calculate the cost 
 
-#         delta[delta > 1] = 1
-#         delta[delta < -1] = -1
-#         # TODO remove
+    Args:
+        pred_xs (numpy.ndarray): predicted state trajectory, 
+            shape(pop_size, pred_len+1, state_size)
+        input_sample (numpy.ndarray): inputs samples trajectory,
+            shape(pop_size, pred_len+1, input_size)
+        g_xs (numpy.ndarray): goal state trajectory,
+            shape(pop_size, pred_len+1, state_size)
+        state_cost_fn (function): state cost fucntion
+        input_cost_fn (function): input cost fucntion
+        terminal_state_cost_fn (function): terminal state cost fucntion
+    Returns:
+        cost (numpy.ndarray): cost of the input sample, shape(pop_size, )
+    """
+    # state cost
+    state_cost = 0.0
+    if state_cost_fn is not None:
+        state_pred_par_cost = state_cost_fn(
+            pred_xs[:, 1:-1, :], g_xs[:, 1:-1, :]
+        )
+        state_cost = np.sum(np.sum(state_pred_par_cost, axis=-1), axis=-1)
 
-#         delta = delta.reshape(1, 1, -1)
+    # terminal cost
+    terminal_state_cost = 0.0
+    if terminal_state_cost_fn is not None:
+        terminal_state_par_cost = terminal_state_cost_fn(
+            pred_xs[:, -1, :], g_xs[:, -1, :]
+        )
+        terminal_state_cost = np.sum(terminal_state_par_cost, axis=-1)
 
-#         u = self.rnn.predict(delta)[0, 0, :]
+    # act cost
+    act_cost = 0.0
+    if input_cost_fn is not None:
+        act_pred_par_cost = input_cost_fn(input_sample)
+        act_cost = np.sum(np.sum(act_pred_par_cost, axis=-1), axis=-1)
 
-#         if np.any(u > self.out_normalizer.data_max_) or np.any(
-#             u < self.out_normalizer.data_min_
-#         ):
-#             # raise ValueError(":bomb: Data outside of normalizer's range!!")
-#             print(":x: Control outside of normalizer's range!!")
-#             u[u > 1] = 1
-#             u[u < -1] = -1
-#             # TODO remove
+    return state_cost + terminal_state_cost + act_cost
 
-#         u = self.out_normalizer.inverse_transform(u.reshape(1, -1))[0, :]
-#         return u
+
+class Cost:
+    def fit_diff_in_range(self, diff_x):
+        """ fit difference state in range(angle)
+
+        Args:
+            diff_x (numpy.ndarray): 
+                shape(pop_size, pred_len, state_size) or
+                shape(pred_len, state_size) or
+                shape(state_size, )
+        Returns:
+            fitted_diff_x (numpy.ndarray): same shape as diff_x
+        """
+
+        if len(diff_x.shape) == 3:
+            diff_x[:, :, self.angle_idx] = fit_angle_in_range(
+                diff_x[:, :, self.angle_idx]
+            )
+        elif len(diff_x.shape) == 2:
+            diff_x[:, self.angle_idx] = fit_angle_in_range(
+                diff_x[:, self.angle_idx]
+            )
+        elif len(diff_x.shape) == 1:
+            diff_x[self.angle_idx] = fit_angle_in_range(diff_x[self.angle_idx])
+
+        return diff_x
+
+    def input_cost_fn(self, u):
+        """ input cost functions
+        Args:
+            u (numpy.ndarray): input, shape(pred_len, input_size)
+                or shape(pop_size, pred_len, input_size)
+        Returns:
+            cost (numpy.ndarray): cost of input, shape(pred_len, input_size) or
+                shape(pop_size, pred_len, input_size)
+        """
+        return (u ** 2) * np.diag(self.R)
+
+    def state_cost_fn(self, x, g_x):
+        """ state cost function
+        Args:
+            x (numpy.ndarray): state, shape(pred_len, state_size)
+                or shape(pop_size, pred_len, state_size)
+            g_x (numpy.ndarray): goal state, shape(pred_len, state_size)
+                or shape(pop_size, pred_len, state_size)
+        Returns:
+            cost (numpy.ndarray): cost of state, shape(pred_len, state_size) or
+                shape(pop_size, pred_len, state_size)
+
+
+            Cost of state, is given bY
+            (x - X_g)T * Q * (x - x_g)
+        """
+        diff = self.fit_diff_in_range(x - g_x)
+        # diff = x - g_x
+        return (diff ** 2) * np.diag(self.Q)
+
+    def terminal_state_cost_fn(self, terminal_x, terminal_g_x):
+        """
+        Args:
+            terminal_x (numpy.ndarray): terminal state,
+                shape(state_size, ) or shape(pop_size, state_size)
+            terminal_g_x (numpy.ndarray): terminal goal state,
+                shape(state_size, ) or shape(pop_size, state_size)
+        Returns:
+            cost (numpy.ndarray): cost of state, shape(pred_len, ) or
+                shape(pop_size, pred_len)
+
+        Cost of end state, is given bY
+            (x - X_g)T * Q * (x - x_g)
+        """
+        terminal_diff = self.fit_diff_in_range(terminal_x - terminal_g_x)
+        # terminal_diff = terminal_x  - terminal_g_x
+        return ((terminal_diff) ** 2) * np.diag(self.Sf)
+
+    def calc_step_cost(self, x, u, g_x):
+        cost = dict(
+            control=self.model._control(*self.input_cost_fn(u)),
+            state=self.model._state(*self.state_cost_fn(x, g_x)),
+        )
+        cost["total"] = (
+            np.array(cost["control"]).sum() + np.array(cost["state"]).sum()
+        )
+        return cost
+
+    def gradient_cost_fn_with_state(self, x, g_x, terminal=False):
+        """ gradient of costs with respect to the state
+
+        Args:
+            x (numpy.ndarray): state, shape(pred_len, state_size)
+            g_x (numpy.ndarray): goal state, shape(pred_len, state_size)
+        
+        Returns:
+            l_x (numpy.ndarray): gradient of cost, shape(pred_len, state_size)
+                or shape(1, state_size)
+        """
+        diff = self.fit_diff_in_range(x - g_x)
+
+        if not terminal:
+            return 2.0 * (diff) * np.diag(self.Q)
+
+        return (2.0 * (diff) * np.diag(self.Sf))[np.newaxis, :]
+
+    # ---------------------------- COST FUN GRADIENTS ---------------------------- #
+
+    def gradient_cost_fn_with_input(self, x, u):
+        """ gradient of costs with respect to the input
+
+        Args:
+            x (numpy.ndarray): state, shape(pred_len, state_size)
+            u (numpy.ndarray): goal state, shape(pred_len, input_size)
+        
+        Returns:
+            l_u (numpy.ndarray): gradient of cost, shape(pred_len, input_size)
+        """
+        return 2.0 * u * np.diag(self.R)
+
+    def hessian_cost_fn_with_state(self, x, g_x, terminal=False):
+        """ hessian costs with respect to the state
+
+        Args:
+            x (numpy.ndarray): state, shape(pred_len, state_size)
+            g_x (numpy.ndarray): goal state, shape(pred_len, state_size)
+        
+        Returns:
+            l_xx (numpy.ndarray): gradient of cost,
+                shape(pred_len, state_size, state_size) or
+                shape(1, state_size, state_size) or
+        """
+        if not terminal:
+            (pred_len, _) = x.shape
+            return np.tile(2.0 * self.Q, (pred_len, 1, 1))
+
+        return np.tile(2.0 * self.Sf, (1, 1, 1))
+
+    def hessian_cost_fn_with_input(self, x, u):
+        """ hessian costs with respect to the input
+
+        Args:
+            x (numpy.ndarray): state, shape(pred_len, state_size)
+            u (numpy.ndarray): goal state, shape(pred_len, input_size)
+        
+        Returns:
+            l_uu (numpy.ndarray): gradient of cost,
+                shape(pred_len, input_size, input_size)
+        """
+        (pred_len, _) = u.shape
+
+        return np.tile(2.0 * self.R, (pred_len, 1, 1))
+
+    def hessian_cost_fn_with_input_state(self, x, u):
+        """ hessian costs with respect to the state and input
+
+        Args:
+            x (numpy.ndarray): state, shape(pred_len, state_size)
+            u (numpy.ndarray): goal state, shape(pred_len, input_size)
+        
+        Returns:
+            l_ux (numpy.ndarray): gradient of cost ,
+                shape(pred_len, input_size, state_size)
+        """
+        (_, state_size) = x.shape
+        (pred_len, input_size) = u.shape
+
+        return np.zeros((pred_len, input_size, state_size))
 
 
 class Controller(Cost):
     def __init__(self, model):
         Cost.__init__(self)
-
         self.model = model
-        self.pred_len = model.planning["prediction_length"]
-        self.input_size = model.INPUT_SIZE
-        self.state_size = model.STATE_SIZE
 
-        # Cost weights
-        self.Q = model.Q
-        self.R = model.R
-        self.Sf = model.Sf
+        self.pred_len = PLANNING_CONFIG["prediction_length"]
 
-        self.angle_idx = model.ANGLE_IDX
+        self.input_size = CONTROL_CONFIG["INPUT_SIZE"]
+        self.state_size = CONTROL_CONFIG["STATE_SIZE"]
+        self.Q = CONTROL_CONFIG["Q"]
+        self.R = CONTROL_CONFIG["R"]
+        self.Sf = CONTROL_CONFIG["Sf"]
+        self.angle_idx = CONTROL_CONFIG["ANGLE_IDX"]
 
         # Params
-        self.max_iter = model.iLQR["max_iter"]
-        self.init_mu = model.iLQR["init_mu"]
-        self.mu = model.iLQR["init_mu"]
-        self.mu_min = model.iLQR["mu_min"]
-        self.mu_max = model.iLQR["mu_max"]
-        self.init_delta = model.iLQR["init_delta"]
-        self.delta = model.iLQR["init_delta"]
-        self.threshold = model.iLQR["threshold"]
+        self.max_iter = iLQR_CONFIG["max_iter"]
+        self.init_mu = iLQR_CONFIG["init_mu"]
+        self.mu = iLQR_CONFIG["init_mu"]
+        self.mu_min = iLQR_CONFIG["mu_min"]
+        self.mu_max = iLQR_CONFIG["mu_max"]
+        self.init_delta = iLQR_CONFIG["init_delta"]
+        self.delta = iLQR_CONFIG["init_delta"]
+        self.threshold = iLQR_CONFIG["threshold"]
 
         # Initialize
         self.prev_sol = np.zeros((self.pred_len, self.input_size))

@@ -8,12 +8,12 @@ from fcutils.maths.geometry import (
 )
 from fcutils.maths.utils import derivative
 
-from proj.utils.misc import interpolate_nans
-from proj.environment.bezier import calc_bezier_path
+from .utils import interpolate_nans, calc_bezier_path
+from .config import dt, px_to_cm, TRAJECTORY_CONFIG
 
 
 # ------------------------------ From real data ------------------------------ #
-def simulated_but_realistic(params, planning_params, cache_fld, *args):
+def simulated():
 
     """
         Creates an artificial trajectory similar to the ones
@@ -21,7 +21,7 @@ def simulated_but_realistic(params, planning_params, cache_fld, *args):
     """
 
     duration = np.random.uniform(1.5, 6)
-    n_steps = int(duration / params["dt"])
+    n_steps = int(duration / dt)
 
     # Define start and end of traj
     p0 = np.array([0, 0])
@@ -37,10 +37,17 @@ def simulated_but_realistic(params, planning_params, cache_fld, *args):
         )
 
         if np.abs(p2[0]) > 50:
+            p2a = p2.copy()
+            p2a[1] -= 10
+
+            p2b = p2.copy()
+            p2b[1] += 10
             break
 
     # Interpolate line segments
-    xy = calc_bezier_path(np.vstack([p0, p2, p1]), params["n_steps"])
+    xy = calc_bezier_path(
+        np.vstack([p0, p2a, p2b, p1]), TRAJECTORY_CONFIG["n_steps"]
+    )
     x, y = xy[:, 0], xy[:, 1]
 
     # Get theta
@@ -58,9 +65,9 @@ def simulated_but_realistic(params, planning_params, cache_fld, *args):
     v = calc_distance_between_points_in_a_vector_2d(x, y)
     v[0] = v[1]
 
-    speedup_factor = params["n_steps"] / n_steps
+    speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_steps
     v *= speedup_factor
-    v *= 1 / params["dt"]
+    v *= 1 / dt
 
     # stack
     trajectory = np.vstack([x, y, theta, v, omega]).T
@@ -72,40 +79,37 @@ def simulated_but_realistic(params, planning_params, cache_fld, *args):
     )
 
 
-def from_tracking(params, planning_params, cache_fld, *args):
+def from_tracking(cache_fld):
     """
         Get a trajectory from real tracking data, cleaning it up
         a little in the process.
     """
-    # Keep only trials with enough frames
-    trials = pd.read_hdf(cache_fld, key="hdf")
 
-    # select a single trials
-    if not params["randomize"]:
-        trial = trials.iloc[params["trial_n"]]
-    else:
-        trial = trials.sample().iloc[0]
+    # Get a trial
+    trials = pd.read_hdf(cache_fld, key="hdf")
+    trial = trials.sample().iloc[0]
 
     # Get variables
     fps = trial.fps
-    x = trial.x * params["px_to_cm"]
-    y = trial.y * params["px_to_cm"]
+    x = trial.x * px_to_cm
+    y = trial.y * px_to_cm
 
     angle = interpolate_nans(trial.orientation)
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
-    speed = trial.speed * fps * params["px_to_cm"]
+    speed = trial.speed * fps * px_to_cm
     ang_speed = derivative(angle)
 
     # resample variables so that samples are uniformly distributed
     vrs = (x, y, angle, speed, ang_speed)
-    if params["resample"]:
-        t = np.arange(len(x))
-        vrs = [
-            calc_bezier_path(np.vstack([t, v]).T[:, 1], params["n_steps"])
-            for v in vrs
-        ]
+    t = np.arange(len(x))
+    vrs = [
+        calc_bezier_path(
+            np.vstack([t, v]).T[:, 1], TRAJECTORY_CONFIG["n_steps"]
+        )
+        for v in vrs
+    ]
 
     # stack
     trajectory = np.vstack(vrs).T

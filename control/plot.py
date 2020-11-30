@@ -6,9 +6,36 @@ from fcutils.plotting.utils import clean_axes, save_figure
 from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 from fcutils.maths.utils import derivative
+from fcutils.video.utils import (
+    get_cap_from_images_folder,
+    save_videocap_to_video,
+)
 
-from proj.utils.misc import load_results_from_folder, duration_from_history
-from proj.animation import variables_colors as colors
+from .history import load_results_from_folder
+from .config import dt
+
+colors = dict(
+    x=[0.5, 0.5, 0.5],
+    y=[0.2, 0.2, 0.2],
+    theta="#228B22",
+    v="#8B008B",
+    omega="#FA8072",
+    tau_l="#87CEEB",
+    tau_r="#FF4500",
+    trajectory=[0.6, 0.6, 0.6],
+    tracking="#2E8B57",
+)
+
+
+def animate_from_images(folder, savepath, fps):
+    cap = get_cap_from_images_folder(folder, img_format="%2d.png")
+    save_videocap_to_video(cap, savepath, ".mp4", fps=fps)
+
+    gifpath = savepath.replace(".mp4", ".gif")
+    logging.info(
+        "To save the video as GIF, use: \n"
+        + f'ffmpeg -i "{savepath}" -f gif "{gifpath}"'
+    )
 
 
 def _make_figure():
@@ -202,22 +229,16 @@ def _plot_wheel_velocity(history, dt, tax=None, oax=None, sax=None):
 
 
 def plot_results(results_folder, plot_every=20, save_path=None):
-    config, trajectory, history, cost_history, _, _ = load_results_from_folder(
-        results_folder
-    )
-    duration = duration_from_history(history, config)
+    history, info, trajectory, trial = load_results_from_folder(results_folder)
+    duration = info["duration"]
 
     f, xy_ax, tau_ax, sax, tau_int_ax, omega_ax, speed_ax = _make_figure()
 
     _plot_xy(history, trajectory, plot_every, duration, ax=xy_ax)
     _plot_control(history, ax=tau_ax)
-    _plot_v(
-        history, trajectory, plot_every, ax=sax
-    )  # plot v against the trajectory
-    # _plot_accel(history, ax=accel_ax)
-    # _plot_cost(cost_history, ax=cost_ax)
+    _plot_v(history, trajectory, plot_every, ax=sax)
     _plot_wheel_velocity(
-        history, config["dt"], tax=tau_int_ax, oax=omega_ax, sax=speed_ax
+        history, dt, tax=tau_int_ax, oax=omega_ax, sax=speed_ax
     )
 
     clean_axes(f)

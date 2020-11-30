@@ -1,14 +1,27 @@
 import dropbox
 from dropbox.files import WriteMode
 from dropbox.exceptions import ApiError, AuthError
-
 from pathlib import Path
+from slack import WebClient
+from slack.errors import SlackApiError
+
+from control.paths import db_app
 
 try:
-    from proj.secrets import DB_TOKEN
+    from control.secrets import SLACK_TOKEN, SLACK_USER_ID, DB_TOKEN
 except ModuleNotFoundError:
+    SLACK_TOKEN = None
+    SLACK_USER_ID = None
     DB_TOKEN = None
-from proj.paths import db_app
+
+
+def send_slack_message(message):
+    client = WebClient(token=SLACK_TOKEN)
+
+    try:
+        client.chat_postMessage(channel=SLACK_USER_ID, text=message)
+    except SlackApiError as e:
+        print(f"Got an error: {e.response['error']}")
 
 
 def upload_folder(dbx, fld, base):
@@ -70,20 +83,3 @@ class DropBoxUtils:
                 )
         except ApiError as e:
             raise ValueError(f"Failed to upload file {source}\n\n {e}")
-
-    # def upload_folder(self, source, dest):
-    #     source = Path(source)
-    #     dest = Path(dest)
-
-    #     # loop subfolders
-    #     for subf in source.glob('*'):
-    #         if not subf.is_dir(): continue
-    #         print(subf)
-    #         self.upload_folder(subf, dest / subf.name)
-
-    # # loop files
-    # for f in source.glob('*.*'):
-    #     if not f.is_file(): continue
-
-    #     dest = dest / f.name
-    #     self.upload_file(f, dest)
