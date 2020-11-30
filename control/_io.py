@@ -6,10 +6,8 @@ from pathlib import Path
 from control.paths import db_app
 
 try:
-    from control.secrets import SLACK_TOKEN, SLACK_USER_ID, DB_TOKEN
+    from control.secrets import DB_TOKEN
 except ModuleNotFoundError:
-    SLACK_TOKEN = None
-    SLACK_USER_ID = None
     DB_TOKEN = None
 
 
