@@ -14,7 +14,6 @@ from .config import dt, px_to_cm, TRAJECTORY_CONFIG
 
 # ------------------------------ From real data ------------------------------ #
 def simulated():
-
     """
         Creates an artificial trajectory similar to the ones
         you'd get by loading trajectories from tracking data.
@@ -79,7 +78,7 @@ def simulated():
     )
 
 
-def from_tracking(cache_fld):
+def from_tracking(cache_fld, trialn=None):
     """
         Get a trajectory from real tracking data, cleaning it up
         a little in the process.
@@ -87,7 +86,10 @@ def from_tracking(cache_fld):
 
     # Get a trial
     trials = pd.read_hdf(cache_fld, key="hdf")
-    trial = trials.sample().iloc[0]
+    if trialn is None:
+        trial = trials.sample().iloc[0]
+    else:
+        trial = trials.iloc[trialn]
 
     # Get variables
     fps = trial.fps

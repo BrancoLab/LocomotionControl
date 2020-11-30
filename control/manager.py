@@ -19,7 +19,7 @@ from .model import Model
 
 
 class Manager:
-    def __init__(self, winstor=False):
+    def __init__(self, winstor=False, trialn=None):
         self.winstor = winstor
 
         # Set up
@@ -28,7 +28,7 @@ class Manager:
 
         # Set up classes
         self.history = History()
-        self.world = World(self.trials_cache)
+        self.world = World(self.trials_cache, trialn)
         self.model = Model()
         self.controller = Controller(self.model)
 

@@ -10,10 +10,10 @@ class World:
     moved_to_next = []
     itern = 0
 
-    def __init__(self, trials_cache):
+    def __init__(self, trials_cache, trialn):
         if TRAJECTORY_CONFIG["traj_type"] == "tracking":
             self.trajectory, self.duration, self.trial = from_tracking(
-                trials_cache
+                trials_cache, trialn
             )
         else:
             self.trajectory, self.duration, self.trial = simulated()
