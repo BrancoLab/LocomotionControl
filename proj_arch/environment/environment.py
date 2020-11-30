@@ -4,11 +4,6 @@ import logging
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from proj.environment.trajectories import (
-    parabola,
-    sin,
-    circle,
-    line,
-    point,
     from_tracking,
     simulated_but_realistic,
 )
@@ -22,13 +17,7 @@ class Environment(World, Manager):
     curr_traj_waypoint_idx = None
 
     traj_funcs = dict(
-        parabola=parabola,
-        sin=sin,
-        circle=circle,
-        line=line,
-        point=point,
-        tracking=from_tracking,
-        real_simulated=simulated_but_realistic,
+        tracking=from_tracking, real_simulated=simulated_but_realistic,
     )
 
     def __init__(self, model, winstor=False):
@@ -67,7 +56,7 @@ class Environment(World, Manager):
         self.model.reset()
 
         # make goal trajetory
-        (trajectory, goal_duration), trial = self.make_trajectory()
+        trajectory, goal_duration, trial = self.make_trajectory()
         self.trial = trial
 
         self.goal_duration = goal_duration  # how long it should take

@@ -18,7 +18,7 @@ control_params = dict(
 
 class Config:
     # ----------------------------- Simulation params ---------------------------- #
-    SIMULATION_NAME = "all_trials"
+    SIMULATION_NAME = "simulated_trials"
 
     USE_FAST = True  # if true use cumba's methods
     SPAWN_TYPE = "trajectory"
@@ -29,7 +29,7 @@ class Config:
     # ------------------------------ Goal trajectory ----------------------------- #
 
     trajectory = dict(  # parameters of the goals trajectory
-        name="tracking",
+        name="real_simulated",
         # ? For artificial trajectories
         n_steps=500,
         distance=150,

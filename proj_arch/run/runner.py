@@ -1,5 +1,6 @@
 import numpy as np
 from rich import print
+import matplotlib.pyplot as plt
 
 from loguru import logger
 
@@ -52,6 +53,7 @@ def run_experiment(
 
         :returns: the history of events as stored by model
     """
+    plt.ion()
 
     # reset things
     trajectory = environment.reset()
@@ -135,3 +137,5 @@ def run_experiment(
         except Exception as e:
             logger.info(f"Failed to run environment.conclude(): {e}")
             environment.failed()
+
+    plt.ioff()
