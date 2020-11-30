@@ -2,8 +2,6 @@ import dropbox
 from dropbox.files import WriteMode
 from dropbox.exceptions import ApiError, AuthError
 from pathlib import Path
-from slack import WebClient
-from slack.errors import SlackApiError
 
 from control.paths import db_app
 
@@ -13,15 +11,6 @@ except ModuleNotFoundError:
     SLACK_TOKEN = None
     SLACK_USER_ID = None
     DB_TOKEN = None
-
-
-def send_slack_message(message):
-    client = WebClient(token=SLACK_TOKEN)
-
-    try:
-        client.chat_postMessage(channel=SLACK_USER_ID, text=message)
-    except SlackApiError as e:
-        print(f"Got an error: {e.response['error']}")
 
 
 def upload_folder(dbx, fld, base):

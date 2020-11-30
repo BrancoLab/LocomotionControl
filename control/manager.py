@@ -6,7 +6,7 @@ import shutil
 from pyrnn._progress import base_progress as progress
 from pyrnn._utils import GracefulInterruptHandler
 
-from ._io import send_slack_message, DropBoxUtils, upload_folder
+from ._io import DropBoxUtils, upload_folder
 from .live_plot import Plotter
 from .plot import plot_results, animate_from_images
 from .history import History
@@ -189,9 +189,6 @@ class Manager:
                 self.upload_to_db()
             except Exception as e:
                 logger.info(f"Failed to upload to dropbox with error: {e}")
-                send_slack_message(
-                    f"Failed to upload to dropbox with error: {e}"
-                )
             else:
                 logger.info("Uploading succesfull")
 
