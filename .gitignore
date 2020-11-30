@@ -1,5 +1,6 @@
 *.pt
 
+*/secrets.py
 .vscode/settings.json
 proj/secrets.py
 workspace.py
