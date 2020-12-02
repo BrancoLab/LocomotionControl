@@ -58,7 +58,7 @@ class History:
 
     def save(self, folder, trajectory, trial):
         # Save info
-        self.info["duration"] = len(self.record["x"]) / dt
+        self.info["duration"] = len(self.record["x"]) * dt
         with open(str(folder / "info.pkl"), "wb") as out:
             pickle.dump(self.info, out)
 
