@@ -151,7 +151,7 @@ class Manager:
         # remove frames folder if everything's okay
         try:
             shutil.rmtree(str(self.frames_folder))
-        except (FileNotFoundError, PermissionError):
+        except (FileNotFoundError, PermissionError, OSError):
             print("could not remove frames folder")
 
     def upload_to_db(self):
