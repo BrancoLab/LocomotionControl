@@ -43,10 +43,11 @@ class Manager:
             )
         else:
             MANAGER_CONFIG["exp_name"] = (
-                MANAGER_CONFIG["exp_name"] + f"_{timestamp()}_{np.random.randint(10000)}"
+                MANAGER_CONFIG["exp_name"]
+                + f"_{timestamp()}_{np.random.randint(10000)}"
             )
         self.setup_paths()
-        
+
         # Set up plotting
         if MANAGER_CONFIG["live_plot"]:
             self.plotter = Plotter(

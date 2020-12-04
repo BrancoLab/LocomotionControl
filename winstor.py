@@ -3,9 +3,7 @@ import click
 from pyinspect import install_traceback
 
 install_traceback(
-    keep_frames=5,
-    all_locals=True,
-    relevant_only=False,
+    keep_frames=5, all_locals=True, relevant_only=False,
 )
 
 
