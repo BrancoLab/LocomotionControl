@@ -4,7 +4,7 @@ import joblib
 from rich import print
 import pandas as pd
 
-from proj import paths
+from control import paths
 
 install_traceback()
 

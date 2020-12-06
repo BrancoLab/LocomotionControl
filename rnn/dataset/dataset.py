@@ -1,59 +1,84 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from myterial import (
-    salmon,
-    salmon_dark,
-    light_green,
-    light_green_dark,
-)
 import sys
-from pyrnn._plot import clean_axes
+from fcutils.maths.utils import rolling_mean
 
 
-from proj.rnn._dataset import Preprocessing, Dataset
-from proj.utils.misc import trajectory_at_each_simulation_step
+from rnn.dataset._dataset import Preprocessing, Dataset
+
+# from proj.utils.misc import trajectory_at_each_simulation_step
 
 is_win = sys.platform == "win32"
 
 
-class PredictNudotFromXYT(Dataset, Preprocessing):
+class PredictTauFromXYT(Dataset, Preprocessing):
     description = """
-        Predict wheel velocityies (nudot right/left) from 
-        the 'trajectory at each step' (i.e. the next trajectory waypoint
-        at each frame in the simulation, to match the inputs 
-        and controls produced by the control model).
-
-        The model predicts the wheels velocities, **not** the controls (taus)
+        Predict controls (tau right/left) from 
+        the  trajectory XYT trajectory at each frame
 
         Data are normalized in range (-1, 1) with a MinMaxScaler for each
         variable independently.
     """
 
-    name = "dataset_predict_nudot_from_XYT"
-    _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
+    name = "dataset_predict_tau_from_deltaXYT"
+    inputs_names = ("x", "y", "theta")
+    outputs_names = ("tau_R", "tau_L")
 
     def __init__(self, *args, truncate_at=None, **kwargs):
         Preprocessing.__init__(self, truncate_at=truncate_at)
         Dataset.__init__(self, *args, **kwargs)
 
-    def get_inputs(self, trajectory, history):
-        trj = trajectory_at_each_simulation_step(trajectory, history)
-        x, y, theta = trj[:, 0], trj[:, 1], trj[:, 2]
+    def get_inputs(self, trajectory, history, window=21):
+        x = rolling_mean(history.x, window)
+        y = rolling_mean(history.y, window)
+        theta = rolling_mean(history.theta, window)
+
         return x, y, theta
 
-    def get_outputs(self, history):
+    def get_outputs(self, history, window=21):
         return (
-            np.array(history["nudot_right"]),
-            np.array(history["nudot_left"]),
+            rolling_mean(history["tau_r"], window),
+            rolling_mean(history["tau_l"], window),
+        )
+
+
+class PredictTauFromXYTVO(Dataset, Preprocessing):
+    description = """
+        Predict controls (tau right/left) from 
+        the  trajectory XYTVO trajectory at each frame
+
+        Data are normalized in range (-1, 1) with a MinMaxScaler for each
+        variable independently.
+    """
+
+    name = "dataset_predict_tau_from_deltaXYTVO"
+    inputs_names = ("x", "y", "theta", "v", "omega")
+    outputs_names = ("tau_R", "tau_L")
+
+    def __init__(self, *args, truncate_at=None, **kwargs):
+        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Dataset.__init__(self, *args, **kwargs)
+
+    def get_inputs(self, trajectory, history, window=21):
+        x = rolling_mean(history.x, window)
+        y = rolling_mean(history.y, window)
+        theta = rolling_mean(history.theta, window)
+        v = rolling_mean(history.v, window)
+        omega = rolling_mean(history.omega, window)
+
+        return x, y, theta, v, omega
+
+    def get_outputs(self, history, window=21):
+        return (
+            rolling_mean(history["tau_r"], window),
+            rolling_mean(history["tau_l"], window),
         )
 
 
 class PredictNudotFromDeltaXYT(Dataset, Preprocessing):
     description = """
         Predict wheel velocityies (nudot right/left) from 
-        the 'trajectory at each step' (i.e. the next trajectory waypoint
-        at each frame in the simulation, to match the inputs 
-        and controls produced by the control model).
+        the  trajectory delta: difference betwen current state
+        and next goal in the control simulation.
 
         The model predicts the wheels velocities, **not** the controls (taus)
 
@@ -62,19 +87,19 @@ class PredictNudotFromDeltaXYT(Dataset, Preprocessing):
     """
 
     name = "dataset_predict_nudot_from_deltaXYT"
-    _data = (("x", "y", "theta"), ("nudot_R", "nudot_L"))
+    inputs_names = ("x", "y", "theta")
+    outputs_names = ("nudot_R", "nudot_L")
 
     def __init__(self, *args, truncate_at=None, **kwargs):
         Preprocessing.__init__(self, truncate_at=truncate_at)
         Dataset.__init__(self, *args, **kwargs)
 
-    def get_inputs(self, trajectory, history):
-        trj = trajectory_at_each_simulation_step(trajectory, history)
-        x, y, theta = trj[:, 0], trj[:, 1], trj[:, 2]
+    def get_inputs(self, trajectory, history, window=21):
+        dx = rolling_mean(history.goal_x - history.x, window)
+        dy = rolling_mean(history.goal_y - history.y, window)
+        dtheta = rolling_mean(history.goal_theta - history.theta, window)
 
-        gtraj = history[["goal_x", "goal_y", "goal_theta"]].values
-
-        return x - gtraj[:, 0], y - gtraj[:, 1], theta - gtraj[:, 2]
+        return dx, dy, dtheta
 
     def get_outputs(self, history):
         return (
@@ -83,43 +108,33 @@ class PredictNudotFromDeltaXYT(Dataset, Preprocessing):
         )
 
 
-def plot_predictions(model, batch_size, dataset, **kwargs):
+class PredictTauFromDeltaXYT(Dataset, Preprocessing):
+    description = """
+        Predict controls (tau right/left) from 
+        the  trajectory delta: difference betwen current state
+        and next goal in the control simulation.
+
+        Data are normalized in range (-1, 1) with a MinMaxScaler for each
+        variable independently.
     """
-    Run the model on a single batch and plot
-    the model's prediction's against the
-    input data and labels.
-    """
-    X, Y = dataset.get_one_batch(1, **kwargs)
 
-    if model.on_gpu:
-        model.cpu()
-        model.on_gpu = False
+    name = "dataset_predict_tau_from_deltaXYT"
+    inputs_names = ("x", "y", "theta")
+    outputs_names = ("tau_R", "tau_L")
 
-    o, h = model.predict(X)
+    def __init__(self, *args, truncate_at=None, **kwargs):
+        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Dataset.__init__(self, *args, **kwargs)
 
-    n_inputs = X.shape[-1]
-    n_outputs = Y.shape[-1]
-    labels = ["x", "y", "$\\theta$", "v", "$\\omega$"]
+    def get_inputs(self, trajectory, history, window=21):
+        dx = rolling_mean(history.goal_x - history.x, window)
+        dy = rolling_mean(history.goal_y - history.y, window)
+        dtheta = rolling_mean(history.goal_theta - history.theta, window)
 
-    f, axarr = plt.subplots(nrows=2, figsize=(12, 9))
+        return dx, dy, dtheta
 
-    for n in range(n_inputs):
-        axarr[0].plot(X[0, :, n], lw=2, label=labels[n])
-    axarr[0].set(title="inputs")
-    axarr[0].legend()
-
-    cc = [salmon, light_green]
-    oc = [salmon_dark, light_green_dark]
-    labels = ["nudot_R", "nudot_L"]
-    for n in range(n_outputs):
-        axarr[1].plot(
-            Y[0, :, n], lw=2, color=cc[n], label="correct " + labels[n]
+    def get_outputs(self, history, window=21):
+        return (
+            rolling_mean(history["tau_r"], window),
+            rolling_mean(history["tau_l"], window),
         )
-        axarr[1].plot(
-            o[0, :, n], lw=2, ls="--", color=oc[n], label="model output"
-        )
-    axarr[1].legend()
-    axarr[1].set(title="outputs")
-
-    f.tight_layout()
-    clean_axes(f)

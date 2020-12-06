@@ -4,7 +4,12 @@ from rich.prompt import Confirm
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-fld = Path("D:\\Dropbox (UCL)\\Apps\\loco_upload")
+# ! This is to clean up data produced by CONTROL before running RNN
+
+
+fld = Path(
+    "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/control/RNN/simulated_training_data"
+)
 subflds = [f for f in fld.glob("*") if f.is_dir()]
 
 to_discard = []

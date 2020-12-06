@@ -7,20 +7,30 @@ from rich import print
 import numpy as np
 import torch.utils.data as data
 from torch.nn.utils.rnn import pad_sequence
+import matplotlib.pyplot as plt
 
 from pyrnn._utils import torchify
-
-
 from pyinspect.utils import subdirs
+from myterial import (
+    orange,
+    salmon,
+    teal,
+    light_blue,
+    indigo,
+    green_dark,
+    blue_grey,
+)
 
-from proj.rnn._utils import RNNPaths
-from proj.utils.misc import load_results_from_folder
+from rnn.paths import RNNPaths
+from control.history import load_results_from_folder
 
 """
     Preprocess results from running the control
     algorithm on a number of trials to create a 
     normalized dataset for using with RNNs.
 """
+
+colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 
 # ---------------------------------------------------------------------------- #
 #                                    DATASET                                   #
@@ -31,44 +41,36 @@ class Dataset(data.Dataset, RNNPaths):
     def __init__(self, dataset_length=-1):
         RNNPaths.__init__(self, dataset_name=self.name)
 
-        self.dataset = pd.read_hdf(self.dataset_train_path, key="hdf")[
-            :dataset_length
-        ]
-        self.get_max_trial_length()
+        try:
+            self.dataset = pd.read_hdf(self.dataset_train_path, key="hdf")[
+                :dataset_length
+            ]
 
-        self.inputs = self.dataset[list(self._data[0])]
-        self.outputs = self.dataset[list(self._data[1])]
+            self.inputs = self.dataset[list(self.inputs_names)]
+            self.outputs = self.dataset[list(self.outputs_names)]
+        except FileNotFoundError:
+            print("No data to load")
 
     def __len__(self):
         return len(self.dataset)
 
-    def get_max_trial_length(self):
-        self.n_samples = max(
-            [len(t[self._data[0][0]]) for i, t in self.dataset.iterrows()]
-        )
-
-    def _pad(self, arr):
-        arr = np.vstack(arr).T
-        l, m = arr.shape
-        padded = np.zeros((self.n_samples, m))
-        padded[:l, :] = arr
-        return padded
-
     def _get_random(self):
+        """
+            1. get a random trial from dataset
+            2. pad it
+            3. enjoy
+        """
         idx = rnd.randint(0, len(self))
         X, Y = self.__getitem__(idx)
 
-        X = torchify(self._pad(X)).reshape(1, self.n_samples, -1)
-        Y = torchify(self._pad(Y)).reshape(1, self.n_samples, -1)
+        x_padded = pad_sequence([X], batch_first=True, padding_value=0)
+        y_padded = pad_sequence([Y], batch_first=True, padding_value=0)
 
-        return X, Y
+        return x_padded, y_padded
 
     def __getitem__(self, item):
         """
-            1. get a random trial from dataset
-            2. shape and pad it
-            3. create batch
-            4. enjoy
+            Get a single trial
         """
         X = torchify(np.vstack(self.inputs.iloc[item].values).T)
         Y = torchify(np.vstack(self.outputs.iloc[item].values).T)
@@ -77,6 +79,25 @@ class Dataset(data.Dataset, RNNPaths):
             raise ValueError("Length of X and Y must match")
 
         return X, Y
+
+    def plot_random(self):
+        """
+            Plots a random trial to inspect the content of the dataset
+        """
+        X, Y = self._get_random()
+
+        f, axarr = plt.subplots(nrows=2, figsize=(14, 8), sharex=True)
+
+        for n, name in enumerate(self.inputs_names):
+            axarr[0].plot(X[0, :, n], lw=2, label=name, color=colors[n])
+
+        for m, name in enumerate(self.outputs_names):
+            axarr[1].plot(Y[0, :, m], lw=2, label=name, color=colors[n + m])
+
+        axarr[0].legend()
+        axarr[1].legend()
+
+        plt.show()
 
     @classmethod
     def get_one_batch(cls, n_trials, **kwargs):
@@ -111,7 +132,8 @@ class Preprocessing(RNNPaths):
     description = "base"  # updated in subclasses to describe dataset
 
     # names of inputs and outputs of dataset
-    _data = (("x", "y", "theta", "v", "omega"), ("out1", "out2"))
+    inputs_names = ("x", "y", "theta", "v", "omega")
+    outputs_names = ("out1", "out2")
 
     def __init__(self, test_size=0.1, truncate_at=None):
         RNNPaths.__init__(self, dataset_name=self.name)
@@ -209,31 +231,28 @@ class Preprocessing(RNNPaths):
 
         # Create dataframe with all trials
         data = {
-            **{k: [] for k in self._data[0]},
-            **{k: [] for k in self._data[1]},
+            **{k: [] for k in self.inputs_names},
+            **{k: [] for k in self.outputs_names},
         }
         for fld in track(trials_folders):
             try:
-                (
-                    config,
-                    trajectory,
-                    history,
-                    cost_history,
-                    trial,
-                    info,
-                ) = load_results_from_folder(fld)
-            except Exception:
-                print(f"Could not open a trial folder, skipping: {fld.name}")
+                (history, info, trajectory, trial) = load_results_from_folder(
+                    fld
+                )
+            except Exception as e:
+                print(
+                    f"Could not open a trial folder, skipping: {fld.name}:\n   {e}"
+                )
                 continue
 
             # Get inputs
             inputs = self.get_inputs(trajectory, history)
-            for name, value in zip(self._data[0], inputs):
+            for name, value in zip(self.inputs_names, inputs):
                 data[name].append(value)
 
             # get outputs
             outputs = self.get_outputs(history)
-            for name, value in zip(self._data[1], outputs):
+            for name, value in zip(self.outputs_names, outputs):
                 data[name].append(value)
 
         # as dataframe

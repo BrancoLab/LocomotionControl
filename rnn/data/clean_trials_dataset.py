@@ -1,14 +1,15 @@
-# %%
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from rich.prompt import Confirm
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 
+# ! This is to clean up/augment real tracking  data before running control on it
+# ! this is NOT to clean up the data produced by CONTROL before running RNN
 
 """
     Take raw tracking from the psychometric mazes and clean it up 
-    to prepare a dataset for control/rnn work
+    to prepare a dataset for control.
 
     Steps:
         1) discard bad traces
@@ -16,7 +17,10 @@ from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
         3) augment dataset
 """
 
-# %%
+# --------------------------------- Settings  -------------------------------- #
+
+DO = dict(discard_bad=False)
+
 
 # Load dataset
 trials = pd.read_hdf(
@@ -35,7 +39,6 @@ def rolling_mean(a, n):
     return moving_avg
 
 
-# %%
 # Manual curation to discard bad trials + smoothing
 to_keep = dict(x=[], y=[], orientation=[], speed=[], fps=[],)
 for i, t in trials.iterrows():
@@ -77,7 +80,7 @@ pd.DataFrame(to_keep).to_hdf(
     key="hdf",
 )
 
-# %%
+
 # Plot cleaned trials
 trials = pd.read_hdf(
     "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\psychometric_trials_cleaned.h5",
@@ -124,7 +127,7 @@ f, ax = plt.subplots(figsize=(16, 16))
 for i, t in trials.iterrows():
     ax.plot(t.x, t.y, color="k", lw=1)
 
-# %%
+
 # Do anouther round of Manual curation to discard bad trials + smoothing
 trials = pd.read_hdf(
     "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\psychometric_trials_augmented.h5",
@@ -155,4 +158,3 @@ pd.DataFrame(to_keep).to_hdf(
     "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\psychometric_trials_augmented.h5",
     key="hdf",
 )
-# %%
