@@ -8,6 +8,8 @@ import numpy as np
 import torch.utils.data as data
 from torch.nn.utils.rnn import pad_sequence
 import matplotlib.pyplot as plt
+from random import choice
+from scipy.signal import resample
 
 from pyrnn._utils import torchify
 from pyinspect.utils import subdirs
@@ -38,7 +40,7 @@ colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 
 
 class Dataset(data.Dataset, RNNPaths):
-    augment_probability = 0.75
+    augment_probability = 0.5
 
     def __init__(self, dataset_length=-1):
         RNNPaths.__init__(self, dataset_name=self.name)
@@ -70,15 +72,58 @@ class Dataset(data.Dataset, RNNPaths):
 
         return x_padded, y_padded
 
-    def _augment(self, X, Y):
+    def _slice(self, X, Y):
+        """ Augment data by taking part of a trial """
         l = len(X)
-        start = rnd.randint(1, int(l / 2))
+        start = rnd.randint(1, l - 10)
 
         X, Y = X[start:, :], Y[start:, :]
 
         if len(X.shape) == 1 or len(Y.shape) == 1 or X.shape[0] != Y.shape[0]:
             raise ValueError("Error while augmenting data")
         return X, Y
+
+    def _speed(self, X, Y, factor):
+        """ Augment data by speedin up/down trials """
+        l = int(len(X) * factor)
+
+        X = torchify(resample(X, l))
+        Y = torchify(resample(Y, l))
+
+        # Don't return the whole thing to remove artifacts
+        if factor > 1:
+            return X[200:-200, :], Y[200:-200, :]
+        else:
+            return X[50:-50, :], Y[50:-50, :]
+
+    def _augment(self, X, Y):
+        """
+            General method for augmenting data
+        """
+        method = choice(("slice", "speed up", "slow down"))
+
+        if method == "slice":
+            return self._slice(X, Y)
+        elif method == "speed up":
+            return self._speed(X, Y, 0.5)
+        elif method == "slow down":
+            return self._speed(X, Y, 2)
+
+    def _add_warmup(self, X, Y):
+        """ add a warmup phase of constant inputs 
+            at start of trial to facilitate learning """
+        l = len(X)
+        warmup = 60
+
+        x = np.zeros((warmup + l, X.shape[1]))
+        x[:warmup, :] = X[0, :]
+        x[warmup:, :] = X
+
+        y = np.zeros((warmup + l, Y.shape[1]))
+        y[:warmup, :] = Y[0, :]
+        y[warmup:, :] = Y
+
+        return torchify(x), torchify(y)
 
     def __getitem__(self, item):
         """
@@ -90,8 +135,12 @@ class Dataset(data.Dataset, RNNPaths):
         if len(X) != len(Y):
             raise ValueError("Length of X and Y must match")
 
+        # augment data
         if rnd.random() <= self.augment_probability:
             X, Y = self._augment(X, Y)
+
+        # add 'warm up'
+        X, Y = self._add_warmup(X, Y)
 
         return X, Y
 
@@ -111,6 +160,14 @@ class Dataset(data.Dataset, RNNPaths):
 
         axarr[0].legend()
         axarr[1].legend()
+
+        plt.show()
+
+    def plot_durations(self):
+        f, ax = plt.subplots()
+        durs = [len(x.x) for i, x in self.inputs.iterrows()]
+        ax.hist(durs)
+        ax.set(title="Trials durations")
 
         plt.show()
 

@@ -16,6 +16,7 @@ MAKE_DATASET = False
 if MAKE_DATASET:
     DATASET(truncate_at=None).make()
     DATASET(truncate_at=None).plot_random()
+    DATASET().plot_durations()
 
 # ---------------------------------- Params ---------------------------------- #
 n_units = 256
@@ -34,13 +35,13 @@ if not MAKE_DATASET:
         input_size=len(DATASET.inputs_names),
         output_size=len(DATASET.outputs_names),
         n_units=n_units,
-        dale_ratio=0.8,
-        autopses=False,
+        dale_ratio=None,
+        autopses=True,
         w_in_bias=False,
         w_in_train=False,
         w_out_bias=False,
         w_out_train=False,
-        on_gpu=False,
+        on_gpu=True,
     )
 
     print(
@@ -59,7 +60,7 @@ if not MAKE_DATASET:
         lr_milestones=lr_milestones,
         l2norm=0,
         stop_loss=stop_loss,
-        plot_live=False,
+        plot_live=True,
     )
     rnn.save(f"rnn_trained_with_{name}.pt")
 
