@@ -38,6 +38,8 @@ colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 
 
 class Dataset(data.Dataset, RNNPaths):
+    augment_probability = 0.75
+
     def __init__(self, dataset_length=-1):
         RNNPaths.__init__(self, dataset_name=self.name)
 
@@ -68,6 +70,16 @@ class Dataset(data.Dataset, RNNPaths):
 
         return x_padded, y_padded
 
+    def _augment(self, X, Y):
+        l = len(X)
+        start = rnd.randint(1, int(l / 2))
+
+        X, Y = X[start:, :], Y[start:, :]
+
+        if len(X.shape) == 1 or len(Y.shape) == 1 or X.shape[0] != Y.shape[0]:
+            raise ValueError("Error while augmenting data")
+        return X, Y
+
     def __getitem__(self, item):
         """
             Get a single trial
@@ -77,6 +89,9 @@ class Dataset(data.Dataset, RNNPaths):
 
         if len(X) != len(Y):
             raise ValueError("Length of X and Y must match")
+
+        if rnd.random() <= self.augment_probability:
+            X, Y = self._augment(X, Y)
 
         return X, Y
 

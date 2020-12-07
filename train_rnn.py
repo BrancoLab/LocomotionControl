@@ -5,7 +5,7 @@ from pyrnn.plot import plot_training_loss
 from rich import print
 from myterial import orange
 
-from rnn.dataset.dataset import PredictTauFromXYTVO as DATASET
+from rnn.dataset.dataset import PredictTauFromXYT as DATASET
 from rnn.dataset import plot_predictions
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -23,23 +23,23 @@ n_units = 256
 name = DATASET.name
 batch_size = 64
 epochs = 150  # 300
-lr_milestones = [150, 450]
-lr = 0.01
+lr_milestones = [500]
+lr = 0.001
 stop_loss = 0.002
 
 # ------------------------------- Fit/load RNN ------------------------------- #
 if not MAKE_DATASET:
     # Create RNN
     rnn = RNN(
-        input_size=5,
-        output_size=2,
+        input_size=len(DATASET.inputs_names),
+        output_size=len(DATASET.outputs_names),
         n_units=n_units,
-        dale_ratio=None,
-        autopses=True,
-        w_in_bias=True,
-        w_in_train=True,
-        w_out_bias=True,
-        w_out_train=True,
+        dale_ratio=0.8,
+        autopses=False,
+        w_in_bias=False,
+        w_in_train=False,
+        w_out_bias=False,
+        w_out_train=False,
         on_gpu=False,
     )
 
@@ -61,7 +61,7 @@ if not MAKE_DATASET:
         stop_loss=stop_loss,
         plot_live=False,
     )
-    rnn.save(f"{name}.pt")
+    rnn.save(f"rnn_trained_with_{name}.pt")
 
     plot_predictions(rnn, batch_size, DATASET)
     plot_training_loss(loss_history)
