@@ -40,7 +40,7 @@ colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 
 
 class Dataset(data.Dataset, RNNPaths):
-    augment_probability = 0.5
+    augment_probability = 0
 
     def __init__(self, dataset_length=-1):
         RNNPaths.__init__(self, dataset_name=self.name)
@@ -113,7 +113,7 @@ class Dataset(data.Dataset, RNNPaths):
         """ add a warmup phase of constant inputs 
             at start of trial to facilitate learning """
         l = len(X)
-        warmup = 60
+        warmup = 10
 
         x = np.zeros((warmup + l, X.shape[1]))
         x[:warmup, :] = X[0, :]
@@ -124,6 +124,19 @@ class Dataset(data.Dataset, RNNPaths):
         y[warmup:, :] = Y
 
         return torchify(x), torchify(y)
+
+    def chunk(self, X, Y):
+        """
+            Take a random chunk of L length from a trial, to train on smaller
+            chunks
+        """
+        L = 256  # chunk length
+        l = len(X)
+        if l <= L + 2:
+            return X, Y
+        start = rnd.randint(0, l - L - 1)
+
+        return X[start : start + L, :], Y[start : start + L, :]
 
     def __getitem__(self, item):
         """
@@ -141,6 +154,7 @@ class Dataset(data.Dataset, RNNPaths):
 
         # add 'warm up'
         # X, Y = self._add_warmup(X, Y)
+        # X, Y = self.chunk(X, Y)
 
         return X, Y
 

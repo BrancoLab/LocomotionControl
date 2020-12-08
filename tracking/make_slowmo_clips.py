@@ -4,13 +4,35 @@
 """
 from pathlib import Path
 import numpy as np
-import os
+import pandas as pd
 
 from fcutils.maths.utils import derivative, rolling_mean
+from fcutils.video.utils import trim_clip
 
-from tracking._tracking import prepare_tracking_data
+from tracking._tracking import prepare_tracking_data, compute_body_segments
 
 fps = 60
+
+bones = dict(
+    upper_body=("snout", "body"),
+    lower_body=("body", "tail_base"),
+    left_diag=("left_forepaw", "right_hindpaw"),
+    right_diag=("right_forepaw", "left_hindpaw"),
+    left=("left_forepaw", "left_hindpaw"),
+    right=("right_forepaw", "right_hindpaw"),
+)
+
+
+def collate_tracking(tracking, bones_tracking):
+    """ put all tracking into a single dataframe """
+    data = {}
+    for bp, tr in tracking.items():
+        data.update({bp + "_" + k: tr[k].values for k in tr.columns})
+
+    for bone, tr in bones_tracking.items():
+        data.update({bone + "_" + k: tr[k].values for k in tr.columns})
+
+    return pd.DataFrame(data)
 
 
 def run():
@@ -35,8 +57,11 @@ def run():
             str(posefile),
             median_filter=True,
             interpolate_nans=True,
-            likelihood_th=0.9,
+            likelihood_th=0.8,
         )
+
+        bones_tracking = compute_body_segments(tracking, bones)
+        collated = collate_tracking(tracking, bones_tracking)
 
         y, s = (
             tracking["body"].y.values,
@@ -58,17 +83,27 @@ def run():
             if end - start < 20:
                 continue
 
-            # use ffmpeg to create a new video
+            start = start - 1 * fps
+
+            # create a new video
             out_vid = (
                 dest_folder / f'{video.name.split(".")[0]}_{run_number}.mp4'
             )
 
-            # start_time = time.strftime('%H:%M:%S', start * fps)
-            # duration = time.strftime('%H:%M:%S', (end - start) * fps)
-            # command = f'ffmpeg -i "{video}" -ss {start}  -t {end-start} "{out_vid}" -y'
-            command = f'ffmpeg -ss {start} -i "{video}"  -t {end-start} "{out_vid}" -y -c:v copy -vcodec libx264 -crf 28'
+            trim_clip(
+                str(video),
+                str(out_vid),
+                frame_mode=True,
+                start_frame=start,
+                stop_frame=end,
+                sel_fps=4,
+            )
 
-            os.system(command)
+            # Save tracking data
+            out_tracking = (
+                dest_folder / f'{video.name.split(".")[0]}_{run_number}.h5'
+            )
+            collated[start:end].to_hdf(out_tracking, key="hdf")
 
 
 if __name__ == "__main__":

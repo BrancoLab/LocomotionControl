@@ -5,7 +5,11 @@ from pyrnn.plot import plot_training_loss
 from rich import print
 from myterial import orange
 
-from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
+import matplotlib
+
+matplotlib.use("TkAgg")
+
+from rnn.dataset.dataset import PredictTauFromXYT as DATASET
 from rnn.dataset.dataset import is_win
 from rnn.dataset import plot_predictions
 
@@ -17,13 +21,13 @@ MAKE_DATASET = False
 if MAKE_DATASET:
     DATASET(truncate_at=None).make()
     DATASET(truncate_at=None).plot_random()
-    # DATASET().plot_durations()
+    DATASET().plot_durations()
 
 # ---------------------------------- Params ---------------------------------- #
-n_units = 512
+n_units = 256
 
 name = DATASET.name
-batch_size = 128
+batch_size = 64
 epochs = 500  # 300
 lr_milestones = [500]
 lr = 0.001
