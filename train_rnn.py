@@ -5,7 +5,8 @@ from pyrnn.plot import plot_training_loss
 from rich import print
 from myterial import orange
 
-from rnn.dataset.dataset import PredictTauFromXYT as DATASET
+from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
+from rnn.dataset.dataset import is_win
 from rnn.dataset import plot_predictions
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -16,14 +17,14 @@ MAKE_DATASET = False
 if MAKE_DATASET:
     DATASET(truncate_at=None).make()
     DATASET(truncate_at=None).plot_random()
-    DATASET().plot_durations()
+    # DATASET().plot_durations()
 
 # ---------------------------------- Params ---------------------------------- #
-n_units = 256
+n_units = 512
 
 name = DATASET.name
 batch_size = 64
-epochs = 150  # 300
+epochs = 500  # 300
 lr_milestones = [500]
 lr = 0.001
 stop_loss = 0.002
@@ -41,7 +42,7 @@ if not MAKE_DATASET:
         w_in_train=False,
         w_out_bias=False,
         w_out_train=False,
-        on_gpu=True,
+        on_gpu=is_win,
     )
 
     print(
@@ -62,8 +63,9 @@ if not MAKE_DATASET:
         stop_loss=stop_loss,
         plot_live=True,
     )
-    rnn.save(f"rnn_trained_with_{name}.pt")
 
     plot_predictions(rnn, batch_size, DATASET)
     plot_training_loss(loss_history)
     plt.show()
+
+    rnn.save(f"rnn_trained_with_{name}.pt")

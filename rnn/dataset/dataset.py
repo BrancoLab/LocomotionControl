@@ -41,6 +41,39 @@ class PredictTauFromXYT(Dataset, Preprocessing):
         )
 
 
+class PredictNuDotFromXYT(Dataset, Preprocessing):
+    description = """
+        Predict wheel velocityies (nudot right/left) from 
+        the  trajectory.
+
+        The model predicts the wheels velocities, **not** the controls (taus)
+
+        Data are normalized in range (-1, 1) with a MinMaxScaler for each
+        variable independently.
+    """
+
+    name = "dataset_predict_nudot_from_xyt"
+    inputs_names = ("x", "y", "theta")
+    outputs_names = ("nudot_R", "nudot_L")
+
+    def __init__(self, *args, truncate_at=None, **kwargs):
+        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Dataset.__init__(self, *args, **kwargs)
+
+    def get_inputs(self, trajectory, history, window=21):
+        x = rolling_mean(history.x, window)
+        y = rolling_mean(history.y, window)
+        theta = rolling_mean(history.theta, window)
+
+        return x, y, theta
+
+    def get_outputs(self, history, window=21):
+        return (
+            rolling_mean(history["tau_r"], window),
+            rolling_mean(history["tau_l"], window),
+        )
+
+
 class PredictTauFromXYTVO(Dataset, Preprocessing):
     description = """
         Predict controls (tau right/left) from 

@@ -140,7 +140,7 @@ class Dataset(data.Dataset, RNNPaths):
             X, Y = self._augment(X, Y)
 
         # add 'warm up'
-        X, Y = self._add_warmup(X, Y)
+        # X, Y = self._add_warmup(X, Y)
 
         return X, Y
 
@@ -150,16 +150,17 @@ class Dataset(data.Dataset, RNNPaths):
         """
         X, Y = self._get_random()
 
-        f, axarr = plt.subplots(nrows=2, figsize=(14, 8), sharex=True)
+        f, axarr = plt.subplots(nrows=3, figsize=(14, 8), sharex=False)
+        axarr[0].plot(X[0, :, 0], X[0, :, 1])
 
         for n, name in enumerate(self.inputs_names):
-            axarr[0].plot(X[0, :, n], lw=2, label=name, color=colors[n])
+            axarr[1].plot(X[0, :, n], lw=2, label=name, color=colors[n])
 
         for m, name in enumerate(self.outputs_names):
-            axarr[1].plot(Y[0, :, m], lw=2, label=name, color=colors[n + m])
+            axarr[2].plot(Y[0, :, m], lw=2, label=name, color=colors[n + m])
 
-        axarr[0].legend()
         axarr[1].legend()
+        axarr[2].legend()
 
         plt.show()
 
