@@ -23,7 +23,7 @@ if MAKE_DATASET:
 n_units = 512
 
 name = DATASET.name
-batch_size = 64
+batch_size = 128
 epochs = 500  # 300
 lr_milestones = [500]
 lr = 0.001
