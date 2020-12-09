@@ -4,7 +4,7 @@ from pyrnn import RNN
 from pyrnn.plot import plot_training_loss
 from rich import print
 from myterial import orange
-
+import click
 import matplotlib
 
 matplotlib.use("TkAgg")
@@ -16,13 +16,6 @@ from rnn.dataset import plot_predictions
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 MAKE_DATASET = False
-WINSTOR = False
-
-# ---------------------------- Preprocess dataset ---------------------------- #
-if MAKE_DATASET:
-    DATASET(truncate_at=None).make()
-    DATASET(truncate_at=None).plot_random()
-    DATASET().plot_durations()
 
 # ---------------------------------- Params ---------------------------------- #
 n_units = 128
@@ -37,8 +30,10 @@ stop_loss = None
 data = DATASET(dataset_length=10)
 
 # ------------------------------- Fit/load RNN ------------------------------- #
-if not MAKE_DATASET:
-    if WINSTOR:
+@click.command()
+@click.option("-w", "--WINSTOR", is_flag=True, default=False)
+def train(winstor):
+    if winstor:
         data.make_save_rnn_folder()
 
     # Create RNN
@@ -52,7 +47,7 @@ if not MAKE_DATASET:
         w_in_train=False,
         w_out_bias=False,
         w_out_train=False,
-        on_gpu=is_win if not WINSTOR else True,
+        on_gpu=is_win if not winstor else True,
     )
 
     print(
@@ -69,10 +64,10 @@ if not MAKE_DATASET:
         l2norm=0,
         stop_loss=stop_loss,
         plot_live=True,
-        report_path=str(data.rnn_folder / f"report.txt") if WINSTOR else None,
+        report_path=str(data.rnn_folder / f"report.txt") if winstor else None,
     )
 
-    if not WINSTOR:
+    if not winstor:
         plot_predictions(rnn, batch_size, DATASET)
         plot_training_loss(loss_history)
         plt.show()
@@ -81,3 +76,12 @@ if not MAKE_DATASET:
     else:
         rnn.save(data.rnn_folder / f"rnn_trained_with_{name}.pt")
         rnn.params_to_file(data.rnn_folder / f"rnn.txt")
+
+
+if __name__ == "__main__":
+    if MAKE_DATASET:
+        DATASET(truncate_at=None).make()
+        DATASET(truncate_at=None).plot_random()
+        DATASET().plot_durations()
+    else:
+        train()
