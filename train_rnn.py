@@ -72,8 +72,8 @@ def train(winstor):
 
         rnn.save(f"rnn_trained_with_{name}.pt")
     else:
-        rnn.save(data.rnn_folder / f"rnn_trained_with_{name}.pt")
-        rnn.params_to_file(data.rnn_folder / f"rnn.txt")
+        rnn.save(str(data.rnn_folder / f"rnn_trained_with_{name}.pt"))
+        rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"))
 
 
 if __name__ == "__main__":
