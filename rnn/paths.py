@@ -3,6 +3,7 @@ from pyinspect import install_traceback
 import joblib
 from rich import print
 import pandas as pd
+from pyinspect.utils import timestamp
 
 from control import paths
 
@@ -54,3 +55,7 @@ class RNNPaths:
         test.to_hdf(self.dataset_test_path, key="hdf")
 
         print(f"Saved at {self.dataset_train_path}, {len(train)} trials")
+
+    def make_save_rnn_folder(self):
+        self.rnn_folder = self.main_fld / f"{self.name}_{timestamp()}"
+        self.rnn_folder.mkdir(exist_ok=True)

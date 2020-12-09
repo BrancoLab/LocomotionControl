@@ -9,13 +9,14 @@ import matplotlib
 
 matplotlib.use("TkAgg")
 
-from rnn.dataset.dataset import PredictTauFromXYT as DATASET
+from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 from rnn.dataset.dataset import is_win
 from rnn.dataset import plot_predictions
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 MAKE_DATASET = False
+WINSTOR = False
 
 # ---------------------------- Preprocess dataset ---------------------------- #
 if MAKE_DATASET:
@@ -24,21 +25,26 @@ if MAKE_DATASET:
     DATASET().plot_durations()
 
 # ---------------------------------- Params ---------------------------------- #
-n_units = 256
+n_units = 128
 
 name = DATASET.name
 batch_size = 64
 epochs = 5000  # 300
 lr_milestones = [500]
 lr = 0.001
-stop_loss = 0.002
+stop_loss = None
+
+data = DATASET(dataset_length=10)
 
 # ------------------------------- Fit/load RNN ------------------------------- #
 if not MAKE_DATASET:
+    if WINSTOR:
+        data.make_save_rnn_folder()
+
     # Create RNN
     rnn = RNN(
-        input_size=len(DATASET.inputs_names),
-        output_size=len(DATASET.outputs_names),
+        input_size=len(data.inputs_names),
+        output_size=len(data.outputs_names),
         n_units=n_units,
         dale_ratio=None,
         autopses=True,
@@ -50,15 +56,12 @@ if not MAKE_DATASET:
     )
 
     print(
-        f"Training RNN:",
-        rnn,
-        f"with dataset: [{orange}]{DATASET.name}",
-        sep="\n",
+        f"Training RNN:", rnn, f"with dataset: [{orange}]{name}", sep="\n",
     )
 
     # FIT
     loss_history = rnn.fit(
-        DATASET(dataset_length=400),
+        data,
         n_epochs=epochs,
         lr=lr,
         batch_size=batch_size,
@@ -66,10 +69,15 @@ if not MAKE_DATASET:
         l2norm=0,
         stop_loss=stop_loss,
         plot_live=True,
+        report_path=str(data.rnn_folder / f"report.txt") if WINSTOR else None,
     )
 
-    plot_predictions(rnn, batch_size, DATASET)
-    plot_training_loss(loss_history)
-    plt.show()
+    if not WINSTOR:
+        plot_predictions(rnn, batch_size, DATASET)
+        plot_training_loss(loss_history)
+        plt.show()
 
-    rnn.save(f"rnn_trained_with_{name}.pt")
+        rnn.save(f"rnn_trained_with_{name}.pt")
+    else:
+        rnn.save(data.rnn_folder / f"rnn_trained_with_{name}.pt")
+        rnn.params_to_file(data.rnn_folder / f"rnn.txt")
