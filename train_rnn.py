@@ -28,7 +28,7 @@ n_units = 256
 
 name = DATASET.name
 batch_size = 64
-epochs = 500  # 300
+epochs = 5000  # 300
 lr_milestones = [500]
 lr = 0.001
 stop_loss = 0.002
@@ -58,7 +58,7 @@ if not MAKE_DATASET:
 
     # FIT
     loss_history = rnn.fit(
-        DATASET(),
+        DATASET(dataset_length=400),
         n_epochs=epochs,
         lr=lr,
         batch_size=batch_size,
