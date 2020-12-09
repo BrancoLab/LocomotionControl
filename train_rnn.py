@@ -5,9 +5,6 @@ from pyrnn.plot import plot_training_loss
 from rich import print
 from myterial import orange
 import click
-import matplotlib
-
-matplotlib.use("TkAgg")
 
 from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 from rnn.dataset.dataset import is_win
@@ -27,12 +24,13 @@ lr_milestones = [500]
 lr = 0.001
 stop_loss = None
 
-data = DATASET(dataset_length=10)
 
 # ------------------------------- Fit/load RNN ------------------------------- #
 @click.command()
-@click.option("-w", "--WINSTOR", is_flag=True, default=False)
+@click.option("-w", "--winstor", is_flag=True, default=False)
 def train(winstor):
+    data = DATASET(dataset_length=10, winstor=winstor)
+
     if winstor:
         data.make_save_rnn_folder()
 

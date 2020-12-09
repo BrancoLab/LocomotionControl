@@ -42,8 +42,8 @@ colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 class Dataset(data.Dataset, RNNPaths):
     augment_probability = 0
 
-    def __init__(self, dataset_length=-1):
-        RNNPaths.__init__(self, dataset_name=self.name)
+    def __init__(self, dataset_length=-1, **kwargs):
+        RNNPaths.__init__(self, dataset_name=self.name, **kwargs)
 
         try:
             self.dataset = pd.read_hdf(self.dataset_train_path, key="hdf")[
@@ -222,8 +222,8 @@ class Preprocessing(RNNPaths):
     inputs_names = ("x", "y", "theta", "v", "omega")
     outputs_names = ("out1", "out2")
 
-    def __init__(self, test_size=0.1, truncate_at=None):
-        RNNPaths.__init__(self, dataset_name=self.name)
+    def __init__(self, test_size=0.1, truncate_at=None, **kwargs):
+        RNNPaths.__init__(self, dataset_name=self.name, **kwargs)
         self.test_size = test_size
         self.truncate_at = truncate_at
 

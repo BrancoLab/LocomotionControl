@@ -24,7 +24,7 @@ class PredictTauFromXYT(Dataset, Preprocessing):
     outputs_names = ("tau_R", "tau_L")
 
     def __init__(self, *args, truncate_at=None, **kwargs):
-        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
     def get_inputs(self, trajectory, history, window=21):
@@ -57,7 +57,7 @@ class PredictNuDotFromXYT(Dataset, Preprocessing):
     outputs_names = ("nudot_R", "nudot_L")
 
     def __init__(self, *args, truncate_at=None, **kwargs):
-        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
     def get_inputs(self, trajectory, history, window=21):
@@ -88,7 +88,7 @@ class PredictTauFromXYTVO(Dataset, Preprocessing):
     outputs_names = ("tau_R", "tau_L")
 
     def __init__(self, *args, truncate_at=None, **kwargs):
-        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
     def get_inputs(self, trajectory, history, window=21):
@@ -124,7 +124,7 @@ class PredictNudotFromDeltaXYT(Dataset, Preprocessing):
     outputs_names = ("nudot_R", "nudot_L")
 
     def __init__(self, *args, truncate_at=None, **kwargs):
-        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
     def get_inputs(self, trajectory, history, window=21):
@@ -156,7 +156,7 @@ class PredictTauFromDeltaXYT(Dataset, Preprocessing):
     outputs_names = ("tau_R", "tau_L")
 
     def __init__(self, *args, truncate_at=None, **kwargs):
-        Preprocessing.__init__(self, truncate_at=truncate_at)
+        Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
     def get_inputs(self, trajectory, history, window=21):

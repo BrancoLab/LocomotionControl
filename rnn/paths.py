@@ -17,7 +17,7 @@ class RNNPaths:
         RNN models and data normalizers etc...
     """
 
-    def __init__(self, dataset_name="", winstor=False):
+    def __init__(self, dataset_name="", winstor=False, **kwargs):
         self.main_fld = (
             Path(paths.rnn) if not winstor else Path(paths.winstor_rnn)
         )
