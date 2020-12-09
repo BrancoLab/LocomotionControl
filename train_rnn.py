@@ -52,7 +52,7 @@ if not MAKE_DATASET:
         w_in_train=False,
         w_out_bias=False,
         w_out_train=False,
-        on_gpu=is_win,
+        on_gpu=is_win if not WINSTOR else True,
     )
 
     print(
