@@ -43,3 +43,4 @@ def plot_predictions(model, batch_size, dataset, **kwargs):
 
     f.tight_layout()
     clean_axes(f)
+    return f
