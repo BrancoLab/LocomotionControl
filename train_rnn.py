@@ -7,7 +7,6 @@ from rich import print
 import click
 from loguru import logger
 import json
-import sys
 from myterial import orange
 
 from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
@@ -17,12 +16,32 @@ from rnn.dataset import plot_predictions
 # Set up
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
-logger.add(
-    sys.stderr,
-    format="{time} {level} {message}",
-    filter="my_module",
-    level="INFO",
-)
+
+def setup_loggers(winstor, data):
+    if winstor:
+        main = str(data.rnn_folder / "log_{time}.log")
+        train = str(data.rnn_folder / "training.log")
+    else:
+        main = "log.log"
+        train = "training.log"
+
+        os.remove("log.log")
+        os.remove("training.log")
+
+    logger.add(
+        main,
+        backtrace=True,
+        diagnose=True,
+        filter=lambda record: "main" in record["extra"],
+        format="{time:YYYY-MM-DD at HH:mm} | {level} | {message}",
+    )
+    logger.add(
+        train,
+        filter=lambda record: "training" in record["extra"],
+        format="{time:YYYY-MM-DD at HH:mm} |{level}| {message}",
+    )
+    logger.level("Params", no=38, color="<yellow>", icon="🐍")
+
 
 # ---------------------------------- Params ---------------------------------- #
 MAKE_DATASET = False
@@ -41,7 +60,7 @@ stop_loss = None
 
 @logger.catch
 def make_rnn(data, winstor):
-    logger.info("Creating RNN")
+    logger.bind(main=True).info("Creating RNN")
     rnn = RNN(
         input_size=len(data.inputs_names),
         output_size=len(data.outputs_names),
@@ -54,8 +73,8 @@ def make_rnn(data, winstor):
         w_out_train=False,
         on_gpu=is_win if not winstor else True,
     )
-    logger.info(
-        f"Rnn params:\n{json.dumps(rnn.params, sort_keys=True, indent=4)}"
+    logger.bind(main=True).info(
+        f"Rnn params:\n{json.dumps(rnn.params, sort_keys=True, indent=4)}",
     )
     return rnn
 
@@ -81,8 +100,8 @@ def fit(rnn, winstor, data):
         plot_live=True,
         report_path=None,
     )
-    logger.info(
-        f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}"
+    logger.bind(main=True).info(
+        f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",
     )
 
     # FIT
@@ -96,6 +115,7 @@ def fit(rnn, winstor, data):
         stop_loss=stop_loss,
         plot_live=True,
         report_path=None,
+        logger=logger,
     )
     print("Training finished, last loss: ", loss_history[-1])
     return loss_history
@@ -106,7 +126,7 @@ def fit(rnn, winstor, data):
 
 @logger.catch
 def wrap_up(rnn, loss_history, winstor, data):
-    logger.info("Wrapping up")
+    logger.bind(main=True).info("Wrapping up")
 
     NAME = f"rnn_trained_with_{name}.pt"
     f1 = plot_predictions(rnn, batch_size, DATASET)
@@ -114,15 +134,15 @@ def wrap_up(rnn, loss_history, winstor, data):
 
     if not winstor:
         plt.show()
-        rnn.save(NAME)
+        rnn.save(NAME, overwrite=True)
     else:
         f1.savefig(data.rnn_folder / "predictions.png")
         f2.savefig(data.rnn_folder / "training_loss.png")
 
         rnn.save(str(data.rnn_folder / NAME))
-        rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"))
+        rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"), overwrite=True)
 
-    logger.info(f"Saved RNN at: {NAME}")
+    logger.bind(main=True).info(f"Saved RNN at: {NAME}")
 
 
 # ---------------------------------------------------------------------------- #
@@ -137,16 +157,9 @@ def train(winstor):
 
     if winstor:
         data.make_save_rnn_folder()
-        logger.add(
-            str(data.rnn_folder / "log_{time}.log"),
-            backtrace=True,
-            diagnose=True,
-        )
-    else:
-        os.remove("out.log")
-        logger.add("out.log", backtrace=True, diagnose=True)
 
-    logger.info(
+    setup_loggers(winstor, data)
+    logger.bind(main=True).info(
         "\n"
         + "#" * 60
         + "\n"
