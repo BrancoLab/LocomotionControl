@@ -23,18 +23,20 @@ epochs = 5000  # 300
 lr_milestones = [500]
 lr = 0.001
 stop_loss = None
-
+print("Ready to train")
 
 # ------------------------------- Fit/load RNN ------------------------------- #
 @click.command()
 @click.option("-w", "--winstor", is_flag=True, default=False)
 def train(winstor):
+    print("Creating dataset")
     data = DATASET(dataset_length=10, winstor=winstor)
 
     if winstor:
         data.make_save_rnn_folder()
 
     # Create RNN
+    print("Creating RNN")
     rnn = RNN(
         input_size=len(data.inputs_names),
         output_size=len(data.outputs_names),
@@ -64,6 +66,7 @@ def train(winstor):
         plot_live=True,
         report_path=str(data.rnn_folder / f"report.txt") if winstor else None,
     )
+    print("Training finished, last loss: ", loss_history[-1])
 
     if not winstor:
         plot_predictions(rnn, batch_size, DATASET)
