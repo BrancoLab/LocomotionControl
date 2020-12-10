@@ -5,6 +5,8 @@ from pyrnn.plot import plot_training_loss
 from rich import print
 from myterial import orange
 import click
+from loguru import logger
+
 
 from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 from rnn.dataset.dataset import is_win
@@ -33,6 +35,8 @@ def train(winstor):
 
     if winstor:
         data.make_save_rnn_folder()
+        logger.add(str(data.rnn_folder / "log_{time}.log"))
+        logger.info("Creating RNN")
 
     # Create RNN
     rnn = RNN(
