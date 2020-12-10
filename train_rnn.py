@@ -36,7 +36,9 @@ lr_milestones = [500]
 lr = 0.001
 stop_loss = None
 
-# ------------------------------- Fit/load RNN ------------------------------- #
+# --------------------------------- Make RNNR -------------------------------- #
+
+
 @logger.catch
 def make_rnn(data, winstor):
     logger.info("Creating RNN")
@@ -56,6 +58,9 @@ def make_rnn(data, winstor):
         f"Rnn params:\n{json.dumps(rnn.params, sort_keys=True, indent=4)}"
     )
     return rnn
+
+
+# ------------------------------------ fit ----------------------------------- #
 
 
 @logger.catch
@@ -96,6 +101,9 @@ def fit(rnn, winstor, data):
     return loss_history
 
 
+# ---------------------------------- wrap up --------------------------------- #
+
+
 @logger.catch
 def wrap_up(rnn, loss_history, winstor, data):
     logger.info("Wrapping up")
@@ -117,10 +125,15 @@ def wrap_up(rnn, loss_history, winstor, data):
     logger.info(f"Saved RNN at: {NAME}")
 
 
+# ---------------------------------------------------------------------------- #
+#                                   MAIN FUNC                                  #
+# ---------------------------------------------------------------------------- #
+
+
 @click.command()
 @click.option("-w", "--winstor", is_flag=True, default=False)
 def train(winstor):
-    data = DATASET(dataset_length=10, winstor=winstor)
+    data = DATASET(dataset_length=-1, winstor=winstor)
 
     if winstor:
         data.make_save_rnn_folder()
