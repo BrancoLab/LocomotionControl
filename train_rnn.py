@@ -133,7 +133,7 @@ def wrap_up(rnn, loss_history, winstor, data):
     NAME = f"rnn_trained_with_{name}.pt"
     if winstor:
         NAME = str(data.rnn_folder / NAME)
-        rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"), overwrite=True)
+        rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"))
     rnn.save(NAME, overwrite=True)
 
     # make/save plots
