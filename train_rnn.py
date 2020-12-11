@@ -45,13 +45,14 @@ def setup_loggers(winstor, data):
 
 # ---------------------------------- Params ---------------------------------- #
 MAKE_DATASET = False
+N_trials = 10
 
 n_units = 128
 
 name = DATASET.name
 batch_size = 64
-epochs = 5000  # 300
-lr_milestones = [500]
+epochs = 50  # 300
+lr_milestones = [500, 4000]
 lr = 0.001
 stop_loss = None
 
@@ -128,19 +129,22 @@ def fit(rnn, winstor, data):
 def wrap_up(rnn, loss_history, winstor, data):
     logger.bind(main=True).info("Wrapping up")
 
+    # save RNN
     NAME = f"rnn_trained_with_{name}.pt"
-    f1 = plot_predictions(rnn, batch_size, DATASET)
+    if winstor:
+        NAME = str(data.rnn_folder / NAME)
+        rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"), overwrite=True)
+    rnn.save(NAME, overwrite=True)
+
+    # make/save plots
+    f1 = plot_predictions(rnn, batch_size, data)
     f2 = plot_training_loss(loss_history)
 
     if not winstor:
         plt.show()
-        rnn.save(NAME, overwrite=True)
     else:
         f1.savefig(data.rnn_folder / "predictions.png")
         f2.savefig(data.rnn_folder / "training_loss.png")
-
-        rnn.save(str(data.rnn_folder / NAME))
-        rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"), overwrite=True)
 
     logger.bind(main=True).info(f"Saved RNN at: {NAME}")
 
@@ -153,7 +157,7 @@ def wrap_up(rnn, loss_history, winstor, data):
 @click.command()
 @click.option("-w", "--winstor", is_flag=True, default=False)
 def train(winstor):
-    data = DATASET(dataset_length=-1, winstor=winstor)
+    data = DATASET(dataset_length=N_trials, winstor=winstor)
 
     if winstor:
         data.make_save_rnn_folder()
