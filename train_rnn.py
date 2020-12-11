@@ -137,7 +137,7 @@ def wrap_up(rnn, loss_history, winstor, data):
     rnn.save(NAME, overwrite=True)
 
     # make/save plots
-    f1 = plot_predictions(rnn, batch_size, data)
+    f1 = plot_predictions(rnn, batch_size, data, winstor=winstor)
     f2 = plot_training_loss(loss_history)
 
     if not winstor:
