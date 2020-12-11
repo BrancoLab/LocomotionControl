@@ -9,9 +9,25 @@ from loguru import logger
 import json
 from myterial import orange
 
-from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 from rnn.dataset.dataset import is_win
 from rnn.dataset import plot_predictions
+from rnn.train_params import (
+    DATASET,
+    N_trials,
+    n_units,
+    dale_ratio,
+    autopses,
+    w_in_bias,
+    w_in_train,
+    w_out_bias,
+    w_out_train,
+    batch_size,
+    epochs,
+    lr_milestones,
+    lr,
+    stop_loss,
+    name,
+)
 
 # Set up
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -43,19 +59,6 @@ def setup_loggers(winstor, data):
     logger.level("Params", no=38, color="<yellow>", icon="🐍")
 
 
-# ---------------------------------- Params ---------------------------------- #
-MAKE_DATASET = False
-N_trials = 10
-
-n_units = 128
-
-name = DATASET.name
-batch_size = 64
-epochs = 50  # 300
-lr_milestones = [500, 4000]
-lr = 0.001
-stop_loss = None
-
 # --------------------------------- Make RNNR -------------------------------- #
 
 
@@ -66,12 +69,12 @@ def make_rnn(data, winstor):
         input_size=len(data.inputs_names),
         output_size=len(data.outputs_names),
         n_units=n_units,
-        dale_ratio=None,
-        autopses=True,
-        w_in_bias=False,
-        w_in_train=False,
-        w_out_bias=False,
-        w_out_train=False,
+        dale_ratio=dale_ratio,
+        autopses=autopses,
+        w_in_bias=w_in_bias,
+        w_in_train=w_in_train,
+        w_out_bias=w_out_bias,
+        w_out_train=w_out_train,
         on_gpu=is_win if not winstor else True,
     )
     logger.bind(main=True).info(
@@ -98,7 +101,6 @@ def fit(rnn, winstor, data):
         lr_milestones=lr_milestones,
         l2norm=0,
         stop_loss=stop_loss,
-        plot_live=True,
         report_path=None,
     )
     logger.bind(main=True).info(
@@ -114,7 +116,7 @@ def fit(rnn, winstor, data):
         lr_milestones=lr_milestones,
         l2norm=0,
         stop_loss=stop_loss,
-        plot_live=True,
+        plot_live=True if not winstor else False,
         report_path=None,
         logger=logger,
     )
@@ -186,9 +188,4 @@ def train(winstor):
 
 
 if __name__ == "__main__":
-    if MAKE_DATASET:
-        DATASET(truncate_at=None).make()
-        DATASET(truncate_at=None).plot_random()
-        DATASET().plot_durations()
-    else:
-        train()
+    train()
