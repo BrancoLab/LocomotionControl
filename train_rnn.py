@@ -132,7 +132,7 @@ def wrap_up(rnn, loss_history, winstor, data):
     logger.bind(main=True).info("Wrapping up")
 
     # save RNN
-    NAME = f"rnn_trained_with_{name}.pt"
+    NAME = f"rnn_{name}.pt"
     if winstor:
         NAME = str(data.rnn_folder / NAME)
         rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"))
