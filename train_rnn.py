@@ -9,6 +9,9 @@ from loguru import logger
 import json
 from myterial import orange
 
+from control._io import DropBoxUtils, upload_folder
+
+
 from rnn.dataset.dataset import is_win
 from rnn.dataset import plot_predictions
 from rnn.train_params import (
@@ -127,6 +130,19 @@ def fit(rnn, winstor, data):
 # ---------------------------------- wrap up --------------------------------- #
 
 
+def upload_to_db(data):
+    dbx = DropBoxUtils()
+    dpx_path = data.rnn_folder.name
+    logger.bind(main=True)(
+        f"Uploading data to dropbox at: {dpx_path}", extra={"markup": True}
+    )
+
+    try:
+        upload_folder(dbx, data.rnn_folder, dpx_path)
+    except Exception as e:
+        logger.bind(main=True)(f"Failed to upload to dropbox with error: {e}")
+
+
 @logger.catch
 def wrap_up(rnn, loss_history, winstor, data):
     logger.bind(main=True).info("Wrapping up")
@@ -139,14 +155,20 @@ def wrap_up(rnn, loss_history, winstor, data):
     rnn.save(NAME, overwrite=True)
 
     # make/save plots
-    f1 = plot_predictions(rnn, batch_size, data, winstor=winstor)
     f2 = plot_training_loss(loss_history)
 
     if not winstor:
+        plot_predictions(rnn, batch_size, data, winstor=winstor)
         plt.show()
     else:
-        f1.savefig(data.rnn_folder / "predictions.png")
-        f2.savefig(data.rnn_folder / "training_loss.png")
+        # plot a bunch of times
+        for rep in range(10):
+            f1 = plot_predictions(rnn, batch_size, data, winstor=winstor)
+            f1.savefig(data.rnn_folder / f"predictions_{rep}.png")
+        f2.savefig(data.rnn_folder / f"training_loss_{rep}.png")
+
+        # copy data to dropbox app
+        upload_to_db(data)
 
     logger.bind(main=True).info(f"Saved RNN at: {NAME}")
 

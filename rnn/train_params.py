@@ -8,7 +8,7 @@ from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 """
 
 # ---------------------------------- Dataset --------------------------------- #
-N_trials = -1  # number of trials to use, set to -1 to use entire dataset
+N_trials = 10  # number of trials to use, set to -1 to use entire dataset
 name = "" + "_" + DATASET.name
 
 # ------------------------------------ RNN ----------------------------------- #
@@ -23,7 +23,7 @@ w_out_train = False
 
 # --------------------------------- Training --------------------------------- #
 batch_size = 64
-epochs = 5000  # 300
+epochs = 5  # 300
 lr_milestones = [500, 4000]
 lr = 0.001
 stop_loss = None
