@@ -11,6 +11,8 @@ from myterial import orange
 
 from control._io import DropBoxUtils, upload_folder
 
+from fcutils.file_io.io import save_yaml
+
 
 from rnn.dataset.dataset import is_win
 from rnn.dataset import plot_predictions
@@ -83,6 +85,14 @@ def make_rnn(data, winstor):
     logger.bind(main=True).info(
         f"Rnn params:\n{json.dumps(rnn.params, sort_keys=True, indent=4)}",
     )
+
+    if winstor:
+        params = rnn.params
+        params["dataset_name"] = data.name
+        save_yaml(
+            str(data.rnn_folder / f"rnn.yaml"),
+            json.dumps(params, sort_keys=True),
+        )
     return rnn
 
 

@@ -9,7 +9,7 @@ def plot_predictions(model, batch_size, dataset, **kwargs):
     the model's prediction's against the
     input data and labels.
     """
-    X, Y = dataset.get_one_batch(1, **kwargs)
+    X, Y = dataset.get_one_batch(batch_size, **kwargs)
 
     if model.on_gpu:
         model.cpu()
