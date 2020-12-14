@@ -133,7 +133,7 @@ def fit(rnn, winstor, data):
 def upload_to_db(data):
     dbx = DropBoxUtils()
     dpx_path = data.rnn_folder.name
-    logger.bind(main=True)(
+    logger.bind(main=True).info(
         f"Uploading data to dropbox at: {dpx_path}", extra={"markup": True}
     )
 
@@ -184,7 +184,7 @@ def train(winstor):
     data = DATASET(dataset_length=N_trials, winstor=winstor)
 
     if winstor:
-        data.make_save_rnn_folder()
+        data.make_save_rnn_folder(name)
 
     setup_loggers(winstor, data)
     logger.bind(main=True).info(

@@ -56,6 +56,6 @@ class RNNPaths:
 
         print(f"Saved at {self.dataset_train_path}, {len(train)} trials")
 
-    def make_save_rnn_folder(self):
-        self.rnn_folder = self.main_fld / f"{timestamp()}_RNN_{self.name}"
+    def make_save_rnn_folder(self, name):
+        self.rnn_folder = self.main_fld / f"{timestamp()}_RNN_{name}"
         self.rnn_folder.mkdir(exist_ok=True)
