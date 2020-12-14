@@ -185,7 +185,6 @@ def train(winstor):
 
     if winstor:
         data.make_save_rnn_folder(name)
-        logger.bind(main=True).info(f"RNN folder: {data.rnn_folder}")
 
     setup_loggers(winstor, data)
     logger.bind(main=True).info(
@@ -199,6 +198,9 @@ def train(winstor):
         + "#" * 60
         + "\n\n"
     )
+
+    if winstor:
+        logger.bind(main=True).info(f"RNN folder: {data.rnn_folder}")
 
     # Create RNN
     rnn = make_rnn(data, winstor)
