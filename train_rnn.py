@@ -165,7 +165,7 @@ def wrap_up(rnn, loss_history, winstor, data):
         for rep in range(10):
             f1 = plot_predictions(rnn, batch_size, data, winstor=winstor)
             f1.savefig(data.rnn_folder / f"predictions_{rep}.png")
-        f2.savefig(data.rnn_folder / f"training_loss_{rep}.png")
+        f2.savefig(data.rnn_folder / f"training_loss.png")
 
         # copy data to dropbox app
         upload_to_db(data)
@@ -185,6 +185,7 @@ def train(winstor):
 
     if winstor:
         data.make_save_rnn_folder(name)
+        logger.bind(main=True).info(f"RNN folder: {data.rnn_folder}")
 
     setup_loggers(winstor, data)
     logger.bind(main=True).info(
