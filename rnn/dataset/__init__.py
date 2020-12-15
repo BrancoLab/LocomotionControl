@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 from pyrnn._plot import clean_axes
 
 
-def plot_predictions(model, batch_size, dataset, **kwargs):
+def plot_predictions(model, dataset):
     """
     Run the model on a single batch and plot
     the model's prediction's against the
     input data and labels.
     """
-    X, Y = dataset.get_one_batch(batch_size, **kwargs)
+    X, Y = dataset._get_random()
 
     if model.on_gpu:
         model.cpu()

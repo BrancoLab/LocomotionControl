@@ -168,12 +168,12 @@ def wrap_up(rnn, loss_history, winstor, data):
     f2 = plot_training_loss(loss_history)
 
     if not winstor:
-        plot_predictions(rnn, batch_size, data, winstor=winstor)
+        plot_predictions(rnn, data)
         plt.show()
     else:
         # plot a bunch of times
         for rep in range(10):
-            f1 = plot_predictions(rnn, batch_size, data, winstor=winstor)
+            f1 = plot_predictions(rnn, data)
             f1.savefig(data.rnn_folder / f"predictions_{rep}.png")
         f2.savefig(data.rnn_folder / f"training_loss.png")
 
