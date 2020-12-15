@@ -3,6 +3,23 @@ import matplotlib.pyplot as plt
 from pyrnn._plot import clean_axes
 
 
+from rnn.dataset.dataset import (
+    PredictTauFromXYT,
+    PredictNuDotFromXYT,
+    PredictTauFromXYTVO,
+    PredictNudotFromDeltaXYT,
+    PredictTauFromDeltaXYT,
+)
+
+datasets = dict(
+    PredictTauFromXYT=PredictTauFromXYT,
+    PredictNuDotFromXYT=PredictNuDotFromXYT,
+    PredictTauFromXYTVO=PredictTauFromXYTVO,
+    PredictNudotFromDeltaXYT=PredictNudotFromDeltaXYT,
+    PredictTauFromDeltaXY=PredictTauFromDeltaXYT,
+)
+
+
 def plot_predictions(model, dataset):
     """
     Run the model on a single batch and plot

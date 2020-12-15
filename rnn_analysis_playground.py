@@ -29,7 +29,6 @@ for i in range(10):
     plot_predictions(rnn, data)
 plt.show()
 
-# TODO make plots plot different trials
 # TODO asses quality somehow
 # TODO get hidden state
 # TODO RNN hidden state plots

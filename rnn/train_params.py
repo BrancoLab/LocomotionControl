@@ -1,4 +1,4 @@
-from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
+from rnn.dataset import datasets
 
 """
     params for training an RNN on the control task.
@@ -9,7 +9,11 @@ from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 
 # ---------------------------------- Dataset --------------------------------- #
 N_trials = -1  # number of trials to use, set to -1 to use entire dataset
-name = "" + "_" + DATASET.name
+
+dataset_name = "PredictNuDotFromXYT"
+DATASET = datasets[dataset_name]
+
+name = "" + "_" + DATASET.name  # rnn name
 
 # ------------------------------------ RNN ----------------------------------- #
 n_units = 256  # number of units in the RNN
@@ -22,6 +26,8 @@ w_out_train = False
 
 
 # --------------------------------- Training --------------------------------- #
+augment_probability = 0.0  # probabily  of augmenting a trial during training
+
 batch_size = 1024
 epochs = 10000
 lr_milestones = [500, 4000, 8000]

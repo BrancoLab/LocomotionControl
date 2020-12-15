@@ -24,6 +24,7 @@ from myterial import (
 )
 
 from rnn.paths import RNNPaths
+from rnn.train_params import augment_probability
 from control.history import load_results_from_folder
 
 """
@@ -40,8 +41,6 @@ colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 
 
 class Dataset(data.Dataset, RNNPaths):
-    augment_probability = 0
-
     def __init__(self, dataset_length=-1, **kwargs):
         RNNPaths.__init__(self, dataset_name=self.name, **kwargs)
 
@@ -149,7 +148,7 @@ class Dataset(data.Dataset, RNNPaths):
             raise ValueError("Length of X and Y must match")
 
         # augment data
-        if rnd.random() <= self.augment_probability:
+        if rnd.random() <= augment_probability:
             X, Y = self._augment(X, Y)
 
         # add 'warm up'
