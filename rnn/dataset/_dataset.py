@@ -24,7 +24,6 @@ from myterial import (
 )
 
 from rnn.paths import RNNPaths
-from rnn.train_params import augment_probability
 from control.history import load_results_from_folder
 
 """
@@ -148,7 +147,7 @@ class Dataset(data.Dataset, RNNPaths):
             raise ValueError("Length of X and Y must match")
 
         # augment data
-        if rnd.random() <= augment_probability:
+        if rnd.random() <= self.augment_probability:
             X, Y = self._augment(X, Y)
 
         # add 'warm up'

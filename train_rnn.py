@@ -40,14 +40,14 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 def setup_loggers(winstor, data):
     if winstor:
-        main = str(data.rnn_folder / "log_{time}.log")
-        train = str(data.rnn_folder / "training.log")
+        main = str(data.rnn_folder / "log.log")
+        train = str(data.rnn_folder / "log_training.log")
     else:
         main = "log.log"
-        train = "training.log"
+        train = "log_training.log"
 
         os.remove("log.log")
-        os.remove("training.log")
+        os.remove("log_training.log")
 
     logger.add(
         main,

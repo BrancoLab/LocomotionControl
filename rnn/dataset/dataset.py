@@ -2,10 +2,8 @@ import numpy as np
 import sys
 from fcutils.maths.utils import rolling_mean
 
-
 from rnn.dataset._dataset import Preprocessing, Dataset
 
-# from proj.utils.misc import trajectory_at_each_simulation_step
 
 is_win = sys.platform == "win32"
 

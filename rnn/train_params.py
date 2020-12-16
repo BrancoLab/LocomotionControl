@@ -1,4 +1,18 @@
-from rnn.dataset import datasets
+from rnn.dataset.dataset import (
+    PredictTauFromXYT,
+    PredictNuDotFromXYT,
+    PredictTauFromXYTVO,
+    PredictNudotFromDeltaXYT,
+    PredictTauFromDeltaXYT,
+)
+
+datasets_dict = dict(
+    PredictTauFromXYT=PredictTauFromXYT,
+    PredictNuDotFromXYT=PredictNuDotFromXYT,
+    PredictTauFromXYTVO=PredictTauFromXYTVO,
+    PredictNudotFromDeltaXYT=PredictNudotFromDeltaXYT,
+    PredictTauFromDeltaXY=PredictTauFromDeltaXYT,
+)
 
 """
     params for training an RNN on the control task.
@@ -11,7 +25,7 @@ from rnn.dataset import datasets
 N_trials = -1  # number of trials to use, set to -1 to use entire dataset
 
 dataset_name = "PredictNuDotFromXYT"
-DATASET = datasets[dataset_name]
+DATASET = datasets_dict[dataset_name]
 
 name = "" + "_" + DATASET.name  # rnn name
 
@@ -26,7 +40,9 @@ w_out_train = False
 
 
 # --------------------------------- Training --------------------------------- #
-augment_probability = 0.0  # probabily  of augmenting a trial during training
+DATASET.augment_probability = (
+    0.0  # probabily  of augmenting a trial during training
+)
 
 batch_size = 1024
 epochs = 10000
