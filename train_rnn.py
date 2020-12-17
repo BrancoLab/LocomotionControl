@@ -121,6 +121,11 @@ def fit(rnn, winstor, data):
     )
 
     # FIT
+    save_path = (
+        "minloss.pt" if not winstor else str(data.rnn_folder / "minloss.pt")
+    )
+    logger.bind(main=True).info(f"Saving min loss weights at: {save_path}",)
+
     loss_history = rnn.fit(
         data,
         n_epochs=epochs,
@@ -133,9 +138,7 @@ def fit(rnn, winstor, data):
         report_path=None,
         logger=logger,
         save_at_min_loss=True,
-        save_path="minloss.pt"
-        if not winstor
-        else str(data.rnn_folder / "minloss.pt"),
+        save_path=save_path,
     )
     print("Training finished, last loss: ", loss_history[-1])
     return loss_history
