@@ -10,8 +10,8 @@ datasets_dict = dict(
     PredictTauFromXYT=PredictTauFromXYT,
     PredictNuDotFromXYT=PredictNuDotFromXYT,
     PredictTauFromXYTVO=PredictTauFromXYTVO,
-    PredictNudotFromDeltaXYT=PredictNudotFromDeltaXYT,
-    PredictTauFromDeltaXY=PredictTauFromDeltaXYT,
+    PredictNuDotFromDeltaXYT=PredictNudotFromDeltaXYT,
+    PredictTauFromDeltaXYT=PredictTauFromDeltaXYT,
 )
 
 """
@@ -40,7 +40,7 @@ w_out_train = False
 
 # --------------------------------- Training --------------------------------- #
 DATASET.augment_probability = (
-    0.0  # probabily  of augmenting a trial during training
+    0.25  # probabily  of augmenting a trial during training
 )
 
 batch_size = 1024
