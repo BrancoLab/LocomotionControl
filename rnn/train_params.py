@@ -21,7 +21,7 @@ datasets_dict = dict(
     when training on winstor
 """
 # ---------------------------------- Dataset --------------------------------- #
-N_trials = 10  # number of trials to use, set to -1 to use entire dataset
+N_trials = -1  # number of trials to use, set to -1 to use entire dataset
 
 dataset_name = "PredictTauFromXYT"
 DATASET = datasets_dict[dataset_name]
