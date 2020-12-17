@@ -46,8 +46,8 @@ def setup_loggers(winstor, data):
         main = "log.log"
         train = "log_training.log"
 
-        os.remove("log.log")
-        os.remove("log_training.log")
+        # os.remove("log.log")
+        # os.remove("log_training.log")
 
     logger.add(
         main,
@@ -132,6 +132,10 @@ def fit(rnn, winstor, data):
         plot_live=True if not winstor else False,
         report_path=None,
         logger=logger,
+        save_at_min_loss=True,
+        save_path="minloss.pt"
+        if not winstor
+        else str(data.rnn_folder / "minloss.pt"),
     )
     print("Training finished, last loss: ", loss_history[-1])
     return loss_history

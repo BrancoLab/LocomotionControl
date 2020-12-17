@@ -24,13 +24,11 @@ folder = Path(
 turners = [
     "ZM_201002_ZM012_escconcat_0.h5",
     "ZM_201002_ZM011_escconcat_5.h5",
-    "ZM_201002_ZM012_escconcat_0.h5",
     "ZM_201002_ZM012_escconcat_6.h5",
     "ZM_201002_ZM012_escconcat_8.h5",
     "ZM_201002_ZM012_escconcat_10.h5",
     "ZM_201002_ZM012_escconcat_12.h5",
     "ZM_201002_ZM012_escconcat_15.h5",
-    "ZM_201002_ZM012_escconcat_6.h5",
     "ZM_201002_ZM014_escconcat_14.h5",
     "ZM_201002_ZM015_escconcat_4.h5",
     "ZM_201002_ZM015_escconcat_8.h5",
@@ -48,7 +46,7 @@ turners = [
 ]
 
 starts = [
-    71,
+    0,  # 71,
     58,
     60,
     55,
@@ -74,7 +72,8 @@ starts = [
 ]
 
 files = [f for f in folder.glob("*.h5") if f.name in turners]
-every = 15
+every = 20
+step_speed_th = 0.5
 
 paws = ("left_forepaw", "right_forepaw", "left_hindpaw", "right_hindpaw")
 paw_colors = {
@@ -107,7 +106,7 @@ def point(bp, ax, **kwargs):
 
 def draw_mouse(ax, **kwargs):
     patches = []
-    for n in frames:
+    for n in frames:  # range(len(tracking["body_x"])):
         bps = (
             "tail_base",
             "left_hindpaw",
@@ -156,10 +155,8 @@ def get_steps(speed):
         Given the speed of a paw, find when the swing
         phase starts and ends
     """
-    th = 0.5  # speed threshold
-
     is_swing = np.zeros_like(speed)
-    is_swing[speed > th] = 1
+    is_swing[speed > step_speed_th] = 1
     first_zero = np.where(is_swing == 0)[0][0]
     is_swing[:first_zero] = 0  # make sure that is starts with swing phase OFF
 
@@ -173,10 +170,10 @@ def get_steps(speed):
 for runn, (f, start) in enumerate(zip(files, starts)):
     # if runn != 6:
     #     continue
-
+    start = 60
     tracking = pd.read_hdf(f, key="hdf")
 
-    f = plt.figure(constrained_layout=True, figsize=(20, 12))
+    f = plt.figure(constrained_layout=True, figsize=(26, 12))
     gs = f.add_gridspec(3, 5)
 
     tracking_ax = f.add_subplot(gs[:, 0])
@@ -189,6 +186,8 @@ for runn, (f, start) in enumerate(zip(files, starts)):
     # Plot body
     frames = get_steps(t(tracking[f"left_hindpaw_speed"]))[0] + start
     # frames = get_steps(t(tracking[f'right_hindpaw_speed']))[0] + start
+    for fm in frames:
+        paws_ax.axvline(fm - start, lw=1, color=[0.2, 0.2, 0.2], zorder=-1)
 
     draw_mouse(tracking_ax)
 
@@ -221,6 +220,7 @@ for runn, (f, start) in enumerate(zip(files, starts)):
 
         paws_ax.plot(y, color=color, lw=3, alpha=0.8, label=paw)
     paws_ax.legend()
+    paws_ax.axhline(step_speed_th, lw=1, ls=":", color="k", zorder=-1)
 
     # Plot bone lengths
     bones_ax.plot(
@@ -290,14 +290,16 @@ for runn, (f, start) in enumerate(zip(files, starts)):
 
     tracking_ax.axis("off")
     paws_ax.set(title="paw speed", ylabel="speed\ncm/s", xlabel="Time\nframes")
-    bones_ax.set(title="paw speed", ylabel="length\ncm", xlabel="Time\nframes")
+    bones_ax.set(
+        title="Side length", ylabel="length\ncm", xlabel="Time\nframes"
+    )
     ori_ax.set(
-        title="paw speed", ylabel="angle\ndegrees", xlabel="Time\nframes"
+        title="Orientation", ylabel="angle\ndegrees", xlabel="Time\nframes"
     )
 
     set_figure_subplots_aspect(wspace=0.4, hspace=0.4)
     clean_axes(f)
-    break
+    # break
 # %%
 
 # %%
