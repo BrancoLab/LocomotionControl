@@ -104,7 +104,7 @@ def fit(rnn, winstor, data):
     print(
         f"Training RNN:", rnn, f"with dataset: [{orange}]{name}", sep="\n",
     )
-
+    # log training parameters
     info = dict(
         dataset=data.name,
         dataset_length=len(data),
@@ -115,6 +115,9 @@ def fit(rnn, winstor, data):
         l2norm=0,
         stop_loss=stop_loss,
         report_path=None,
+        augment_probability=data.augment_probability,
+        to_chunks=data.to_chunks,
+        chunks_length=data.chunks_length if data.to_chunks else None,
     )
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",

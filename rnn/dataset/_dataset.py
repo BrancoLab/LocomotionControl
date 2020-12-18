@@ -40,6 +40,12 @@ colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 
 
 class Dataset(data.Dataset, RNNPaths):
+    # variables controlling trials creation
+    # may be overwritten by train_params.py
+    augment_probability = 0
+    to_chunks = False
+    chunks_length = 128
+
     def __init__(self, dataset_length=-1, **kwargs):
         RNNPaths.__init__(self, dataset_name=self.name, **kwargs)
 
@@ -128,13 +134,15 @@ class Dataset(data.Dataset, RNNPaths):
             Take a random chunk of L length from a trial, to train on smaller
             chunks
         """
-        L = 256  # chunk length
         l = len(X)
-        if l <= L + 2:
+        if l <= self.chunk_length + 2:
             return X, Y
-        start = rnd.randint(0, l - L - 1)
+        start = rnd.randint(0, l - self.chunk_length - 1)
 
-        return X[start : start + L, :], Y[start : start + L, :]
+        return (
+            X[start : start + self.chunk_length, :],
+            Y[start : start + self.chunk_length, :],
+        )
 
     def __getitem__(self, item):
         """
@@ -152,7 +160,10 @@ class Dataset(data.Dataset, RNNPaths):
 
         # add 'warm up'
         # X, Y = self._add_warmup(X, Y)
-        # X, Y = self.chunk(X, Y)
+
+        # chunk trial
+        if self.to_chunks:
+            X, Y = self.chunk(X, Y)
 
         return X, Y
 

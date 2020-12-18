@@ -39,9 +39,14 @@ w_out_train = False
 
 
 # --------------------------------- Training --------------------------------- #
+
+# set some variables controlling datasets generation
 DATASET.augment_probability = (
-    0.25  # probabily  of augmenting a trial during training
+    0.0  # probabily  of augmenting a trial during training
 )
+
+DATASET.to_chunks = True  # if true trials are cut into chunks of given lengths
+DATASET.chunks_length = 64
 
 batch_size = 1024
 epochs = 10000
