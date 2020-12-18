@@ -1,7 +1,11 @@
-from tracking._tracking import prepare_tracking_data, compute_body_segments
 from rich.progress import track
 from pathlib import Path
 import pandas as pd
+import sys
+
+sys.path.append("./")
+from tracking._tracking import prepare_tracking_data, compute_body_segments
+
 
 # get files
 folder = Path(
@@ -14,6 +18,7 @@ files = [f for f in folder.glob("*.h5") if "DLC" in f.name]
 skeleton = dict(
     head_l=("snout", "l_ear"),
     head_r=("snout", "r_ear"),
+    body_whole=("snout", "tail_base"),
     body_upper=("snout", "body"),
     body_lower=("body", "tail_base"),
     left=("LF", "LH"),

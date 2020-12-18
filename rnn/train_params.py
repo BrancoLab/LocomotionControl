@@ -45,7 +45,9 @@ DATASET.augment_probability = (
     0.0  # probabily  of augmenting a trial during training
 )
 
-DATASET.to_chunks = True  # if true trials are cut into chunks of given lengths
+DATASET.to_chunks = (
+    False  # if true trials are cut into chunks of given lengths
+)
 DATASET.chunk_length = 64
 
 batch_size = 1024

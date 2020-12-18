@@ -45,11 +45,9 @@ def draw_mouse(ax, tracking, frames, **kwargs):
         bps = (
             "tail_base",
             "LH",
-            "LF",
             "l_ear",
             "snout",
             "r_ear",
-            "RF",
             "RH",
         )
         x = [tracking[f"{bp}_x"].values[n] for bp in bps]
@@ -67,3 +65,25 @@ def draw_mouse(ax, tracking, frames, **kwargs):
         color=[0.4, 0.4, 0.4],
         zorder=-5,
     )
+
+
+def mark_steps(ax, starts, ends, y, side, scale, noise=0, **kwargs):
+    """
+        Draw lines to mark when steps start/end
+
+        Y is the height in the plot where the horix lines are drawn
+    """
+    starts, ends = list(starts), list(ends)
+
+    # mark which side it is
+    ax.text(starts[0] - 2, y, side)
+    # mark each step
+    for start, end in zip(starts, ends):
+        if noise:
+            nu = np.random.normal(0, noise)
+        else:
+            nu = 0
+
+        ax.plot([start, end], [y + nu, y + nu], **kwargs)
+        ax.plot([start, start], [y - scale + nu, y + scale + nu], **kwargs)
+        ax.plot([end, end], [y - scale + nu, y + scale + nu], **kwargs)
