@@ -45,6 +45,7 @@ class Dataset(data.Dataset, RNNPaths):
     augment_probability = 0
     to_chunks = False
     chunk_length = 128
+    warmup = False
 
     def __init__(self, dataset_length=-1, **kwargs):
         RNNPaths.__init__(self, dataset_name=self.name, **kwargs)
@@ -159,7 +160,8 @@ class Dataset(data.Dataset, RNNPaths):
             X, Y = self._augment(X, Y)
 
         # add 'warm up'
-        # X, Y = self._add_warmup(X, Y)
+        if self.warmup:
+            X, Y = self._add_warmup(X, Y)
 
         # chunk trial
         if self.to_chunks:

@@ -23,7 +23,7 @@ from tracking._utils import line, point, draw_mouse, mark_steps
 from tracking.gait import (
     get_paw_steps_times,
     get_diagonal_steps,
-    stride_from_position,
+    # stride_from_position,
 )
 
 # %%
@@ -223,17 +223,11 @@ for runn, (f, start) in enumerate(zip(files, starts)):
     R_steps = get_paw_steps_times(
         t(tracking[f"RF_speed"]) * fps, step_speed_th
     )
-    diagonal_steps, first_step_side, diag_steps_data = get_diagonal_steps(
-        L_steps, R_steps
-    )
+    diagonal_steps = get_diagonal_steps(L_steps, R_steps)
 
     step_starts = (
         np.array(diagonal_steps.starts) + start
     )  # to mark the start of each L-R step sequence
-
-    # mark steps
-    # for fm in step_starts:
-    #     paws_ax.axvline(fm - start, lw=1, color=[0.2, 0.2, 0.2], zorder=-1)
 
     # -------------------------------- draw mouse -------------------------------- #
     draw_mouse(tracking_ax, tracking, step_starts)
@@ -344,45 +338,45 @@ for runn, (f, start) in enumerate(zip(files, starts)):
 
     # ------------------------------ stride vs angle ----------------------------- #
     # get stride length vs turn angle
-    summary = dict(stride_delta=[], angle_delta=[])
-    for n, step in diag_steps_data.items():
+    # summary = dict(stride_delta=[], angle_delta=[])
+    # for n, step in diag_steps_data.items():
 
-        if first_step_side == "right":
-            r_start, r_end = step["leading_start"], step["leading_end"]
-            l_start, l_end = step["trailing_start"], step["trailing_end"]
-        else:
-            r_start, r_end = step["trailing_start"], step["trailing_end"]
-            l_start, l_end = step["leading_start"], step["leading_end"]
+    #     if first_step_side == "right":
+    #         r_start, r_end = step["leading_start"], step["leading_end"]
+    #         l_start, l_end = step["trailing_start"], step["trailing_end"]
+    #     else:
+    #         r_start, r_end = step["trailing_start"], step["trailing_end"]
+    #         l_start, l_end = step["leading_start"], step["leading_end"]
 
-        # stride delta
-        r_stride = stride_from_position(
-            t(tracking[f"RH_x"]), t(tracking[f"RH_y"]), r_start, r_end
-        )
-        l_stride = stride_from_position(
-            t(tracking[f"LH_x"]), t(tracking[f"LH_y"]), l_start, l_end
-        )
-        summary["stride_delta"].append(l_stride - r_stride)
+    #     # stride delta
+    #     r_stride = stride_from_position(
+    #         t(tracking[f"RH_x"]), t(tracking[f"RH_y"]), r_start, r_end
+    #     )
+    #     l_stride = stride_from_position(
+    #         t(tracking[f"LH_x"]), t(tracking[f"LH_y"]), l_start, l_end
+    #     )
+    #     summary["stride_delta"].append(l_stride - r_stride)
 
-        # angle delta
-        summary["angle_delta"].append(
-            orientation[step["trailing_end"]]
-            - orientation[step["leading_start"]]
-        )
+    #     # angle delta
+    #     summary["angle_delta"].append(
+    #         orientation[step["trailing_end"]]
+    #         - orientation[step["leading_start"]]
+    #     )
 
-    # plot stride length vs turn angle
-    turn_ax.scatter(
-        summary["stride_delta"],
-        summary["angle_delta"],
-        s=80,
-        c=np.arange(len(summary["angle_delta"])),
-        zorder=10,
-        lw=1,
-        edgecolors=[0.4, 0.4, 0.4],
-        cmap="Reds",
-    )
+    # # plot stride length vs turn angle
+    # turn_ax.scatter(
+    #     summary["stride_delta"],
+    #     summary["angle_delta"],
+    #     s=80,
+    #     c=np.arange(len(summary["angle_delta"])),
+    #     zorder=10,
+    #     lw=1,
+    #     edgecolors=[0.4, 0.4, 0.4],
+    #     cmap="Reds",
+    # )
 
-    steps_summary(diag_steps_data, summary)
-    break
+    # steps_summary(diag_steps_data, summary)
+    # break
 
 plt.show()
 # %%

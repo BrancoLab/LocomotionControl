@@ -103,7 +103,7 @@ def get_diagonal_steps_pairs(left, right):
     return step_times(starts, ends), first, data
 
 
-def get_diag_steps(hind, fore):
+def get_diagonal_steps(hind, fore):
     """
         Given the start/end times of the swing 
         phases for a hind paw and a (diagonally
@@ -116,4 +116,4 @@ def get_diag_steps(hind, fore):
         Returns a step_times tuple of steps times
     """
 
-    return
+    return None

@@ -50,6 +50,8 @@ DATASET.to_chunks = (
 )
 DATASET.chunk_length = 64
 
+DATASET.warmup = True  # add a warmup phase to start of trials
+
 batch_size = 1024
 epochs = 10000
 lr_milestones = [500, 4000, 8000]
