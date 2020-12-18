@@ -76,7 +76,7 @@ def mark_steps(ax, starts, ends, y, side, scale, noise=0, **kwargs):
     starts, ends = list(starts), list(ends)
 
     # mark which side it is
-    ax.text(starts[0] - 2, y, side)
+    ax.text(0, y, side, horizontalalignment="left")
     # mark each step
     for start, end in zip(starts, ends):
         if noise:

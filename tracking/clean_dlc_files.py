@@ -32,7 +32,7 @@ for f in track(files):
     # process data
     tracking = prepare_tracking_data(
         str(f),
-        likelihood_th=0.99,
+        likelihood_th=0.8,
         median_filter=True,
         filter_kwargs={"kernel": 11},
         compute=True,

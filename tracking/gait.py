@@ -108,12 +108,53 @@ def get_diagonal_steps(hind, fore):
         Given the start/end times of the swing 
         phases for a hind paw and a (diagonally
         opposed) fore paw, get the  start/end
-        time of step.
+        time of step. It assumes that mouse
+        is engaged in diagonal stepping gait.
 
         A step starts when the first of H/F starts
         moving and ends when the last stops moving
 
         Returns a step_times tuple of steps times
+        and a dictionary of dicts that say when each paw starts/stops
+        for  each step
     """
+    # get an arr that is 1 when either is stepping
+    last = max(hind.ends[-1], fore.ends[-3])
+    arr = np.zeros(last + 1)
 
-    return None
+    for paw in (hind, fore):
+        for s, e in zip(paw.starts, paw.ends):
+            arr[s:e] = 1
+
+    # get starts and ends
+    starts = np.where(derivative(arr) > 0)[0]
+    ends = np.where(derivative(arr) < 0)[0]
+    if arr[0] == 1:
+        starts = np.concatenate([[0], starts])
+
+    if arr[-1] == 1:
+        ends = np.concatenate([ends, [len(arr)]])
+
+    # now create data dict
+    data = {}
+    for n, (s, e) in enumerate(zip(starts, ends)):
+        # get forelib  starts and stops
+        try:
+            data[n] = dict(
+                start=s,
+                end=e,
+                fore_start=[start for start in fore.starts if start >= s][0],
+                fore_end=[end for end in fore.ends if end <= e][-1],
+                hind_start=[start for start in hind.starts if start >= s][0],
+                hind_end=[end for end in hind.ends if end <= e][-1],
+            )
+        except:
+            continue
+
+        if data[n]["fore_start"] < s or data[n]["hind_start"] < s:
+            raise ValueError(f"Limb start before step start: {data[n]}")
+
+        if data[n]["fore_end"] > e or data[n]["hind_end"] > e:
+            raise ValueError(f"Limb end after step end: {data[n]}")
+
+    return step_times(starts, ends), data

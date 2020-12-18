@@ -17,13 +17,18 @@ from rich.box import SIMPLE_HEAD
 
 from fcutils.maths.utils import rolling_mean
 
-from fcutils.plotting.utils import set_figure_subplots_aspect, clean_axes
+from fcutils.plotting.utils import (
+    set_figure_subplots_aspect,
+    clean_axes,
+    save_figure,
+)
+from fcutils.plotting.plot_elements import vline_to_curve
 
 from tracking._utils import line, point, draw_mouse, mark_steps
 from tracking.gait import (
     get_paw_steps_times,
     get_diagonal_steps,
-    # stride_from_position,
+    stride_from_position,
 )
 
 # %%
@@ -41,8 +46,6 @@ turners = [
     "ZM_201002_ZM012_escconcat_0.h5",
     "ZM_201002_ZM011_escconcat_5.h5",
     "ZM_201002_ZM012_escconcat_6.h5",
-    "ZM_201002_ZM012_escconcat_8.h5",
-    "ZM_201002_ZM012_escconcat_10.h5",
     "ZM_201002_ZM012_escconcat_12.h5",
     "ZM_201002_ZM012_escconcat_15.h5",
     "ZM_201002_ZM014_escconcat_14.h5",
@@ -61,30 +64,25 @@ turners = [
     "ZM_201003_ZM020_escconcat_23.h5",
 ]
 
-starts = [
+starts = [  # how many frames before nice trot is reached
     55,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    60,
+    55,
+    50,
+    40,
+    40,
+    40,
+    40,
+    55,
+    55,
+    55,
+    55,
+    50,
+    45,
+    48,
+    55,
+    57,
+    55,
 ]
 
 files = [f for f in folder.glob("*.h5") if f.name in turners]
@@ -95,7 +93,7 @@ print(f"Found {len(files)}/{len(turners)} files")
 #                                    params                                    #
 # ---------------------------------------------------------------------------- #
 
-step_speed_th = 20  # cm / s
+step_speed_th = 15  # cm / s
 fps = 60
 cm_per_px = 1 / 30.8
 
@@ -115,44 +113,44 @@ paw_colors = {
 
 
 def make_figure():
-    f = plt.figure(constrained_layout=True, figsize=(26, 12))
+    f = plt.figure(constrained_layout=True, figsize=(20, 12))
     gs = f.add_gridspec(3, 5)
 
     tracking_ax = f.add_subplot(gs[:, 0])
     tracking_ax.axis("equal")
     paws_ax = f.add_subplot(gs[0, 1:3])
-    bones_ax = f.add_subplot(gs[1, 1:3])
+    cum_speeds_ax = f.add_subplot(gs[1, 1:3])
     ori_ax = f.add_subplot(gs[2, 1:3])
     turn_ax = f.add_subplot(gs[0, 3])
 
-    x, y = 3, 0.75  # axes lims for summary plot
+    x, y = 5, 45  # axes lims for summary plot
     turn_ax.set(  # summary ax
         title="stride difference vs turn angle",
         xlim=[-x, x],
         xticks=[-x, 0, x],
-        xticklabels=["R>L", "R=L", "R<L"],
-        xlabel="(L-R) stride delta",
+        xticklabels=[f"R>L\n{-x}", "R=L\n0", f"R<L\n{x}"],
+        xlabel="(L-R) stride-delta\m(cm)",
         ylim=[-y, y],
-        yticks=[-0.3, 0, 0.3],
-        yticklabels=["turn\nright", "no\nturn", "turn\nleft"],
-        ylabel="(end-start) angle delta",
+        yticks=[-y, 0, y],
+        yticklabels=[f"turn\nleft\n{-y}", "no\nturn\n0", f"turn\nright\n{y}"],
+        ylabel="(end-start) angle-delta\n(deg)",
     )
     turn_ax.axvline(0, ls="--", color=[0.5, 0.5, 0.5])
     turn_ax.axhline(0, ls="--", color=[0.5, 0.5, 0.5])
 
     tracking_ax.axis("off")
     paws_ax.set(title="paw speed", ylabel="speed\ncm/s", xlabel="Time\nframes")
-    bones_ax.set(
-        title="Side length", ylabel="length\ncm", xlabel="Time\nframes"
+    cum_speeds_ax.set(
+        title="Dist.travelled", ylabel="Distance\ncm", xlabel="Time\nframes"
     )
     ori_ax.set(
         title="orientation", ylabel="ang\ndegrees", xlabel="Time\nframes"
     )
 
-    set_figure_subplots_aspect(wspace=0.4, hspace=0.4)
+    set_figure_subplots_aspect(wspace=0.6, hspace=0.4)
     clean_axes(f)
 
-    return f, tracking_ax, paws_ax, bones_ax, ori_ax, turn_ax
+    return f, tracking_ax, paws_ax, cum_speeds_ax, ori_ax, turn_ax
 
 
 def t(d, scale=True):
@@ -197,9 +195,9 @@ def steps_summary(diag_steps_data, summary):
     for n, data in diag_steps_data.items():
         tb.add_row(
             str(n),
-            str(data["leading_start"]),
-            str(data["trailing_end"]),
-            str(data["trailing_end"] - data["leading_start"]),
+            str(data["start"]),
+            str(data["end"]),
+            str(data["end"] - data["start"]),
             f"{summary['stride_delta'][n]:.3f}",
             f"{summary['angle_delta'][n]:.3f}",
         )
@@ -209,12 +207,15 @@ def steps_summary(diag_steps_data, summary):
 
 # %%
 
-for runn, (f, start) in enumerate(zip(files, starts)):
+for runn, (_file, start) in enumerate(zip(files, starts)):
+    if runn != 0:
+        continue
+
     # load tracking data
-    tracking = pd.read_hdf(f, key="hdf")
+    tracking = pd.read_hdf(_file, key="hdf")
 
     # make figure
-    f, tracking_ax, paws_ax, bones_ax, ori_ax, turn_ax = make_figure()
+    f, tracking_ax, paws_ax, cum_speeds_ax, ori_ax, turn_ax = make_figure()
 
     # --------------------------------- get steps -------------------------------- #
     L_steps = get_paw_steps_times(
@@ -223,7 +224,7 @@ for runn, (f, start) in enumerate(zip(files, starts)):
     R_steps = get_paw_steps_times(
         t(tracking[f"RF_speed"]) * fps, step_speed_th
     )
-    diagonal_steps = get_diagonal_steps(L_steps, R_steps)
+    diagonal_steps, diag_data = get_diagonal_steps(L_steps, R_steps)
 
     step_starts = (
         np.array(diagonal_steps.starts) + start
@@ -269,116 +270,143 @@ for runn, (f, start) in enumerate(zip(files, starts)):
     # -------------------------------- other plots ------------------------------- #
     # Plot paw speeds
     for n, (paw, color) in enumerate(paw_colors.items()):
-        if "F" in paw:
+        if paw in ("LF", "RH"):
             alpha = 0.2
         else:
             alpha = 1
-        y = t(tracking[f"{paw}_speed"]) * fps
+        spd = t(tracking[f"{paw}_speed"]) * fps
 
-        paws_ax.plot(y, color=color, lw=2, alpha=alpha, label=paw)
+        paws_ax.plot(spd, color=color, lw=2, alpha=alpha, label=paw)
+        cum_speeds_ax.plot(
+            np.cumsum(spd), color=color, lw=2, alpha=alpha, label=paw
+        )
     paws_ax.legend()
+    cum_speeds_ax.legend()
     paws_ax.axhline(step_speed_th, lw=1, ls=":", color="k", zorder=-1)
     paws_ax.axhline(0, lw=2, color="k", zorder=1)
 
-    # Plot bone lengths
-    bones_ax.plot(
-        t(tracking["left_bone_length"])
-        / t(tracking["body_whole_bone_length"]),
-        color=salmon_darker,
-        lw=3,
-        label="LF-LH distance",
-    )
-    bones_ax.plot(
-        t(tracking["right_bone_length"])
-        / t(tracking["body_whole_bone_length"]),
-        color=indigo_darker,
-        lw=3,
-        label="RF-RH distance",
-    )
-    bones_ax.legend()
-
     # Plot orientation
-    orientation = t(r(tracking["body_lower_bone_orientation"]), scale=False)
+    # orientation = t(r(tracking["body_lower_bone_orientation"]), scale=False)
+    orientation = r(tracking["body_lower_bone_orientation"])
+    orientation = orientation[start:]
     ori_ax.plot(
         orientation, label="body angle", color=blue_grey_darker, lw=4,
     )
     ori_ax.legend()
 
     # draw steps times
-    for n, (paw, steps) in enumerate(zip(("R", "L"), (R_steps, L_steps))):
-        for ax, offest, scale in zip(
-            (paws_ax, bones_ax, ori_ax), (-20, -0.2, 385), (5, 0.05, 0.5)
-        ):
-            y = (n * scale) + offest
-            mark_steps(
-                ax,
-                steps.starts,
-                steps.ends,
-                y,
-                paw,
-                scale,
-                color=paw_colors[paw + "H"],
-                alpha=0.9,
-                zorder=-1,
-                lw=2,
-            )
-    mark_steps(
-        paws_ax,
-        diagonal_steps.starts,
-        diagonal_steps.ends,
-        -60,
-        "Diag.",
-        5,
-        color=blue_grey_darker,
-        noise=10,
-        alpha=1,
-        zorder=-1,
-        lw=2,
-    )
+    for n, (paw, steps) in enumerate(zip(("RF", "LH"), (R_steps, L_steps))):
+        mark_steps(
+            paws_ax,
+            steps.starts,
+            steps.ends,
+            -10 * (n + 1),
+            paw,
+            5,
+            color=paw_colors[paw],
+            alpha=0.9,
+            zorder=-1,
+            lw=2,
+        )
+
+    for ax, offest, scale in zip(
+        (paws_ax, cum_speeds_ax, ori_ax), (-35, -0.2, 0), (5, 0.05, 0.5)
+    ):
+        mark_steps(
+            ax,
+            diagonal_steps.starts,
+            diagonal_steps.ends,
+            offest,
+            "Diag.",
+            scale,
+            color=blue_grey_darker,
+            noise=None,
+            alpha=1,
+            zorder=-1,
+            lw=2,
+        )
 
     # ------------------------------ stride vs angle ----------------------------- #
     # get stride length vs turn angle
-    # summary = dict(stride_delta=[], angle_delta=[])
-    # for n, step in diag_steps_data.items():
+    summary = dict(stride_delta=[], angle_delta=[])
+    for n, step in diag_data.items():
+        # stride delta
+        r_stride = stride_from_position(
+            t(tracking[f"RF_x"]),
+            t(tracking[f"RF_y"]),
+            step["fore_start"],
+            step["fore_end"],
+        )
+        l_stride = stride_from_position(
+            t(tracking[f"LH_x"]),
+            t(tracking[f"LH_y"]),
+            step["hind_start"],
+            step["hind_end"],
+        )
+        summary["stride_delta"].append(l_stride - r_stride)
 
-    #     if first_step_side == "right":
-    #         r_start, r_end = step["leading_start"], step["leading_end"]
-    #         l_start, l_end = step["trailing_start"], step["trailing_end"]
-    #     else:
-    #         r_start, r_end = step["trailing_start"], step["trailing_end"]
-    #         l_start, l_end = step["leading_start"], step["leading_end"]
+        # angle delta
+        turn = orientation[step["end"]] - orientation[step["start"]]
+        summary["angle_delta"].append(turn)
 
-    #     # stride delta
-    #     r_stride = stride_from_position(
-    #         t(tracking[f"RH_x"]), t(tracking[f"RH_y"]), r_start, r_end
-    #     )
-    #     l_stride = stride_from_position(
-    #         t(tracking[f"LH_x"]), t(tracking[f"LH_y"]), l_start, l_end
-    #     )
-    #     summary["stride_delta"].append(l_stride - r_stride)
+        # add to orientation and speeds plots
+        for frm in [step["start"], step["end"]]:
+            vline_to_curve(
+                ori_ax,
+                frm,
+                np.arange(len(orientation)),
+                orientation,
+                dot=True,
+                line_kwargs=dict(lw=1, color="k"),
+                scatter_kwargs=dict(
+                    lw=1,
+                    edgecolors="k",
+                    s=80,
+                    color="w",
+                    zorder=200,
+                    alpha=0.8,
+                ),
+            )
 
-    #     # angle delta
-    #     summary["angle_delta"].append(
-    #         orientation[step["trailing_end"]]
-    #         - orientation[step["leading_start"]]
-    #     )
+            vline_to_curve(
+                cum_speeds_ax,
+                frm,
+                np.arange(len(orientation)),
+                np.cumsum(t(tracking[f"LH_speed"]) * fps),
+                dot=True,
+                line_kwargs=dict(lw=1, color=paw_colors["LH"]),
+                scatter_kwargs=dict(
+                    lw=1,
+                    edgecolors=paw_colors["LH"],
+                    s=80,
+                    color="w",
+                    zorder=200,
+                    alpha=0.8,
+                ),
+            )
 
-    # # plot stride length vs turn angle
-    # turn_ax.scatter(
-    #     summary["stride_delta"],
-    #     summary["angle_delta"],
-    #     s=80,
-    #     c=np.arange(len(summary["angle_delta"])),
-    #     zorder=10,
-    #     lw=1,
-    #     edgecolors=[0.4, 0.4, 0.4],
-    #     cmap="Reds",
-    # )
+    # plot stride length vs turn angle
+    turn_ax.scatter(
+        summary["stride_delta"],
+        summary["angle_delta"],
+        s=80,
+        c=np.arange(len(summary["angle_delta"])),
+        zorder=10,
+        lw=1,
+        edgecolors=[0.4, 0.4, 0.4],
+        cmap="Reds",
+    )
 
-    # steps_summary(diag_steps_data, summary)
-    # break
+    steps_summary(diag_data, summary)
+
+    f.tight_layout()
+    save_figure(
+        f,
+        folder.parent.parent
+        / "experimental_validation"
+        / "plots"
+        / _file.name.split(".h5")[0],
+    )
+    break
 
 plt.show()
-# %%
-
-# %%
