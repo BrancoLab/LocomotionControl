@@ -44,7 +44,7 @@ class Dataset(data.Dataset, RNNPaths):
     # may be overwritten by train_params.py
     augment_probability = 0
     to_chunks = False
-    chunks_length = 128
+    chunk_length = 128
 
     def __init__(self, dataset_length=-1, **kwargs):
         RNNPaths.__init__(self, dataset_name=self.name, **kwargs)

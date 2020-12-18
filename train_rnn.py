@@ -117,7 +117,7 @@ def fit(rnn, winstor, data):
         report_path=None,
         augment_probability=data.augment_probability,
         to_chunks=data.to_chunks,
-        chunks_length=data.chunks_length if data.to_chunks else None,
+        chunk_length=data.chunk_length if data.to_chunks else None,
     )
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",

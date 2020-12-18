@@ -46,7 +46,7 @@ DATASET.augment_probability = (
 )
 
 DATASET.to_chunks = True  # if true trials are cut into chunks of given lengths
-DATASET.chunks_length = 64
+DATASET.chunk_length = 64
 
 batch_size = 1024
 epochs = 10000
