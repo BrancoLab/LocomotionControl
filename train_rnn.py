@@ -9,6 +9,7 @@ from loguru import logger
 import json
 from myterial import orange
 import numpy as np
+import torch
 
 from control._io import DropBoxUtils, upload_folder
 
@@ -168,6 +169,27 @@ def upload_to_db(data):
         logger.bind(main=True)(f"Failed to upload to dropbox with error: {e}")
 
 
+def load_minloss(data, winstor):
+    """
+        Load RNN model saved at minimal loss
+    """
+    min_loss_path = (
+        "minloss.pt" if not winstor else str(data.rnn_folder / "minloss.pt")
+    )
+    use_gpu = is_win if not winstor else True
+    rnn = RNN.load(
+        min_loss_path,
+        n_units=n_units,
+        input_size=len(data.inputs_names),
+        output_size=len(data.outputs_names),
+        on_gpu=use_gpu,
+        load_kwargs=dict(map_location=torch.device("cpu"))
+        if not use_gpu
+        else {},
+    )
+    return rnn
+
+
 @logger.catch
 def wrap_up(rnn, loss_history, winstor, data):
     logger.bind(main=True).info("Wrapping up")
@@ -178,6 +200,10 @@ def wrap_up(rnn, loss_history, winstor, data):
         NAME = str(data.rnn_folder / NAME)
         rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"))
     rnn.save(NAME, overwrite=True)
+
+    # load lowest loss rnn and plot stuff
+    logger.bind(main=True).info(f"Loading min loss RNN to plot accuracy")
+    rnn = load_minloss(data, winstor)
 
     # make/save plots
     f2 = plot_training_loss(loss_history)
