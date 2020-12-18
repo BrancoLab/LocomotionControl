@@ -9,6 +9,8 @@ from myterial import (
     indigo,
     salmon,
     blue_grey_darker,
+    pink,
+    pink_darker,
 )
 
 from rich.table import Table
@@ -65,7 +67,7 @@ turners = [
 ]
 
 starts = [  # how many frames before nice trot is reached
-    55,
+    50,
     60,
     55,
     50,
@@ -175,7 +177,16 @@ def r(a):
     """
         unwrap circular data
     """
-    return np.degrees(np.unwrap(np.radians(a)))
+    if not np.any(np.isnan(a)):
+        return np.degrees(np.unwrap(np.radians(a)))
+    else:
+        # unwrap only non-nan
+        idx = np.where(np.isnan(a))[0][-1] + 1
+
+        out = np.zeros_like(a)
+        out[idx:] = np.degrees(np.unwrap(np.radians(a[idx:])))
+        out[:idx] = np.nan
+        return out
 
 
 def steps_summary(diag_steps_data, summary):
@@ -266,6 +277,27 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
         lw=2,
         zorder=2,
     )
+    line(
+        "tail_base",
+        "snout",
+        tracking_ax,
+        tracking,
+        step_starts,
+        color=pink,
+        lw=3,
+        zorder=2,
+    )
+    line(
+        "tail_base",
+        "snout",
+        tracking_ax,
+        tracking,
+        np.arange(start, len(tracking["body_x"])),
+        color=pink_darker,
+        lw=1,
+        zorder=-2,
+        alpha=0.2,
+    )
 
     # -------------------------------- other plots ------------------------------- #
     # Plot paw speeds
@@ -287,8 +319,7 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
 
     # Plot orientation
     # orientation = t(r(tracking["body_lower_bone_orientation"]), scale=False)
-    orientation = r(tracking["body_lower_bone_orientation"])
-    orientation = orientation[start:]
+    orientation = t(r(tracking["body_whole_bone_orientation"]), scale=False)
     ori_ax.plot(
         orientation, label="body angle", color=blue_grey_darker, lw=4,
     )

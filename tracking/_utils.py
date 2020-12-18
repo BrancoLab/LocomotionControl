@@ -18,7 +18,7 @@ def line(bp1, bp2, ax, tracking, frames, **kwargs):
     x2 = tracking[f"{bp2}_x"].values[frames]
     y2 = tracking[f"{bp2}_y"].values[frames]
 
-    ax.plot([x1, x2], [y1, y2], **kwargs)
+    ax.plot([x1, x2], [y1, y2], solid_capstyle="round", **kwargs)
 
 
 def point(bp, ax, tracking, frames, **kwargs):
