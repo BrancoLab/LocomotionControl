@@ -8,6 +8,7 @@ import click
 from loguru import logger
 import json
 from myterial import orange
+import numpy as np
 
 from control._io import DropBoxUtils, upload_folder
 
@@ -144,6 +145,10 @@ def fit(rnn, winstor, data):
         save_path=save_path,
     )
     print("Training finished, last loss: ", loss_history[-1])
+    logger.bind(main=True).info(
+        f"Finished training.\nMin loss: {np.min(loss_history)}\nLast loss: {loss_history[-1]}",
+    )
+
     return loss_history
 
 
