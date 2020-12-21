@@ -61,7 +61,7 @@ def draw_mouse(ax, tracking, frames, **kwargs):
         y = [tracking[f"{bp}_y"].values[n] for bp in bps]
         patches.append(Polygon(np.vstack([x, y]).T, True, lw=None))
 
-    p = PatchCollection(patches, alpha=0.3, color=blue_grey_darker, lw=None)
+    p = PatchCollection(patches, alpha=0.1, color=blue_grey_darker, lw=None)
     ax.add_collection(p)
 
     ax.plot(

@@ -1,11 +1,64 @@
 import numpy as np
 from collections import namedtuple
+import pandas as pd
+
+from rich.table import Table
+from rich import print
+from rich.box import SIMPLE_HEAD
+
+from myterial import blue, salmon
 
 from fcutils.maths.utils import derivative
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 
 # ----------------------------------- misc ----------------------------------- #
+def print_steps_summary(summary):
+    """
+        Summary is a dict or df with steps data
+    """
+
+    def foot(x):
+        return f"{np.mean(x):.3f} +/ {np.std(x):.3f}"
+
+    if isinstance(summary, dict):
+        summary = pd.DataFrame(summary)
+
+    tb = Table(
+        header_style="bold green",
+        show_lines=True,
+        expand=False,
+        box=SIMPLE_HEAD,
+        show_footer=True,
+        footer_style="magenta",
+    )
+    tb.add_column("#", style="dim", footer=str(len(summary)))
+    tb.add_column("side",)
+    tb.add_column("start", justify="center", width=4)
+    tb.add_column("end", justify="center", width=4)
+    tb.add_column(
+        "dur.", justify="center", footer=foot(summary.end - summary.start)
+    )
+    tb.add_column(
+        "stride delta", justify="right", footer=foot(summary.stride_delta)
+    )
+    tb.add_column(
+        "angle delta", justify="right", footer=foot(summary.angle_delta)
+    )
+
+    for i, step in summary.iterrows():
+        tb.add_row(
+            str(step["number"]),
+            step["side"],
+            str(step["start"]),
+            str(step["end"]),
+            str(step["end"] - step["start"]),
+            f"{step['stride_delta']:.3f}",
+            f"{step['angle_delta']:.3f}",
+            style=blue if step["side"] == "R" else salmon,
+        )
+
+    print("\n", tb)
 
 
 def stride_from_speed(speed, start, end):

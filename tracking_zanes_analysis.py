@@ -10,10 +10,6 @@ from myterial import (
     salmon,
     blue_grey_darker,
 )
-
-from rich.table import Table
-from rich import print
-from rich.box import SIMPLE_HEAD
 from vedo.colors import colorMap
 
 from fcutils.maths.utils import rolling_mean
@@ -31,6 +27,7 @@ from tracking.gait import (
     get_diagonal_steps,
     stride_from_position,
     step_times,
+    print_steps_summary,
 )
 
 # %%
@@ -189,33 +186,6 @@ def r(a):
         return out
 
 
-def steps_summary(diag_steps_data, summary):
-    tb = Table(
-        header_style="bold green",
-        show_lines=True,
-        expand=False,
-        box=SIMPLE_HEAD,
-    )
-    tb.add_column("#", style="dim")
-    tb.add_column("start", justify="center")
-    tb.add_column("end", justify="center")
-    tb.add_column("dur.", justify="center")
-    tb.add_column("stride delta", justify="right")
-    tb.add_column("angle delta", justify="right")
-
-    for n, data in diag_steps_data.items():
-        tb.add_row(
-            str(n),
-            str(data["start"]),
-            str(data["end"]),
-            str(data["end"] - data["start"]),
-            f"{summary['stride_delta'][n]:.3f}",
-            f"{summary['angle_delta'][n]:.3f}",
-        )
-
-    print("\n", tb)
-
-
 def get_steps(tracking, fps, step_speed_th):
     LH_steps = get_paw_steps_times(
         t(tracking[f"LH_speed"]) * fps, step_speed_th
@@ -290,8 +260,8 @@ def get_steps(tracking, fps, step_speed_th):
 # %%
 
 for runn, (_file, start) in enumerate(zip(files, starts)):
-    # if runn != 0:
-    #     continue
+    if runn != 0:
+        continue
 
     # load tracking data
     tracking = pd.read_hdf(_file, key="hdf")
@@ -379,7 +349,9 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
 
     # ------------------------------ stride vs angle ----------------------------- #
     # get stride length vs turn angle
-    summary = dict(stride_delta=[], angle_delta=[], side=[])
+    summary = dict(
+        number=[], stride_delta=[], angle_delta=[], side=[], start=[], end=[]
+    )
     for n, step in diag_data.items():
         # stride delta
         r_stride = stride_from_position(
@@ -400,8 +372,11 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
         turn = orientation[step["end"]] - orientation[step["start"]]
         summary["angle_delta"].append(turn)
 
-        # side
+        # more info
+        summary["number"].append(n)
         summary["side"].append(step["side"])
+        summary["start"].append(step["start"])
+        summary["end"].append(step["end"])
 
         # add to orientation and speeds plots
         color = colorMap(n, name="inferno", vmin=0, vmax=len(diag_data))
@@ -452,7 +427,7 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
         cmap="bwr",
     )
 
-    steps_summary(diag_data, summary)
+    print_steps_summary(summary)
 
     # cache steps summary
     fname = _file.name.split(".h5")[0]
@@ -467,6 +442,6 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
         f, expval / "plots" / fname,
     )
 
-# plt.show()
+plt.show()
 
 # %%
