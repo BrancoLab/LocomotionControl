@@ -6,7 +6,7 @@ from rich.table import Table
 from rich import print
 from rich.box import SIMPLE_HEAD
 
-from myterial import blue, salmon
+from myterial import blue, salmon, pink_light
 
 from fcutils.maths.utils import derivative
 from fcutils.maths.geometry import calc_distance_between_points_2d
@@ -15,50 +15,63 @@ from fcutils.maths.geometry import calc_distance_between_points_2d
 # ----------------------------------- misc ----------------------------------- #
 def print_steps_summary(summary):
     """
-        Summary is a dict or df with steps data
+        Prints a Rich table with an overview of a set of steps
+        Summary is a dict or df with steps data.
     """
 
     def foot(x):
-        return f"{np.mean(x):.3f} +/ {np.std(x):.3f}"
+        return f"{np.mean(x):.2f} +/- {np.std(x):.1f}"
 
     if isinstance(summary, dict):
         summary = pd.DataFrame(summary)
 
-    tb = Table(
-        header_style="bold green",
-        show_lines=True,
-        expand=False,
-        box=SIMPLE_HEAD,
-        show_footer=True,
-        footer_style="magenta",
+    main_tb = Table(
+        header_style="bold green", show_lines=False, expand=False, box=None,
     )
-    tb.add_column("#", style="dim", footer=str(len(summary)))
-    tb.add_column("side",)
-    tb.add_column("start", justify="center", width=4)
-    tb.add_column("end", justify="center", width=4)
-    tb.add_column(
-        "dur.", justify="center", footer=foot(summary.end - summary.start)
-    )
-    tb.add_column(
-        "stride delta", justify="right", footer=foot(summary.stride_delta)
-    )
-    tb.add_column(
-        "angle delta", justify="right", footer=foot(summary.angle_delta)
-    )
+    main_tb.add_column("LEFT", justify="center")
+    main_tb.add_column("", justify="center", width=10)
+    main_tb.add_column("RIGHT", justify="center")
+    L, R = summary.loc[summary.side == "L"], summary.loc[summary.side == "R"]
 
-    for i, step in summary.iterrows():
-        tb.add_row(
-            str(step["number"]),
-            step["side"],
-            str(step["start"]),
-            str(step["end"]),
-            str(step["end"] - step["start"]),
-            f"{step['stride_delta']:.3f}",
-            f"{step['angle_delta']:.3f}",
-            style=blue if step["side"] == "R" else salmon,
+    subtables = []
+    for summary in (L, R):
+        tb = Table(
+            header_style="bold green",
+            show_lines=True,
+            expand=False,
+            box=SIMPLE_HEAD,
+            show_footer=True,
+            footer_style=f"{pink_light} bold",
+        )
+        tb.add_column("#", style="dim", footer=str(len(summary)) + " steps")
+        tb.add_column("side",)
+        tb.add_column("start", justify="center", width=4)
+        tb.add_column("end", justify="center", width=4)
+        tb.add_column(
+            "dur.", justify="center", footer=foot(summary.end - summary.start)
+        )
+        tb.add_column(
+            "stride delta", justify="right", footer=foot(summary.stride_delta)
+        )
+        tb.add_column(
+            "angle delta", justify="right", footer=foot(summary.angle_delta)
         )
 
-    print("\n", tb)
+        for i, step in summary.iterrows():
+            tb.add_row(
+                str(step["number"]),
+                step["side"],
+                str(step["start"]),
+                str(step["end"]),
+                str(step["end"] - step["start"]),
+                f"{step['stride_delta']:.3f}",
+                f"{step['angle_delta']:.3f}",
+                style=blue if step["side"] == "R" else salmon,
+            )
+        subtables.append(tb)
+
+    main_tb.add_row(subtables[0], " ", subtables[1])
+    print("\n", main_tb)
 
 
 def stride_from_speed(speed, start, end):

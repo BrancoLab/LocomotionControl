@@ -260,8 +260,8 @@ def get_steps(tracking, fps, step_speed_th):
 # %%
 
 for runn, (_file, start) in enumerate(zip(files, starts)):
-    if runn != 0:
-        continue
+    # if runn != 0:
+    #     continue
 
     # load tracking data
     tracking = pd.read_hdf(_file, key="hdf")
@@ -442,6 +442,6 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
         f, expval / "plots" / fname,
     )
 
-plt.show()
+# plt.show()
 
 # %%

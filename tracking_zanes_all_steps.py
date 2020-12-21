@@ -8,7 +8,9 @@ from fcutils.plotting.utils import (
     # save_figure,
 )
 
-from myterial import blue_darker
+from myterial import blue_grey_darker, salmon, indigo
+
+from tracking.gait import print_steps_summary
 
 # --------------------------------- load data -------------------------------- #
 
@@ -24,7 +26,7 @@ for sfile in steps_files:
     all_steps.append(pd.read_hdf(sfile, key="hdf"))
 
 steps = pd.concat(all_steps)
-
+print_steps_summary(steps)
 
 # ----------------------------------- plot ----------------------------------- #
 
@@ -46,11 +48,13 @@ ax.set(
     ylabel="(end-start) angle-delta\n(deg)",
 )
 
+colors = [salmon if s.side == "L" else indigo for i, s in steps.iterrows()]
+
 #  plot all steps
 ax.scatter(
     steps.stride_delta,
     steps.angle_delta,
-    color="salmon",
+    c=colors,
     s=45,
     lw=0.5,
     edgecolors=[0.2, 0.2, 0.2],
@@ -64,9 +68,10 @@ regplot(
     steps,
     scatter=False,
     truncate=True,
-    robust=True,
-    line_kws={"color": blue_darker},
+    robust=False,
+    line_kws={"color": blue_grey_darker},
 )
+
 
 clean_axes(f)
 plt.show()
