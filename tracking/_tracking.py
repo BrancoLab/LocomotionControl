@@ -53,7 +53,9 @@ def clean_dlc_tracking(tracking):
 
 
 def prepare_tracking_data(
-    tracking_filepath,
+    tracking_filepath=None,
+    tracking=None,
+    bodyparts=None,
     likelihood_th=0.999,
     median_filter=False,
     filter_kwargs={},
@@ -67,6 +69,8 @@ def prepare_tracking_data(
         Also handles fisheye correction and registration to common coordinates frame.
         Can be used to compute speeds and angles for each bp.
 
+        :params tracking: pd.DataFrame. Optional, pass a dataframe with tracking data
+            else pass  a file to tracking filepath to load from DLC output
         :param tracking_filepath: path to file to process
         :param likelihood_th: float, frames with likelihood < thresh are nanned
         :param median_filter: if true the data are filtered before the processing
@@ -77,13 +81,20 @@ def prepare_tracking_data(
     """
 
     # Load the tracking data
-    check_file_exists(tracking_filepath, raise_error=True)
-    if ".h5" not in tracking_filepath:
-        raise ValueError("Expected .h5 in the tracking data file path")
+    if tracking_filepath is not None:
+        check_file_exists(tracking_filepath, raise_error=True)
+        if ".h5" not in tracking_filepath:
+            raise ValueError("Expected .h5 in the tracking data file path")
 
-    if verbose:
-        print("Processing: {}".format(tracking_filepath))
-    tracking, bodyparts = clean_dlc_tracking(pd.read_hdf(tracking_filepath))
+        if verbose:
+            print("Processing: {}".format(tracking_filepath))
+        tracking, bodyparts = clean_dlc_tracking(
+            pd.read_hdf(tracking_filepath)
+        )
+    elif tracking is None or bodyparts is None:
+        raise ValueError(
+            "Pass either tracking_filepath or tracking+body parts"
+        )
 
     # Get likelihood and XY coords
     likelihoods = {}
