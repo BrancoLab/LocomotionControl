@@ -1,8 +1,15 @@
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import numpy as np
+from vedo.colors import colorMap
 
-from myterial import blue_grey_darker
+from myterial import (
+    indigo,
+    salmon,
+    blue_grey_darker,
+    pink,
+    pink_darker,
+)
 
 # ---------------------------------------------------------------------------- #
 #                                  plot utils                                  #
@@ -67,6 +74,44 @@ def draw_mouse(ax, tracking, frames, **kwargs):
     )
 
 
+def draw_paws_steps(paw_colors, ax, tracking, step_starts, start):
+
+    # Plot paws
+    for paw, color in paw_colors.items():
+        point(
+            paw, ax, tracking, step_starts, zorder=1, color=color, s=50,
+        )
+
+    # plot paw lines
+    line(
+        "LH", "RF", ax, tracking, step_starts, color=salmon, lw=2, zorder=2,
+    )
+    line(
+        "RH", "LF", ax, tracking, step_starts, color=indigo, lw=2, zorder=2,
+    )
+    line(
+        "tail_base",
+        "snout",
+        ax,
+        tracking,
+        step_starts,
+        color=pink,
+        lw=3,
+        zorder=2,
+    )
+    line(
+        "tail_base",
+        "snout",
+        ax,
+        tracking,
+        np.arange(start, len(tracking["body_x"])),
+        color=pink_darker,
+        lw=1,
+        zorder=-2,
+        alpha=0.2,
+    )
+
+
 def mark_steps(ax, starts, ends, y, side, scale, noise=0, **kwargs):
     """
         Draw lines to mark when steps start/end
@@ -77,13 +122,24 @@ def mark_steps(ax, starts, ends, y, side, scale, noise=0, **kwargs):
 
     # mark which side it is
     ax.text(0, y, side, horizontalalignment="left")
+
+    _color = kwargs.pop("color", None)
     # mark each step
-    for start, end in zip(starts, ends):
+    for n, (start, end) in enumerate(zip(starts, ends)):
         if noise:
             nu = np.random.normal(0, noise)
         else:
             nu = 0
 
-        ax.plot([start, end], [y + nu, y + nu], **kwargs)
-        ax.plot([start, start], [y - scale + nu, y + scale + nu], **kwargs)
-        ax.plot([end, end], [y - scale + nu, y + scale + nu], **kwargs)
+        color = _color or colorMap(n, name="inferno", vmin=0, vmax=len(starts))
+
+        ax.plot([start, end], [y + nu, y + nu], color=color, **kwargs)
+        ax.plot(
+            [start, start],
+            [y - scale + nu, y + scale + nu],
+            color=color,
+            **kwargs,
+        )
+        ax.plot(
+            [end, end], [y - scale + nu, y + scale + nu], color=color, **kwargs
+        )

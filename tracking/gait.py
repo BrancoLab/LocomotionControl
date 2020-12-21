@@ -81,7 +81,8 @@ def get_diagonal_steps_pairs(left, right):
         leading, trailing = right, left
 
     starts, ends, data = [], [], {}
-    for n, (start, end) in enumerate(zip(leading.starts, leading.ends)):
+    count = 0
+    for start, end in zip(leading.starts, leading.ends):
         # get the next trailing step
         trailing_start = [s for s in trailing.starts if s > start]
         if not trailing_start:
@@ -93,12 +94,13 @@ def get_diagonal_steps_pairs(left, right):
             starts.append(start)
             ends.append(trailing_end[0])
 
-            data[n] = dict(
+            data[count] = dict(
                 leading_start=start,
                 leading_end=end,
                 trailing_start=trailing_start[0],
                 trailing_end=trailing_end[0],
             )
+            count += 1
 
     return step_times(starts, ends), first, data
 
@@ -135,12 +137,17 @@ def get_diagonal_steps(hind, fore):
     if arr[-1] == 1:
         ends = np.concatenate([ends, [len(arr)]])
 
+    if ends[0] < starts[0] or starts[-1] > ends[-1]:
+        raise ValueError("Something went wrong while getting starts and ends")
+
     # now create data dict
     data = {}
-    for n, (s, e) in enumerate(zip(starts, ends)):
-        # get forelib  starts and stops
+    good_starts, good_ends = [], []
+    count = 0
+    for s, e in zip(starts, ends):
+        # get  starts and stops
         try:
-            data[n] = dict(
+            data[count] = dict(
                 start=s,
                 end=e,
                 fore_start=[start for start in fore.starts if start >= s][0],
@@ -148,13 +155,27 @@ def get_diagonal_steps(hind, fore):
                 hind_start=[start for start in hind.starts if start >= s][0],
                 hind_end=[end for end in hind.ends if end <= e][-1],
             )
-        except:
+        except Exception:
             continue
+        else:
+            good_starts.append(s)
+            good_ends.append(e)
 
-        if data[n]["fore_start"] < s or data[n]["hind_start"] < s:
-            raise ValueError(f"Limb start before step start: {data[n]}")
+        if data[count]["fore_start"] < s or data[count]["hind_start"] < s:
+            raise ValueError(f"Limb start before step start: {data[count]}")
 
-        if data[n]["fore_end"] > e or data[n]["hind_end"] > e:
-            raise ValueError(f"Limb end after step end: {data[n]}")
+        if data[count]["fore_end"] > e or data[count]["hind_end"] > e:
+            raise ValueError(f"Limb end after step end: {data[count]}")
 
-    return step_times(starts, ends), data
+        count += 1
+
+    if len(good_starts) != len(good_ends):
+        raise ValueError(
+            f"Different number of starts and stops: {len(good_starts)}-{len(good_ends)}"
+        )
+    if len(good_starts) != len(data.keys()):
+        raise ValueError(
+            f"Wrong number of entries in data dictionary: {len(data.keys())} instead of {len(good_starts)}\n{data}"
+        )
+
+    return step_times(good_starts, good_ends), data

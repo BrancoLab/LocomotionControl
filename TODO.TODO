@@ -1,9 +1,0 @@
-# Control
-✔ Make sure that trajectory's omega is correctly computed @done(20-11-24 08:30)
-
-# RNN
-✔ Make sure that data preprocessing normalized train and test datasets separately @done(20-11-20 13:53)
-✔ Try training RNN with truncated input data and see if it can be used to augment dataset @done(20-11-24 15:11)
-☐ Add methods to inspect the pre processed dataset to make sure everything's fine
-☐ Inspect the data"
-☐ think about how to train this goddam RNNs 

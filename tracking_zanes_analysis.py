@@ -9,13 +9,12 @@ from myterial import (
     indigo,
     salmon,
     blue_grey_darker,
-    pink,
-    pink_darker,
 )
 
 from rich.table import Table
 from rich import print
 from rich.box import SIMPLE_HEAD
+from vedo.colors import colorMap
 
 from fcutils.maths.utils import rolling_mean
 
@@ -26,11 +25,12 @@ from fcutils.plotting.utils import (
 )
 from fcutils.plotting.plot_elements import vline_to_curve
 
-from tracking._utils import line, point, draw_mouse, mark_steps
+from tracking._utils import draw_paws_steps, draw_mouse, mark_steps
 from tracking.gait import (
     get_paw_steps_times,
     get_diagonal_steps,
     stride_from_position,
+    step_times,
 )
 
 # %%
@@ -95,7 +95,7 @@ print(f"Found {len(files)}/{len(turners)} files")
 #                                    params                                    #
 # ---------------------------------------------------------------------------- #
 
-step_speed_th = 15  # cm / s
+step_speed_th = 25  # cm / s
 fps = 60
 cm_per_px = 1 / 30.8
 
@@ -216,11 +216,82 @@ def steps_summary(diag_steps_data, summary):
     print("\n", tb)
 
 
+def get_steps(tracking, fps, step_speed_th):
+    LH_steps = get_paw_steps_times(
+        t(tracking[f"LH_speed"]) * fps, step_speed_th
+    )
+    RF_steps = get_paw_steps_times(
+        t(tracking[f"RF_speed"]) * fps, step_speed_th
+    )
+    L_diagonal_steps, L_diag_data = get_diagonal_steps(LH_steps, RF_steps)
+
+    RH_steps = get_paw_steps_times(
+        t(tracking[f"RH_speed"]) * fps, step_speed_th
+    )
+    LF_steps = get_paw_steps_times(
+        t(tracking[f"LF_speed"]) * fps, step_speed_th
+    )
+    R_diagonal_steps, R_diag_data = get_diagonal_steps(RH_steps, LF_steps)
+
+    # merge R/L diagonal steps
+    _starts = np.concatenate(
+        (R_diagonal_steps.starts, L_diagonal_steps.starts)
+    )
+    _names = np.concatenate(
+        [
+            [
+                "R" + str(x + 1)
+                for x in np.arange(len(R_diagonal_steps.starts))
+            ],
+            [
+                "L" + str(x + 1)
+                for x in np.arange(len(L_diagonal_steps.starts))
+            ],
+        ]
+    )
+    _names = _names[np.argsort(_starts)]
+
+    pooled_starts, pooled_ends, diag_data = [], [], {}
+    count = 0
+    for n in _names:
+        side, idx = n[0], int(n[1])
+        if side == "R":
+            pooled_starts.append(R_diagonal_steps.starts[idx - 1])
+            pooled_ends.append(R_diagonal_steps.ends[idx - 1])
+            data = R_diag_data[idx - 1]
+            data["paws"] = ("RH", "LF")
+        else:
+            pooled_starts.append(L_diagonal_steps.starts[idx - 1])
+            pooled_ends.append(L_diagonal_steps.ends[idx - 1])
+            data = L_diag_data[idx - 1]
+            data["paws"] = ("LH", "RF")
+
+        data["side"] = side
+        diag_data[count] = data
+        count += 1
+    diagonal_steps = step_times(pooled_starts, pooled_ends)
+
+    # step starts
+    step_starts = (
+        np.array(R_diagonal_steps.starts) + start
+    )  # to mark the start of each L-R step sequence
+
+    return (
+        LH_steps,
+        RF_steps,
+        LF_steps,
+        RH_steps,
+        diagonal_steps,
+        diag_data,
+        step_starts,
+    )
+
+
 # %%
 
 for runn, (_file, start) in enumerate(zip(files, starts)):
-    if runn != 0:
-        continue
+    # if runn != 0:
+    #     continue
 
     # load tracking data
     tracking = pd.read_hdf(_file, key="hdf")
@@ -229,75 +300,19 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
     f, tracking_ax, paws_ax, cum_speeds_ax, ori_ax, turn_ax = make_figure()
 
     # --------------------------------- get steps -------------------------------- #
-    L_steps = get_paw_steps_times(
-        t(tracking[f"LH_speed"]) * fps, step_speed_th
-    )
-    R_steps = get_paw_steps_times(
-        t(tracking[f"RF_speed"]) * fps, step_speed_th
-    )
-    diagonal_steps, diag_data = get_diagonal_steps(L_steps, R_steps)
-
-    step_starts = (
-        np.array(diagonal_steps.starts) + start
-    )  # to mark the start of each L-R step sequence
+    (
+        LH_steps,
+        RF_steps,
+        LF_steps,
+        RH_steps,
+        diagonal_steps,
+        diag_data,
+        step_starts,
+    ) = get_steps(tracking, fps, step_speed_th)
 
     # -------------------------------- draw mouse -------------------------------- #
     draw_mouse(tracking_ax, tracking, step_starts)
-
-    # Plot paws
-    for paw, color in paw_colors.items():
-        point(
-            paw,
-            tracking_ax,
-            tracking,
-            step_starts,
-            zorder=1,
-            color=color,
-            s=50,
-        )
-
-    # plot paw lines
-    line(
-        "LH",
-        "RF",
-        tracking_ax,
-        tracking,
-        step_starts,
-        color=salmon,
-        lw=2,
-        zorder=2,
-    )
-    line(
-        "RH",
-        "LF",
-        tracking_ax,
-        tracking,
-        step_starts,
-        color=indigo,
-        lw=2,
-        zorder=2,
-    )
-    line(
-        "tail_base",
-        "snout",
-        tracking_ax,
-        tracking,
-        step_starts,
-        color=pink,
-        lw=3,
-        zorder=2,
-    )
-    line(
-        "tail_base",
-        "snout",
-        tracking_ax,
-        tracking,
-        np.arange(start, len(tracking["body_x"])),
-        color=pink_darker,
-        lw=1,
-        zorder=-2,
-        alpha=0.2,
-    )
+    draw_paws_steps(paw_colors, tracking_ax, tracking, step_starts, start)
 
     # -------------------------------- other plots ------------------------------- #
     # Plot paw speeds
@@ -326,7 +341,9 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
     ori_ax.legend()
 
     # draw steps times
-    for n, (paw, steps) in enumerate(zip(("RF", "LH"), (R_steps, L_steps))):
+    for n, (paw, steps) in enumerate(
+        zip(("RF", "LH", "LF", "RH"), (RF_steps, LH_steps, LF_steps, RH_steps))
+    ):
         mark_steps(
             paws_ax,
             steps.starts,
@@ -340,8 +357,12 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
             lw=2,
         )
 
-    for ax, offest, scale in zip(
-        (paws_ax, cum_speeds_ax, ori_ax), (-35, -0.2, 0), (5, 0.05, 0.5)
+    # draw diagonal steps
+    for ax, offest, scale, noise in zip(
+        (paws_ax, cum_speeds_ax, ori_ax),
+        (-80, -0.2, 0),
+        (5, 0.05, 0.5),
+        (5, 20, 1),
     ):
         mark_steps(
             ax,
@@ -350,8 +371,7 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
             offest,
             "Diag.",
             scale,
-            color=blue_grey_darker,
-            noise=None,
+            noise=noise,
             alpha=1,
             zorder=-1,
             lw=2,
@@ -359,7 +379,7 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
 
     # ------------------------------ stride vs angle ----------------------------- #
     # get stride length vs turn angle
-    summary = dict(stride_delta=[], angle_delta=[])
+    summary = dict(stride_delta=[], angle_delta=[], side=[])
     for n, step in diag_data.items():
         # stride delta
         r_stride = stride_from_position(
@@ -380,7 +400,11 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
         turn = orientation[step["end"]] - orientation[step["start"]]
         summary["angle_delta"].append(turn)
 
+        # side
+        summary["side"].append(step["side"])
+
         # add to orientation and speeds plots
+        color = colorMap(n, name="inferno", vmin=0, vmax=len(diag_data))
         for frm in [step["start"], step["end"]]:
             vline_to_curve(
                 ori_ax,
@@ -390,12 +414,12 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
                 dot=True,
                 line_kwargs=dict(lw=1, color="k"),
                 scatter_kwargs=dict(
-                    lw=1,
+                    lw=2,
                     edgecolors="k",
                     s=80,
-                    color="w",
+                    color=color,
                     zorder=200,
-                    alpha=0.8,
+                    alpha=1,
                 ),
             )
 
@@ -407,12 +431,12 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
                 dot=True,
                 line_kwargs=dict(lw=1, color=paw_colors["LH"]),
                 scatter_kwargs=dict(
-                    lw=1,
-                    edgecolors=paw_colors["LH"],
+                    lw=2,
+                    edgecolors="k",
                     s=80,
-                    color="w",
+                    color=color,
                     zorder=200,
-                    alpha=0.8,
+                    alpha=1,
                 ),
             )
 
@@ -421,23 +445,28 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
         summary["stride_delta"],
         summary["angle_delta"],
         s=80,
-        c=np.arange(len(summary["angle_delta"])),
+        c=[1 if s == "R" else 0 for s in summary["side"]],
         zorder=10,
         lw=1,
         edgecolors=[0.4, 0.4, 0.4],
-        cmap="Reds",
+        cmap="bwr",
     )
 
     steps_summary(diag_data, summary)
 
+    # cache steps summary
+    fname = _file.name.split(".h5")[0]
+    expval = folder.parent.parent / "experimental_validation"
+    pd.DataFrame(summary).to_hdf(
+        expval / (fname + "_steps_cache.h5"), key="hdf"
+    )
+
+    # save figure
     f.tight_layout()
     save_figure(
-        f,
-        folder.parent.parent
-        / "experimental_validation"
-        / "plots"
-        / _file.name.split(".h5")[0],
+        f, expval / "plots" / fname,
     )
-    break
 
-plt.show()
+# plt.show()
+
+# %%
