@@ -33,7 +33,8 @@ print("Processing body parts")
 tracking = prepare_tracking_data(
     tracking=data,
     bodyparts=data.keys(),
-    median_filter=False,
+    median_filter=True,
+    filter_kwargs={"kernel": 61},
     smooth_dir_mvmt=False,
     verbose=True,
 )

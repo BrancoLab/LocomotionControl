@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from seaborn import regplot
 
-from fcutils.plotting.utils import (
-    clean_axes,
-    # save_figure,
-)
+from fcutils.plotting.utils import clean_axes
 
 from myterial import blue_grey_darker, salmon, indigo
+
+import sys
+
+sys.path.append("./")
 
 from tracking.gait import print_steps_summary
 
@@ -26,11 +27,13 @@ for sfile in steps_files:
     all_steps.append(pd.read_hdf(sfile, key="hdf"))
 
 steps = pd.concat(all_steps)
+
+# steps = steps.loc[steps.pearsonr >= .6]
 print_steps_summary(steps)
 
 # ----------------------------------- plot ----------------------------------- #
 
-# makef igure
+# make figure
 f, ax = plt.subplots(figsize=(10, 10))
 ax.axvline(0, ls="--", color=[0.5, 0.5, 0.5])
 ax.axhline(0, ls="--", color=[0.5, 0.5, 0.5])

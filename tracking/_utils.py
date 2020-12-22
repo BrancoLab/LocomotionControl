@@ -39,7 +39,7 @@ def point(bp, ax, tracking, frames, **kwargs):
     ax.scatter(x, y, **kwargs)
 
 
-def draw_mouse(ax, tracking, frames, **kwargs):
+def draw_mouse(ax, tracking, frames, bps=None, **kwargs):
     """
         Draw a mouse's outline as a polygon
         whose vertices lay at the coordinates
@@ -47,16 +47,9 @@ def draw_mouse(ax, tracking, frames, **kwargs):
 
         Given a tracking dataframe and a set of selected frames
     """
+    bps = bps or ("tail_base", "LH", "l_ear", "snout", "r_ear", "RH",)
     patches = []
     for n in frames:  # range(len(tracking["body_x"])):
-        bps = (
-            "tail_base",
-            "LH",
-            "l_ear",
-            "snout",
-            "r_ear",
-            "RH",
-        )
         x = [tracking[f"{bp}_x"].values[n] for bp in bps]
         y = [tracking[f"{bp}_y"].values[n] for bp in bps]
         patches.append(Polygon(np.vstack([x, y]).T, True, lw=None))
