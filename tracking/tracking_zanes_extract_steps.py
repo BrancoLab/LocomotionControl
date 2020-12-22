@@ -82,26 +82,6 @@ starts = [  # how many frames before nice trot is reached
     55,
 ]
 
-keeps = [
-    False,
-    True,
-    True,
-    False,
-    False,
-    True,
-    True,
-    True,
-    False,
-    False,
-    True,
-    True,
-    False,
-    False,
-    False,
-    False,
-    False,
-]
-
 files = [f for f in folder.glob("*.h5") if f.name in turners]
 print(f"Found {len(files)}/{len(turners)} files")
 
@@ -226,9 +206,7 @@ def r(a):
 for runn, (_file, start) in enumerate(zip(files, starts)):
     # if runn != 11:
     #     continue
-    print(
-        f"\n\n[{orange} bold]Session {runn} with start {start} || keep: {keeps[runn]}"
-    )
+    print(f"\n\n[{orange} bold]Session {runn} with start {start}")
 
     # load tracking data
     tracking = pd.read_hdf(_file, key="hdf")
@@ -412,10 +390,9 @@ for runn, (_file, start) in enumerate(zip(files, starts)):
     # cache steps summary
     fname = _file.name.split(".h5")[0]
     expval = folder.parent.parent / "experimental_validation"
-    if keeps[runn]:
-        pd.DataFrame(summary).to_hdf(
-            expval / (fname + "_steps_cache.h5"), key="hdf"
-        )
+    pd.DataFrame(summary).to_hdf(
+        expval / (fname + "_steps_cache.h5"), key="hdf"
+    )
 
     # save figure
     f.tight_layout()
