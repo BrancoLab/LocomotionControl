@@ -11,7 +11,6 @@ from myterial import blue, salmon, pink_light
 
 from fcutils.maths.utils import derivative
 from fcutils.maths.geometry import calc_distance_between_points_2d
-from fcutils.maths.stimuli_detection import get_onset_offset
 
 # ----------------------------------- misc ----------------------------------- #
 
@@ -82,13 +81,18 @@ def print_steps_summary(summary):
     print("\n", main_tb)
 
 
+# ---------------------------------------------------------------------------- #
+#                                    STRIDE                                    #
+# ---------------------------------------------------------------------------- #
+
+
 def stride_from_speed(speed, start, end):
     """
         Given a paw's speed trace and the
         start and end of the swing phase of a  step
         returns the length of the stride
     """
-    return np.cumsum(speed[start:end])[-1]
+    return np.sum(speed[start:end])
 
 
 def stride_from_position(x, y, start, end):
@@ -120,7 +124,14 @@ def get_paw_steps_times(speed, step_speed_th, precise_th=12):
         went above or below precise_th cm/s
     """
     # get approximate times
-    starts, ends = get_onset_offset(speed, step_speed_th)
+    is_swing = np.zeros_like(speed)
+    is_swing[speed > step_speed_th] = 1
+
+    first_zero = np.where(is_swing == 0)[0][0]
+    is_swing[:first_zero] = 0  # make sure that is starts with swing phase OFF
+
+    starts = np.where(derivative(is_swing) > 0)[0]
+    ends = np.where(derivative(is_swing) < 0)[0]
 
     # Get precise times
     precise_starts, precise_ends = [], []
@@ -157,7 +168,7 @@ def get_diagonal_steps(hind, fore, hind_speed, fore_speed):
             hind/fore_speed: 1d numpy arrays with paw speed
     """
     # get an arr that is 1 when either is stepping
-    last = max(hind.ends[-1], fore.ends[-3])
+    last = max(hind.ends[-1], fore.ends[-1])
     arr = np.zeros(last + 1)
 
     for paw in (hind, fore):
@@ -315,6 +326,8 @@ def get_steps(
         RF_steps,
         LF_steps,
         RH_steps,
+        R_diagonal_steps,
+        L_diagonal_steps,
         diagonal_steps,
         diag_data,
         step_starts,

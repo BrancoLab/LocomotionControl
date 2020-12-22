@@ -17,7 +17,7 @@ from tracking.gait import print_steps_summary
 
 # load all steps from each mouse
 folder = Path(
-    "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/control/experimental_validation"
+    "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\experimental_validation"
 )
 
 steps_files = [f for f in folder.glob("*.h5") if "steps" in f.name]
@@ -71,7 +71,7 @@ regplot(
     steps,
     scatter=False,
     truncate=True,
-    robust=False,
+    robust=True,
     line_kws={"color": blue_grey_darker},
 )
 

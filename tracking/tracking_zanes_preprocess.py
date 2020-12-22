@@ -9,7 +9,7 @@ from tracking._tracking import prepare_tracking_data, compute_body_segments
 
 # get files
 folder = Path(
-    "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/control/behav_data/Zane"
+    "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\experimental_validation\\dlc\\ZanesData"
 )
 
 files = [f for f in folder.glob("*.h5") if "DLC" in f.name]
@@ -68,6 +68,12 @@ for f in track(files):
 
     # save
     name = f.name.split("DLC")[0] + ".h5"
-    pd.DataFrame(data).to_hdf(f.parent / name, key="hdf")
+    pd.DataFrame(data).to_hdf(
+        Path(
+            "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\Zane"
+        )
+        / name,
+        key="hdf",
+    )
 
 # %%
