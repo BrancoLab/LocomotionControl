@@ -23,7 +23,7 @@ datasets_dict = dict(
 # ---------------------------------- Dataset --------------------------------- #
 N_trials = -1  # number of trials to use, set to -1 to use entire dataset
 
-dataset_name = "PredictTauFromXYT"
+dataset_name = "PredictTauFromDeltaXYT"
 DATASET = datasets_dict[dataset_name]
 
 name = "" + "_" + DATASET.name  # rnn name
@@ -42,7 +42,7 @@ w_out_train = False
 
 # set some variables controlling datasets generation
 DATASET.augment_probability = (
-    0.0  # probabily  of augmenting a trial during training
+    0.05  # probabily  of augmenting a trial during training
 )
 
 DATASET.to_chunks = (
@@ -51,6 +51,7 @@ DATASET.to_chunks = (
 DATASET.chunk_length = 64
 
 DATASET.warmup = True  # add a warmup phase to start of trials
+DATASET.warmup_len = 64
 
 batch_size = 1024
 epochs = 10000

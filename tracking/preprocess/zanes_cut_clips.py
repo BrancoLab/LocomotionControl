@@ -50,7 +50,7 @@ def run():
         # Get video corresponding to this file
         name = posefile.name.split("DeepCut")[0]
         video = [v for v in videos if name in v.name][0]
-        print(f"Processing: {video.name}")
+        print(f"Processing: {posefile.name} -> {video.name}")
 
         # Get tracking data
         tracking = prepare_tracking_data(

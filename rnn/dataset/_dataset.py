@@ -46,6 +46,7 @@ class Dataset(data.Dataset, RNNPaths):
     to_chunks = False
     chunk_length = 128
     warmup = False
+    warmup_len = 10
 
     def __init__(self, dataset_length=-1, **kwargs):
         RNNPaths.__init__(self, dataset_name=self.name, **kwargs)
@@ -118,15 +119,14 @@ class Dataset(data.Dataset, RNNPaths):
         """ add a warmup phase of constant inputs 
             at start of trial to facilitate learning """
         l = len(X)
-        warmup = 10
 
-        x = np.zeros((warmup + l, X.shape[1]))
-        x[:warmup, :] = X[0, :]
-        x[warmup:, :] = X
+        x = np.zeros((self.warmup_len + l, X.shape[1]))
+        x[: self.warmup_len, :] = X[0, :]
+        x[self.warmup_len :, :] = X
 
-        y = np.zeros((warmup + l, Y.shape[1]))
-        y[:warmup, :] = Y[0, :]
-        y[warmup:, :] = Y
+        y = np.zeros((self.warmup_len + l, Y.shape[1]))
+        y[: self.warmup_len, :] = Y[0, :]
+        y[self.warmup_len :, :] = Y
 
         return torchify(x), torchify(y)
 

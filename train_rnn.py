@@ -48,9 +48,6 @@ def setup_loggers(winstor, data):
         main = "log.log"
         train = "log_training.log"
 
-        # os.remove("log.log")
-        # os.remove("log_training.log")
-
     logger.add(
         main,
         backtrace=True,
@@ -120,6 +117,7 @@ def fit(rnn, winstor, data):
         augment_probability=data.augment_probability,
         to_chunks=data.to_chunks,
         chunk_length=data.chunk_length if data.to_chunks else None,
+        warmup=data.warmup,
     )
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",
