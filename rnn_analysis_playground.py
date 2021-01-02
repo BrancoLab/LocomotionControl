@@ -1,9 +1,10 @@
 from pathlib import Path
 from pyrnn.rnn import RNN
-import matplotlib.pyplot as plt
+
+# import matplotlib.pyplot as plt
 import torch
 
-from rnn.dataset import plot_predictions
+# from rnn.dataset import plot_predictions
 from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 
 
@@ -23,12 +24,5 @@ rnn = RNN.load(
 data = DATASET()
 
 
-# ----------------------------------- plot ----------------------------------- #
-
-for i in range(10):
-    plot_predictions(rnn, data)
-plt.show()
-
-# TODO asses quality somehow
-# TODO get hidden state
+# TODO get hidden state on N trials
 # TODO RNN hidden state plots

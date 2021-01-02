@@ -37,7 +37,10 @@ def collate_tracking(tracking, bones_tracking):
 
 def run():
     # Get file paths
-    folder = Path("Z:\\swc\\branco\\Zane\\experiments\\batch2_session1")
+    folder = Path(
+        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/control/behav_data/ZaneRaw"
+    )
+
     videos = [f for f in folder.glob("*escconcat.avi")]
     h5s = [f for f in folder.glob("*.h5") if "escconcat" in f.name]
 
@@ -78,12 +81,18 @@ def run():
 
         # Iterate runs
         for run_number, (start, end) in enumerate(zip(starts, ends)):
-            if np.any(s[start:end] < 5):
+            if np.any(s[start:end] < 5):  # to slow
                 continue
-            if end - start < 20:
+            if end - start < 20:  # to short
                 continue
 
-            start = start - 1 * fps
+            # take a bit before and after
+            start -= 0.2 * fps
+            end += 0.2 * fps
+
+            raise NotImplementedError(
+                "Measure total turn angle and select only if large enough"
+            )
 
             # create a new video
             out_vid = (
