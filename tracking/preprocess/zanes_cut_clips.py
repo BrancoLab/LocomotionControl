@@ -9,7 +9,12 @@ import pandas as pd
 from fcutils.maths.utils import derivative, rolling_mean
 from fcutils.video.utils import trim_clip
 
-from tracking._tracking import prepare_tracking_data, compute_body_segments
+from tracking._tracking import (
+    prepare_tracking_data,
+    compute_body_segments,
+    average_body_angle,
+    wrapdiff,
+)
 
 fps = 60
 
@@ -38,14 +43,14 @@ def collate_tracking(tracking, bones_tracking):
 def run():
     # Get file paths
     folder = Path(
-        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/control/behav_data/ZaneRaw"
+        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\control\behav_data\ZaneRaw"
     )
 
     videos = [f for f in folder.glob("*escconcat.avi")]
     h5s = [f for f in folder.glob("*.h5") if "escconcat" in f.name]
 
     dest_folder = Path(
-        "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\control\\behav_data\\Zane"
+        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\control\behav_data\ZaneClips"
     )
 
     # Loop over pose files
@@ -64,7 +69,12 @@ def run():
         )
 
         bones_tracking = compute_body_segments(tracking, bones)
-        collated = collate_tracking(tracking, bones_tracking)
+        body_angle = average_body_angle(
+            bones_tracking["upper_body"].bone_orientation.values,
+            bones_tracking["lower_body"].bone_orientation.values,
+        )
+
+        # collated = collate_tracking(tracking, bones_tracking)
 
         y, s = (
             tracking["body"].y.values,
@@ -83,20 +93,23 @@ def run():
         for run_number, (start, end) in enumerate(zip(starts, ends)):
             if np.any(s[start:end] < 5):  # to slow
                 continue
-            if end - start < 20:  # to short
+            if end - start < 35:  # to short
+                continue
+
+            # Check turn angle
+            turn = wrapdiff(np.array(body_angle[end] - body_angle[start]))
+            print(int(turn))
+            if np.abs(turn) < 40:
                 continue
 
             # take a bit before and after
-            start -= 0.2 * fps
-            end += 0.2 * fps
-
-            raise NotImplementedError(
-                "Measure total turn angle and select only if large enough"
-            )
+            # start -= int(0.2 * fps)
+            # end += int(0.2 * fps)
 
             # create a new video
             out_vid = (
-                dest_folder / f'{video.name.split(".")[0]}_{run_number}.mp4'
+                dest_folder
+                / f'turn_{int(np.abs(turn))}_{video.name.split(".")[0]}_{run_number}.mp4'
             )
 
             trim_clip(
@@ -109,10 +122,10 @@ def run():
             )
 
             # Save tracking data
-            out_tracking = (
-                dest_folder / f'{video.name.split(".")[0]}_{run_number}.h5'
-            )
-            collated[start:end].to_hdf(out_tracking, key="hdf")
+            # out_tracking = (
+            #     dest_folder / f'{video.name.split(".")[0]}_{run_number}.h5'
+            # )
+            # collated[start:end].to_hdf(out_tracking, key="hdf")
 
 
 if __name__ == "__main__":

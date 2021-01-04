@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy.stats import circmean
 
 from fcutils.file_io.utils import check_file_exists
 from fcutils.maths.filtering import median_filter_1d
@@ -14,6 +15,71 @@ from fcutils.maths.geometry import (
 )
 from fcutils.maths.geometry import calc_ang_velocity
 from fcutils.maths.geometry import calc_distance_between_points_2d
+
+# ---------------------------------------------------------------------------- #
+#                                    ANGLES                                    #
+# ---------------------------------------------------------------------------- #
+
+
+def average_body_angle(*angles, deg=True):
+    """
+        Given a variable number of 1d numpy array of the same size, 
+        take the angular average at each frame.
+    """
+    if deg:
+        angles = [np.radians(a) for a in angles]
+    angs = np.vstack(angles)
+    mean_angle = [circmean(angs[:, i]) for i in range(angs.shape[1])]
+    return mean_angle if not deg else np.degrees(mean_angle)
+
+
+def ang_difference(a1, a2, deg=True):
+    """Compute the smallest difference between two angle arrays.
+    Parameters
+    ----------
+    a1, a2 : np.ndarray
+        The angle arrays to subtract
+    deg : bool (default=False)
+        Whether to compute the difference in degrees or radians
+    Returns
+    -------
+    out : np.ndarray
+        The difference between a1 and a2
+    """
+
+    diff = a1 - a2
+    return wrapdiff(diff, deg=deg)
+
+
+def wrapdiff(diff, deg=True):
+    """Given an array of angle differences, make sure that they lie
+    between -pi and pi.
+    Parameters
+    ----------
+    diff : np.ndarray
+        The angle difference array
+    deg : bool (default=False)
+        Whether the angles are in degrees or radians
+    Returns
+    -------
+    out : np.ndarray
+        The updated angle differences
+    """
+
+    if deg:
+        base = 360
+    else:
+        base = np.pi * 2
+
+    i = np.abs(diff) > (base / 2.0)
+    out = diff.copy()
+    out[i] -= np.sign(diff[i]) * base
+    return out
+
+
+# ---------------------------------------------------------------------------- #
+#                                      DLC                                     #
+# ---------------------------------------------------------------------------- #
 
 
 def get_scorer_bodyparts(tracking):
