@@ -16,6 +16,12 @@ from fcutils.maths.geometry import (
 from fcutils.maths.geometry import calc_ang_velocity
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
+"""
+    Utility functions to extract and clean up tracking data
+    from DLC and perform operations on tracking data.
+"""
+
+
 # ---------------------------------------------------------------------------- #
 #                                    ANGLES                                    #
 # ---------------------------------------------------------------------------- #
