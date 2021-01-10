@@ -2,6 +2,12 @@ from myterial import salmon, salmon_dark, light_green_dark, light_green
 import matplotlib.pyplot as plt
 from pyrnn._plot import clean_axes
 
+from rnn.dataset import dataset
+from rnn.dataset._dataset import Dataset, Preprocessing
+import inspect
+
+datasets = {v.name: v for k, v in vars(dataset).items() if inspect.isclass(v)}
+
 
 def plot_predictions(model, dataset):
     """

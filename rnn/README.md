@@ -1,7 +1,7 @@
 Code to facilitate the training and analysis of RNNs solving the controls problem
 
 ## Code organization
-- analysis: all things related to analysing the dynamics of a trained network. helper functions, visualization etc.
+- analysis: all things related to analysing the dynamics of a trained network. helper functions, visualization etc. Analysis also includes `Pipeline` which can be used to carry out standardized analyses on trained networks.
 - data: code to take the results of simulations using the 2WDD model in `control` and cleanup/process them to organize them in a dataset for training the RNN
 - dataset: code to preprocess and copmile simulation data into a proper dataset for training with `pyrnn` and collection of different dataset types
 

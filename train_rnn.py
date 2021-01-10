@@ -35,6 +35,12 @@ from rnn.train_params import (
     stop_loss,
     name,
 )
+from rnn.analysis import Pipeline
+
+
+raise NotImplementedError(
+    "Make sure that dataset parameters are also saved, save all training params"
+)
 
 # Set up
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -220,6 +226,10 @@ def wrap_up(rnn, loss_history, winstor, data):
         upload_to_db(data)
 
     logger.bind(main=True).info(f"Saved RNN at: {NAME}")
+
+    # Run analysis
+    logger.bind(main=True).info(f"Running analysis pipeline")
+    Pipeline(data.rnn_folder)
 
 
 # ---------------------------------------------------------------------------- #

@@ -92,5 +92,5 @@ def load_bonsai(folder, name):
 if __name__ == "__main__":
     load_bonsai(
         "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD_raw",
-        "FC_210107_test_longer",
+        "FC_210107_test",
     )

@@ -21,6 +21,7 @@ requirements = [
     "loguru",
     "gputil",
     "pyrnn",
+    "vedo",
 ]
 
 setup(
@@ -38,10 +39,5 @@ setup(
     url="https://github.com/FedeClaudi/pysical_locomotion",
     author="Federico Claudi",
     zip_safe=False,
-    entry_points={
-        "console_scripts": [
-            "locomote = proj.run.cli:launch",
-            "animate = proj.animation.animate:main",
-        ]
-    },
+    entry_points={"console_scripts": []},
 )

@@ -1,28 +1,10 @@
-from pathlib import Path
-from pyrnn.rnn import RNN
-
+# from loguru import logger
 # import matplotlib.pyplot as plt
-import torch
-
-# from rnn.dataset import plot_predictions
-from rnn.dataset.dataset import PredictNuDotFromXYT as DATASET
 
 
-# ----------------------------------- load ----------------------------------- #
+# from rnn.analysis import Pipeline
 
-fld = Path(
-    "/Users/federicoclaudi/Dropbox (UCL)/Apps/loco_upload/201215_091914_RNN_vanilla_large_batch_small_lr_dataset_predict_nudot_from_xyt/"
-)
-rnn = RNN.load(
-    str([f for f in fld.glob("*.pt")][0]),
-    n_units=256,
-    input_size=3,
-    output_size=2,
-    on_gpu=False,
-    load_kwargs=dict(map_location=torch.device("cpu")),
-)
-data = DATASET()
-
-
-# TODO get hidden state on N trials
-# TODO RNN hidden state plots
+# # ----------------------------------- load ----------------------------------- #
+# # load saved model
+# fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\control\RNN\trained\201221_170210_RNN_delta_dataset_predict_tau_from_deltaXYT"
+# Pipeline(fld, n_trials_in_h=24).run()

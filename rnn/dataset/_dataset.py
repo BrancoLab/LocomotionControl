@@ -42,6 +42,7 @@ colors = (orange, salmon, teal, light_blue, indigo, green_dark, blue_grey)
 class Dataset(data.Dataset, RNNPaths):
     # variables controlling trials creation
     # may be overwritten by train_params.py
+    name = ""
     augment_probability = 0
     to_chunks = False
     chunk_length = 128
