@@ -1,30 +1,56 @@
 from loguru import logger
 import json
 import torch
+from einops import repeat
+import numpy as np
 
 from fcutils.file_io.io import load_yaml
+
 from pyrnn import RNN, is_win
 from pyrnn.analysis import (
     FixedPoints,
     list_fixed_points,
 )
+from pyrnn._utils import torchify
+
+
 from rnn.dataset import datasets
 
 # ------------------------------- Fixed points ------------------------------- #
 
 
-def fit_fps(rnn, h, constant_inputs, fld, n_fixed_points=10):
+def make_constant_inputs(rnn):
+    """
+        Makes a list of constant inputs (zeros) for a given RNN
+    """
+    constant_inputs = [
+        repeat(
+            torchify(np.zeros(rnn.input_size)).cuda(), "i -> b n i", b=1, n=1
+        ),
+    ]
+
+    return constant_inputs
+
+
+def fit_fps(rnn, h, fld, n_fixed_points=10):
     """
         Fit pyrnn FixedPoints analysis to identify fixed points in the dynamics
 
         Arguments:
             rnn: RNN class instance
             h: np.ndarray. (N trials, N frames, N units) array with hidden states
-            constant_inputs: list. List of tensors with constant inputs for the analysis
             fld: Path. Folder where the fixed points will be saved
             n_fixed_points: int. Number of max fixed points to look for
 
+        Returns:
+            fps: list of FixedPoint objects
+
     """
+    logger.debug(
+        f"Finding fixed pooints with h of shape {h.shape} and number of fixed points: {n_fixed_points}"
+    )
+    constant_inputs = make_constant_inputs(rnn)
+
     fp_finder = FixedPoints(rnn, speed_tol=1e-02, noise_scale=2)
 
     fp_finder.find_fixed_points(
@@ -37,10 +63,15 @@ def fit_fps(rnn, h, constant_inputs, fld, n_fixed_points=10):
         gamma=0.1,
     )
 
+    # save number of fixed points
     fp_finder.save_fixed_points(fld / "3bit_fps.json")
 
+    # list fps
     fps = FixedPoints.load_fixed_points(fld / "3bit_fps.json")
+    logger.debug(f"Found {len(fps)} fixed points in total")
     list_fixed_points(fps)
+
+    return fps
 
 
 # ------------------------------------ I/O ----------------------------------- #
