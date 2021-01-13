@@ -3,8 +3,14 @@ import json
 import torch
 from einops import repeat
 import numpy as np
+from vedo import Arrow, fitPlane, Plane, Tube
+import matplotlib.pyplot as plt
 
 from fcutils.file_io.io import load_yaml
+from fcutils.plotting.utils import clean_axes
+from fcutils.maths.utils import derivative
+
+from myterial import salmon, blue_grey, teal
 
 from pyrnn import RNN, is_win
 from pyrnn.analysis import (
@@ -15,6 +21,97 @@ from pyrnn._utils import torchify
 
 
 from rnn.dataset import datasets
+
+# ----------------------------------- misc ----------------------------------- #
+
+
+def unpad(X, h):
+    """
+        Sequences are padded with 0s during RNN training and inference.
+        This function unpads the sequences for analysis
+
+        Arguments:
+            X: np.array of N_trials x N_samples x N inputs
+            h: np.array of N_trials x N_samples x N units
+
+        Returns:
+            X, h: same shapes but replacing the pads with np.nan
+    """
+    _X = X.copy()
+    _h = h.copy()
+
+    for trialn in range(X.shape[0]):
+        try:
+            stop = np.where(np.abs(derivative(X[trialn, :, 0])) > 0.1)[0][0]
+        except IndexError:
+            continue
+        else:
+            _X[trialn, stop:, :] = np.nan
+            _h[trialn, stop:, :] = np.nan
+
+    return _X, _h
+
+
+# ------------------------------- visualization ------------------------------- #
+def plot_inputs(X, labels):
+    f, axarr = plt.subplots(ncols=len(labels), figsize=(16, 9))
+    colors = (salmon, blue_grey, teal)
+
+    for n, lab in enumerate(labels):
+        for trialn in range(X.shape[0]):
+            axarr[n].plot(X[trialn, :, n], color=colors[n], lw=1, alpha=0.8)
+
+        axarr[n].set(xlabel="sim. frames", ylabel=lab)
+
+    f.suptitle("Network inputs")
+    clean_axes(f)
+
+    return f
+
+
+def render_inputs(X, labels):
+    """
+        Renders a set of inputs to the RNN in vedo to visualize
+        alongsize the networks dynamics.
+
+        X should be an b x n x N array with b=number of trials, n = number of time points and N<=3 is the number of inputs
+    """
+
+    # createa a tube for ecah trial with first two input variables and colored by the third
+    actors = []
+    for trialn in range(X.shape[0]):
+        points = [
+            (x, y, z)
+            for x, y, z in zip(
+                X[trialn, 1:, 0], X[trialn, 1:, 1], X[trialn, 1:, 2],
+            )
+        ]
+
+        actors.append(Tube(points, r=0.01))
+
+    # add custom axes with arrows
+    for point, c, label in zip(
+        ((1, 0, 0), (0, 1, 0), (0, 0, 1)), ("r", "g", "b"), labels
+    ):
+        actors.append(Arrow((0, 0, 0), point, c=c, s=0.005).legend(label))
+    return actors
+
+
+def render_vectors(points, labels, colors, showplane=False):
+    """
+        Creates a vedo Line from the origin along a vector to a point
+        for each point in points (of unit length)
+    """
+    actors = [
+        Arrow((0, 0, 0), point / np.linalg.norm(point), c=c, s=0.005).legend(l)
+        for point, c, l in zip(points, colors, labels)
+    ]
+
+    if showplane:
+        normal = fitPlane(np.array(points + [(0, 0, 0)])).normal
+        actors.append(Plane(normal=normal, sx=5, sy=5, c="k", alpha=0.2))
+    return actors
+
 
 # ------------------------------- Fixed points ------------------------------- #
 
