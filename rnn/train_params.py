@@ -1,18 +1,4 @@
-from rnn.dataset.dataset import (
-    PredictTauFromXYT,
-    PredictNuDotFromXYT,
-    PredictTauFromXYTVO,
-    PredictNudotFromDeltaXYT,
-    PredictTauFromDeltaXYT,
-)
-
-datasets_dict = dict(
-    PredictTauFromXYT=PredictTauFromXYT,
-    PredictNuDotFromXYT=PredictNuDotFromXYT,
-    PredictTauFromXYTVO=PredictTauFromXYTVO,
-    PredictNuDotFromDeltaXYT=PredictNudotFromDeltaXYT,
-    PredictTauFromDeltaXYT=PredictTauFromDeltaXYT,
-)
+from rnn.dataset import datasets
 
 """
     params for training an RNN on the control task.
@@ -24,7 +10,7 @@ datasets_dict = dict(
 N_trials = -1  # number of trials to use, set to -1 to use entire dataset
 
 dataset_name = "PredictTauFromDeltaXYT"
-DATASET = datasets_dict[dataset_name]
+DATASET = datasets[dataset_name]
 
 name = "" + "_" + DATASET.name  # rnn name
 
@@ -42,7 +28,7 @@ w_out_train = False
 
 # set some variables controlling datasets generation
 DATASET.augment_probability = (
-    0.05  # probabily  of augmenting a trial during training
+    0.0  # probabily  of augmenting a trial during training
 )
 
 DATASET.to_chunks = (
@@ -54,8 +40,8 @@ DATASET.warmup = True  # add a warmup phase to start of trials
 DATASET.warmup_len = 64
 
 batch_size = 1024
-epochs = 10000
-lr_milestones = [500, 4000, 8000]
+epochs = 25000
+lr_milestones = [1000, 6000, 15000]
 lr = 0.001
 stop_loss = None
 

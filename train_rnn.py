@@ -38,10 +38,6 @@ from rnn.train_params import (
 from rnn.analysis import Pipeline
 
 
-raise NotImplementedError(
-    "Make sure that dataset parameters are also saved, save all training params"
-)
-
 # Set up
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
