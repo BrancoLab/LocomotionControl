@@ -3,14 +3,14 @@ import json
 import torch
 from einops import repeat
 import numpy as np
-from vedo import Arrow, fitPlane, Plane, Tube
+from vedo import Arrow, fitPlane, Plane, fitLine
 import matplotlib.pyplot as plt
 
 from fcutils.file_io.io import load_yaml
 from fcutils.plotting.utils import clean_axes
 from fcutils.maths.utils import derivative
 
-from myterial import salmon, blue_grey, teal
+from myterial import salmon, purple, indigo, cyan, orange
 
 from pyrnn import RNN, is_win
 from pyrnn.analysis import (
@@ -22,10 +22,14 @@ from pyrnn._utils import torchify
 
 from rnn.dataset import datasets
 
+
+COLORS = dict(x=purple, y=indigo, theta=cyan, tau_R=orange, tau_L=salmon,)
+
+
 # ----------------------------------- misc ----------------------------------- #
 
 
-def unpad(X, h):
+def unpad(X, h, O):
     """
         Sequences are padded with 0s during RNN training and inference.
         This function unpads the sequences for analysis
@@ -33,12 +37,14 @@ def unpad(X, h):
         Arguments:
             X: np.array of N_trials x N_samples x N inputs
             h: np.array of N_trials x N_samples x N units
+            h: np.array of N_trials x N_samples x N outputs
 
         Returns:
             X, h: same shapes but replacing the pads with np.nan
     """
     _X = X.copy()
     _h = h.copy()
+    _O = O.copy()
 
     for trialn in range(X.shape[0]):
         try:
@@ -48,68 +54,86 @@ def unpad(X, h):
         else:
             _X[trialn, stop:, :] = np.nan
             _h[trialn, stop:, :] = np.nan
+            _O[trialn, stop:, :] = np.nan
 
-    return _X, _h
+    return _X, _h, _O
 
 
 # ------------------------------- visualization ------------------------------- #
 def plot_inputs(X, labels):
-    f, axarr = plt.subplots(ncols=len(labels), figsize=(16, 9))
-    colors = (salmon, blue_grey, teal)
+    """
+        Plot a network's inputs across trials
 
+        X should be an b x n x N array with b=number of trials, n = number of time points and N<=3 is the number of inputs
+        lables: list of str with name for each column in the last dimension of X
+
+    """
+    f, axarr = plt.subplots(ncols=len(labels), figsize=(16, 9))
     for n, lab in enumerate(labels):
         for trialn in range(X.shape[0]):
-            axarr[n].plot(X[trialn, :, n], color=colors[n], lw=1, alpha=0.8)
-
+            axarr[n].plot(X[trialn, :, n], color=COLORS[lab], lw=1, alpha=0.8)
         axarr[n].set(xlabel="sim. frames", ylabel=lab)
 
-    f.suptitle("Network inputs")
+    f.suptitle("Network INPUTs")
     clean_axes(f)
 
     return f
 
 
-def render_inputs(X, labels):
+def plot_outputs(O, labels):
     """
-        Renders a set of inputs to the RNN in vedo to visualize
-        alongsize the networks dynamics.
+        Plot a network's outputs across trials
 
-        X should be an b x n x N array with b=number of trials, n = number of time points and N<=3 is the number of inputs
+        Arguments:
+            O: np.array with TxSxO shape
+            labels: list of str of O length with output's names
     """
 
-    # createa a tube for ecah trial with first two input variables and colored by the third
-    actors = []
-    for trialn in range(X.shape[0]):
-        points = [
-            (x, y, z)
-            for x, y, z in zip(
-                X[trialn, 1:, 0], X[trialn, 1:, 1], X[trialn, 1:, 2],
-            )
-        ]
+    f, axarr = plt.subplots(ncols=len(labels), figsize=(16, 9))
 
-        actors.append(Tube(points, r=0.01))
+    for n, lab in enumerate(labels):
+        for trialn in range(O.shape[0]):
+            axarr[n].plot(O[trialn, :, n], color=COLORS[lab], lw=1, alpha=0.8)
+        axarr[n].set(xlabel="sim. frames", ylabel=lab)
 
-    # add custom axes with arrows
-    for point, c, label in zip(
-        ((1, 0, 0), (0, 1, 0), (0, 0, 1)), ("r", "g", "b"), labels
-    ):
-        actors.append(Arrow((0, 0, 0), point, c=c, s=0.005).legend(label))
-    return actors
+    f.suptitle("Network OUTPUTs")
+    clean_axes(f)
+
+    return f
 
 
-def render_vectors(points, labels, colors, showplane=False):
+def render_vectors(points, labels, colors, showplane=False, showline=False):
     """
         Creates a vedo Line from the origin along a vector to a point
         for each point in points (of unit length)
+
+        Arguments:
+            points: list of N points coordinates (3D)
+            labels: list of N str with names for the vectors
+            colors: list of N colors for the vectors
+            showplane: bool. If True a plane fitted to the vectors and origin is shown
+            showline: bool. If True a line fitted to each point and the origin
     """
-    actors = [
-        Arrow((0, 0, 0), point / np.linalg.norm(point), c=c, s=0.005).legend(l)
-        for point, c, l in zip(points, colors, labels)
-    ]
+    actors = []
+    for point, c, l in zip(points, colors, labels):
+        actors.append(
+            Arrow(
+                (0, 0, 0), (point / np.linalg.norm(point)) * 2, c=c, s=0.015
+            ).legend(l)
+        )
+
+        if showline:
+            actors.append(
+                fitLine(np.array(list(point) + [0, 0, 0]))
+                .c(c)
+                .alpha(0.4)
+                .lw(0.01)
+            )
 
     if showplane:
         normal = fitPlane(np.array(points + [(0, 0, 0)])).normal
-        actors.append(Plane(normal=normal, sx=5, sy=5, c="k", alpha=0.2))
+        actors.append(Plane(normal=normal, sx=10, sy=10, c="k", alpha=0.3))
+
     return actors
 
 

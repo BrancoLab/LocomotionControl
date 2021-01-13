@@ -22,7 +22,9 @@ from rnn.analysis.utils import (
     fit_fps,
     render_vectors,
     plot_inputs,
+    plot_outputs,
     unpad,
+    COLORS,
 )
 
 """
@@ -36,7 +38,7 @@ class Pipeline:
         folder,
         n_trials_in_h=128,
         interactive=False,
-        fit_fps=True,
+        fit_fps=False,
         fps_kwargs={},
     ):
         """ 
@@ -54,7 +56,8 @@ class Pipeline:
         self.analysis_folder.mkdir(exist_ok=True)
 
         self.h_path = self.analysis_folder / "h.npy"  # hidden state
-        self.X_path = self.analysis_folder / "x.npy"  # input data
+        self.X_path = self.analysis_folder / "X.npy"  # input data
+        self.O_path = self.analysis_folder / "O.npy"  # network output
 
         logger.add(self.analysis_folder / "analysis_log.log")
 
@@ -63,8 +66,6 @@ class Pipeline:
         self.interactive = interactive
         self.fit_fps = fit_fps
 
-        # TODO if in interactive mode make 3d renderings with vedo too
-
     def run(self):
         logger.debug("Running RNN analysis pipeline")
 
@@ -72,7 +73,7 @@ class Pipeline:
         self.dataset, self.rnn = load_from_folder(self.folder)
 
         # Get/load hidden states trajectory
-        self.X, self.h = self.get_Xh()
+        self.X, self.h, self.O = self.get_XhO()
 
         # not all trials are to be visualized for clarity, select some
         # self.idx_to_visualize = [tn for tn in range(self.X.shape[0]) if self.X[tn, 0, 0] < 0]
@@ -82,7 +83,7 @@ class Pipeline:
         self.make_plots()
 
         # Dymensionality analysis
-        # self.dimensionality()
+        self.dimensionality()
 
         # Visualize dynamics
         if self.interactive:
@@ -108,7 +109,7 @@ class Pipeline:
             plt.show()
         del figure
 
-    def get_Xh(self):
+    def get_XhO(self):
         """
             Tries to load a previously saved hidden state trajectory. 
             If there isn't one or it is of the wrong size it computes a new 
@@ -120,11 +121,12 @@ class Pipeline:
 
         h = np.load(self.h_path)
         if h.shape[0] != self.n_trials_in_h:
-            h, X = self.calc_h()
+            h, X, O = self.calc_h()
         else:
             logger.debug(f"Loaded h from file, shape: {h.shape}")
             X = np.load(self.X_path)
-        return unpad(X, h)
+            O = np.load(self.O_path)
+        return unpad(X, h, O)
 
     def calc_h(self):
         """
@@ -137,7 +139,7 @@ class Pipeline:
         if is_win:
             X = X.cpu().to("cuda:0")
 
-        _, h = self.rnn.predict_with_history(X)
+        O, h = self.rnn.predict_with_history(X)
 
         if np.any(np.isnan(h)) or np.any(np.isinf(h)):
             raise ValueError(
@@ -146,7 +148,9 @@ class Pipeline:
 
         np.save(self.h_path, h)
         np.save(self.X_path, X.cpu())
-        return h, npify(X)
+        np.save(self.O_path, O)
+
+        return h, npify(X), O
 
     def make_plots(self):
         # plot network inputs
@@ -154,6 +158,14 @@ class Pipeline:
             self.X[self.idx_to_visualize, :, :], self.dataset.inputs_names
         )
         self._show_save_plot(f, "network_inputs.png")
+
+        # plot networks outputs
+        f = plot_outputs(
+            self.O[self.idx_to_visualize, :, :], self.dataset.outputs_names
+        )
+        self._show_save_plot(f, "network_outputs.png")
+
+        pass
 
     def render_dynamics(self):
         """
@@ -163,19 +175,39 @@ class Pipeline:
         logger.debug("Rendering dynamics")
         n_variables = self.X.shape[-1]
 
+        # fit PCA on all data even if not rendered
+        pca, _ = render_state_history_pca_3d(self.h, _show=False)
+
         # Render for each variable using pyrnn
         actors = []
         for var in track(range(n_variables), transient=True):
             colors = []
-            vmin = np.nanmin(self.X[:, :, var])
-            vmax = np.nanmax(self.X[:, :, var])
+            # vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
+            # vmax = np.nanmax(self.X[self.idx_to_visualize, 0, var])
+            vmin = np.nanmin(self.O[self.idx_to_visualize, :, 0])
+            vmax = np.nanmax(self.O[self.idx_to_visualize, :, 0])
 
             for trialn in range(self.X.shape[0]):
                 if trialn in self.idx_to_visualize:
+
+                    # color each frame in each trial
+                    # colors.append(
+                    #     [
+                    #         colorMap(
+                    #             self.X[trialn, i, var],
+                    #             "viridis",
+                    #             vmin=vmin,
+                    #             vmax=vmax,
+                    #         )
+                    #         for i in range(self.X.shape[1])
+                    #     ]
+                    # )
+
+                    # color each frame in each trial based on outputs
                     colors.append(
                         [
                             colorMap(
-                                self.X[trialn, i, var],
+                                self.O[trialn, i, 0],
                                 "viridis",
                                 vmin=vmin,
                                 vmax=vmax,
@@ -184,7 +216,15 @@ class Pipeline:
                         ]
                     )
 
-            pca, acts = render_state_history_pca_3d(
+                    # one color for the whole trial
+                    # colors.append( colorMap(
+                    #             self.X[trialn, 0, var],
+                    #             "bwr",
+                    #             vmin=vmin,
+                    #             vmax=vmax,
+                    #         ))
+
+            _, acts = render_state_history_pca_3d(
                 self.h[self.idx_to_visualize, 1:, :],
                 alpha=0.6,
                 lw=0.025,
@@ -193,23 +233,28 @@ class Pipeline:
                 _show=False,
                 color=colors,
                 color_by_trial=True,
+                pca=pca,
             )
 
             # render input weights as vectors
             W_in = pca.transform(npify(self.rnn.w_in.weight).T)
             vecs = render_vectors(
-                [W_in[0, :], W_in[1, :], W_in[2, :]],
+                np.array([W_in[0, :], W_in[1, :], W_in[2, :]]),
                 self.dataset.inputs_names,
-                ("r", "g", "b"),
+                [COLORS[l] for l in self.dataset.inputs_names],
             )
 
             # render output weights
             W_out = pca.transform(npify(self.rnn.w_out.weight))
+            logger.debug(
+                f"Angle between read out vectors: {round(W_out[0, :].dot(W_out[1, :]), 4)}"
+            )
             vecs_out = render_vectors(
                 [W_out[0, :], W_out[1, :]],
                 self.dataset.outputs_names,
-                ("m", "k"),
+                [COLORS[l] for l in self.dataset.outputs_names],
                 showplane=True,
+                showline=False,
             )
 
             # project traces onto output plane
@@ -231,7 +276,9 @@ class Pipeline:
 
         # render everything in a single window
         logger.debug("Render ready")
-        show(actors, N=len(actors), size="full", title="Dynamics", axes=4)
+        show(
+            actors, N=len(actors), size="full", title="Dynamics", axes=4
+        ).close()
 
     def dimensionality(self):
         """
@@ -254,4 +301,4 @@ class Pipeline:
 
 if __name__ == "__main__":
     fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\201221_170210_RNN_delta_dataset_predict_tau_from_deltaXYT"
-    Pipeline(fld, n_trials_in_h=128, interactive=True, fit_fps=False).run()
+    Pipeline(fld, n_trials_in_h=256, interactive=True, fit_fps=False).run()
