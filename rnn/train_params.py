@@ -9,8 +9,14 @@ from rnn.dataset import datasets
 # ---------------------------------- Dataset --------------------------------- #
 N_trials = -1  # number of trials to use, set to -1 to use entire dataset
 
-dataset_name = "PredictTauFromDeltaXYT"
-DATASET = datasets[dataset_name]
+dataset_name = "dataset_predict_" + "tau_from_deltaXYT"
+
+try:
+    DATASET = datasets[dataset_name]
+except KeyError:
+    raise KeyError(
+        f"Could not find dataset {dataset_name}, available dataset: {datasets.keys()}"
+    )
 
 name = "" + "_" + DATASET.name  # rnn name
 
