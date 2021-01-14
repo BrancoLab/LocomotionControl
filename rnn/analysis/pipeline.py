@@ -2,14 +2,10 @@ from loguru import logger
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
-from vedo.colors import colorMap
-from rich.progress import track
-from vedo import Text2D, show
 
 from fcutils.plotting.utils import save_figure
 
 from pyrnn.analysis.dimensionality import get_n_components_with_pca
-from pyrnn.render import render_state_history_pca_3d
 from pyrnn import is_win
 from pyrnn._utils import npify
 
@@ -20,11 +16,9 @@ sys.path.append("./")
 from rnn.analysis.utils import (
     load_from_folder,
     fit_fps,
-    render_vectors,
     plot_inputs,
     plot_outputs,
     unpad,
-    COLORS,
 )
 
 """
@@ -166,119 +160,6 @@ class Pipeline:
         self._show_save_plot(f, "network_outputs.png")
 
         pass
-
-    def render_dynamics(self):
-        """
-            Renders the dynamics in 3D PCA space, coloring
-            the trials based on the values of each variable in X
-        """
-        logger.debug("Rendering dynamics")
-        n_variables = self.X.shape[-1]
-
-        # fit PCA on all data even if not rendered
-        pca, _ = render_state_history_pca_3d(self.h, _show=False)
-
-        # Render for each variable using pyrnn
-        actors = []
-        for var in track(range(n_variables), transient=True):
-            colors = []
-            # vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
-            # vmax = np.nanmax(self.X[self.idx_to_visualize, 0, var])
-            vmin = np.nanmin(self.O[self.idx_to_visualize, :, 0])
-            vmax = np.nanmax(self.O[self.idx_to_visualize, :, 0])
-
-            for trialn in range(self.X.shape[0]):
-                if trialn in self.idx_to_visualize:
-
-                    # color each frame in each trial
-                    # colors.append(
-                    #     [
-                    #         colorMap(
-                    #             self.X[trialn, i, var],
-                    #             "viridis",
-                    #             vmin=vmin,
-                    #             vmax=vmax,
-                    #         )
-                    #         for i in range(self.X.shape[1])
-                    #     ]
-                    # )
-
-                    # color each frame in each trial based on outputs
-                    colors.append(
-                        [
-                            colorMap(
-                                self.O[trialn, i, 0],
-                                "viridis",
-                                vmin=vmin,
-                                vmax=vmax,
-                            )
-                            for i in range(self.X.shape[1])
-                        ]
-                    )
-
-                    # one color for the whole trial
-                    # colors.append( colorMap(
-                    #             self.X[trialn, 0, var],
-                    #             "bwr",
-                    #             vmin=vmin,
-                    #             vmax=vmax,
-                    #         ))
-
-            _, acts = render_state_history_pca_3d(
-                self.h[self.idx_to_visualize, 1:, :],
-                alpha=0.6,
-                lw=0.025,
-                mark_start=True,
-                start_color="r",
-                _show=False,
-                color=colors,
-                color_by_trial=True,
-                pca=pca,
-            )
-
-            # render input weights as vectors
-            W_in = pca.transform(npify(self.rnn.w_in.weight).T)
-            vecs = render_vectors(
-                np.array([W_in[0, :], W_in[1, :], W_in[2, :]]),
-                self.dataset.inputs_names,
-                [COLORS[l] for l in self.dataset.inputs_names],
-            )
-
-            # render output weights
-            W_out = pca.transform(npify(self.rnn.w_out.weight))
-            logger.debug(
-                f"Angle between read out vectors: {round(W_out[0, :].dot(W_out[1, :]), 4)}"
-            )
-            vecs_out = render_vectors(
-                [W_out[0, :], W_out[1, :]],
-                self.dataset.outputs_names,
-                [COLORS[l] for l in self.dataset.outputs_names],
-                showplane=True,
-                showline=False,
-            )
-
-            # project traces onto output plane
-            sils = []
-            # for act in acts:
-            #     sils.append(
-            #         act.clone().projectOnPlane(vecs_out[-1]).c('k').alpha(1)
-            #     )
-
-            actors.append(
-                acts
-                + [Text2D(self.dataset.inputs_names[var], pos=3)]
-                + vecs
-                + vecs_out
-                + sils
-            )
-
-            break
-
-        # render everything in a single window
-        logger.debug("Render ready")
-        show(
-            actors, N=len(actors), size="full", title="Dynamics", axes=4
-        ).close()
 
     def dimensionality(self):
         """
