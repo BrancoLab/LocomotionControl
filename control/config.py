@@ -4,10 +4,12 @@ dt = 0.005
 px_to_cm = 1 / 8
 
 
-MANAGER_CONFIG = dict(exp_name="tracking", live_plot=False, use_fast=True,)
+MANAGER_CONFIG = dict(
+    exp_name="sim_fixed_dur", live_plot=False, use_fast=True,
+)
 
 TRAJECTORY_CONFIG = dict(
-    traj_type="tracking",  # tracking or simulated
+    traj_type="simulated",  # tracking or simulated
     n_steps=500,
     min_dist=5,  # when within this distance from end, stop
 )

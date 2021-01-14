@@ -217,8 +217,6 @@ class DynamicsVis(Pipeline):
         ).close()
 
 
-# TODO remove warmup time from predictions ?
-
 if __name__ == "__main__":
     fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\201221_170210_RNN_delta_dataset_predict_tau_from_deltaXYT"
     dv = DynamicsVis(fld, n_trials_in_h=10, fit_fps=False, interactive=True,)

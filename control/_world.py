@@ -19,7 +19,7 @@ def simulated():
         you'd get by loading trajectories from tracking data.
     """
 
-    duration = np.random.uniform(1.5, 6)
+    duration = 3  # np.random.uniform(1.5, 6)
     n_steps = int(duration / dt)
 
     # Define start and end of traj

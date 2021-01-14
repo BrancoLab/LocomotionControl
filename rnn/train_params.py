@@ -25,9 +25,9 @@ n_units = 256  # number of units in the RNN
 dale_ratio = None
 autopses = True
 w_in_bias = False
-w_in_train = False
+w_in_train = True
 w_out_bias = False
-w_out_train = False
+w_out_train = True
 
 
 # --------------------------------- Training --------------------------------- #
