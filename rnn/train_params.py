@@ -42,7 +42,7 @@ DATASET.to_chunks = (
 )
 DATASET.chunk_length = 64
 
-DATASET.warmup = True  # add a warmup phase to start of trials
+DATASET.warmup = False  # add a warmup phase to start of trials
 DATASET.warmup_len = 64
 
 batch_size = 1024

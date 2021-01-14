@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from fcutils.file_io.io import load_yaml
 from fcutils.plotting.utils import clean_axes
+from fcutils.plotting.plot_elements import plot_line_outlined
 from fcutils.maths.utils import derivative
 
 from myterial import salmon, purple, indigo, cyan, orange
@@ -71,7 +72,18 @@ def plot_inputs(X, labels):
     f, axarr = plt.subplots(ncols=len(labels), figsize=(16, 9))
     for n, lab in enumerate(labels):
         for trialn in range(X.shape[0]):
-            axarr[n].plot(X[trialn, :, n], color=COLORS[lab], lw=1, alpha=0.8)
+            axarr[n].plot(X[trialn, :, n], color=COLORS[lab], lw=1, alpha=0.5)
+
+        plot_line_outlined(
+            axarr[n],
+            np.nanmean(X[:, :, n], 0),
+            color=salmon,
+            outline=2,
+            lw=5,
+            alpha=1,
+            zorder=100,
+        )
+
         axarr[n].set(xlabel="sim. frames", ylabel=lab)
 
     f.suptitle("Network INPUTs")
@@ -93,7 +105,18 @@ def plot_outputs(O, labels):
 
     for n, lab in enumerate(labels):
         for trialn in range(O.shape[0]):
-            axarr[n].plot(O[trialn, :, n], color=COLORS[lab], lw=1, alpha=0.8)
+            axarr[n].plot(O[trialn, :, n], color=COLORS[lab], lw=1, alpha=0.5)
+
+        plot_line_outlined(
+            axarr[n],
+            np.nanmean(O[:, :, n], 0),
+            color=salmon,
+            outline=2,
+            lw=5,
+            alpha=1,
+            zorder=100,
+        )
+
         axarr[n].set(xlabel="sim. frames", ylabel=lab)
 
     f.suptitle("Network OUTPUTs")
@@ -230,6 +253,11 @@ def load_from_folder(fld):
     # load dataset used for training
     dataset = datasets[settings["dataset_name"]]()
     logger.debug(f'Loaded dataset: "{dataset.name}"')
+
+    # set dataset settings for inference
+    dataset.augment_probability = 0
+    dataset.to_chunks = False
+    dataset.warmup = False
 
     # load RNN
     del settings["on_gpu"], settings["dataset_name"]

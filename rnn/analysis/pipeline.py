@@ -51,6 +51,7 @@ class Pipeline:
 
         self.h_path = self.analysis_folder / "h.npy"  # hidden state
         self.X_path = self.analysis_folder / "X.npy"  # input data
+        self.Y_path = self.analysis_folder / "Y.npy"  # correct output
         self.O_path = self.analysis_folder / "O.npy"  # network output
 
         logger.add(self.analysis_folder / "analysis_log.log")
@@ -60,28 +61,31 @@ class Pipeline:
         self.interactive = interactive
         self.fit_fps = fit_fps
 
-    def run(self):
-        logger.debug("Running RNN analysis pipeline")
-
+    def setup(self):
+        """
+            Load necessary data for analysis and visualization
+        """
         # load RNN data
         self.dataset, self.rnn = load_from_folder(self.folder)
 
         # Get/load hidden states trajectory
-        self.X, self.h, self.O = self.get_XhO()
+        self.X, self.h, self.O, self.Y = self.get_XhO()
 
         # not all trials are to be visualized for clarity, select some
-        # self.idx_to_visualize = [tn for tn in range(self.X.shape[0]) if self.X[tn, 0, 0] < 0]
-        self.idx_to_visualize = np.arange(self.X.shape[0])
+        self.idx_to_visualize = [
+            tn for tn in range(self.X.shape[0]) if self.X[tn, 0, 0] < 0
+        ]
+        # self.idx_to_visualize = np.arange(self.X.shape[0])
+
+    def run(self):
+        logger.debug("Running RNN analysis pipeline")
+        self.setup()
 
         # make some plots
-        self.make_plots()
+        self.plot()
 
         # Dymensionality analysis
         self.dimensionality()
-
-        # Visualize dynamics
-        if self.interactive:
-            self.render_dynamics()
 
         # fit fixed points
         if self.fit_fps:
@@ -89,7 +93,7 @@ class Pipeline:
                 self.rnn, self.h, self.analysis_folder, **self.fps_kwargs
             )
 
-    def _show_save_plot(self, figure, path):
+    def _show_save_plot(self, figure, path, _show=True):
         """
             Saves a figure to file in the analysis folder
             and if in interactive mode it shows the plot
@@ -99,7 +103,7 @@ class Pipeline:
         )
         logger.debug(f"Saved {(self.analysis_folder / path).stem} figure")
 
-        if self.interactive:
+        if self.interactive and _show:
             plt.show()
         del figure
 
@@ -111,7 +115,7 @@ class Pipeline:
 
         """
         if not self.h_path.exists():
-            return self.get_h()
+            return self.calc_h()
 
         h = np.load(self.h_path)
         if h.shape[0] != self.n_trials_in_h:
@@ -119,8 +123,9 @@ class Pipeline:
         else:
             logger.debug(f"Loaded h from file, shape: {h.shape}")
             X = np.load(self.X_path)
+            Y = np.load(self.Y_path)
             O = np.load(self.O_path)
-        return unpad(X, h, O)
+        return unpad(X, h, O, Y)
 
     def calc_h(self):
         """
@@ -129,7 +134,7 @@ class Pipeline:
         logger.debug(
             f"Extracting hidden state trace for {self.n_trials_in_h} trials"
         )
-        X, _ = self.dataset.get_one_batch(self.n_trials_in_h)  # get trials
+        X, Y = self.dataset.get_one_batch(self.n_trials_in_h)  # get trials
         if is_win:
             X = X.cpu().to("cuda:0")
 
@@ -141,23 +146,24 @@ class Pipeline:
             )
 
         np.save(self.h_path, h)
+        np.save(self.Y_path, Y.cpu())
         np.save(self.X_path, X.cpu())
         np.save(self.O_path, O)
 
-        return h, npify(X), O
+        return h, npify(X), O, Y
 
-    def make_plots(self):
+    def plot(self):
         # plot network inputs
         f = plot_inputs(
             self.X[self.idx_to_visualize, :, :], self.dataset.inputs_names
         )
-        self._show_save_plot(f, "network_inputs.png")
+        self._show_save_plot(f, "network_inputs.png", _show=False)
 
         # plot networks outputs
         f = plot_outputs(
             self.O[self.idx_to_visualize, :, :], self.dataset.outputs_names
         )
-        self._show_save_plot(f, "network_outputs.png")
+        self._show_save_plot(f, "network_outputs.png", _show=True)
 
         pass
 

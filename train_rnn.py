@@ -88,6 +88,7 @@ def make_rnn(data, winstor):
     )
 
     if winstor:
+        # save RNN params
         params = rnn.params
         params["dataset_name"] = data.name
         save_yaml(
@@ -105,7 +106,8 @@ def fit(rnn, winstor, data):
     print(
         f"Training RNN:", rnn, f"with dataset: [{orange}]{name}", sep="\n",
     )
-    # log training parameters
+
+    # log/save training parameters
     info = dict(
         dataset=data.name,
         dataset_length=len(data),
@@ -120,9 +122,14 @@ def fit(rnn, winstor, data):
         to_chunks=data.to_chunks,
         chunk_length=data.chunk_length if data.to_chunks else None,
         warmup=data.warmup,
+        warmup_len=data.warmup_len,
     )
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",
+    )
+    save_yaml(
+        str(data.rnn_folder / f"training_params.yaml"),
+        json.dumps(info, sort_keys=True),
     )
 
     # FIT
@@ -218,14 +225,15 @@ def wrap_up(rnn, loss_history, winstor, data):
             f1.savefig(data.rnn_folder / f"predictions_{rep}.png")
         f2.savefig(data.rnn_folder / f"training_loss.png")
 
-        # copy data to dropbox app
-        upload_to_db(data)
-
     logger.bind(main=True).info(f"Saved RNN at: {NAME}")
 
     # Run analysis
     logger.bind(main=True).info(f"Running analysis pipeline")
-    Pipeline(data.rnn_folder)
+    Pipeline(data.rnn_folder).run()
+
+    # copy data to dropbox app
+    if winstor:
+        upload_to_db(data)
 
 
 # ---------------------------------------------------------------------------- #
