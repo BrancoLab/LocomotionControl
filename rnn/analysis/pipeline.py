@@ -32,6 +32,7 @@ from rnn.analysis._visuals import (
 
 class Pipeline:
     X = None
+    SELECT_TRIALS = False
 
     def __init__(
         self,
@@ -103,9 +104,12 @@ class Pipeline:
                 select: bool. If true trials are selected based on X[:, 0, 0]
         """
         # load RNN data
-        self.dataset, self.rnn = load_from_folder(
+        self.dataset, self.rnn, self.fixed_points = load_from_folder(
             self.folder, winstor=self.winstor
         )
+
+        self.input_names = self.dataset.inputs_names
+        self.output_names = self.dataset.outputs_names
 
         # Get/load hidden states trajectory
         self.X, self.h, self.O, self.Y = self.get_XhO()
@@ -120,7 +124,7 @@ class Pipeline:
 
     def run(self):
         logger.debug("Running RNN analysis pipeline")
-        self.setup()
+        self.setup(self.SELECT_TRIALS)
 
         # plot RNN I/O signal and weights
         self.plot()
@@ -253,5 +257,14 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210114_133552_RNN_large batch_dataset_predict_tau_from_deltaXYT"
-    Pipeline(fld, n_trials_in_h=256, interactive=True, fit_fps=False).run()
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+
+    fps_kwargs = dict(max_fixed_points=3, max_iters=6000, lr_decay_epoch=1500,)
+
+    Pipeline(
+        fld,
+        n_trials_in_h=512,
+        interactive=False,
+        fit_fps=True,
+        fps_kwargs=fps_kwargs,
+    ).run()

@@ -69,7 +69,7 @@ def make_constant_inputs(rnn):
     return constant_inputs
 
 
-def fit_fps(rnn, h, fld, n_fixed_points=10):
+def fit_fps(rnn, h, fld, **kwargs):
     """
         Fit pyrnn FixedPoints analysis to identify fixed points in the dynamics
 
@@ -77,34 +77,29 @@ def fit_fps(rnn, h, fld, n_fixed_points=10):
             rnn: RNN class instance
             h: np.ndarray. (N trials, N frames, N units) array with hidden states
             fld: Path. Folder where the fixed points will be saved
-            n_fixed_points: int. Number of max fixed points to look for
+            kwargs: paramaters to pass to `find_fixed_points`:
+                n_initial_conditions=150,
+                max_iters=9000,
+                lr_decay_epoch=1500,
+                max_fixed_points=n_fixed_points,
+                gamma=0.1,
 
         Returns:
             fps: list of FixedPoint objects
 
     """
-    logger.debug(
-        f"Finding fixed pooints with h of shape {h.shape} and number of fixed points: {n_fixed_points}"
-    )
+    logger.debug(f"Finding fixed points with h of shape {h.shape}")
     constant_inputs = make_constant_inputs(rnn)
 
     fp_finder = FixedPoints(rnn, speed_tol=1e-02, noise_scale=2)
 
-    fp_finder.find_fixed_points(
-        h,
-        constant_inputs,
-        n_initial_conditions=150,
-        max_iters=9000,
-        lr_decay_epoch=1500,
-        max_fixed_points=n_fixed_points,
-        gamma=0.1,
-    )
+    fp_finder.find_fixed_points(h, constant_inputs, **kwargs)
 
     # save number of fixed points
-    fp_finder.save_fixed_points(fld / "3bit_fps.json")
+    fp_finder.save_fixed_points(fld / "fixed_point.json")
 
     # list fps
-    fps = FixedPoints.load_fixed_points(fld / "3bit_fps.json")
+    fps = FixedPoints.load_fixed_points(fld / "fixed_point.json")
     logger.debug(f"Found {len(fps)} fixed points in total")
     list_fixed_points(fps)
 
@@ -147,11 +142,12 @@ def load_from_folder(fld, winstor=False):
 
         Arguments:
             fld: Path. Path to folder with RNN and metadata
+            winstor: bool. True if the fikder lives on winstor
 
         Returns
             dataset: instance of DataSet subclass used for training
             RNN: instance of pyrnn.RNN loaded from saved model
-            winstor: bool. True if the fikder lives on winstor
+            fps: inlist of FixedPoints loaded from file or empty list
 
     """
     logger.debug(f"Loading data from {fld.name}")
@@ -187,4 +183,13 @@ def load_from_folder(fld, winstor=False):
     )
     logger.debug(f"Loaded RNN")
 
-    return dataset, rnn
+    # load fixed points
+    try:
+        fps_file = get_file(fld / "analysis", "fixed_point.json")
+    except Exception:
+        logger.debug("No fixed points data found when loading RNN from folder")
+        fps = []
+    else:
+        fps = FixedPoints.load_fixed_points(fps_file)
+        logger.debug(f"Loaded {len(fps)} fixed points from file")
+    return dataset, rnn, fps

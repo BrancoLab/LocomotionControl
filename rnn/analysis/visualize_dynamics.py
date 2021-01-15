@@ -15,7 +15,7 @@ from myterial import salmon
 from fcutils.maths.utils import derivative
 from fcutils.plotting.utils import clean_axes
 
-from pyrnn.render import render_state_history_pca_3d
+from pyrnn.render import render_fixed_points
 from pyrnn._utils import npify, flatten_h
 from pyrnn.analysis.dimensionality import PCA
 
@@ -29,7 +29,7 @@ from rnn.analysis._visuals import (
 
 class DynamicsVis(Pipeline):
     SELECT_TRIALS = False  # show only some trials?
-    COLOR_BY = "speed"
+    COLOR_BY = "outvar"
     START = 0  # first frame to show
     STOP = -1  # last frame to show
 
@@ -69,8 +69,6 @@ class DynamicsVis(Pipeline):
                 var: int. Index of variable to be used for setting colors
         """
         colors = []
-        vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
-        vmax = np.nanmax(self.X[self.idx_to_visualize, 0, var])
 
         # vmin, vmax = -0.02, 0.02
 
@@ -78,7 +76,22 @@ class DynamicsVis(Pipeline):
             if trialn in self.idx_to_visualize:
                 if self.COLOR_BY == "var":
                     # ? color each frame in each trial
-                    D = derivative(self.X[trialn, :, 2])
+                    vmin = np.nanmin(self.X[self.idx_to_visualize, :, var])
+                    vmax = np.nanmax(self.X[self.idx_to_visualize, :, var])
+
+                    D = self.X[trialn, :, var]
+                    colors.append(
+                        [
+                            colorMap(D[i], "bwr", vmin=vmin, vmax=vmax,)
+                            for i in range(self.n_frames)
+                        ]
+                    )
+
+                elif self.COLOR_BY == "outvar":
+                    # ? color each frame in each trial
+                    vmin = np.nanmin(self.O[self.idx_to_visualize, :, 0])
+                    vmax = np.nanmax(self.O[self.idx_to_visualize, :, 0])
+                    D = self.O[trialn, :, 0]
                     colors.append(
                         [
                             colorMap(D[i], "bwr", vmin=vmin, vmax=vmax,)
@@ -88,6 +101,9 @@ class DynamicsVis(Pipeline):
 
                 elif self.COLOR_BY == "trial":
                     # ? one color for the whole trial
+                    vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
+                    vmax = np.nanmax(self.X[self.idx_to_visualize, 0, var])
+
                     colors.append(
                         colorMap(
                             self.X[trialn, 0, var],
@@ -157,16 +173,16 @@ class DynamicsVis(Pipeline):
         W_in = pca.transform(npify(self.rnn.w_in.weight).T)
         vecs_in = render_vectors(
             [W_in[0, :], W_in[1, :], W_in[2, :]],
-            self.dataset.inputs_names,
-            [COLORS[l] for l in self.dataset.inputs_names],
+            self.input_names,
+            [COLORS[l] for l in self.input_names],
         )
 
         # render output weights
         W_out = pca.transform(npify(self.rnn.w_out.weight))
         vecs_out = render_vectors(
             [W_out[0, :], W_out[1, :]],
-            self.dataset.outputs_names,
-            [COLORS[l] for l in self.dataset.outputs_names],
+            self.output_names,
+            [COLORS[l] for l in self.output_names],
             showplane=True,
             showline=False,
         )
@@ -191,17 +207,25 @@ class DynamicsVis(Pipeline):
         """
         colors = self._get_trial_colors(var)
 
+        if self.COLOR_BY == "var":
+            msg = "  by variable:  " + self.input_names[var]
+        elif self.COLOR_BY == "outvar":
+            msg = "  by variable:  " + self.output_names[var]
+        else:
+            msg = ""
+
         logger.debug(
-            f"[amber]Rendering colored by variable {self.dataset.inputs_names[var]}."
+            f"[amber]Rendering"
             f"\nRendering frames in range {self.START}-{self.STOP}",
-            f"\nColoring by: {self.COLOR_BY}",
+            f"\nColoring by: {self.COLOR_BY}" + msg,
         )
 
         # render each trial individually
-        _, acts = render_state_history_pca_3d(
+        _, acts = render_fixed_points(
             self.h[self.idx_to_visualize, self.START : self.STOP, :],
-            alpha=0.8,
-            lw=0.025,
+            self.fixed_points,
+            alpha=0.2,
+            lw=0.05,  # 0.025,
             mark_start=True,
             start_color="r",
             _show=False,
@@ -214,8 +238,9 @@ class DynamicsVis(Pipeline):
         acts.append(
             Text2D(
                 "var: "
-                + self.dataset.inputs_names[var]
-                + f" Colored by: {self.COLOR_BY}",
+                + self.input_names[var]
+                + f" Colored by: {self.COLOR_BY}"
+                + msg,
                 pos=3,
             )
         )
@@ -224,32 +249,28 @@ class DynamicsVis(Pipeline):
         vectors = self.render_input_output_vectors(pca)
 
         # project onto readout plane
-        acts.extend(self.project_onto_plane(acts[:-1], vectors[-1]))
+        # acts.extend(self.project_onto_plane(acts[:-1], vectors[-1]))
 
         return acts + vectors
 
     def plot_dynamics_projected_onto_readout_vectors(self):
         """
-            Plots the dynamics projected onto
+            Plots the dynamics projected onto the readout weights W_out
         """
-        # get h and W_out
-        h = self.h[0, :, :]
+        f, ax = plt.subplots(figsize=(16, 9))
+
+        # get W_out
         W = npify(self.rnn.w_out.weight)
 
-        # compute dot product
-        out = np.apply_along_axis(W.dot, 1, h)
-        if out.shape[1] > 2:
-            raise NotImplementedError(
-                "plot_dynamics_projected_onto_readout_vectors only implemented for 2 readout dimensions"
-            )
+        for trialn in range(self.n_trials):
+            # compute dot product
+            out = np.apply_along_axis(W.dot, 1, self.h[trialn, :, :])
 
-        # plot
-        f, ax = plt.subplots(figsize=(16, 9))
-        ax.plot(out[:, 0], out[:, 1], lw=1, color=salmon, alpha=0.8)
-        ax.set(
-            xlabel=self.dataset.output_names[0],
-            ylabel=self.dataset.output_names[1],
-        )
+            # plot
+            ax.plot(out[:, 0], out[:, 1], lw=3, color=salmon, alpha=0.5)
+            ax.set(
+                xlabel=self.output_names[0], ylabel=self.output_names[1],
+            )
 
         clean_axes(f)
         self._show_save_plot(f, "readout_projection.png", _show=False)
@@ -304,9 +325,9 @@ class DynamicsVis(Pipeline):
         self.setup(select=self.SELECT_TRIALS)
 
         # create renderings or plots based on dimensionality of dynamics
-        if self.dimensionality() > 2:
+        if self.dimensionality() > 1:
             # fit PCA on all data even if not rendered
-            pca, _ = render_state_history_pca_3d(self.h, _show=False)
+            pca = PCA(n_components=3).fit(flatten_h(self.h))
 
             # create actors for each variable using pyrnn
             actors = []
@@ -317,7 +338,12 @@ class DynamicsVis(Pipeline):
             # render everything in a single window
             logger.debug("Render ready")
             show(
-                actors, N=len(actors), size="full", title="Dynamics", axes=4
+                actors,
+                N=len(actors),
+                size="full",
+                title="Dynamics",
+                axes=4,
+                interactive=self.interactive,
             ).close()
 
             # plot activity projected onto readout plane
@@ -337,5 +363,5 @@ class DynamicsVis(Pipeline):
 if __name__ == "__main__":
     fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
     DynamicsVis(
-        fld, n_trials_in_h=2, fit_fps=False, interactive=True
+        fld, n_trials_in_h=128, fit_fps=False, interactive=True
     ).visualize()
