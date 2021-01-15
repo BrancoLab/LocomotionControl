@@ -4,7 +4,7 @@ import pandas as pd
 from rich.prompt import Confirm
 from fcutils.maths.geometry import calc_angle_between_points_of_vector_2d
 
-# ! This is to clean up/augment real tracking  data before running control on it
+# ? This is to clean up/augment real tracking  data before running control on it
 # ! this is NOT to clean up the data produced by CONTROL before running RNN
 
 """

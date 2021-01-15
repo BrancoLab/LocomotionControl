@@ -31,6 +31,8 @@ from rnn.analysis._visuals import (
 
 
 class Pipeline:
+    X = None
+
     def __init__(
         self,
         folder,
@@ -70,6 +72,28 @@ class Pipeline:
         self.fps_kwargs = fps_kwargs
         self.interactive = interactive
         self.fit_fps = fit_fps
+
+    @property
+    def n_trials(self):
+        """
+            Returns the number of trials in the data loaded
+        """
+        if self.X is None:
+            raise ValueError(
+                "Need to load data before accessing propery: n_trials"
+            )
+        return self.X.shape[0]
+
+    @property
+    def n_frames(self):
+        """
+            Returns the number of frames in the data loaded
+        """
+        if self.X is None:
+            raise ValueError(
+                "Need to load data before accessing propery: n_trials"
+            )
+        return self.X.shape[1]
 
     def setup(self, select=False):
         """
@@ -114,15 +138,20 @@ class Pipeline:
         if self.interactive:
             plt.show()
 
-    def _show_save_plot(self, figure, path, _show=True):
+    def _show_save_plot(self, figure, name, _show=True):
         """
             Saves a figure to file in the analysis folder
             and if in interactive mode it shows the plot
+
+            Arguments:
+                figure: plt.Figure object
+                name: str. Figure name (e.g. plot.png)
+                _show: bool. If true the figure is shown to user
         """
         save_figure(
-            figure, self.analysis_folder / path, verbose=False,
+            figure, self.analysis_folder / name, verbose=False,
         )
-        logger.debug(f"Saved {(self.analysis_folder / path).stem} figure")
+        logger.debug(f"Saved {(self.analysis_folder / name).stem} figure")
 
         if self.interactive and _show:
             plt.show()
@@ -136,16 +165,19 @@ class Pipeline:
 
         """
         if not self.h_path.exists():
-            return self.calc_h()
-
-        h = np.load(self.h_path)
-        if h.shape[0] != self.n_trials_in_h:
             h, X, O, Y = self.calc_h()
         else:
-            logger.debug(f"Loaded h from file, shape: {h.shape}")
-            X = np.load(self.X_path)
-            O = np.load(self.O_path)
-            Y = np.load(self.Y_path)
+            # load previously saved
+            h = np.load(self.h_path)
+
+            # check if right shape else calc anew
+            if h.shape[0] != self.n_trials_in_h:
+                h, X, O, Y = self.calc_h()
+            else:
+                logger.debug(f"Loaded h from file, shape: {h.shape}")
+                X = np.load(self.X_path)
+                O = np.load(self.O_path)
+                Y = np.load(self.Y_path)
 
         return unpad(X, h, O, Y)
 
@@ -201,6 +233,9 @@ class Pipeline:
         """
             Plots, renders and analysis to get at the dimensionality
             of the RNNs  dynamics
+
+            Returns:
+                dyn_dimensionality: int. Number of dimensions of the dynamics
         """
         # Look at dimensionality of hidden dynamics with PCA
         logger.debug("Getting dimensionality with PCA")
@@ -212,8 +247,9 @@ class Pipeline:
         )
 
         self._show_save_plot(f, "dynamics_dimensionality.png", _show=False)
+        return dyn_dimensionality
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210114_133552_RNN_large batch_dataset_predict_tau_from_deltaXYT"
     Pipeline(fld, n_trials_in_h=256, interactive=True, fit_fps=False).run()

@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from random import choice
 from scipy.signal import resample
 
+from fcutils.maths.utils import rolling_mean
+
 from pyrnn._utils import torchify
 from pyinspect.utils import subdirs
 from myterial import (
@@ -230,6 +232,8 @@ class Preprocessing(RNNPaths):
     name = "dataset name"
     description = "base"  # updated in subclasses to describe dataset
 
+    smoothing_window = 51  # used to smooth inputs and outputs
+
     # names of inputs and outputs of dataset
     inputs_names = ("x", "y", "theta", "v", "omega")
     outputs_names = ("out1", "out2")
@@ -240,16 +244,58 @@ class Preprocessing(RNNPaths):
         self.truncate_at = truncate_at
 
     def get_inputs(self, trajectory, history):
+        """
+            Function to select inputs fro trajectory and history data.
+            To be implemented by single Dataset classes.
+
+            Returns:
+                * inputs: variable number of np.arrays
+        """
         return NotImplementedError(
             "get_inputs should be implemented in your dataset preprocessing"
         )
         # should return x,y,theta,v,omega
 
     def get_outputs(self, history):
+        """
+            Function to select outputs from history data.
+            To be implemented by single Dataset classes.
+
+            Returns:
+                * outputs: variable number of np.arrays
+        """
         return NotImplementedError(
             "get_outputs should be implemented in your dataset preprocessing"
         )
         # should return output1, output2
+
+    def _get_inputs(self, trajectory, history):
+        """
+            Gets dataset-specific inputs and smooths them
+
+            Returns
+                smoothed: list of np.ndarrays smoothed by rolling mean
+        """
+        inputs = self.get_inputs(trajectory, history)
+        smoothed = [
+            rolling_mean(np.array(x), window=self.smoothing_window)
+            for x in inputs
+        ]
+        return smoothed
+
+    def _get_outputs(self, history):
+        """
+            Gets dataset-specific outputs and smooths them
+
+            Returns
+                smoothed: list of np.ndarrays smoothed by rolling mean
+        """
+        outputs = self.get_outputs(history)
+        smoothed = [
+            rolling_mean(np.array(x), window=self.smoothing_window)
+            for x in outputs
+        ]
+        return smoothed
 
     def truncate(self, train, test):
         """
@@ -345,12 +391,12 @@ class Preprocessing(RNNPaths):
                 continue
 
             # Get inputs
-            inputs = self.get_inputs(trajectory, history)
+            inputs = self._get_inputs(trajectory, history)
             for name, value in zip(self.inputs_names, inputs):
                 data[name].append(value)
 
             # get outputs
-            outputs = self.get_outputs(history)
+            outputs = self._get_outputs(history)
             for name, value in zip(self.outputs_names, outputs):
                 data[name].append(value)
 

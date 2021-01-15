@@ -2,6 +2,7 @@ from vedo.colors import colorMap
 from loguru import logger
 from vedo import Text2D, show
 import numpy as np
+import matplotlib.pyplot as plt
 
 # from einops import repeat
 
@@ -10,8 +11,11 @@ import sys
 sys.path.append("./")
 
 from fcutils.maths.utils import derivative
+from fcutils.plotting.utils import clean_axes
+
 from pyrnn.render import render_state_history_pca_3d
-from pyrnn._utils import npify
+from pyrnn._utils import npify, flatten_h
+from pyrnn.analysis.dimensionality import PCA
 
 
 from rnn.analysis import Pipeline
@@ -68,7 +72,7 @@ class DynamicsVis(Pipeline):
 
         # vmin, vmax = -0.02, 0.02
 
-        for trialn in range(self.X.shape[0]):
+        for trialn in range(self.n_trials):
             if trialn in self.idx_to_visualize:
                 if self.COLOR_BY == "var":
                     # ? color each frame in each trial
@@ -76,7 +80,7 @@ class DynamicsVis(Pipeline):
                     colors.append(
                         [
                             colorMap(D[i], "bwr", vmin=vmin, vmax=vmax,)
-                            for i in range(self.X.shape[1])
+                            for i in range(self.n_frames)
                         ]
                     )
 
@@ -95,8 +99,8 @@ class DynamicsVis(Pipeline):
                     # ? color by time
                     colors.append(
                         [
-                            colorMap(i, "bwr", vmin=0, vmax=self.X.shape[1],)
-                            for i in range(self.X.shape[1])
+                            colorMap(i, "bwr", vmin=0, vmax=self.n_frames,)
+                            for i in range(self.n_frames)
                         ]
                     )
 
@@ -219,6 +223,28 @@ class DynamicsVis(Pipeline):
 
         return acts + vectors
 
+    def _plot(self, pca):
+        """
+            Plots the network's dynamics in 2D
+
+            Arguments:
+                pca: PCA with n_components=2 fitted to self.h
+        """
+        f, axarr = plt.subplots(nrows=pca.n_components, figsize=(16, 9))
+
+        for pc_n in range(pca.n_components):
+            for trialn in range(self.n_trials):
+                pcs = pca.transform(self.h[trialn, :, :])
+                axarr[pc_n].plot(
+                    pcs[:, pc_n], color=[0.3, 0.3, 0.3], alpha=0.7
+                )
+            axarr[pc_n].set(
+                title=f"PC: {pc_n}", xlabel="frames", ylabel="val."
+            )
+
+        clean_axes(f)
+        self._show_save_plot(f, "dynamics.png", _show=True)
+
     def visualize(self):
         """
             Renders the dynamics in 3D PCA space, coloring
@@ -229,24 +255,32 @@ class DynamicsVis(Pipeline):
         # load data
         self.setup(select=self.SELECT_TRIALS)
 
-        # fit PCA on all data even if not rendered
-        pca, _ = render_state_history_pca_3d(self.h, _show=False)
+        # create renderings or plots based on dimensionality of dynamics
+        if self.dimensionality() > 2:
+            # fit PCA on all data even if not rendered
+            pca, _ = render_state_history_pca_3d(self.h, _show=False)
 
-        # create actors for each variable using pyrnn
-        actors = []
-        for var in range(self.X.shape[-1]):
-            actors.append(self._render_by_var(var, pca))
-            break
+            # create actors for each variable using pyrnn
+            actors = []
+            for var in range(self.X.shape[-1]):
+                actors.append(self._render_by_var(var, pca))
+                break
 
-        # render everything in a single window
-        logger.debug("Render ready")
-        show(
-            actors, N=len(actors), size="full", title="Dynamics", axes=4
-        ).close()
+            # render everything in a single window
+            logger.debug("Render ready")
+            show(
+                actors, N=len(actors), size="full", title="Dynamics", axes=4
+            ).close()
+        else:
+            # fit PCA on all daata
+            pca = PCA(n_components=2).fit(flatten_h(self.h))
+
+            # create plots
+            self._plot(pca)
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210114_133552_RNN_large batch_dataset_predict_tau_from_deltaXYT"
     DynamicsVis(
-        fld, n_trials_in_h=256, fit_fps=False, interactive=True
+        fld, n_trials_in_h=16, fit_fps=False, interactive=True
     ).visualize()

@@ -1,6 +1,4 @@
-import numpy as np
 import sys
-from fcutils.maths.utils import rolling_mean
 
 from rnn.dataset._dataset import Preprocessing, Dataset
 
@@ -25,17 +23,13 @@ class PredictTauFromXYT(Dataset, Preprocessing):
         Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
-    def get_inputs(self, trajectory, history, window=21):
-        x = rolling_mean(history.x, window)
-        y = rolling_mean(history.y, window)
-        theta = rolling_mean(history.theta, window)
+    def get_inputs(self, trajectory, history):
+        return history.x, history.y, history.theta
 
-        return x, y, theta
-
-    def get_outputs(self, history, window=21):
+    def get_outputs(self, history):
         return (
-            rolling_mean(history["tau_r"], window),
-            rolling_mean(history["tau_l"], window),
+            history.tau_r,
+            history.tau_l,
         )
 
 
@@ -58,18 +52,11 @@ class PredictNuDotFromXYT(Dataset, Preprocessing):
         Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
-    def get_inputs(self, trajectory, history, window=21):
-        x = rolling_mean(history.x, window)
-        y = rolling_mean(history.y, window)
-        theta = rolling_mean(history.theta, window)
+    def get_inputs(self, trajectory, history):
+        return history.x, history.y, history.theta
 
-        return x, y, theta
-
-    def get_outputs(self, history, window=21):
-        return (
-            rolling_mean(history["tau_r"], window),
-            rolling_mean(history["tau_l"], window),
-        )
+    def get_outputs(self, history):
+        return history.tau_r, history.tau_l
 
 
 class PredictTauFromXYTVO(Dataset, Preprocessing):
@@ -89,20 +76,11 @@ class PredictTauFromXYTVO(Dataset, Preprocessing):
         Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
-    def get_inputs(self, trajectory, history, window=21):
-        x = rolling_mean(history.x, window)
-        y = rolling_mean(history.y, window)
-        theta = rolling_mean(history.theta, window)
-        v = rolling_mean(history.v, window)
-        omega = rolling_mean(history.omega, window)
+    def get_inputs(self, trajectory, history):
+        return history.x, history.y, history.theta, history.v, history.omega
 
-        return x, y, theta, v, omega
-
-    def get_outputs(self, history, window=21):
-        return (
-            rolling_mean(history["tau_r"], window),
-            rolling_mean(history["tau_l"], window),
-        )
+    def get_outputs(self, history):
+        return history.tau_r, history.tau_l
 
 
 class PredictNudotFromDeltaXYT(Dataset, Preprocessing):
@@ -125,18 +103,15 @@ class PredictNudotFromDeltaXYT(Dataset, Preprocessing):
         Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
-    def get_inputs(self, trajectory, history, window=21):
-        dx = rolling_mean(history.goal_x - history.x, window)
-        dy = rolling_mean(history.goal_y - history.y, window)
-        dtheta = rolling_mean(history.goal_theta - history.theta, window)
+    def get_inputs(self, trajectory, history):
+        dx = history.goal_x - history.x
+        dy = history.goal_y - history.y
+        dtheta = history.goal_theta - history.theta
 
         return dx, dy, dtheta
 
     def get_outputs(self, history):
-        return (
-            np.array(history["nudot_right"]),
-            np.array(history["nudot_left"]),
-        )
+        return history.nudot_right, history.nudot_left
 
 
 class PredictTauFromDeltaXYT(Dataset, Preprocessing):
@@ -157,15 +132,12 @@ class PredictTauFromDeltaXYT(Dataset, Preprocessing):
         Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
         Dataset.__init__(self, *args, **kwargs)
 
-    def get_inputs(self, trajectory, history, window=21):
-        dx = rolling_mean(history.goal_x - history.x, window)
-        dy = rolling_mean(history.goal_y - history.y, window)
-        dtheta = rolling_mean(history.goal_theta - history.theta, window)
+    def get_inputs(self, trajectory, history):
+        dx = history.goal_x - history.x
+        dy = history.goal_y - history.y
+        dtheta = history.goal_theta - history.theta
 
         return dx, dy, dtheta
 
-    def get_outputs(self, history, window=21):
-        return (
-            rolling_mean(history["tau_r"], window),
-            rolling_mean(history["tau_l"], window),
-        )
+    def get_outputs(self, history):
+        return history.tau_r, history.tau_l

@@ -6,7 +6,7 @@ import numpy as np
 
 
 from fcutils.maths.utils import derivative
-
+from fcutils.file_io.io import load_yaml
 
 from pyrnn import RNN, is_win
 from pyrnn.analysis import (
@@ -153,7 +153,8 @@ def load_from_folder(fld, winstor=False):
 
     # load params from yml
     settings_file = get_file(fld, "rnn.yaml")
-    settings = from_json(settings_file)
+    # settings = from_json(settings_file)
+    settings = json.loads(load_yaml(str(settings_file)))
     logger.debug("Loaded settings")
 
     # load dataset used for training
