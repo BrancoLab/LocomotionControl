@@ -221,12 +221,17 @@ class DynamicsVis(Pipeline):
         # render W_in and W_out
         vectors = self.render_input_output_vectors(pca)
 
+        # project onto readout plane
+        acts.extend(self.project_onto_plane(acts[:-1], vectors[-1]))
+
         return acts + vectors
 
-    # def plot_dynamics_projected_onto_readout_vectors(self):
-    #     '''
-    #         Plots the dynamics projected onto
-    #     '''
+    def plot_dynamics_projected_onto_readout_vectors(self):
+        """
+            Plots the dynamics projected onto
+        """
+        return
+        # a = 1
 
     def _plot_pca(self, pca):
         """
@@ -294,7 +299,10 @@ class DynamicsVis(Pipeline):
                 actors, N=len(actors), size="full", title="Dynamics", axes=4
             ).close()
 
-            # plot PCs independently
+            # plot activity projected onto readout plane
+            self.plot_dynamics_projected_onto_readout_vectors()
+
+            # plot PCs
             self._plot_pca(pca)
 
         else:
