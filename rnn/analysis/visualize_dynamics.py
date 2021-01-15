@@ -225,13 +225,14 @@ class DynamicsVis(Pipeline):
 
     def _plot(self, pca):
         """
-            Plots the network's dynamics in 2D
+            Plots the network's dynamics in 2D and each PC independently
 
             Arguments:
                 pca: PCA with n_components=2 fitted to self.h
         """
         # plot each PC in its own subplot
         f, axarr = plt.subplots(nrows=pca.n_components, figsize=(16, 9))
+        f.suptitle("All PCs")
 
         for pc_n in range(pca.n_components):
             for trialn in range(self.n_trials):
@@ -244,7 +245,22 @@ class DynamicsVis(Pipeline):
             )
 
         clean_axes(f)
-        self._show_save_plot(f, "dynamics.png", _show=True)
+        self._show_save_plot(f, "all_PCs.png", _show=False)
+
+        # plot first two PCs
+        if pca.n_components < 2:
+            return
+
+        f, ax = plt.subplots(figsize=(16, 9))
+        f.suptitle("First two PCs")
+        for trialn in range(self.n_trials):
+            pcs = pca.transform(self.h[trialn, :, :])
+            ax.plot(pcs[:, 0], pcs[:, 1], color=[0.3, 0.3, 0.3], alpha=0.7)
+
+        ax.set(xlabel="PC1", ylabel="PC2")
+
+        clean_axes(f)
+        self._show_save_plot(f, "top_2_PCs.png", _show=False)
 
     def visualize(self):
         """
@@ -287,5 +303,5 @@ class DynamicsVis(Pipeline):
 if __name__ == "__main__":
     fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
     DynamicsVis(
-        fld, n_trials_in_h=16, fit_fps=False, interactive=True
+        fld, n_trials_in_h=256, fit_fps=False, interactive=True
     ).visualize()
