@@ -31,7 +31,7 @@ w_out_train = True
 l2norm = 0  # recurrent weights normalization
 
 
-# --------------------------------- Training --------------------------------- #
+# ---------------------------------- dataset --------------------------------- #
 
 # set some variables controlling datasets generation
 DATASET.augment_probability = (
@@ -46,7 +46,11 @@ DATASET.chunk_length = 64
 DATASET.warmup = False  # add a warmup phase to start of trials
 DATASET.warmup_len = 64
 
-batch_size = 1024
+DATASET.smoothing_window = 61  # used to smooth inputs and outputs
+
+# --------------------------------- training --------------------------------- #
+
+batch_size = 2048
 epochs = 25000
 lr_milestones = [1000, 6000, 15000]
 lr = 0.001

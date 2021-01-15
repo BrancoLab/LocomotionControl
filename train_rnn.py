@@ -121,6 +121,7 @@ def fit(rnn, winstor, data):
         chunk_length=data.chunk_length if data.to_chunks else None,
         warmup=data.warmup,
         warmup_len=data.warmup_len,
+        smoothing_window_size=data.smoothing_window,
     )
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",

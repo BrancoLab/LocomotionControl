@@ -230,6 +230,7 @@ class DynamicsVis(Pipeline):
             Arguments:
                 pca: PCA with n_components=2 fitted to self.h
         """
+        # plot each PC in its own subplot
         f, axarr = plt.subplots(nrows=pca.n_components, figsize=(16, 9))
 
         for pc_n in range(pca.n_components):
@@ -271,6 +272,10 @@ class DynamicsVis(Pipeline):
             show(
                 actors, N=len(actors), size="full", title="Dynamics", axes=4
             ).close()
+
+            # plot PCs independently
+            self._plot(pca)
+
         else:
             # fit PCA on all daata
             pca = PCA(n_components=2).fit(flatten_h(self.h))
@@ -280,7 +285,7 @@ class DynamicsVis(Pipeline):
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210114_133552_RNN_large batch_dataset_predict_tau_from_deltaXYT"
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
     DynamicsVis(
         fld, n_trials_in_h=16, fit_fps=False, interactive=True
     ).visualize()
