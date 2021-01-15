@@ -10,6 +10,8 @@ import sys
 
 sys.path.append("./")
 
+from myterial import salmon
+
 from fcutils.maths.utils import derivative
 from fcutils.plotting.utils import clean_axes
 
@@ -230,8 +232,27 @@ class DynamicsVis(Pipeline):
         """
             Plots the dynamics projected onto
         """
-        return
-        # a = 1
+        # get h and W_out
+        h = self.h[0, :, :]
+        W = npify(self.rnn.w_out.weight)
+
+        # compute dot product
+        out = np.apply_along_axis(W.dot, 1, h)
+        if out.shape[1] > 2:
+            raise NotImplementedError(
+                "plot_dynamics_projected_onto_readout_vectors only implemented for 2 readout dimensions"
+            )
+
+        # plot
+        f, ax = plt.subplots(figsize=(16, 9))
+        ax.plot(out[:, 0], out[:, 1], lw=1, color=salmon, alpha=0.8)
+        ax.set(
+            xlabel=self.dataset.output_names[0],
+            ylabel=self.dataset.output_names[1],
+        )
+
+        clean_axes(f)
+        self._show_save_plot(f, "readout_projection.png", _show=False)
 
     def _plot_pca(self, pca):
         """

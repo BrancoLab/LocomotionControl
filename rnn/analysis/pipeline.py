@@ -188,7 +188,9 @@ class Pipeline:
         logger.debug(
             f"Extracting hidden state trace for {self.n_trials_in_h} trials"
         )
-        X, Y = self.dataset.get_one_batch(self.n_trials_in_h)  # get trials
+        X, Y = self.dataset.get_one_batch(
+            self.n_trials_in_h, winstor=self.winstor
+        )  # get trials
         if is_win:
             X = X.cpu().to("cuda:0")
 
