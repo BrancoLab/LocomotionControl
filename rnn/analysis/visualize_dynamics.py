@@ -10,19 +10,23 @@ import sys
 sys.path.append("./")
 
 from fcutils.maths.utils import derivative
-
 from pyrnn.render import render_state_history_pca_3d
 from pyrnn._utils import npify
 
 
 from rnn.analysis import Pipeline
-from rnn.analysis.utils import (
+from rnn.analysis._visuals import (
     render_vectors,
     COLORS,
 )
 
 
 class DynamicsVis(Pipeline):
+    SELECT_TRIALS = False  # show only some trials?
+    COLOR_BY = "speed"
+    START = 0  # first frame to show
+    STOP = -1  # last frame to show
+
     def __init__(
         self,
         folder,
@@ -49,9 +53,6 @@ class DynamicsVis(Pipeline):
             fps_kwargs=fps_kwargs,
         )
 
-        # load data
-        self.setup()
-
     def _get_trial_colors(self, var):
         """
             Gets a list of colors to color the actors of each trial. 
@@ -62,29 +63,56 @@ class DynamicsVis(Pipeline):
                 var: int. Index of variable to be used for setting colors
         """
         colors = []
-        # vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
-        # vmax = np.nanmax(self.X[self.idx_to_visualize, 0, var])
+        vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
+        vmax = np.nanmax(self.X[self.idx_to_visualize, 0, var])
 
-        vmin, vmax = -0.2, 0.2
+        # vmin, vmax = -0.02, 0.02
 
         for trialn in range(self.X.shape[0]):
             if trialn in self.idx_to_visualize:
-                D = derivative(self.X[trialn, :, 2])
+                if self.COLOR_BY == "var":
+                    # ? color each frame in each trial
+                    D = derivative(self.X[trialn, :, 2])
+                    colors.append(
+                        [
+                            colorMap(D[i], "bwr", vmin=vmin, vmax=vmax,)
+                            for i in range(self.X.shape[1])
+                        ]
+                    )
 
-                # color each frame in each trial
-                colors.append(
-                    [
-                        colorMap(D[i], "viridis", vmin=vmin, vmax=vmax,)
-                        for i in range(self.X.shape[1])
-                    ]
-                )
+                elif self.COLOR_BY == "trial":
+                    # ? one color for the whole trial
+                    colors.append(
+                        colorMap(
+                            self.X[trialn, 0, var],
+                            "viridis",
+                            vmin=vmin,
+                            vmax=vmax,
+                        )
+                    )
 
-                # # one color for the whole trial
-                # colors.append(
-                #     colorMap(
-                #         self.X[trialn, 0, var], "viridis", vmin=vmin, vmax=vmax,
-                #     )
-                # )
+                elif self.COLOR_BY == "time":
+                    # ? color by time
+                    colors.append(
+                        [
+                            colorMap(i, "bwr", vmin=0, vmax=self.X.shape[1],)
+                            for i in range(self.X.shape[1])
+                        ]
+                    )
+
+                elif self.COLOR_BY == "speed":
+                    # ? color by speed of the dynamics
+                    speed = np.abs(
+                        np.nanmean(
+                            derivative(
+                                np.nan_to_num(self.h[trialn, :, :]), axis=0
+                            ),
+                            axis=1,
+                        )
+                    )
+                    colors.append(
+                        [colorMap(i, "bwr", vmin=0, vmax=0.015) for i in speed]
+                    )
 
         return colors
 
@@ -157,11 +185,15 @@ class DynamicsVis(Pipeline):
         """
         colors = self._get_trial_colors(var)
 
-        STOP = 400  # show until this frame
+        logger.debug(
+            f"[amber]Rendering colored by variable {self.dataset.inputs_names[var]}."
+            f"\nRendering frames in range {self.START}-{self.STOP}",
+            f"\nColoring by: {self.COLOR_BY}",
+        )
 
         # render each trial individually
         _, acts = render_state_history_pca_3d(
-            self.h[self.idx_to_visualize, :STOP, :],
+            self.h[self.idx_to_visualize, self.START : self.STOP, :],
             alpha=0.8,
             lw=0.025,
             mark_start=True,
@@ -172,22 +204,15 @@ class DynamicsVis(Pipeline):
             pca=pca,
         )
 
-        # # render mean trace
-        # H = np.nanmean(self.h[self.idx_to_visualize, 1:, :], 0)[:STOP, :]
-
-        # _, H_acts = render_state_history_pca_3d(
-        #     repeat(H, "n i -> b n i", b=1),
-        #     alpha=1,
-        #     lw=0.05,
-        #     color='k',
-        #     pca=pca,
-        #     _show=False,
-        # )
-
-        # acts += H_acts
-
         # render variable name
-        acts.append(Text2D(self.dataset.inputs_names[var], pos=3))
+        acts.append(
+            Text2D(
+                "var: "
+                + self.dataset.inputs_names[var]
+                + f" Colored by: {self.COLOR_BY}",
+                pos=3,
+            )
+        )
 
         # render W_in and W_out
         vectors = self.render_input_output_vectors(pca)
@@ -200,6 +225,9 @@ class DynamicsVis(Pipeline):
             the trials based on the values of each variable in X
         """
         logger.debug(f"Rendering dynamics")
+
+        # load data
+        self.setup(select=self.SELECT_TRIALS)
 
         # fit PCA on all data even if not rendered
         pca, _ = render_state_history_pca_3d(self.h, _show=False)
@@ -218,7 +246,7 @@ class DynamicsVis(Pipeline):
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\201221_170210_RNN_delta_dataset_predict_tau_from_deltaXYT"
-    dv = DynamicsVis(fld, n_trials_in_h=10, fit_fps=False, interactive=True,)
-    # dv.plot()
-    dv.visualize()
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+    DynamicsVis(
+        fld, n_trials_in_h=256, fit_fps=False, interactive=True
+    ).visualize()

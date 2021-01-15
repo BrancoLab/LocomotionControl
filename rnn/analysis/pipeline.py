@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from fcutils.plotting.utils import save_figure
+from myterial import orange
 
 from pyrnn.analysis.dimensionality import get_n_components_with_pca
 from pyrnn import is_win
-from pyrnn._utils import npify
 
 import sys
 
@@ -16,9 +16,13 @@ sys.path.append("./")
 from rnn.analysis.utils import (
     load_from_folder,
     fit_fps,
+    unpad,
+)
+
+from rnn.analysis._visuals import (
     plot_inputs,
     plot_outputs,
-    unpad,
+    plot_rnn_weights,
 )
 
 """
@@ -34,6 +38,7 @@ class Pipeline:
         interactive=False,
         fit_fps=False,
         fps_kwargs={},
+        winstor=False,
     ):
         """ 
             Arguments:
@@ -43,9 +48,14 @@ class Pipeline:
                     interrupting the analysis for user to look at data
                 fit_fps: bool. If true the fixed points of the dynamics are found
                 fps_kwargs: dict. Dictionary of optional arguments for fps search
+                winstor: bool. True if the pipeline is being run winstor
         """
         # set up paths and stuff
         self.folder = Path(folder)
+        self.winstor = winstor
+
+        logger.info(f"Running RNN analysis on [b {orange}]{self.folder.name}")
+
         self.analysis_folder = self.folder / "analysis"
         self.analysis_folder.mkdir(exist_ok=True)
 
@@ -61,27 +71,34 @@ class Pipeline:
         self.interactive = interactive
         self.fit_fps = fit_fps
 
-    def setup(self):
+    def setup(self, select=False):
         """
             Load necessary data for analysis and visualization
+
+            Arguments:
+                select: bool. If true trials are selected based on X[:, 0, 0]
         """
         # load RNN data
-        self.dataset, self.rnn = load_from_folder(self.folder)
+        self.dataset, self.rnn = load_from_folder(
+            self.folder, winstor=self.winstor
+        )
 
         # Get/load hidden states trajectory
         self.X, self.h, self.O, self.Y = self.get_XhO()
 
         # not all trials are to be visualized for clarity, select some
-        self.idx_to_visualize = [
-            tn for tn in range(self.X.shape[0]) if self.X[tn, 0, 0] < 0
-        ]
-        # self.idx_to_visualize = np.arange(self.X.shape[0])
+        if select:
+            self.idx_to_visualize = [
+                tn for tn in range(self.X.shape[0]) if self.X[tn, 0, 0] < 0
+            ]
+        else:
+            self.idx_to_visualize = np.arange(self.X.shape[0])
 
     def run(self):
         logger.debug("Running RNN analysis pipeline")
         self.setup()
 
-        # make some plots
+        # plot RNN I/O signal and weights
         self.plot()
 
         # Dymensionality analysis
@@ -92,6 +109,10 @@ class Pipeline:
             self.fps = fit_fps(
                 self.rnn, self.h, self.analysis_folder, **self.fps_kwargs
             )
+
+        # show plots
+        if self.interactive:
+            plt.show()
 
     def _show_save_plot(self, figure, path, _show=True):
         """
@@ -119,12 +140,13 @@ class Pipeline:
 
         h = np.load(self.h_path)
         if h.shape[0] != self.n_trials_in_h:
-            h, X, O = self.calc_h()
+            h, X, O, Y = self.calc_h()
         else:
             logger.debug(f"Loaded h from file, shape: {h.shape}")
             X = np.load(self.X_path)
-            Y = np.load(self.Y_path)
             O = np.load(self.O_path)
+            Y = np.load(self.Y_path)
+
         return unpad(X, h, O, Y)
 
     def calc_h(self):
@@ -145,12 +167,18 @@ class Pipeline:
                 "Found nans or infs in h, check this as it will break furher analyses"
             )
 
+        # save and re-load to ensure everything's fine
         np.save(self.h_path, h)
         np.save(self.Y_path, Y.cpu())
         np.save(self.X_path, X.cpu())
         np.save(self.O_path, O)
 
-        return h, npify(X), O, Y
+        h = np.load(self.h_path)
+        X = np.load(self.X_path)
+        O = np.load(self.O_path)
+        Y = np.load(self.Y_path)
+
+        return h, X, O, Y
 
     def plot(self):
         # plot network inputs
@@ -163,9 +191,11 @@ class Pipeline:
         f = plot_outputs(
             self.O[self.idx_to_visualize, :, :], self.dataset.outputs_names
         )
-        self._show_save_plot(f, "network_outputs.png", _show=True)
+        self._show_save_plot(f, "network_outputs.png", _show=False)
 
-        pass
+        # plot networks weights
+        f = plot_rnn_weights(self.rnn)
+        self._show_save_plot(f, "network_weights.png", _show=False)
 
     def dimensionality(self):
         """
@@ -181,11 +211,9 @@ class Pipeline:
             f"PCA says dynamics dimensionality is: {dyn_dimensionality}"
         )
 
-        self._show_save_plot(f, "dynamics_dimensionality.png")
-        if self.interactive:
-            plt.show()
+        self._show_save_plot(f, "dynamics_dimensionality.png", _show=False)
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\201221_170210_RNN_delta_dataset_predict_tau_from_deltaXYT"
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
     Pipeline(fld, n_trials_in_h=256, interactive=True, fit_fps=False).run()

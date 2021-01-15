@@ -13,9 +13,6 @@ import torch
 
 from control._io import DropBoxUtils, upload_folder
 
-from fcutils.file_io.io import save_yaml
-
-
 from rnn.dataset.dataset import is_win
 from rnn.dataset import plot_predictions
 from rnn.train_params import (
@@ -36,6 +33,7 @@ from rnn.train_params import (
     name,
 )
 from rnn.analysis import Pipeline
+from rnn.analysis.utils import to_json
 
 
 # Set up
@@ -91,9 +89,8 @@ def make_rnn(data, winstor):
         # save RNN params
         params = rnn.params
         params["dataset_name"] = data.name
-        save_yaml(
-            str(data.rnn_folder / f"rnn.yaml"),
-            json.dumps(params, sort_keys=True),
+        to_json(
+            json.dumps(params, sort_keys=True), data.rnn_folder / f"rnn.json",
         )
     return rnn
 
@@ -127,9 +124,9 @@ def fit(rnn, winstor, data):
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",
     )
-    save_yaml(
-        str(data.rnn_folder / f"training_params.yaml"),
+    to_json(
         json.dumps(info, sort_keys=True),
+        data.rnn_folder / f"training_params.json",
     )
 
     # FIT
@@ -229,7 +226,7 @@ def wrap_up(rnn, loss_history, winstor, data):
 
     # Run analysis
     logger.bind(main=True).info(f"Running analysis pipeline")
-    Pipeline(data.rnn_folder).run()
+    Pipeline(data.rnn_folder, winstor=True).run()
 
     # copy data to dropbox app
     if winstor:

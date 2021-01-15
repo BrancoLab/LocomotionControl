@@ -15,3 +15,6 @@ On **HPC** after `. control.sh`:
 3. `editrnn` to set the paramters
 4. `train NAME` to start a trainin job with a given name
 5. `q` to monitor training progress
+
+## How to prepare data for RNN training
+How to clean up and select the results of running 2WDD simulations (with tracking or simulated trajectories) to prepare it for creating a dataset for RNN training.
