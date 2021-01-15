@@ -31,6 +31,7 @@ from rnn.train_params import (
     lr,
     stop_loss,
     name,
+    l2norm,
 )
 from rnn.analysis import Pipeline
 from rnn.analysis.utils import to_json
@@ -112,7 +113,7 @@ def fit(rnn, winstor, data):
         lr=lr,
         batch_size=batch_size,
         lr_milestones=lr_milestones,
-        l2norm=0,
+        l2norm=l2norm,
         stop_loss=stop_loss,
         report_path=None,
         augment_probability=data.augment_probability,
@@ -141,7 +142,7 @@ def fit(rnn, winstor, data):
         lr=lr,
         batch_size=batch_size,
         lr_milestones=lr_milestones,
-        l2norm=0,
+        l2norm=l2norm,
         stop_loss=stop_loss,
         plot_live=True if not winstor else False,
         report_path=None,

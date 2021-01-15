@@ -28,6 +28,7 @@ w_in_bias = False
 w_in_train = True
 w_out_bias = False
 w_out_train = True
+l2norm = 0  # recurrent weights normalization
 
 
 # --------------------------------- Training --------------------------------- #
