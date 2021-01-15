@@ -116,6 +116,9 @@ def fit_fps(rnn, h, fld, n_fixed_points=10):
 
 def to_json(obj, fpath):
     """ saves an object to json """
+    if isinstance(obj, str):
+        obj = json.dumps(obj, indent=4, sort_keys=True)
+
     with open(fpath, "w") as out:
         json.dump(obj, out, indent=4, sort_keys=True)
 

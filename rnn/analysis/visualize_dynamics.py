@@ -223,7 +223,12 @@ class DynamicsVis(Pipeline):
 
         return acts + vectors
 
-    def _plot(self, pca):
+    # def plot_dynamics_projected_onto_readout_vectors(self):
+    #     '''
+    #         Plots the dynamics projected onto
+    #     '''
+
+    def _plot_pca(self, pca):
         """
             Plots the network's dynamics in 2D and each PC independently
 
@@ -290,18 +295,18 @@ class DynamicsVis(Pipeline):
             ).close()
 
             # plot PCs independently
-            self._plot(pca)
+            self._plot_pca(pca)
 
         else:
             # fit PCA on all daata
             pca = PCA(n_components=2).fit(flatten_h(self.h))
 
             # create plots
-            self._plot(pca)
+            self._plot_pca(pca)
 
 
 if __name__ == "__main__":
     fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
     DynamicsVis(
-        fld, n_trials_in_h=256, fit_fps=False, interactive=True
+        fld, n_trials_in_h=2, fit_fps=False, interactive=True
     ).visualize()
