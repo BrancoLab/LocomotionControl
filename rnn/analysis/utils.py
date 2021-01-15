@@ -131,7 +131,9 @@ def get_file(folder, pattern):
     try:
         return list(folder.glob(pattern))[0]
     except IndexError:
-        raise ValueError(f"Could not find file in folder")
+        raise ValueError(
+            f"Could not find file with pattern '{pattern}' in folder: '{folder.parent}/{folder.name}'"
+        )
 
 
 def load_from_folder(fld, winstor=False):
@@ -152,9 +154,13 @@ def load_from_folder(fld, winstor=False):
     logger.debug(f"Loading data from {fld.name}")
 
     # load params from yml
-    settings_file = get_file(fld, "rnn.yaml")
-    # settings = from_json(settings_file)
-    settings = json.loads(load_yaml(str(settings_file)))
+    try:
+        settings_file = get_file(fld, "rnn.yaml")
+        settings = json.loads(load_yaml(str(settings_file)))
+    except Exception:
+        settings_file = get_file(fld, "rnn.json")
+        settings = from_json(settings_file)
+
     logger.debug("Loaded settings")
 
     # load dataset used for training
