@@ -5,7 +5,9 @@ px_to_cm = 1 / 8
 
 
 MANAGER_CONFIG = dict(
-    exp_name="planning_ahead_straight_really", live_plot=False, use_fast=True,
+    exp_name="planning_ahead_straight_really_more_ahead",
+    live_plot=False,
+    use_fast=True,
 )
 
 TRAJECTORY_CONFIG = dict(
@@ -43,7 +45,7 @@ CONTROL_CONFIG_FLAT = dict(  # for easy saving
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
     prediction_length=100,
-    n_ahead=25,  # start prediction states from N steps ahead
+    n_ahead=50,  # start prediction states from N steps ahead
 )
 
 iLQR_CONFIG = dict(
