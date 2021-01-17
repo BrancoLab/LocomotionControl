@@ -5,7 +5,7 @@ px_to_cm = 1 / 8
 
 
 MANAGER_CONFIG = dict(
-    exp_name="planning_ahead_straight", live_plot=False, use_fast=True,
+    exp_name="planning_ahead_straight_really", live_plot=False, use_fast=True,
 )
 
 TRAJECTORY_CONFIG = dict(
