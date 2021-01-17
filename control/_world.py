@@ -29,7 +29,7 @@ def simulated():
         The finally compute the bezier path across all these points
     """
 
-    duration = 30  # np.random.uniform(1.5, 6)
+    duration = 8  # np.random.uniform(1.5, 6)
     n_steps = int(duration / dt)
 
     logger.info(
@@ -40,11 +40,11 @@ def simulated():
     # first point is origin
     points = [np.array([0, 0])]
 
-    for n in range(20):
+    for n in range(50):
         # draw random angle and
-        # phi = np.random.uniform(-120, 120)
-        phi = 0
-        rho = np.random.uniform(20, 60)
+        phi = np.random.uniform(-120, 120)
+        # phi = 0
+        rho = np.random.uniform(50, 100)
 
         # get next points coordinates
         nxt = np.array(pol2cart(rho, phi)) + points[-1]
