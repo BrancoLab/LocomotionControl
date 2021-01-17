@@ -4,7 +4,9 @@ dt = 0.005
 px_to_cm = 1 / 8
 
 
-MANAGER_CONFIG = dict(exp_name="straight", live_plot=False, use_fast=True,)
+MANAGER_CONFIG = dict(
+    exp_name="more_waypoints", live_plot=False, use_fast=True,
+)
 
 TRAJECTORY_CONFIG = dict(
     traj_type="simulated",  # tracking or simulated
@@ -26,7 +28,7 @@ CONTROL_CONFIG = dict(
     STATE_SIZE=5,
     INPUT_SIZE=2,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1.0e-7, 1.0e-7]),  # control cost
+    R=np.diag([1.0e-5, 1.0e-5]),  # control cost
     Q=np.diag([30, 30, 30, 10, 0]),  # state cost | x, y, theta, v, omega
     Sf=np.diag([0, 0, 0, 0, 0]),  # final state cost
 )

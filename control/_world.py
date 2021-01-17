@@ -42,8 +42,8 @@ def simulated():
 
     for n in range(20):
         # draw random angle and
-        # phi = np.random.uniform(-120, 120)
-        phi = 0
+        phi = np.random.uniform(-120, 120)
+        # phi = 0
         rho = np.random.uniform(25, 60)
 
         # get next points coordinates
