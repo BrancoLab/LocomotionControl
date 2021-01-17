@@ -4,9 +4,7 @@ dt = 0.005
 px_to_cm = 1 / 8
 
 
-MANAGER_CONFIG = dict(
-    exp_name="sim_fixed_dur", live_plot=False, use_fast=True,
-)
+MANAGER_CONFIG = dict(exp_name="straight", live_plot=False, use_fast=True,)
 
 TRAJECTORY_CONFIG = dict(
     traj_type="simulated",  # tracking or simulated
