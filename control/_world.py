@@ -40,11 +40,11 @@ def simulated():
     # first point is origin
     points = [np.array([0, 0])]
 
-    for n in range(20):
+    for n in range(50):
         # draw random angle and
         phi = np.random.uniform(-120, 120)
         # phi = 0
-        rho = np.random.uniform(25, 60)
+        rho = np.random.uniform(50, 100)
 
         # get next points coordinates
         nxt = np.array(pol2cart(rho, phi)) + points[-1]
