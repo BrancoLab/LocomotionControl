@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from fcutils.maths.geometry import (
     calc_angle_between_points_of_vector_2d,
@@ -8,7 +9,7 @@ from fcutils.maths.geometry import (
 )
 from fcutils.maths.utils import derivative
 
-from .utils import interpolate_nans, calc_bezier_path
+from .utils import interpolate_nans, calc_bezier_path, pol2cart
 from .config import dt, px_to_cm, TRAJECTORY_CONFIG
 
 
@@ -17,36 +18,41 @@ def simulated():
     """
         Creates an artificial trajectory similar to the ones
         you'd get by loading trajectories from tracking data.
+
+        To define a trajectory of N points:
+            1. start with a point (origin at first)
+            2. draw an angle and a distance from uniform distributions
+            3. turn these into cartesian coordinates and add to previous
+                point's coordiates
+            4. this is the coordiates for the next point
+
+        The finally compute the bezier path across all these points
     """
 
     duration = 3  # np.random.uniform(1.5, 6)
     n_steps = int(duration / dt)
 
-    # Define start and end of traj
-    p0 = np.array([0, 0])
-    p1 = np.array([0, 80])
+    logger.info(
+        f"Making simulated traj with duration: {duration} and n steps: {n_steps}"
+    )
 
-    # Define an additional random point
-    while True:
-        p2 = np.array(
-            [
-                np.random.uniform(low=-120, high=120),
-                np.random.uniform(low=10, high=70),
-            ]
-        )
+    # ? make simulated trajectory of N points
+    # first point is origin
+    points = [np.array([0, 0])]
 
-        if np.abs(p2[0]) > 50:
-            p2a = p2.copy()
-            p2a[1] -= 10
+    for n in range(10):
+        # draw random angle and
+        phi = np.random.uniform(-120, 120)
+        rho = np.random.uniform(25, 60)
 
-            p2b = p2.copy()
-            p2b[1] += 10
-            break
+        # get next points coordinates
+        nxt = np.array(pol2cart(rho, phi)) + points[-1]
+
+        # append to list
+        points.append(nxt)
 
     # Interpolate line segments
-    xy = calc_bezier_path(
-        np.vstack([p0, p2a, p2b, p1]), TRAJECTORY_CONFIG["n_steps"]
-    )
+    xy = calc_bezier_path(np.vstack(points), TRAJECTORY_CONFIG["n_steps"])
     x, y = xy[:, 0], xy[:, 1]
 
     # Get theta
@@ -62,6 +68,9 @@ def simulated():
 
     # Get speed
     v = calc_distance_between_points_in_a_vector_2d(x, y)
+    logger.info(
+        f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}, total angle: {np.sum(np.abs(np.degrees(omega))):.3f}"
+    )
     v[0] = v[1]
 
     speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_steps

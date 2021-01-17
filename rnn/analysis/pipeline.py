@@ -8,6 +8,7 @@ from myterial import orange
 
 from pyrnn.analysis.dimensionality import get_n_components_with_pca
 from pyrnn import is_win
+from pyrnn._utils import npify
 
 import sys
 
@@ -108,8 +109,13 @@ class Pipeline:
             self.folder, winstor=self.winstor
         )
 
+        # store some variables for easier access
         self.input_names = self.dataset.inputs_names
         self.output_names = self.dataset.outputs_names
+
+        self.W_in = npify(self.rnn.w_in.weight)
+        self.W_rec = npify(self.rnn.w_rec.weight)
+        self.W_out = npify(self.rnn.w_out.weight)
 
         # Get/load hidden states trajectory
         self.X, self.h, self.O, self.Y = self.get_XhO()
@@ -257,14 +263,15 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+    # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210115_125437_RNN_lgbtch_milestones_dataset_predict_nudot_from_deltaXYT"
 
     fps_kwargs = dict(max_fixed_points=3, max_iters=6000, lr_decay_epoch=1500,)
 
     Pipeline(
         fld,
-        n_trials_in_h=512,
+        n_trials_in_h=128,
         interactive=False,
-        fit_fps=True,
+        fit_fps=False,
         fps_kwargs=fps_kwargs,
     ).run()

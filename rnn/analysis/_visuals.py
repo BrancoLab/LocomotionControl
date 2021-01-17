@@ -13,7 +13,15 @@ from pyrnn._utils import npify
 """
     Visualization and plotting code for RNN analysis
 """
-COLORS = dict(x=purple, y=indigo, theta=cyan, tau_R=orange, tau_L=salmon,)
+COLORS = dict(
+    x=purple,
+    y=indigo,
+    theta=cyan,
+    tau_R=orange,
+    tau_L=salmon,
+    nudot_R=orange,
+    nudot_L=salmon,
+)
 
 
 # ---------------------------------------------------------------------------- #
@@ -124,7 +132,9 @@ def plot_outputs(O, labels):
 # ---------------------------------------------------------------------------- #
 
 
-def render_vectors(points, labels, colors, showplane=False, showline=False):
+def render_vectors(
+    points, labels, colors, scale=1, showplane=False, showline=False
+):
     """
         Creates a vedo Line from the origin along a vector to a point
         for each point in points (of unit length)
@@ -133,16 +143,13 @@ def render_vectors(points, labels, colors, showplane=False, showline=False):
             points: list of N points coordinates (3D)
             labels: list of N str with names for the vectors
             colors: list of N colors for the vectors
+            scale: float. Use it to scale vectors lengths
             showplane: bool. If True a plane fitted to the vectors and origin is shown
             showline: bool. If True a line fitted to each point and the origin
     """
     actors = []
     for point, c, l in zip(points, colors, labels):
-        actors.append(
-            Arrow(
-                (0, 0, 0), (point / np.linalg.norm(point)) * 2, c=c, s=0.015
-            ).legend(l)
-        )
+        actors.append(Arrow((0, 0, 0), point * scale, c=c, s=0.015).legend(l))
 
         if showline:
             actors.append(

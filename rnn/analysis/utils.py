@@ -152,13 +152,16 @@ def load_from_folder(fld, winstor=False):
     """
     logger.debug(f"Loading data from {fld.name}")
 
-    # load params from yml
+    # load params from yml or json
     try:
         settings_file = get_file(fld, "rnn.yaml")
         settings = json.loads(load_yaml(str(settings_file)))
     except Exception:
         settings_file = get_file(fld, "rnn.json")
         settings = from_json(settings_file)
+
+        if isinstance(settings, str):
+            settings = json.loads(settings)
 
     logger.debug("Loaded settings")
 

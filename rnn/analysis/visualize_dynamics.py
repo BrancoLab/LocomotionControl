@@ -16,7 +16,7 @@ from fcutils.maths.utils import derivative
 from fcutils.plotting.utils import clean_axes
 
 from pyrnn.render import render_fixed_points
-from pyrnn._utils import npify, flatten_h
+from pyrnn._utils import flatten_h
 from pyrnn.analysis.dimensionality import PCA
 
 
@@ -29,7 +29,7 @@ from rnn.analysis._visuals import (
 
 class DynamicsVis(Pipeline):
     SELECT_TRIALS = False  # show only some trials?
-    COLOR_BY = "outvar"
+    COLOR_BY = "var"
     START = 0  # first frame to show
     STOP = -1  # last frame to show
 
@@ -77,12 +77,11 @@ class DynamicsVis(Pipeline):
                 if self.COLOR_BY == "var":
                     # ? color each frame in each trial
                     vmin = np.nanmin(self.X[self.idx_to_visualize, :, var])
-                    vmax = np.nanmax(self.X[self.idx_to_visualize, :, var])
 
                     D = self.X[trialn, :, var]
                     colors.append(
                         [
-                            colorMap(D[i], "bwr", vmin=vmin, vmax=vmax,)
+                            colorMap(D[i], "bwr", vmin=vmin, vmax=-vmin,)
                             for i in range(self.n_frames)
                         ]
                     )
@@ -90,11 +89,10 @@ class DynamicsVis(Pipeline):
                 elif self.COLOR_BY == "outvar":
                     # ? color each frame in each trial
                     vmin = np.nanmin(self.O[self.idx_to_visualize, :, 0])
-                    vmax = np.nanmax(self.O[self.idx_to_visualize, :, 0])
                     D = self.O[trialn, :, 0]
                     colors.append(
                         [
-                            colorMap(D[i], "bwr", vmin=vmin, vmax=vmax,)
+                            colorMap(D[i], "bwr", vmin=vmin, vmax=-vmin,)
                             for i in range(self.n_frames)
                         ]
                     )
@@ -102,14 +100,12 @@ class DynamicsVis(Pipeline):
                 elif self.COLOR_BY == "trial":
                     # ? one color for the whole trial
                     vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
-                    vmax = np.nanmax(self.X[self.idx_to_visualize, 0, var])
-
                     colors.append(
                         colorMap(
                             self.X[trialn, 0, var],
                             "viridis",
                             vmin=vmin,
-                            vmax=vmax,
+                            vmax=-vmin,
                         )
                     )
 
@@ -170,25 +166,26 @@ class DynamicsVis(Pipeline):
         logger.debug("Rendering W_in and W_out")
 
         # render input weights as vectors
-        W_in = pca.transform(npify(self.rnn.w_in.weight).T)
+        W_in = pca.transform(self.W_in.T)
         vecs_in = render_vectors(
-            [W_in[0, :], W_in[1, :], W_in[2, :]],
+            [W_in.T[0, :], W_in.T[1, :], W_in.T[2, :]],
             self.input_names,
             [COLORS[l] for l in self.input_names],
         )
 
         # render output weights
-        W_out = pca.transform(npify(self.rnn.w_out.weight))
+        W_out = pca.transform(self.W_out)
         vecs_out = render_vectors(
             [W_out[0, :], W_out[1, :]],
             self.output_names,
             [COLORS[l] for l in self.output_names],
+            scale=50,
             showplane=True,
             showline=False,
         )
 
         logger.debug(
-            f"Angle between read out vectors: {round(np.degrees(W_out[0, :].dot(W_out[1, :])), 4)}"
+            f"Angle between read out vectors: {round(W_out[0, :].dot(W_out[1, :]), 4)}"
         )
 
         return vecs_in + vecs_out
@@ -216,7 +213,7 @@ class DynamicsVis(Pipeline):
 
         logger.debug(
             f"[amber]Rendering"
-            f"\nRendering frames in range {self.START}-{self.STOP}",
+            f"\nRendering frames in range {self.START} - {self.STOP}",
             f"\nColoring by: {self.COLOR_BY}" + msg,
         )
 
@@ -224,7 +221,7 @@ class DynamicsVis(Pipeline):
         _, acts = render_fixed_points(
             self.h[self.idx_to_visualize, self.START : self.STOP, :],
             self.fixed_points,
-            alpha=0.2,
+            alpha=0.8,
             lw=0.05,  # 0.025,
             mark_start=True,
             start_color="r",
@@ -259,12 +256,9 @@ class DynamicsVis(Pipeline):
         """
         f, ax = plt.subplots(figsize=(16, 9))
 
-        # get W_out
-        W = npify(self.rnn.w_out.weight)
-
         for trialn in range(self.n_trials):
             # compute dot product
-            out = np.apply_along_axis(W.dot, 1, self.h[trialn, :, :])
+            out = np.apply_along_axis(self.W_out.dot, 1, self.h[trialn, :, :])
 
             # plot
             ax.plot(out[:, 0], out[:, 1], lw=3, color=salmon, alpha=0.5)
@@ -309,6 +303,29 @@ class DynamicsVis(Pipeline):
             pcs = pca.transform(self.h[trialn, :, :])
             ax.plot(pcs[:, 0], pcs[:, 1], color=[0.3, 0.3, 0.3], alpha=0.7)
 
+        # plot readout directions
+        out = pca.transform(self.W_out)
+        scale = 300
+        ax.arrow(
+            0,
+            0,
+            out[0, 0 * scale],
+            out[0, 1] * scale,
+            color=COLORS[self.output_names[0]],
+            width=0.25,
+            label=self.output_names[0],
+        )
+        ax.arrow(
+            0,
+            0,
+            out[1, 0] * scale,
+            out[1, 1] * scale,
+            color=COLORS[self.output_names[1]],
+            width=0.25,
+            label=self.output_names[1],
+        )
+
+        ax.legend()
         ax.set(xlabel="PC1", ylabel="PC2")
 
         clean_axes(f)
@@ -324,44 +341,39 @@ class DynamicsVis(Pipeline):
         # load data
         self.setup(select=self.SELECT_TRIALS)
 
-        # create renderings or plots based on dimensionality of dynamics
-        if self.dimensionality() > 1:
-            # fit PCA on all data even if not rendered
-            pca = PCA(n_components=3).fit(flatten_h(self.h))
+        # fit PCA on all data even if not rendered
+        pca = PCA(n_components=3).fit(flatten_h(self.h))
 
-            # create actors for each variable using pyrnn
-            actors = []
-            for var in range(self.X.shape[-1]):
-                actors.append(self._render_by_var(var, pca))
-                break
+        # create actors for each variable using pyrnn
+        actors = []
+        for var in range(self.X.shape[-1]):
+            actors.append(self._render_by_var(var, pca))
+            break
 
-            # render everything in a single window
-            logger.debug("Render ready")
-            show(
-                actors,
-                N=len(actors),
-                size="full",
-                title="Dynamics",
-                axes=4,
-                interactive=self.interactive,
-            ).close()
+        # render everything in a single window
+        logger.debug("Render ready")
+        show(
+            actors,
+            N=len(actors),
+            size="full",
+            title="Dynamics",
+            axes=4,
+            interactive=self.interactive,
+        ).close()
 
-            # plot activity projected onto readout plane
-            self.plot_dynamics_projected_onto_readout_vectors()
+        # plot activity projected onto readout plane
+        self.plot_dynamics_projected_onto_readout_vectors()
 
-            # plot PCs
-            self._plot_pca(pca)
-
-        else:
-            # fit PCA on all daata
-            pca = PCA(n_components=2).fit(flatten_h(self.h))
-
-            # create plots
-            self._plot_pca(pca)
+        # plot PCs
+        self._plot_pca(pca)
 
 
 if __name__ == "__main__":
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+    # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210115_125437_RNN_lgbtch_milestones_dataset_predict_nudot_from_deltaXYT"
+
+    # TODO figure out why angle of W_out projections looks different in 2 and 3 dimensions
+
     DynamicsVis(
         fld, n_trials_in_h=128, fit_fps=False, interactive=True
     ).visualize()

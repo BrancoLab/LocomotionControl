@@ -223,7 +223,7 @@ def wrap_up(rnn, loss_history, winstor, data):
 
     # Run analysis
     logger.bind(main=True).info(f"Running analysis pipeline")
-    Pipeline(data.rnn_folder, winstor=True).run()
+    Pipeline(data.rnn_folder, winstor=True, fit_fps=False).run()
 
     # copy data to dropbox app
     if winstor:
