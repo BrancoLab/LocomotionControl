@@ -367,10 +367,12 @@ class DynamicsVis(Pipeline):
         # plot PCs
         self._plot_pca(pca)
 
+        plt.show()
+
 
 if __name__ == "__main__":
     # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210115_125437_RNN_lgbtch_milestones_dataset_predict_nudot_from_deltaXYT"
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210115_163342_RNN_repeating_dataset_predict_tau_from_deltaXYT"
 
     # TODO figure out why angle of W_out projections looks different in 2 and 3 dimensions
 

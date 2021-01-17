@@ -40,7 +40,7 @@ def simulated():
     # first point is origin
     points = [np.array([0, 0])]
 
-    for n in range(10):
+    for n in range(20):
         # draw random angle and
         phi = np.random.uniform(-120, 120)
         rho = np.random.uniform(25, 60)

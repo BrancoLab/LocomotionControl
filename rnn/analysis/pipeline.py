@@ -264,14 +264,14 @@ class Pipeline:
 
 if __name__ == "__main__":
     # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210115_125437_RNN_lgbtch_milestones_dataset_predict_nudot_from_deltaXYT"
+    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210115_163342_RNN_repeating_dataset_predict_tau_from_deltaXYT"
 
     fps_kwargs = dict(max_fixed_points=3, max_iters=6000, lr_decay_epoch=1500,)
 
     Pipeline(
         fld,
         n_trials_in_h=128,
-        interactive=False,
+        interactive=True,
         fit_fps=False,
         fps_kwargs=fps_kwargs,
     ).run()
