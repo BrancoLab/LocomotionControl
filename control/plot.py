@@ -24,6 +24,9 @@ colors = dict(
     tau_r="#FF4500",
     trajectory=[0.6, 0.6, 0.6],
     tracking="#2E8B57",
+    P="#008060",
+    N_r="#ff8c00",
+    N_l="#e2734e",
 )
 
 

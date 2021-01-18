@@ -78,11 +78,11 @@ def calc_cost(
 
     # terminal cost
     terminal_state_cost = 0.0
-    if terminal_state_cost_fn is not None:
-        terminal_state_par_cost = terminal_state_cost_fn(
-            pred_xs[:, -1, :], g_xs[:, -1, :]
-        )
-        terminal_state_cost = np.sum(terminal_state_par_cost, axis=-1)
+    # if terminal_state_cost_fn is not None:
+    #     terminal_state_par_cost = terminal_state_cost_fn(
+    #         pred_xs[:, -1, :], g_xs[:, -1, :]
+    #     )
+    #     terminal_state_cost = np.sum(terminal_state_par_cost, axis=-1)
 
     # act cost
     act_cost = 0.0

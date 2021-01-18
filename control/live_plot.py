@@ -37,14 +37,15 @@ class Plotter:
 
         self.f = plt.figure(figsize=(12, 8))
 
-        gs = self.f.add_gridspec(2, 3)  # 6)
+        gs = self.f.add_gridspec(3, 3)  # 6)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
         self.xy_ax.axis("equal")
         self.xy_ax.axis("off")
 
-        self.tau_ax = self.f.add_subplot(gs[0, 2:4])
+        self.control_ax = self.f.add_subplot(gs[0, 2:4])
 
         self.sax = self.f.add_subplot(gs[1, 2:4])
+        self.tau_ax = self.f.add_subplot(gs[2, 2:4])
 
         clean_axes(self.f)
 
@@ -88,8 +89,9 @@ class Plotter:
         # plot control
         self._plot_control(history)
 
-        # plot sped
+        # plot speed and other variables
         self._plot_current_variables(history)
+        self._plot_taus(history)
 
         # display plot
         self.f.canvas.draw()
@@ -155,6 +157,57 @@ class Plotter:
         ax.axis("off")
 
     def _plot_control(self, history, keep_s=1.2):
+        keep_n = int(keep_s / dt)
+        ax = self.control_ax
+        ax.clear()
+
+        P, R, L = history["P"], history["N_r"], history["N_l"]
+        n = len(R)
+
+        # plot traces
+        plot_line_outlined(
+            ax,
+            P,
+            color=colors["P"],
+            label="$P$",
+            lw=2,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+        plot_line_outlined(
+            ax,
+            R,
+            color=colors["N_r"],
+            label="$N_R$",
+            lw=2,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+        plot_line_outlined(
+            ax,
+            L,
+            color=colors["N_l"],
+            label="$N_L$",
+            lw=2,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+
+        # set axes
+        ymin = np.min(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+        ymax = np.max(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+
+        if n > keep_n:
+            ymin -= np.abs(ymin) * 0.1
+            ymax += np.abs(ymax) * 0.1
+
+            ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
+
+        ax.set(ylabel="Controls (a.u)", xlabel="step n")
+        ax.legend()
+        ax.set(title="Control")
+
+    def _plot_taus(self, history, keep_s=1.2):
         keep_n = int(keep_s / dt)
         ax = self.tau_ax
         ax.clear()

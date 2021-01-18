@@ -110,6 +110,12 @@ class Manager:
                     # Solve control
                     u = self.controller.obtain_sol(curr_x, g_xs)
 
+                    # check that the controls are reasonable
+                    if np.max(u) > 100000:
+                        raise ValueError(
+                            "Something went wrong while computing controls, got very large values"
+                        )
+
                     # step
                     self.model.step(
                         u, g_xs[1, :]
@@ -119,7 +125,6 @@ class Manager:
                     self.history.append(
                         self.model.curr_x,
                         self.model.curr_goal,
-                        self.model.curr_wheel_state,
                         self.model.curr_control,
                         dict(trajectory_idx=self.world.curr_traj_waypoint_idx),
                     )

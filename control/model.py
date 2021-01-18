@@ -7,11 +7,15 @@ from .utils import merge
 
 
 # define some useful named tuples
-control = namedtuple("control", "tau_r, tau_l")
-state = namedtuple("state", "x, y, theta, v, omega")
-goal = namedtuple("state", "goal_x, goal_y, goal_theta, goal_v, goal_omega")
-_dxdt = namedtuple("dxdt", "x_dot, y_dot, theta_dot, v_dot, omega_dot")
-wheel_state = namedtuple("wheel_state", "nudot_right, nudot_left")
+control = namedtuple("control", "P, N_r, N_l")
+state = namedtuple("state", "x, y, theta, v, omega, tau_r, tau_l")
+goal = namedtuple(
+    "state",
+    "goal_x, goal_y, goal_theta, goal_v, goal_omega, goal_tau_r, goal_tau_l",
+)
+_dxdt = namedtuple(
+    "dxdt", "x_dot, y_dot, theta_dot, v_dot, omega_dot, taudot_r, taudot_l"
+)
 
 
 class Model(ModelDynamics):
@@ -21,7 +25,6 @@ class Model(ModelDynamics):
 
         States that the model class keeps track of:
             curr_x
-            curr_wheel_state
             curr_goal
             control
             curr_dxdt
@@ -38,6 +41,8 @@ class Model(ModelDynamics):
             trajectory[0, 2],
             trajectory[0, 3],
             trajectory[0, 4],
+            trajectory[0, 5],
+            trajectory[0, 6],
         )
 
     def step(self, u, curr_goal):
@@ -49,17 +54,11 @@ class Model(ModelDynamics):
         variables = merge(u, self.curr_x, MOUSE)
         inputs = [variables[a] for a in self._M_args]
 
-        # Compute wheel velocities
-        w = self.calc_wheels_ang_vels(
-            variables["L"], variables["R"], self.curr_x.v, self.curr_x.omega,
-        )
-        self.curr_wheel_state = wheel_state(*w.ravel())
-
         # Update history
         self.curr_control = u
 
         # Compute dxdt
-        dxdt = self.calc_dqdt(*inputs).ravel()
+        dxdt = self.calc_dxdt(*inputs).ravel()
         self.curr_dxdt = _dxdt(*dxdt)
 
         # Step
@@ -78,7 +77,7 @@ class Model(ModelDynamics):
         # Compute dxdt
         variables = merge(u, x, MOUSE)
         inputs = [variables[a] for a in self._M_args]
-        dxdt = self.calc_dqdt(*inputs).ravel()
+        dxdt = self.calc_dxdt(*inputs).ravel()
 
         if np.any(np.isnan(dxdt)) or np.any(np.isinf(dxdt)):
             # raise ValueError('Nans in dxdt')

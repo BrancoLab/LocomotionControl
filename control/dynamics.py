@@ -1,132 +1,109 @@
 from sympy import (
-    Matrix,
     symbols,
-    init_printing,
-    lambdify,
     cos,
     sin,
-    SparseMatrix,
 )
 
 import numpy as np
 from numba import jit
 
-from .config import MANAGER_CONFIG
-
-
-init_printing()
-
 
 @jit(nopython=True)
-def fast_dqdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r):
-    res = np.zeros(5)
+def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
+    """
+        fast implementation of models dyamics
+    """
+    res = np.zeros(7)
 
+    # xdot
     res[0] = v * np.cos(theta)
+
+    # ydot
     res[1] = v * np.sin(theta)
+
+    # thetadot
     res[2] = omega
-    res[3] = L * tau_l / (R * m) + L * tau_r / (R * m) + d * omega ** 2
-    res[4] = (
-        -L
-        * tau_l
-        / (
-            R
-            * (
-                2 * L ** 2 * m_w
-                + R ** 2 * m_w
-                + 2 * d ** 2 * m
-                + 2
-                * m_w
-                * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
-            )
-        )
-        + L
-        * tau_r
-        / (
-            R
-            * (
-                2 * L ** 2 * m_w
-                + R ** 2 * m_w
-                + 2 * d ** 2 * m
-                + 2
-                * m_w
-                * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
-            )
-        )
-        - d
-        * m
-        * omega
-        * v
-        / (
-            2 * L ** 2 * m_w
-            + R ** 2 * m_w
-            + 2 * d ** 2 * m
-            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
-        )
+
+    # vdot
+    res[3] = (d * m * omega ** 2 + (tau_l + tau_r) / R) / (m + 2 * m_w)
+
+    # omegadot
+    res[4] = (L * (-tau_l + tau_r) / R + d * m * omega * v) / (
+        4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m
     )
+
+    # taurdot
+    res[5] = -N_r + P
+
+    # tauldot
+    res[6] = -N_l + P
 
     return res
 
 
 @jit(nopython=True)
 def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
-    res = np.zeros((5, 5))
+    """
+        Fast implementation of the model's derivative wrt to state
+        variables. Missing entries are for when the derivative is 0.
+    """
+    res = np.zeros((7, 7))
 
+    # xdot_wrt_theta
     res[0, 2] = -v * np.sin(theta)
+
+    # xdot_wrt_v
     res[0, 3] = np.cos(theta)
+
+    # ydot_wrt_theta
     res[1, 2] = v * np.cos(theta)
+
+    # ydot_wrt_v
     res[1, 3] = np.sin(theta)
-    res[2, 4] = 1
-    res[3, 4] = 2 * d * omega
+
+    # vdot_wrt_omega
+    res[3, 4] = 2 * d * m * omega / (m + 2 * m_w)
+
+    # vdot_wrt_tau_r
+    res[3, 5] = 1 / (R * (m + 2 * m_w))
+
+    # vdot_wrt_tau_l
+    res[3, 6] = 1 / (R * (m + 2 * m_w))
+
+    # omegadot_wrt_v
     res[4, 3] = (
-        -d
-        * m
-        * omega
-        / (
-            2 * L ** 2 * m_w
-            + R ** 2 * m_w
-            + 2 * d ** 2 * m
-            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
-        )
+        d * m * omega / (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m)
     )
-    res[4, 4] = (
-        -d
-        * m
-        * v
-        / (
-            2 * L ** 2 * m_w
-            + R ** 2 * m_w
-            + 2 * d ** 2 * m
-            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
-        )
-    )
+
+    # omegadot_wrt_omega
+    res[4, 4] = d * m * v / (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m)
+
+    # omegadot_wrt_tau_r
+    res[4, 5] = L / (R * (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m))
+
+    # omegadot_wrt_tau_l
+    res[4, 6] = -L / (R * (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m))
 
     return res
 
 
 @jit(nopython=True)
 def fast_model_jacobian_input(L, R, m, d, m_w):
-    res = np.zeros((5, 2))
+    """
+        Fast implementation of the model's derivative wrt to
+        the inputs (controls).
+        Missing entries is for when the derivative is 0
+    """
+    res = np.zeros((7, 3))
 
-    res[3, 0] = L / (R * m)
-    res[3, 1] = L / (R * m)
-    res[4, 0] = L / (
-        R
-        * (
-            2 * L ** 2 * m_w
-            + R ** 2 * m_w
-            + 2 * d ** 2 * m
-            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
-        )
-    )
-    res[4, 1] = -L / (
-        R
-        * (
-            2 * L ** 2 * m_w
-            + R ** 2 * m_w
-            + 2 * d ** 2 * m
-            + 2 * m_w * (2 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m) ** 2
-        )
-    )
+    # taurdot_wrt_P
+    res[5, 0] = 1
+    # taurdot_wrt_N_r
+    res[5, 2] = -1
+    # tauldot_wrt_P
+    res[6, 0] = 1
+    # tauldot_wrt_N_l
+    res[6, 1] = -1
 
     return res
 
@@ -144,6 +121,9 @@ class ModelDynamics(object):
         "m_w",
         "tau_l",
         "tau_r",
+        "P",
+        "N_r",
+        "N_l",
     ]
 
     def __init__(self,):
@@ -156,35 +136,28 @@ class ModelDynamics(object):
         """
         self._make_simbols()
 
-        if not MANAGER_CONFIG["use_fast"]:  # USE Fast is defined in config
-            # Get sympy expressions to compute dynamics
-            self.get_combined_dynamics_kinematics()
-            self.get_jacobians()
-        else:
-            # Get numba expressions for the dynamics
-            self.calc_dqdt = fast_dqdt
-            self.calc_model_jacobian_state = fast_model_jacobian_state
-            self.calc_model_jacobian_input = fast_model_jacobian_input
+        # Get numba expressions for the dynamics
+        self.calc_dxdt = fast_dxdt
+        self.calc_model_jacobian_state = fast_model_jacobian_state
+        self.calc_model_jacobian_input = fast_model_jacobian_input
 
-        # Get expressions for the wheels dynamics
-        self.get_wheels_dynamics()
+        # to get sympy expressions to compute dynamics:
+        # self.get_combined_dynamics_kinematics()
+        # self.get_jacobians()
 
     def _make_simbols(self):
         """
             Create sympy symbols
         """
         # state variables
-        x, y, theta, thetadot = symbols("x, y, theta, thetadot", real=True)
+        x, y, theta, v, omega = symbols("x, y, theta, v, omega", real=True)
+        tau_r, tau_l = symbols("tau_r, tau_l", real=True)
 
         # static variables
         L, R, m, m_w, d = symbols("L, R, m, m_w, d", real=True)
 
         # control variables
-        tau_r, tau_l = symbols("tau_r, tau_l", real=True)
-
-        # speeds
-        v, omega = symbols("v, omega", real=True)
-        vdot, omegadot = symbols("vdot, omegadot", real=True)
+        P, N_r, N_l = symbols("P, N_r, N_l", real=True)
 
         # store symbols
         self.variables = dict(
@@ -200,9 +173,17 @@ class ModelDynamics(object):
             tau_r=tau_r,
             v=v,
             omega=omega,
+            P=P,
+            N_l=N_l,
+            N_r=N_r,
         )
 
     def get_combined_dynamics_kinematics(self):
+        """
+            Sets up the matrix representation of a
+            system of differential equations for
+            how each variable varies over time.
+        """
         (
             x,
             y,
@@ -216,6 +197,9 @@ class ModelDynamics(object):
             tau_r,
             v,
             omega,
+            P,
+            N_l,
+            N_r,
         ) = self.variables.values()
 
         # Define moments of inertia
@@ -223,34 +207,22 @@ class ModelDynamics(object):
         I_w = m_w * R ** 2  # mom. inertia of wheels
         I = I_c + m * d ** 2 + 2 * m_w * L ** 2 + I_w
 
-        # Define a constant:
-        J = I + (2 * I ** 2 / R ** 2) * I_w
-
-        # Define g vector and input vector
-        g = Matrix([0, 0, 0, d * omega ** 2, -(m * d * omega * v) / J])
-        inp = Matrix([v, omega, tau_r, tau_l])
-
-        # Define M matrix
-        M = Matrix(
-            [
-                [cos(theta), 0, 0, 0],
-                [sin(theta), 0, 0, 0],
-                [0, 1, 0, 0],
-                [0, 0, L / (m * R), L / (m * R)],
-                [0, 0, L / (J * R), -L / (J * R)],
-            ]
+        # define differential equations
+        self.equations = dict(
+            xdot=v * cos(theta),
+            ydot=v * sin(theta),
+            thetadot=omega,
+            vdot=(
+                ((1 / R * (tau_r + tau_l)) + (m * d * omega ** 2))
+                / (m + (2 * I_w) / R ** 2)
+            ),
+            omegadot=(
+                ((L / R * (tau_r - tau_l)) + (m * d * omega * v))
+                / (I + (((2 * L ** 2) / R ** 2) * I_w))
+            ),
+            taurdot=P - N_r,
+            tauldot=P - N_l,
         )
-
-        # vectorize expression
-        args = [theta, v, omega, L, R, m, d, m_w, tau_l, tau_r]
-        expr = g + M * inp
-        self.calc_dqdt = lambdify(args, expr, modules="numpy")
-
-        # store matrices
-        self.matrixes = dict(g=g, inp=inp, M=M,)
-
-        # Store dxdt model as sympy expression
-        self.model = g + M * inp
 
     def get_jacobians(self):
         (
@@ -266,94 +238,23 @@ class ModelDynamics(object):
             tau_r,
             v,
             omega,
+            P,
+            N_l,
+            N_r,
         ) = self.variables.values()
 
         # Get jacobian wrt state
-        self.model_jacobian_state = self.model.jacobian(
-            [x, y, theta, v, omega]
-        )
+        vrs = [x, y, theta, v, omega, tau_r, tau_l]
+        self.model_jacobian_state = {}
+        for eqname, eq in self.equations.items():
+            for wrt in vrs:
+                name = f"{eqname}_wrt_{wrt}"
+                self.model_jacobian_state[name] = eq.diff(wrt)
 
         # Get jacobian wrt input
-        self.model_jacobian_input = self.model.jacobian([tau_r, tau_l])
-
-        # vectorize expressions
-        args = [theta, v, omega, L, R, m, d, m_w]
-        self.calc_model_jacobian_state = lambdify(
-            args, self.model_jacobian_state, modules="numpy"
-        )
-
-        args = [L, R, m, d, m_w]
-
-        self.calc_model_jacobian_input = lambdify(
-            args, self.model_jacobian_input, modules="numpy"
-        )
-
-    def get_wheels_dynamics(self):
-        (
-            x,
-            y,
-            theta,
-            L,
-            R,
-            m,
-            m_w,
-            d,
-            tau_l,
-            tau_r,
-            v,
-            omega,
-        ) = self.variables.values()
-        """
-            In the model you can use the wheels angular velocity
-            to get the x,y,theta velocity.
-            Here we do the inverse, given x,y,theta velocities
-            we get the wheel's angular velocity.
-            
-            Using eqs 15 and 16 from the paper
-        """
-
-        nu_l_dot, nu_r_dot = symbols("nudot_L, nudot_R")
-        args = [L, R, v, omega]
-        vels = Matrix([v, omega])
-        K = Matrix([[1 / R, 1 / R], [1 / R, -1 / R]])
-        nu = K * vels
-        self.calc_wheels_ang_vels = lambdify(args, nu, modules="numpy")
-
-    def get_inverse_dynamics(self):
-        """
-            If the model is
-                x_dot = g + M*tau
-            the inverse model is
-                tau = M_inv * (x_dot - g)
-        """
-        # Get variables
-        (
-            x,
-            y,
-            theta,
-            L,
-            R,
-            m,
-            m_w,
-            d,
-            tau_l,
-            tau_r,
-            v,
-            omega,
-        ) = self.variables.values()
-        state = Matrix([x, y, theta, v, omega])
-
-        # Get inverse of M matrix
-        M_inv = SparseMatrix(
-            self.matrixes["M"]
-        ).pinv()  # recast as sparse for speed
-
-        # Get inverse model
-        self.model_inverse = M_inv * (state - self.matrixes["g"])
-
-        # Vectorize expression
-        args = [x, y, theta, v, omega, L, R, m, d, m_w]
-
-        self.calc_inv_dynamics = lambdify(
-            args, self.model_inverse, modules="numpy"
-        )
+        vrs = [P, N_l, N_r]
+        self.model_jacobian_input = {}
+        for eqname, eq in self.equations.items():
+            for wrt in vrs:
+                name = f"{eqname}_wrt_{wrt}"
+                self.model_jacobian_input[name] = eq.diff(wrt)

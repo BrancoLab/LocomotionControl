@@ -2,6 +2,7 @@ import numpy as np
 from pathlib import Path
 import pandas as pd
 import pickle
+from loguru import logger
 
 from .config import dt
 
@@ -28,24 +29,7 @@ def load_results_from_folder(folder):
 
 class History:
     def __init__(self):
-        self.record = dict(
-            x=[],
-            y=[],
-            theta=[],
-            v=[],
-            omega=[],
-            tau_l=[],
-            tau_r=[],
-            trajectory_idx=[],
-            nudot_left=[],
-            nudot_right=[],
-            goal_x=[],
-            goal_y=[],
-            goal_theta=[],
-            goal_v=[],
-            goal_omega=[],
-        )
-
+        self.record = {}
         self.info = dict()
 
     def append(self, *datas):
@@ -54,9 +38,12 @@ class History:
                 data = data._asdict()
 
             for k, v in data.items():
+                if k not in self.record.keys():
+                    self.record[k] = []
                 self.record[k].append(v)
 
     def save(self, folder, trajectory, trial):
+        logger.info(f"Saving history with entries: {self.record.keys()}")
         # Save info
         self.info["duration"] = len(self.record["x"]) * dt
         with open(str(folder / "info.pkl"), "wb") as out:

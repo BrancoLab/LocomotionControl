@@ -26,6 +26,8 @@ def simulated():
                 point's coordiates
             4. this is the coordiates for the next point
 
+        in practice two nearby points are drawn at each cycle to ensure steeper bends
+
         The finally compute the bezier path across all these points
     """
 
@@ -40,17 +42,22 @@ def simulated():
     # first point is origin
     points = [np.array([0, 0])]
 
-    for n in range(50):
+    for n in range(30):
         # draw random angle and
         phi = np.random.uniform(-120, 120)
         # phi = 0
-        rho = np.random.uniform(50, 100)
+        rho = np.random.uniform(20, 60)
 
-        # get next points coordinates
-        nxt = np.array(pol2cart(rho, phi)) + points[-1]
+        # get next two points coordinates
+        previous = points[-1]
+        for i in range(1):
+            if i == 1:
+                rho = rho / 10
+                phi = phi / 3
+            nxt = np.array(pol2cart(rho, phi)) + previous
 
-        # append to list
-        points.append(nxt)
+            # append to list
+            points.append(nxt)
 
     # Interpolate line segments
     xy = calc_bezier_path(np.vstack(points), TRAJECTORY_CONFIG["n_steps"])
@@ -72,14 +79,23 @@ def simulated():
     logger.info(
         f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}, total angle: {np.sum(np.abs(np.degrees(omega))):.3f}"
     )
-    v[0] = v[1]
 
+    # adjust speed
     speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_steps
     v *= speedup_factor
     v *= 1 / dt
 
+    # warmup = int(TRAJECTORY_CONFIG["n_steps"]/10)
+    v[0] = v[1]
+    v = np.ones_like(v) * 100
+    # v[:warmup] = np.mean(v)
+    # v[warmup:] = np.mean(v)
+
+    # get 0 vectors for tau
+    zeros = np.zeros_like(v) * 0.001  # to avoid 0 in divisions
+
     # stack
-    trajectory = np.vstack([x, y, theta, v, omega]).T
+    trajectory = np.vstack([x, y, theta, v, omega, zeros, zeros]).T
 
     return (
         trajectory,
@@ -122,6 +138,11 @@ def from_tracking(cache_fld, trialn=None):
         )
         for v in vrs
     ]
+
+    # get 0 vectors for tau
+    # zeros = np.zeros_like(v) * 0.001  # to avoid 0 in divisions
+
+    raise NotImplementedError("Add 0s")
 
     # stack
     trajectory = np.vstack(vrs).T
