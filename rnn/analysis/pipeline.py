@@ -43,6 +43,7 @@ class Pipeline:
         fit_fps=False,
         fps_kwargs={},
         winstor=False,
+        _logger=None,
     ):
         """ 
             Arguments:
@@ -54,11 +55,15 @@ class Pipeline:
                 fps_kwargs: dict. Dictionary of optional arguments for fps search
                 winstor: bool. True if the pipeline is being run winstor
         """
+        self.logger = _logger or logger
+
         # set up paths and stuff
         self.folder = Path(folder)
         self.winstor = winstor
 
-        logger.info(f"Running RNN analysis on [b {orange}]{self.folder.name}")
+        self.logger.info(
+            f"Running RNN analysis on [b {orange}]{self.folder.name}"
+        )
 
         self.analysis_folder = self.folder / "analysis"
         self.analysis_folder.mkdir(exist_ok=True)
@@ -68,7 +73,7 @@ class Pipeline:
         self.Y_path = self.analysis_folder / "Y.npy"  # correct output
         self.O_path = self.analysis_folder / "O.npy"  # network output
 
-        logger.add(self.analysis_folder / "analysis_log.log")
+        self.logger.add(self.analysis_folder / "analysis_log.log")
 
         self.n_trials_in_h = n_trials_in_h
         self.fps_kwargs = fps_kwargs
@@ -129,7 +134,7 @@ class Pipeline:
             self.idx_to_visualize = np.arange(self.X.shape[0])
 
     def run(self):
-        logger.debug("Running RNN analysis pipeline")
+        self.logger.debug("Running RNN analysis pipeline")
         self.setup(self.SELECT_TRIALS)
 
         # plot RNN I/O signal and weights
@@ -161,7 +166,7 @@ class Pipeline:
         save_figure(
             figure, self.analysis_folder / name, verbose=False,
         )
-        logger.debug(f"Saved {(self.analysis_folder / name).stem} figure")
+        self.logger.debug(f"Saved {(self.analysis_folder / name).stem} figure")
 
         if self.interactive and _show:
             plt.show()
@@ -184,7 +189,7 @@ class Pipeline:
             if h.shape[0] != self.n_trials_in_h:
                 h, X, O, Y = self.calc_h()
             else:
-                logger.debug(f"Loaded h from file, shape: {h.shape}")
+                self.logger.debug(f"Loaded h from file, shape: {h.shape}")
                 X = np.load(self.X_path)
                 O = np.load(self.O_path)
                 Y = np.load(self.Y_path)
@@ -195,7 +200,7 @@ class Pipeline:
         """
             Get a trajectory of hidden states by running the network for n trials
         """
-        logger.debug(
+        self.logger.debug(
             f"Extracting hidden state trace for {self.n_trials_in_h} trials"
         )
         X, Y = self.dataset.get_one_batch(
@@ -250,11 +255,11 @@ class Pipeline:
                 dyn_dimensionality: int. Number of dimensions of the dynamics
         """
         # Look at dimensionality of hidden dynamics with PCA
-        logger.debug("Getting dimensionality with PCA")
+        self.logger.debug("Getting dimensionality with PCA")
         dyn_dimensionality, f = get_n_components_with_pca(
             self.h, is_hidden=True
         )
-        logger.debug(
+        self.logger.debug(
             f"PCA says dynamics dimensionality is: {dyn_dimensionality}"
         )
 
