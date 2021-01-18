@@ -27,15 +27,17 @@ CONTROL_CONFIG = dict(
     INPUT_SIZE=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
     R=np.diag([1, 1, 1]),  # control cost
+    W=np.diag(
+        [-20, -20, -20]
+    ),  # control negative cost | should be < 0 | penalizes negative controls
     Q=np.diag(
         [30, 30, 30, 30, 0, 0, 0]
     ),  # state cost | x, y, theta, v, omega, taul, taur
-    Sf=np.diag([0, 0, 0, 0, 0, 0, 0]),  # final state cost
 )
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
     prediction_length=50,
-    n_ahead=25,  # start prediction states from N steps ahead
+    n_ahead=50,  # start prediction states from N steps ahead
 )
 
 iLQR_CONFIG = dict(

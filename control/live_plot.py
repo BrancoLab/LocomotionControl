@@ -35,7 +35,7 @@ class Plotter:
     def make_figure(self):
         plt.ion()
 
-        self.f = plt.figure(figsize=(12, 8))
+        self.f = plt.figure(figsize=(16, 10))
 
         gs = self.f.add_gridspec(3, 3)  # 6)
         self.xy_ax = self.f.add_subplot(gs[:, :2])

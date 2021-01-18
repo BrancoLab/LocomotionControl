@@ -1,5 +1,6 @@
 from collections import namedtuple
 import numpy as np
+from loguru import logger
 
 from .dynamics import ModelDynamics
 from .config import dt, MOUSE
@@ -81,7 +82,8 @@ class Model(ModelDynamics):
 
         if np.any(np.isnan(dxdt)) or np.any(np.isinf(dxdt)):
             # raise ValueError('Nans in dxdt')
-            print("nans in dxdt during fake step")
+            logger.warning("nans in dxdt during fake step")
+            return np.array(x)
 
         # Step
         next_x = np.array(x) + dxdt * dt

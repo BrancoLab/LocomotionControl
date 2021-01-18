@@ -65,3 +65,45 @@ def calc_bezier_path(control_points, n_points=100):
         traj.append(bezier(t, control_points))
 
     return np.array(traj)
+
+
+def fit_angle_in_range(
+    angles, min_angle=-np.pi, max_angle=np.pi, is_deg=False
+):
+    """ Check angle range and correct the range
+    it assumes that the angles are passed ind degrees
+    
+    Args:
+        angle (numpy.ndarray): in radians
+        min_angle (float): maximum of range in radians, default -pi
+        max_angle (float): minimum of range in radians, default pi
+    Returns: 
+        fitted_angle (numpy.ndarray): range angle in radians
+    """
+    if max_angle < min_angle:
+        raise ValueError("max angle must be greater than min angle")
+    if (max_angle - min_angle) < 2.0 * np.pi:
+        raise ValueError(
+            "difference between max_angle \
+                          and min_angle must be greater than 2.0 * pi"
+        )
+    if is_deg:
+        output = np.radians(angles)
+    else:
+        output = np.array(angles)
+
+    output_shape = output.shape
+
+    output = output.flatten()
+    output -= min_angle
+    output %= 2 * np.pi
+    output += 2 * np.pi
+    output %= 2 * np.pi
+    output += min_angle
+
+    output = np.minimum(max_angle, np.maximum(min_angle, output))
+    output = output.reshape(output_shape)
+
+    # if is_deg:
+    #     output = np.degrees(output)
+    return output

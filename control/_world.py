@@ -44,16 +44,16 @@ def simulated():
 
     for n in range(30):
         # draw random angle and
-        phi = np.random.uniform(-120, 120)
+        phi = np.random.uniform(-120, 120) if n > 0 else 0
         # phi = 0
         rho = np.random.uniform(20, 60)
 
         # get next two points coordinates
         previous = points[-1]
-        for i in range(1):
+        for i in range(2):
             if i == 1:
-                rho = rho / 10
-                phi = phi / 3
+                rho = rho / 2
+                phi = phi / 2
             nxt = np.array(pol2cart(rho, phi)) + previous
 
             # append to list
