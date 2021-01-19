@@ -12,7 +12,8 @@ from fcutils.video.utils import (
 )
 
 from .history import load_results_from_folder
-from .config import dt
+
+# from .config import dt
 
 colors = dict(
     x=[0.5, 0.5, 0.5],
@@ -179,58 +180,6 @@ def _plot_cost(cost_history, ax=None):
     ax.legend()
 
 
-def _plot_wheel_velocity(history, dt, tax=None, oax=None, sax=None):
-    R, L = history["nudot_right"], history["nudot_left"]
-
-    plot_line_outlined(
-        tax,
-        R,
-        color=desaturate_color(colors["tau_r"]),
-        label="R_wheel_angular_velocity",
-        lw=2,
-        solid_capstyle="round",
-    )
-    plot_line_outlined(
-        tax,
-        L,
-        color=desaturate_color(colors["tau_l"]),
-        label="L_wheel_angular_velocity",
-        lw=2,
-        solid_capstyle="round",
-    )
-    tax.set(
-        title="Wheels angular velocities",
-        xlabel="# Frames",
-        ylabel="ang. velocity\n$(deg/s)$",
-    )
-    tax.legend()
-
-    # plot v and omega
-    v, omega = history["v"], history["omega"]
-
-    plot_line_outlined(
-        sax,
-        v,
-        color=desaturate_color(colors["v"]),
-        label="$v$",
-        lw=2,
-        solid_capstyle="round",
-    )
-    sax.legend()
-    sax.set(title="Running speed", xlabel="# frames", ylabel="$v$")
-
-    plot_line_outlined(
-        oax,
-        omega,
-        color=desaturate_color(colors["omega"]),
-        label="$\\omega$",
-        lw=2,
-        solid_capstyle="round",
-    )
-    oax.legend()
-    oax.set(title="Angular velocity", xlabel="# frames", ylabel="$\\omega$")
-
-
 def plot_results(results_folder, plot_every=20, save_path=None):
     history, info, trajectory, trial = load_results_from_folder(results_folder)
     duration = info["duration"]
@@ -240,9 +189,9 @@ def plot_results(results_folder, plot_every=20, save_path=None):
     _plot_xy(history, trajectory, plot_every, duration, ax=xy_ax)
     _plot_control(history, ax=tau_ax)
     _plot_v(history, trajectory, plot_every, ax=sax)
-    _plot_wheel_velocity(
-        history, dt, tax=tau_int_ax, oax=omega_ax, sax=speed_ax
-    )
+    # _plot_wheel_velocity(
+    #     history, dt, tax=tau_int_ax, oax=omega_ax, sax=speed_ax
+    # )
 
     clean_axes(f)
     f.tight_layout()
