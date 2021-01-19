@@ -3,7 +3,8 @@ import numpy as np
 import json
 from rich import print
 import shutil
-import sys
+
+# import sys
 
 
 from pyrnn._progress import base_progress as progress
@@ -76,12 +77,12 @@ class Manager:
         self.frames_folder = self.datafolder / "frames"
         self.frames_folder.mkdir(exist_ok=True)
 
-    def start_logging(self):
-        logger.remove()
-        logger.add(sys.stdout, level="DEBUG")
-        filename = str(self.datafolder / f"{MANAGER_CONFIG['exp_name']}.log")
-        logger.add(filename, level="DEBUG")
-        logger.info(f"Saving data at: {self.datafolder}")
+    # def start_logging(self):
+    #     logger.remove()
+    #     logger.add(sys.stdout, level="DEBUG")
+    #     filename = str(self.datafolder / f"{MANAGER_CONFIG['exp_name']}.log")
+    #     logger.add(filename, level="DEBUG")
+    #     logger.info(f"Saving data at: {self.datafolder}")
 
     # ------------------------------ Run simulation ------------------------------ #
     def run(self, n_secs=1):
