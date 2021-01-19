@@ -82,8 +82,10 @@ class Model(ModelDynamics):
 
         if np.any(np.isnan(dxdt)) or np.any(np.isinf(dxdt)):
             # raise ValueError('Nans in dxdt')
-            logger.warning("nans in dxdt during fake step")
-            return np.array(x)
+            logger.warning(
+                "nans or infs in dxdt during fake step. x:{x}, u:{u}, dxdt:{dxdt}"
+            )
+            raise ValueError("Nans or infs in dxdt")
 
         # Step
         next_x = np.array(x) + dxdt * dt

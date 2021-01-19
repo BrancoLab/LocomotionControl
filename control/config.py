@@ -26,9 +26,9 @@ CONTROL_CONFIG = dict(
     STATE_SIZE=7,
     INPUT_SIZE=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1, 1, 1]),  # control cost
+    R=np.diag([0.1, 0.1, 0.1]),  # control cost
     W=np.diag(
-        [-20, -20, -20]
+        [-0.1, -0.1, -0.1]
     ),  # control negative cost | should be < 0 | penalizes negative controls
     Q=np.diag(
         [30, 30, 30, 30, 0, 0, 0]

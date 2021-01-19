@@ -99,6 +99,7 @@ class Manager:
                 )
 
                 for itern in range(n_steps):
+                    self.itern = itern
                     progress.advance(task_id, 1)
 
                     # Plan
