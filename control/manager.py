@@ -27,6 +27,17 @@ class Manager:
     def __init__(self, winstor=False, trialn=None):
         self.winstor = winstor
 
+        # setup experiment name
+        if TRAJECTORY_CONFIG["traj_type"] == "tracking" and winstor:
+            MANAGER_CONFIG["exp_name"] = (
+                MANAGER_CONFIG["exp_name"] + f"_trial_{self.world.trial.name}"
+            )
+        else:
+            MANAGER_CONFIG["exp_name"] = (
+                MANAGER_CONFIG["exp_name"]
+                + f"_{timestamp()}_{np.random.randint(10000)}"
+            )
+
         # Set up
         self.setup_paths()
         self.start_logging()
@@ -39,18 +50,6 @@ class Manager:
 
         self.model.initialize(self.world.trajectory)
         self.history.info["goal_duration"] = self.world.duration
-
-        # setup experiment name
-        if TRAJECTORY_CONFIG["traj_type"] == "tracking" and winstor:
-            MANAGER_CONFIG["exp_name"] = (
-                MANAGER_CONFIG["exp_name"] + f"_trial_{self.world.trial.name}"
-            )
-        else:
-            MANAGER_CONFIG["exp_name"] = (
-                MANAGER_CONFIG["exp_name"]
-                + f"_{timestamp()}_{np.random.randint(10000)}"
-            )
-        self.setup_paths()
 
         # Set up plotting
         if MANAGER_CONFIG["live_plot"]:
