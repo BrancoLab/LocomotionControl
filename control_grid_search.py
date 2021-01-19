@@ -25,7 +25,7 @@ for R in marks:
     for W in marks:
         for itern in range(3):
             # set new values
-            logger.debug(f"Values, R:{R}, W:{W} iteration:{itern}")
+            logger.debug(f"\n\n\nValues, R:{R}, W:{W} iteration:{itern}")
             config.CONTROL_CONFIG["R"] = np.diag([1, 1, 1]) * R
             config.CONTROL_CONFIG["W"] = np.diag([1, 1, 1]) * W
             config.MANAGER_CONFIG[

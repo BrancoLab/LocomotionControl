@@ -51,16 +51,16 @@ def _make_figure():
     xy_ax.axis("equal")
     # xy_ax.axis("off")
 
-    tau_ax = f.add_subplot(gs[0, 2:4])
+    control_ax = f.add_subplot(gs[0, 2:4])
     sax = f.add_subplot(gs[2, :2])  # speed trajectory
     # accel_ax = f.add_subplot(gs[0, 4:6])
     # cost_ax = f.add_subplot(gs[1, 4:6])
 
-    tau_int_ax = f.add_subplot(gs[0, 4:6])
+    tau_ax = f.add_subplot(gs[0, 4:6])
     omega_ax = f.add_subplot(gs[1, 4:6])
     speed_ax = f.add_subplot(gs[1, 2:4])
 
-    return f, xy_ax, tau_ax, sax, tau_int_ax, omega_ax, speed_ax
+    return f, xy_ax, control_ax, sax, tau_ax, omega_ax, speed_ax
 
 
 def _plot_xy(history, trajectory, plot_every, duration, ax=None):
@@ -100,6 +100,37 @@ def _plot_xy(history, trajectory, plot_every, duration, ax=None):
 
 
 def _plot_control(history, ax=None):
+    P, R, L = history["P"], history["N_r"], history["N_l"]
+
+    # plot traces
+    plot_line_outlined(
+        ax, P, color=colors["P"], label="$P$", lw=2, solid_capstyle="round",
+    )
+    plot_line_outlined(
+        ax,
+        R,
+        color=colors["N_r"],
+        label="$N_r$",
+        lw=2,
+        solid_capstyle="round",
+    )
+    plot_line_outlined(
+        ax,
+        L,
+        color=colors["N_l"],
+        label="$N_l$",
+        lw=2,
+        solid_capstyle="round",
+    )
+    ax.legend()
+    ax.set(
+        xlabel="# frames",
+        ylabel="Torque\n($\\frac{cm^2 g}{s^2}$)",
+        title="Control history",
+    )
+
+
+def _plot_tau(history, ax=None):
     R, L = history["tau_r"], history["tau_l"]
 
     # plot traces
@@ -184,14 +215,12 @@ def plot_results(results_folder, plot_every=20, save_path=None):
     history, info, trajectory, trial = load_results_from_folder(results_folder)
     duration = info["duration"]
 
-    f, xy_ax, tau_ax, sax, tau_int_ax, omega_ax, speed_ax = _make_figure()
+    f, xy_ax, control_ax, sax, tau_ax, omega_ax, speed_ax = _make_figure()
 
     _plot_xy(history, trajectory, plot_every, duration, ax=xy_ax)
-    _plot_control(history, ax=tau_ax)
+    _plot_control(history, ax=control_ax)
+    _plot_tau(history, ax=tau_ax)
     _plot_v(history, trajectory, plot_every, ax=sax)
-    # _plot_wheel_velocity(
-    #     history, dt, tax=tau_int_ax, oax=omega_ax, sax=speed_ax
-    # )
 
     clean_axes(f)
     f.tight_layout()
