@@ -99,11 +99,11 @@ def fast_model_jacobian_input(L, R, m, d, m_w):
     # taurdot_wrt_P
     res[5, 0] = 1
     # taurdot_wrt_N_r
-    res[5, 2] = -1
+    res[5, 1] = -1
     # tauldot_wrt_P
     res[6, 0] = 1
     # tauldot_wrt_N_l
-    res[6, 1] = -1
+    res[6, 2] = -1
 
     return res
 
@@ -203,9 +203,18 @@ class ModelDynamics(object):
         ) = self.variables.values()
 
         # Define moments of inertia
-        I_c = m * d ** 2  # mom. inertia around center of gravity
-        I_w = m_w * R ** 2  # mom. inertia of wheels
-        I = I_c + m * d ** 2 + 2 * m_w * L ** 2 + I_w
+        # ref: https://www.maplesoft.com/content/EngineeringFundamentals/4/MapleDocument_30/Rotation%20MI%20and%20Torque.pdf
+
+        I_c = m * (
+            d ** 2
+        )  # mom. inertia around axis through center of gravity
+        I_w = (m_w / 2) * (R ** 2)  # mom. inertia of wheels
+        I_m = (
+            (3 / 2) * m_w * (R ** 2)
+        )  # mom of intertia of wheels aroud wheel diameter
+        I = (
+            I_c + m * (d ** 2) + 2 * m_w * (L ** 2) + 2 * I_m
+        )  # tot mom of intertia
 
         # define differential equations
         self.equations = dict(
@@ -222,6 +231,28 @@ class ModelDynamics(object):
             ),
             taurdot=P - N_r,
             tauldot=P - N_l,
+        )
+
+        # define equations with moments as symbols
+        I_c, I_w, I_m, I = symbols("I_c, I_w, I_m, I", real=True)
+        self.equations_symbolic = dict(
+            xdot=v * cos(theta),
+            ydot=v * sin(theta),
+            thetadot=omega,
+            vdot=(
+                ((1 / R * (tau_r + tau_l)) + (m * d * omega ** 2))
+                / (m + (2 * I_w) / R ** 2)
+            ),
+            omegadot=(
+                ((L / R * (tau_r - tau_l)) + (m * d * omega * v))
+                / (I + (((2 * L ** 2) / R ** 2) * I_w))
+            ),
+            taurdot=P - N_r,
+            tauldot=P - N_l,
+            I_c=m * (d ** 2),
+            I_w=(m_w / 2) * (R ** 2),
+            I_m=(3 / 2) * m_w * (R ** 2),
+            I=I_c + m * (d ** 2) + 2 * m_w * (L ** 2) + 2 * I_m,
         )
 
     def get_jacobians(self):

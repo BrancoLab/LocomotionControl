@@ -47,8 +47,8 @@ class Cost:
         n_controls = len(CONTROL_CONFIG["R"])
 
         # first symbolic for nice printing of the cost eq
-        x = MatrixSymbol("X", n_states, 1)
-        u = MatrixSymbol("X", n_controls, 1)
+        x = MatrixSymbol("x", n_states, 1)
+        u = MatrixSymbol("u", n_controls, 1)
 
         Q = MatrixSymbol("Q", n_states, n_states)
         R = MatrixSymbol("R", n_controls, n_controls)

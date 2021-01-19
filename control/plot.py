@@ -154,7 +154,7 @@ def _plot_tau(history, ax=None):
     ax.set(
         xlabel="# frames",
         ylabel="Torque\n($\\frac{cm^2 g}{s^2}$)",
-        title="Control history",
+        title="Wheel torques",
     )
 
 
@@ -182,6 +182,38 @@ def _plot_v(history, trajectory, plot_every, ax=None):
     ax.set(
         xlabel="Trajectory idx",
         ylabel="Speed (cm/s)",
+        title="Speed trajectory",
+    )
+
+
+def _plot_omega(history, trajectory, plot_every, ax=None):
+    idx = 3
+    v = history["omega"]
+
+    # plot traj speed
+    ax.scatter(
+        np.arange(len(trajectory[:, idx]))[::plot_every],
+        np.degrees(trajectory[:, idx][::plot_every]),
+        color=desaturate_color(colors["omega"]),
+        label="trajectory speed",
+        lw=1,
+        edgecolors="white",
+        s=50,
+        alpha=0.5,
+    )
+
+    # plot history speed
+    ax.plot(
+        history["trajectory_idx"],
+        np.degrees(v),
+        color=colors["omega"],
+        lw=3,
+        zorder=100,
+    )
+
+    ax.set(
+        xlabel="Trajectory idx",
+        ylabel="Ang. speed. (deg/s)",
         title="Speed trajectory",
     )
 
@@ -221,6 +253,7 @@ def plot_results(results_folder, plot_every=20, save_path=None):
     _plot_control(history, ax=control_ax)
     _plot_tau(history, ax=tau_ax)
     _plot_v(history, trajectory, plot_every, ax=sax)
+    _plot_omega(history, trajectory, plot_every, ax=omega_ax)
 
     clean_axes(f)
     f.tight_layout()

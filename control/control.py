@@ -187,6 +187,10 @@ class Controller(Cost):
                 + alpha * k[t]
                 + np.dot(K[t], (new_pred_xs[t] - pred_xs[t]))
             )
+
+            # if np.max(new_sol) > 100000:
+            #     logger.warning(f'While computing imput, proposed solution is huge: {np.max(new_sol)}')
+
             new_pred_xs[t + 1] = self.model._fake_step(
                 new_pred_xs[t], new_sol[t]
             )

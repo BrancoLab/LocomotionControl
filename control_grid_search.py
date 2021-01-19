@@ -49,3 +49,5 @@ for R in marks:
                     logger.warning(
                         f"Wrapping up simulation failed with exception: {e}"
                     )
+            else:
+                logger.succesfull("Something worked hurray\n" + "#" * 100)

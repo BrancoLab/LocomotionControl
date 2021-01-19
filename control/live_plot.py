@@ -7,7 +7,7 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 
 from .plot import colors
-from .config import dt, px_to_cm, MOUSE
+from .config import dt, px_to_cm, MOUSE, PLANNING_CONFIG
 
 
 def press(event, self):
@@ -37,14 +37,17 @@ class Plotter:
 
         self.f = plt.figure(figsize=(16, 10))
 
-        gs = self.f.add_gridspec(3, 3)  # 6)
+        gs = self.f.add_gridspec(3, 6)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
         self.xy_ax.axis("equal")
         self.xy_ax.axis("off")
 
         self.control_ax = self.f.add_subplot(gs[0, 2:4])
 
-        self.sax = self.f.add_subplot(gs[1, 2:4])
+        self.sax = self.f.add_subplot(gs[1, 2:4])  # speed
+        self.omega_ax = self.f.add_subplot(gs[1, 4:6])  # ang vel
+        self.theta_ax = self.f.add_subplot(gs[0, 4:6])  # orientation
+
         self.tau_ax = self.f.add_subplot(gs[2, 2:4])
 
         clean_axes(self.f)
@@ -92,6 +95,10 @@ class Plotter:
         # plot speed and other variables
         self._plot_current_variables(history)
         self._plot_taus(history)
+
+        # fix x axes
+        for ax in (self.control_ax, self.tau_ax):
+            ax.set(xlim=[itern - 30, itern + 5])
 
         # display plot
         self.f.canvas.draw()
@@ -257,6 +264,13 @@ class Plotter:
         ax = self.sax
         ax.clear()
 
+        X_trace = (
+            np.array(history["trajectory_idx"][:-1])
+            - PLANNING_CONFIG["n_ahead"]
+        )
+        if not len(X_trace):
+            return
+
         # plot speed trajectory
         ax.scatter(
             np.arange(len(self.trajectory[:, 3]))[:: self.plot_every],
@@ -268,9 +282,9 @@ class Plotter:
             s=100,
         )
 
-        # plot current speed
+        # plot current speed + history
         ax.scatter(
-            history["trajectory_idx"][-1],
+            X_trace[-1],
             history["v"][-1],
             zorder=100,
             s=300,
@@ -281,18 +295,85 @@ class Plotter:
         )
 
         # store the scatter coords for later plots
-        self._cache["speed_plot_x"].append(history["trajectory_idx"][-1])
-        self._cache["speed_plot_y"].append(history["v"][-1])
-
-        # plot line
         ax.plot(
-            self._cache["speed_plot_x"],
-            self._cache["speed_plot_y"],
-            color=desaturate_color(colors["v"]),
-            zorder=-1,
-            lw=9,
+            X_trace, history["v"][:-1], zorder=80, lw=9, color=colors["v"],
         )
 
         ax.legend()
-        ax.set(title="Speed")
-        ax.set(ylabel="speed", xlabel="trajectory progression")
+        ax.set(title="Speed", ylabel="speed", xlabel="trajectory progression")
+
+        # ---------------------------------- ang vel --------------------------------- #
+        self.omega_ax.clear()
+        omega = np.degrees(history["omega"])
+
+        self.omega_ax.scatter(
+            np.arange(len(self.trajectory[:, 3]))[:: self.plot_every],
+            np.degrees(self.trajectory[:, 4][:: self.plot_every]),
+            color=colors["omega"],
+            label="trajectory ang vel",
+            lw=1,
+            edgecolors=[0.2, 0.2, 0.2],
+            s=100,
+        )
+
+        # plot current + history
+
+        self.omega_ax.plot(
+            X_trace, omega[:-1], zorder=80, lw=9, color=colors["omega"],
+        )
+
+        self.omega_ax.scatter(
+            X_trace[-1],
+            omega[-1],
+            zorder=100,
+            s=300,
+            lw=1,
+            color=colors["omega"],
+            edgecolors="k",
+            label="models angular velocity",
+        )
+
+        self.omega_ax.legend()
+        self.omega_ax.set(
+            title="Angular speed",
+            ylabel="speed\n(deg/s)",
+            xlabel="trajectory progression",
+        )
+
+        # ----------------------------------- theta ---------------------------------- #
+        self.theta_ax.clear()
+        theta = np.degrees(history["theta"])
+
+        self.theta_ax.scatter(
+            np.arange(len(self.trajectory[:, 3]))[:: self.plot_every],
+            np.degrees(self.trajectory[:, 2][:: self.plot_every]),
+            color=colors["theta"],
+            label="$\\theta$",
+            lw=1,
+            edgecolors=[0.2, 0.2, 0.2],
+            s=100,
+        )
+
+        # plot current + history
+
+        self.theta_ax.plot(
+            X_trace, theta[:-1], zorder=80, lw=9, color=colors["theta"],
+        )
+
+        self.theta_ax.scatter(
+            X_trace[-1],
+            theta[-1],
+            zorder=100,
+            s=300,
+            lw=1,
+            color=colors["theta"],
+            edgecolors="k",
+            label="models orientation",
+        )
+
+        self.theta_ax.legend()
+        self.theta_ax.set(
+            title="orientation",
+            ylabel="angle\n(deg)",
+            xlabel="trajectory progression",
+        )

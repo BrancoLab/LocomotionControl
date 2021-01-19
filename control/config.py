@@ -8,16 +8,16 @@ MANAGER_CONFIG = dict(exp_name="new_model", live_plot=False,)
 
 TRAJECTORY_CONFIG = dict(
     traj_type="simulated",  # tracking or simulated # ! CHECK BEFORE REAL
-    n_steps=2000,
+    n_steps=1000,
     min_dist=5,  # when within this distance from end, stop
 )
 
 
 MOUSE = dict(
     L=2,  # half body width | cm
-    R=1.5,  # radius of wheels | cm
+    R=0.5,  # radius of wheels | cm
     d=2,  # distance between axel and CoM | cm
-    length=10 * px_to_cm,  # cm | just for plotting
+    length=5 * px_to_cm,  # cm | just for plotting
     m=round(23 / 9.81, 2),  # mass | g
     m_w=round(7.8 / 9.81, 2),  # mass of wheels/legs |g
 )
@@ -26,18 +26,17 @@ CONTROL_CONFIG = dict(
     STATE_SIZE=7,
     INPUT_SIZE=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([0.1, 0.1, 0.1]),  # control cost
-    W=np.diag(
-        [-0.1, -0.1, -0.1]
-    ),  # control negative cost | should be < 0 | penalizes negative controls
+    R=np.diag([1, 1, 1]) * 1e-6,  # control cost
+    W=np.diag([-1, -1, -1])
+    * 0.01,  # control negative cost | should be < 0 | penalizes negative controls
     Q=np.diag(
-        [30, 30, 30, 30, 0, 0, 0]
+        [20, 20, 20, 10, 10, 0, 0]
     ),  # state cost | x, y, theta, v, omega, taul, taur
 )
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
     prediction_length=50,
-    n_ahead=50,  # start prediction states from N steps ahead
+    n_ahead=20,  # start prediction states from N steps ahead
 )
 
 iLQR_CONFIG = dict(

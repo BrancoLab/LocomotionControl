@@ -44,6 +44,12 @@ class History:
 
     def save(self, folder, trajectory, trial):
         logger.info(f"Saving history with entries: {self.record.keys()}")
+
+        logger.info(
+            "While saving history discarding first 60 samples to remove weird stuff"
+        )
+        self.record = {k: v[200:] for k, v in self.record.items()}
+
         # Save info
         self.info["duration"] = len(self.record["x"]) * dt
         with open(str(folder / "info.pkl"), "wb") as out:

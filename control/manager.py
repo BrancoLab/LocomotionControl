@@ -113,10 +113,10 @@ class Manager:
                     u = self.controller.obtain_sol(curr_x, g_xs)
 
                     # check that the controls are reasonable
-                    if np.max(u) > 100000:
-                        raise ValueError(
-                            "Something went wrong while computing controls, got very large values"
-                        )
+                    # if np.max(u) > 100000:
+                    #     raise ValueError(
+                    #         "Something went wrong while computing controls, got very large values"
+                    #     )
 
                     # step
                     self.model.step(

@@ -83,7 +83,7 @@ class Model(ModelDynamics):
         if np.any(np.isnan(dxdt)) or np.any(np.isinf(dxdt)):
             # raise ValueError('Nans in dxdt')
             logger.warning(
-                "nans or infs in dxdt during fake step. x:{x}, u:{u}, dxdt:{dxdt}"
+                f"nans or infs in dxdt during fake step. x:{x}, u:{u}, dxdt:{dxdt}"
             )
             raise ValueError("Nans or infs in dxdt")
 

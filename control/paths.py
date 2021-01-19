@@ -21,7 +21,9 @@ else:
         "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\behav_data\\psychometric_trials_augmented.h5"
     )
 
-    main_fld = Path("D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion")
+    main_fld = Path(
+        "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\simulations"
+    )
     frames_cache = Path(
         "D:\\Dropbox (UCL - SWC)\\Rotation_vte\\Locomotion\\frames_cache"
     )
