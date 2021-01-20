@@ -62,6 +62,9 @@ def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
     # ydot_wrt_v
     res[1, 3] = np.sin(theta)
 
+    # thetadot_wrt_omega
+    res[2, 4] = 1
+
     # vdot_wrt_omega
     res[3, 4] = 2 * d * m * omega / (m + 2 * m_w)
 
@@ -72,18 +75,18 @@ def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
     res[3, 6] = 1 / (R * (m + 2 * m_w))
 
     # omegadot_wrt_v
-    res[4, 3] = (
-        d * m * omega / (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m)
-    )
+    fact = 4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m
+
+    res[4, 3] = d * m * omega / fact
 
     # omegadot_wrt_omega
-    res[4, 4] = d * m * v / (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m)
+    res[4, 4] = d * m * v / fact
 
     # omegadot_wrt_tau_r
-    res[4, 5] = L / (R * (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m))
+    res[4, 5] = L / (R * fact)
 
     # omegadot_wrt_tau_l
-    res[4, 6] = -L / (R * (4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m))
+    res[4, 6] = -L / (R * fact)
 
     return res
 
