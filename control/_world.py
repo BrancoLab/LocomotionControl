@@ -40,28 +40,24 @@ def simulated():
     # ? make simulated trajectory of N points
     # first point is origin
     points = [np.array([0, 0])]
+    prev_phi = 0
 
     for n in range(100):
         # draw random angle and
-        phi = np.random.uniform(90, 160) * (
-            -1 if np.random.rand() < 0.5 else 1
-        )
+        _phi = np.random.uniform(0, 90) * (-1 if np.random.rand() < 0.5 else 1)
         if n == 0:
             phi = np.random.uniform(0, 360)
         rho = np.random.uniform(10, 25)
 
-        phi = 0
+        phi = _phi + prev_phi
+        prev_phi += _phi
 
-        # get next two points coordinates
+        # get next point's coordinates
         previous = points[-1]
-        for i in range(2):
-            if i == 1:
-                rho += rho / 2
-                phi = phi / 2
-            nxt = np.array(pol2cart(rho, phi)) + previous
+        nxt = np.array(pol2cart(rho, phi)) + previous
 
-            # append to list
-            points.append(nxt)
+        # append to list
+        points.append(nxt)
 
     # Interpolate line segments
     xy = calc_bezier_path(np.vstack(points), TRAJECTORY_CONFIG["n_steps"])

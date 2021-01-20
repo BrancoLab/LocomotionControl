@@ -13,6 +13,12 @@ import numpy as np
 def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
     """
         fast implementation of models dyamics
+
+        Arguments:
+            collection of state variables and mouse variables
+
+        Returns
+            dxdt: np.array (n states x1) with delta state
     """
     res = np.zeros(7)
 
@@ -30,7 +36,7 @@ def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
 
     # omegadot
     res[4] = (L * (-tau_l + tau_r) / R + d * m * omega * v) / (
-        4 * L ** 2 * m_w + R ** 2 * m_w + 2 * d ** 2 * m
+        3 * L ** 2 * m_w + 3.0 * R ** 2 * m_w + 2 * d ** 2 * m
     )
 
     # taurdot
