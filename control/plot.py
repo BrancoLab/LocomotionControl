@@ -5,7 +5,6 @@ import logging
 from fcutils.plotting.utils import clean_axes, save_figure
 from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
-from fcutils.maths.utils import derivative
 from fcutils.video.utils import (
     get_cap_from_images_folder,
     save_videocap_to_video,
@@ -58,9 +57,9 @@ def _make_figure():
 
     tau_ax = f.add_subplot(gs[0, 4:6])
     omega_ax = f.add_subplot(gs[1, 4:6])
-    speed_ax = f.add_subplot(gs[1, 2:4])
+    theta_ax = f.add_subplot(gs[1, 2:4])
 
-    return f, xy_ax, control_ax, sax, tau_ax, omega_ax, speed_ax
+    return f, xy_ax, control_ax, sax, tau_ax, omega_ax, theta_ax
 
 
 def _plot_xy(history, trajectory, plot_every, duration, ax=None):
@@ -159,13 +158,10 @@ def _plot_tau(history, ax=None):
 
 
 def _plot_v(history, trajectory, plot_every, ax=None):
-    idx = 3
-    v = history["v"]
-
     # plot traj speed
     ax.scatter(
-        np.arange(len(trajectory[:, idx]))[::plot_every],
-        trajectory[:, idx][::plot_every],
+        np.arange(len(trajectory[:, 3]))[::plot_every],
+        trajectory[:, 3][::plot_every],
         color=desaturate_color(colors["v"]),
         label="trajectory speed",
         lw=1,
@@ -176,7 +172,11 @@ def _plot_v(history, trajectory, plot_every, ax=None):
 
     # plot history speed
     ax.plot(
-        history["trajectory_idx"], v, color=colors["v"], lw=3, zorder=100,
+        history["trajectory_idx"],
+        history["v"],
+        color=colors["v"],
+        lw=3,
+        zorder=100,
     )
 
     ax.set(
@@ -187,12 +187,10 @@ def _plot_v(history, trajectory, plot_every, ax=None):
 
 
 def _plot_omega(history, trajectory, plot_every, ax=None):
-    idx = 3
-
     # plot traj speed
     ax.scatter(
-        np.arange(len(trajectory[:, idx]))[::plot_every],
-        trajectory[:, idx][::plot_every],
+        np.arange(len(trajectory[:, 4]))[::plot_every],
+        trajectory[:, 4][::plot_every],
         color=desaturate_color(colors["omega"]),
         label="trajectory speed",
         lw=1,
@@ -213,46 +211,51 @@ def _plot_omega(history, trajectory, plot_every, ax=None):
     ax.set(
         xlabel="Trajectory idx",
         ylabel="Ang. speed. (deg/s)",
-        title="Speed trajectory",
+        title="Ang. speed. trajectory",
     )
 
 
-def _plot_accel(history, ax=None):
-    v, omega = history["v"], history["omega"]
-    vdot = derivative(v)
-    omegadot = derivative(omega)
-
-    plot_line_outlined(ax, vdot, lw=2, color=colors["v"], label="$\dot{v}$")
-    plot_line_outlined(
-        ax, omegadot, lw=2, color=colors["omega"], label="$\dot{\omega}$"
+def _plot_theta(history, trajectory, plot_every, ax=None):
+    # plot traj speed
+    ax.scatter(
+        np.arange(len(trajectory[:, 2]))[::plot_every],
+        trajectory[:, 2][::plot_every],
+        color=desaturate_color(colors["theta"]),
+        label="trajectory orientation",
+        lw=1,
+        edgecolors="white",
+        s=50,
+        alpha=0.5,
     )
-    ax.legend()
 
+    # plot history speed
+    ax.plot(
+        history["trajectory_idx"],
+        np.degrees(history["theta"]),
+        color=colors["theta"],
+        lw=3,
+        zorder=100,
+    )
 
-def _plot_cost(cost_history, ax=None):
-    for k in cost_history.columns:
-        if "total" not in k:
-            ax.plot(
-                cost_history[k],
-                label=k,
-                lw=3,
-                solid_capstyle="round",
-                color=colors[k],
-            )
-    ax.legend()
+    ax.set(
+        xlabel="Trajectory idx",
+        ylabel="Theta (deg)",
+        title="Theta trajectory",
+    )
 
 
 def plot_results(results_folder, plot_every=20, save_path=None):
     history, info, trajectory, trial = load_results_from_folder(results_folder)
     duration = info["duration"]
 
-    f, xy_ax, control_ax, sax, tau_ax, omega_ax, speed_ax = _make_figure()
+    f, xy_ax, control_ax, sax, tau_ax, omega_ax, theta_ax = _make_figure()
 
     _plot_xy(history, trajectory, plot_every, duration, ax=xy_ax)
     _plot_control(history, ax=control_ax)
     _plot_tau(history, ax=tau_ax)
     _plot_v(history, trajectory, plot_every, ax=sax)
     _plot_omega(history, trajectory, plot_every, ax=omega_ax)
+    _plot_theta(history, trajectory, plot_every, ax=theta_ax)
 
     clean_axes(f)
     f.tight_layout()

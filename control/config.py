@@ -29,7 +29,7 @@ CONTROL_CONFIG = dict(
     R=np.diag([1, 1, 1]) * 1e-5,  # control cost
     W=np.diag([-1, -1, -1])
     * 1e-1,  # control negative cost | should be < 0 | penalizes negative controls
-    Q=np.diag([20, 20, 10, 30, 10000, 0, 0])
+    Q=np.diag([100, 100, 10, 30, 10000, 0, 0])
     * 1,  # state cost | x, y, theta, v, omega, taul, taur
 )
 
