@@ -188,12 +188,11 @@ def _plot_v(history, trajectory, plot_every, ax=None):
 
 def _plot_omega(history, trajectory, plot_every, ax=None):
     idx = 3
-    v = history["omega"]
 
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, idx]))[::plot_every],
-        np.degrees(trajectory[:, idx][::plot_every]),
+        trajectory[:, idx][::plot_every],
         color=desaturate_color(colors["omega"]),
         label="trajectory speed",
         lw=1,
@@ -205,7 +204,7 @@ def _plot_omega(history, trajectory, plot_every, ax=None):
     # plot history speed
     ax.plot(
         history["trajectory_idx"],
-        np.degrees(v),
+        np.degrees(history["omega"]),
         color=colors["omega"],
         lw=3,
         zorder=100,
