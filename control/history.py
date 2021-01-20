@@ -48,7 +48,7 @@ class History:
         logger.info(
             "While saving history discarding first 60 samples to remove weird stuff"
         )
-        self.record = {k: v[200:] for k, v in self.record.items()}
+        self.record = {k: v[50:] for k, v in self.record.items()}
 
         # Save info
         self.info["duration"] = len(self.record["x"]) * dt
