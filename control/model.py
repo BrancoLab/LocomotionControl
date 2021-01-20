@@ -50,7 +50,7 @@ class Model(ModelDynamics):
         # prep some variables
         self.curr_x = state(*self.curr_x)
         self.curr_goal = goal(*curr_goal)
-        u = control(*np.array(u))
+        u = control(*np.array(u).ravel())
 
         variables = merge(u, self.curr_x, MOUSE)
         inputs = [variables[a] for a in self._M_args]

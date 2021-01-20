@@ -19,7 +19,6 @@ requirements = [
     "dropbox",
     "pyinspect",
     "loguru",
-    "gputil",
     "pyrnn",
     "vedo",
 ]

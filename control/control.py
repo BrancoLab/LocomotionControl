@@ -120,11 +120,9 @@ class Controller(Cost):
         # solve LQR
         K = self.dlqr(A, B)
 
-        # compute control
-        state_error = self.fit_diff_in_range(curr_state - goal_states[0, :])
-        u = -K @ state_error
-
-        u = np.array(u).ravel()
+        # compute control for each state in the planning trajectory
+        state_error = self.fit_diff_in_range(curr_state - goal_states)
+        u = (-K @ state_error.T).mean(axis=1)
         self.prev_sol = u
         return u
 

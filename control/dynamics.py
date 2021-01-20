@@ -5,10 +5,11 @@ from sympy import (
 )
 
 import numpy as np
-from numba import jit
+
+# from numba import jit
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
     """
         fast implementation of models dyamics
@@ -41,7 +42,7 @@ def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
     return res
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
     """
         Fast implementation of the model's derivative wrt to state
@@ -87,7 +88,7 @@ def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
     return res
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def fast_model_jacobian_input(L, R, m, d, m_w):
     """
         Fast implementation of the model's derivative wrt to
