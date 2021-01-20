@@ -112,6 +112,7 @@ class Model(ModelDynamics):
 
         for t in range(pred_len):
             next_x = self._fake_step(x, us[t])
+
             # update
             pred_xs = np.concatenate((pred_xs, next_x[np.newaxis, :]), axis=0)
             x = next_x

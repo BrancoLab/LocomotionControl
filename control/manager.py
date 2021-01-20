@@ -104,13 +104,13 @@ class Manager:
                     progress.advance(task_id, 1)
 
                     # Plan
-                    curr_x = np.array(self.model.curr_x)
-                    g_xs = self.world.plan(curr_x)
-                    if g_xs is None:
+                    curr_state = np.array(self.model.curr_x)
+                    goal_states = self.world.plan(curr_state)
+                    if goal_states is None:
                         return self.wrap_up()  # DONE !
 
                     # Solve control
-                    u = self.controller.obtain_sol(curr_x, g_xs)
+                    u = self.controller.solve(curr_state, goal_states)
 
                     # check that the controls are reasonable
                     # if np.max(u) > 100000:
@@ -120,8 +120,8 @@ class Manager:
 
                     # step
                     self.model.step(
-                        u, g_xs[1, :]
-                    )  # g_xs[1, :] is used to keep a history of state delta
+                        u, goal_states[1, :]
+                    )  # goal_states[1, :] is used to keep a history of state delta
 
                     # update historu
                     self.history.append(
@@ -135,7 +135,7 @@ class Manager:
                     if MANAGER_CONFIG["live_plot"]:
                         self.plotter.update(
                             self.history.record,
-                            g_xs,
+                            goal_states,
                             self.world.current_traj_waypoint,
                             itern,
                             elapsed=itern * dt,
