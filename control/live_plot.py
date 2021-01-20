@@ -43,12 +43,11 @@ class Plotter:
         self.xy_ax.axis("off")
 
         self.control_ax = self.f.add_subplot(gs[0, 2:4])
+        self.tau_ax = self.f.add_subplot(gs[1, 2:4])
 
-        self.sax = self.f.add_subplot(gs[1, 2:4])  # speed
-        self.omega_ax = self.f.add_subplot(gs[1, 4:6])  # ang vel
         self.theta_ax = self.f.add_subplot(gs[0, 4:6])  # orientation
-
-        self.tau_ax = self.f.add_subplot(gs[2, 2:4])
+        self.omega_ax = self.f.add_subplot(gs[1, 4:6])  # ang vel
+        self.sax = self.f.add_subplot(gs[2, 4:6])  # speed
 
         clean_axes(self.f)
 
@@ -99,6 +98,9 @@ class Plotter:
         # fix x axes
         for ax in (self.control_ax, self.tau_ax):
             ax.set(xlim=[itern - 30, itern + 5])
+
+        minc, maxc = np.min(history["N_r"][-50:]), np.max(history["N_r"][-50:])
+        self.control_ax.set(lim=[minc, maxc])
 
         # display plot
         self.f.canvas.draw()

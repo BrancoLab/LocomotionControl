@@ -190,7 +190,7 @@ def _plot_omega(history, trajectory, plot_every, ax=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 4]))[::plot_every],
-        trajectory[:, 4][::plot_every],
+        np.degrees(trajectory[:, 4][::plot_every]),
         color=desaturate_color(colors["omega"]),
         label="trajectory speed",
         lw=1,
@@ -219,7 +219,7 @@ def _plot_theta(history, trajectory, plot_every, ax=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 2]))[::plot_every],
-        trajectory[:, 2][::plot_every],
+        np.degrees(trajectory[:, 2][::plot_every]),
         color=desaturate_color(colors["theta"]),
         label="trajectory orientation",
         lw=1,

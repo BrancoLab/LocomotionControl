@@ -15,7 +15,13 @@ from ._io import DropBoxUtils, upload_folder
 from .live_plot import Plotter
 from .plot import plot_results, animate_from_images
 from .history import History
-from .config import dt, MANAGER_CONFIG, TRAJECTORY_CONFIG, all_configs
+from .config import (
+    dt,
+    MANAGER_CONFIG,
+    CONTROL_CONFIG,
+    TRAJECTORY_CONFIG,
+    all_configs,
+)
 from control import paths
 
 from .world import World
@@ -102,6 +108,12 @@ class Manager:
                 for itern in range(n_steps):
                     self.itern = itern
                     progress.advance(task_id, 1)
+
+                    # change planning horizon
+                    if itern < 10:
+                        CONTROL_CONFIG["R"] = np.diag([1, 1, 1]) * 1e-5
+                    else:
+                        CONTROL_CONFIG["R"] = np.diag([1, 1, 1]) * 1e-3
 
                     # Plan
                     curr_state = np.array(self.model.curr_x)

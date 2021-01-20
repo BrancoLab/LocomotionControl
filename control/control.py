@@ -14,15 +14,8 @@ class Controller(Cost):
 
         self.controls_size = CONTROL_CONFIG["controls_size"]
         self.state_size = CONTROL_CONFIG["STATE_SIZE"]
-        self.Q = CONTROL_CONFIG["Q"]
-        self.R = CONTROL_CONFIG["R"]
-        self.W = CONTROL_CONFIG["W"]
         self.angle_idx = CONTROL_CONFIG["ANGLE_IDX"]
-
-        # store diagonal matrices
-        self.Q_ = np.diag(self.Q)
-        self.R_ = np.diag(self.R)
-        self.W_ = np.diag(self.W)
+        self.update_matrices()
 
         # Params
         self.max_iter = iLQR_CONFIG["max_iter"]
@@ -35,19 +28,37 @@ class Controller(Cost):
         self.threshold = iLQR_CONFIG["threshold"]
 
         # Initialize
-        self.prev_sol = np.zeros((self.pred_len, self.controls_size))
+        self.prev_sol = None
 
-    def solve(self, curr_x, g_xs):
+    def update_matrices(self):
+        # get matrices
+        self.Q = CONTROL_CONFIG["Q"]
+        self.R = CONTROL_CONFIG["R"]
+        self.W = CONTROL_CONFIG["W"]
+
+        # store diagonal matrices
+        self.Q_ = np.diag(self.Q)
+        self.R_ = np.diag(self.R)
+        self.W_ = np.diag(self.W)
+
+    def solve(self, X, X_g):
         """ calculate the optimal inputs
 
         Args:
-            curr_x (numpy.ndarray): current state, shape(state_size, )
-            g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
+            X (numpy.ndarray): current state, shape(state_size, )
+            X_g (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
         Returns:
             opt_input (numpy.ndarray): optimal input, shape(controls_size, )
         """
-        # initialize
-        sol = self.prev_sol.copy()
+        self.update_matrices()
+
+        # get previous solution and adjust to adapt to prediction length
+
+        if self.prev_sol is None:
+            self.prev_sol = np.zeros((self.pred_len, self.controls_size))
+        U = self.prev_sol.copy()
+
+        # initialize variables
         update_sol = True
         self.mu = self.init_mu
         self.delta = self.init_delta
@@ -70,7 +81,7 @@ class Controller(Cost):
                     l_u,  # pred len x n inputs
                     l_uu,  # pred len x n inputs x n inputs
                     l_ux,  # pred len x n inputs x n states
-                ) = self.forward(curr_x, g_xs, sol)
+                ) = self.forward(X, X_g, U)
                 update_sol = False
 
             # backward
@@ -78,14 +89,12 @@ class Controller(Cost):
 
             # line search for best solution
             for alpha in alphas:
-                new_pred_xs, new_sol = self.calc_input(
-                    k, K, pred_xs, sol, alpha
-                )
+                new_pred_xs, new_sol = self.calc_input(k, K, pred_xs, U, alpha)
 
                 new_cost = calc_cost(
                     new_pred_xs[np.newaxis, :, :],
                     new_sol[np.newaxis, :, :],
-                    g_xs[np.newaxis, :, :],
+                    X_g[np.newaxis, :, :],
                     self.state_cost_fn,
                     self.input_cost_fn,
                 )
@@ -93,7 +102,7 @@ class Controller(Cost):
                 if new_cost < cost:
                     cost = new_cost
                     pred_xs = new_pred_xs
-                    sol = new_sol
+                    U = new_sol
                     update_sol = True
 
                     # decrease regularization term
@@ -117,16 +126,16 @@ class Controller(Cost):
         if not accepted_sol:
             logger.debug("Failed to converge to a solution")
 
-        if np.any(np.isnan(sol)) or np.any(np.isinf(sol)):
+        if np.any(np.isnan(U)) or np.any(np.isinf(U)):
             raise ValueError("nans or inf in solution!")
 
-        # update prev sol
-        self.prev_sol[:-1] = sol[1:]
-        self.prev_sol[-1] = sol[-1]  # last use the terminal input
+        # update prev U
+        self.prev_sol[:-1] = U[1:]
+        self.prev_sol[-1] = U[-1]  # last use the terminal input
 
-        return sol[0]
+        return U[0]
 
-    def calc_input(self, k, K, pred_xs, sol, alpha):
+    def calc_input(self, k, K, pred_xs, U, alpha):
         """ calc input trajectory by using k and K
 
         Args:
@@ -134,7 +143,7 @@ class Controller(Cost):
             K (numpy.ndarray): gain, shape(pred_len, controls_size, state_size)
             pred_xs (numpy.ndarray): predicted state,
                 shape(pred_len+1, state_size)
-            sol (numpy.ndarray): input trajectory, previous solutions
+            U (numpy.ndarray): input trajectory, previous solutions
                 shape(pred_len, controls_size)
             alpha (float): param of line search
         Returns:
@@ -154,7 +163,7 @@ class Controller(Cost):
 
         for t in range(pred_len):
             new_sol[t] = (
-                sol[t]
+                U[t]
                 + alpha * k[t]
                 + np.dot(K[t], (new_pred_xs[t] - pred_xs[t]))
             )
@@ -170,13 +179,13 @@ class Controller(Cost):
 
         return new_pred_xs, new_sol
 
-    def forward(self, curr_x, g_xs, sol):
+    def forward(self, curr_x, X_g, U):
         """ forward step of iLQR
 
         Args:
             curr_x (numpy.ndarray): current state, shape(state_size, )
-            g_xs (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
-            sol (numpy.ndarray): solutions, shape(plan_len, controls_size)
+            X_g (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
+            U (numpy.ndarray): solutions, shape(plan_len, controls_size)
         
         Returns:
             f_x (numpy.ndarray): gradient of model with respecto to state,
@@ -195,29 +204,33 @@ class Controller(Cost):
                 to state and input, shape(pred_len, controls_size, state_size)
         """
         # simulate forward using the current control trajectory
-        pred_xs = self.model.predict_trajectory(curr_x, sol)
+        X = self.model.predict_trajectory(curr_x, U)
 
         # check costs
-        cost = self.calc_cost(curr_x, sol[np.newaxis, :, :], g_xs)
+        cost = self.calc_cost(curr_x, U[np.newaxis, :, :], X_g)
 
         # calc gradient in batch
-        f_x = self.model.calc_gradient(pred_xs[:-1], sol, wrt="x")
-        f_u = self.model.calc_gradient(pred_xs[:-1], sol, wrt="u")
+        f_x = self.model.calc_gradient(X[:-1], U, wrt="x")
+        f_u = self.model.calc_gradient(X[:-1], U, wrt="u")
 
         # gradint of costs
         l_x, l_xx, l_u, l_uu, l_ux = self._calc_gradient_hessian_cost(
-            pred_xs, g_xs, sol
+            X, X_g, U
         )
 
-        return pred_xs, cost, f_x, f_u, l_x, l_xx, l_u, l_uu, l_ux
+        for var in (l_x, l_xx, l_u, l_uu, l_ux):
+            if np.any(np.isnan(var)) or np.any(np.isinf(var)):
+                raise ValueError("Got nans while running iLQR forward!")
 
-    def _calc_gradient_hessian_cost(self, pred_xs, g_x, sol):
+        return X, cost, f_x, f_u, l_x, l_xx, l_u, l_uu, l_ux
+
+    def _calc_gradient_hessian_cost(self, X, g_x, U):
         """ calculate gradient and hessian of model and cost fn
         
         Args:
-            pred_xs (numpy.ndarray): predict traj,
+            X (numpy.ndarray): predict traj,
                 shape(pred_len+1, state_size)
-            sol (numpy.ndarray): input traj,
+            U (numpy.ndarray): input traj,
                 shape(pred_len, controls_size)
         Returns
             l_x (numpy.ndarray): gradient of cost,
@@ -233,20 +246,20 @@ class Controller(Cost):
         """
         # cost wrt to the state
         # l_x.shape = (pred_len+1, state_size)
-        l_x = self.gradient_cost_fn_with_state(pred_xs[:-1], g_x[:-1]) * dt
+        l_x = self.gradient_cost_fn_with_state(X[:-1], g_x[:-1]) * dt
 
         # cost wrt to the input
         # l_u.shape = (pred_len, controls_size)
-        l_u = self.gradient_cost_fn_with_input(pred_xs[:-1], sol) * dt
+        l_u = self.gradient_cost_fn_with_input(X[:-1], U) * dt
 
         # l_xx.shape = (pred_len+1, state_size, state_size)
-        l_xx = self.hessian_cost_fn_with_state(pred_xs[:-1], g_x[:-1]) * dt
+        l_xx = self.hessian_cost_fn_with_state(X[:-1], g_x[:-1]) * dt
 
         # l_uu.shape = (pred_len, controls_size, controls_size)
-        l_uu = self.hessian_cost_fn_with_input(pred_xs[:-1], sol) * dt
+        l_uu = self.hessian_cost_fn_with_input(X[:-1], U) * dt
 
         # l_ux.shape = (pred_len, controls_size, state_size)
-        l_ux = self.hessian_cost_fn_with_input_state(pred_xs[:-1], sol) * dt
+        l_ux = self.hessian_cost_fn_with_input_state(X[:-1], U) * dt
 
         return l_x, l_xx, l_u, l_uu, l_ux
 
