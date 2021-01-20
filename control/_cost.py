@@ -15,7 +15,7 @@ def calc_cost(
         pred_xs (numpy.ndarray): predicted state trajectory, 
             shape(pop_size, pred_len+1, state_size)
         input_sample (numpy.ndarray): inputs samples trajectory,
-            shape(pop_size, pred_len+1, input_size)
+            shape(pop_size, pred_len+1, controls_size)
         g_xs (numpy.ndarray): goal state trajectory,
             shape(pop_size, pred_len+1, state_size)
         state_cost_fn (function): state cost fucntion
@@ -111,11 +111,11 @@ class Cost:
     def input_cost_fn(self, u):
         """ input cost functions
         Args:
-            u (numpy.ndarray): input, shape(pred_len, input_size)
-                or shape(pop_size, pred_len, input_size)
+            u (numpy.ndarray): input, shape(pred_len, controls_size)
+                or shape(pop_size, pred_len, controls_size)
         Returns:
-            cost (numpy.ndarray): cost of input, shape(pred_len, input_size) or
-                shape(pop_size, pred_len, input_size)
+            cost (numpy.ndarray): cost of input, shape(pred_len, controls_size) or
+                shape(pop_size, pred_len, controls_size)
         """
         return (u ** 2) * self.R_ + u * self.W_
 
@@ -157,10 +157,10 @@ class Cost:
 
         Args:
             x (numpy.ndarray): state, shape(pred_len, state_size)
-            u (numpy.ndarray): goal state, shape(pred_len, input_size)
+            u (numpy.ndarray): goal state, shape(pred_len, controls_size)
         
         Returns:
-            l_u (numpy.ndarray): gradient of cost, shape(pred_len, input_size)
+            l_u (numpy.ndarray): gradient of cost, shape(pred_len, controls_size)
         """
         return 2.0 * u * self.R_ + self.W_
 
@@ -184,11 +184,11 @@ class Cost:
 
         Args:
             x (numpy.ndarray): state, shape(pred_len, state_size)
-            u (numpy.ndarray): goal state, shape(pred_len, input_size)
+            u (numpy.ndarray): goal state, shape(pred_len, controls_size)
         
         Returns:
             l_uu (numpy.ndarray): gradient of cost,
-                shape(pred_len, input_size, input_size)
+                shape(pred_len, controls_size, controls_size)
         """
         (pred_len, _) = u.shape
 
@@ -199,13 +199,13 @@ class Cost:
 
         Args:
             x (numpy.ndarray): state, shape(pred_len, state_size)
-            u (numpy.ndarray): goal state, shape(pred_len, input_size)
+            u (numpy.ndarray): goal state, shape(pred_len, controls_size)
         
         Returns:
             l_ux (numpy.ndarray): gradient of cost ,
-                shape(pred_len, input_size, state_size)
+                shape(pred_len, controls_size, state_size)
         """
         (_, state_size) = x.shape
-        (pred_len, input_size) = u.shape
+        (pred_len, controls_size) = u.shape
 
-        return np.zeros((pred_len, input_size, state_size))
+        return np.zeros((pred_len, controls_size, state_size))

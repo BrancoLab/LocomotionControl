@@ -86,6 +86,7 @@ class Model(ModelDynamics):
                 f"nans or infs in dxdt during fake step. x:{x}, u:{u}, dxdt:{dxdt}"
             )
             raise ValueError("Nans or infs in dxdt")
+            # dxdt = np.nan_to_num(dxdt)
 
         # Step
         next_x = np.array(x) + dxdt * dt
@@ -140,7 +141,7 @@ class Model(ModelDynamics):
         d = MOUSE["d"]
 
         (_, state_size) = xs.shape
-        (pred_len, input_size) = us.shape
+        (pred_len, controls_size) = us.shape
 
         if wrt == "x":
             f = np.zeros((pred_len, state_size, state_size))
@@ -150,9 +151,9 @@ class Model(ModelDynamics):
                 )
             return f * dt + np.eye(state_size)
         else:
-            f = np.zeros((pred_len, state_size, input_size))
-            f0 = self.calc_model_jacobian_input(
-                L, R, m, d, m_w
+            f = np.zeros((pred_len, state_size, controls_size))
+            f0 = (
+                self.calc_model_jacobian_input()
             )  # no need to iterate because const.
             for i in range(pred_len):
                 f[i, :, :] = f0

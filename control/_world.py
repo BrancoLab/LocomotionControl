@@ -48,8 +48,9 @@ def simulated():
         )
         if n == 0:
             phi = np.random.uniform(0, 360)
-
         rho = np.random.uniform(10, 25)
+
+        phi = 0
 
         # get next two points coordinates
         previous = points[-1]
@@ -83,7 +84,7 @@ def simulated():
     v = calc_distance_between_points_in_a_vector_2d(x, y)
     # v = np.linspace(50, 100, len(x))
     logger.info(
-        f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}, total angle: {np.sum(np.abs(np.degrees(omega))):.3f}"
+        f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}, total angle: {np.sum(np.abs(np.degrees(derivative(theta)))):.3f}"
     )
 
     # adjust speed

@@ -92,7 +92,7 @@ def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
 
 
 # @jit(nopython=True)
-def fast_model_jacobian_input(L, R, m, d, m_w):
+def fast_model_jacobian_input():
     """
         Fast implementation of the model's derivative wrt to
         the inputs (controls).

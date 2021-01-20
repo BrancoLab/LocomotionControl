@@ -24,25 +24,25 @@ MOUSE = dict(
 
 CONTROL_CONFIG = dict(
     STATE_SIZE=7,
-    INPUT_SIZE=3,
+    controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1, 1, 1]) * 1,  # control cost
+    R=np.diag([1, 1, 1]) * 1e-5,  # control cost
     W=np.diag([-1, -1, -1])
-    * 1,  # control negative cost | should be < 0 | penalizes negative controls
+    * 1e-1,  # control negative cost | should be < 0 | penalizes negative controls
     Q=np.diag([20, 20, 10, 30, 10, 0, 0])
     * 1,  # state cost | x, y, theta, v, omega, taul, taur
 )
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
-    prediction_length=30,
+    prediction_length=10,
     n_ahead=20,  # start prediction states from N steps ahead
 )
 
 iLQR_CONFIG = dict(
-    max_iter=10000,  # number of iterations for descent
+    max_iter=100000,  # number of iterations for descent
     init_mu=1.0,
     mu_min=1e-6,
-    mu_max=1e10,
+    mu_max=1e20,
     init_delta=2.0,
     threshold=1e-6,  # when improvement speed < this, stop optimization
 )

@@ -71,7 +71,7 @@ def setup_loggers(winstor, data):
 def make_rnn(data, winstor):
     logger.bind(main=True).info("Creating RNN")
     rnn = RNN(
-        input_size=len(data.inputs_names),
+        controls_size=len(data.inputs_names),
         output_size=len(data.outputs_names),
         n_units=n_units,
         dale_ratio=dale_ratio,
@@ -181,7 +181,7 @@ def load_minloss(data, winstor):
     rnn = RNN.load(
         min_loss_path,
         n_units=n_units,
-        input_size=len(data.inputs_names),
+        controls_size=len(data.inputs_names),
         output_size=len(data.outputs_names),
         on_gpu=use_gpu,
         load_kwargs=dict(map_location=torch.device("cpu"))
