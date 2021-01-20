@@ -26,11 +26,11 @@ CONTROL_CONFIG = dict(
     STATE_SIZE=7,
     INPUT_SIZE=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1, 1, 1]) * 10,  # control cost
+    R=np.diag([1, 1, 1]) * 10000000,  # control cost
     W=np.diag([-1, -1, -1])
     * 0.0,  # control negative cost | should be < 0 | penalizes negative controls
     Q=np.diag([20, 20, 10, 30, 10, 0, 0])
-    * 100,  # state cost | x, y, theta, v, omega, taul, taur
+    * 0.001,  # state cost | x, y, theta, v, omega, taul, taur
 )
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control

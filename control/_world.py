@@ -49,8 +49,6 @@ def simulated():
         if n == 0:
             phi = np.random.uniform(0, 360)
 
-        phi = 0
-
         rho = np.random.uniform(10, 25)
 
         # get next two points coordinates
