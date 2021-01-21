@@ -93,11 +93,11 @@ class Controller(Cost):
 
             # line search for best solution
             for alpha in alphas:
-                new_pred_xs, new_sol = self.calc_input(k, K, pred_xs, U, alpha)
+                X_hat, U_hat = self.calc_input(k, K, pred_xs, U, alpha)
 
                 new_cost = calc_cost(
-                    new_pred_xs[np.newaxis, :, :],
-                    new_sol[np.newaxis, :, :],
+                    X_hat[np.newaxis, :, :],
+                    U_hat[np.newaxis, :, :],
                     X_g[np.newaxis, :, :],
                     self.state_cost_fn,
                     self.input_cost_fn,
@@ -105,8 +105,8 @@ class Controller(Cost):
 
                 if new_cost < cost:
                     cost = new_cost
-                    pred_xs = new_pred_xs
-                    U = new_sol
+                    pred_xs = X_hat
+                    U = U_hat
                     update_sol = True
 
                     # decrease regularization term
@@ -152,9 +152,9 @@ class Controller(Cost):
                 shape(pred_len, controls_size)
             alpha (float): param of line search
         Returns:
-            new_pred_xs (numpy.ndarray): update state trajectory,
+            X_hat (numpy.ndarray): update state trajectory,
                 shape(pred_len+1, state_size)
-            new_sol (numpy.ndarray): update input trajectory,
+            U_hat (numpy.ndarray): update input trajectory,
                 shape(pred_len, controls_size)
         """
 
@@ -162,27 +162,23 @@ class Controller(Cost):
         (pred_len, controls_size, state_size) = K.shape
 
         # initialize
-        new_pred_xs = np.zeros((pred_len + 1, state_size))
-        new_pred_xs[0] = pred_xs[0].copy()  # init state is same
-        new_sol = np.zeros((pred_len, controls_size))
+        X_hat = np.zeros((pred_len + 1, state_size))
+        X_hat[0] = pred_xs[0].copy()  # init state is same
+        U_hat = np.zeros((pred_len, controls_size))
 
         for t in range(pred_len):
-            new_sol[t] = (
-                U[t]
-                + alpha * k[t]
-                + np.dot(K[t], (new_pred_xs[t] - pred_xs[t]))
+            U_hat[t] = (
+                U[t] + alpha * k[t] + np.dot(K[t], (X_hat[t] - pred_xs[t]))
             )
 
             try:
-                new_pred_xs[t + 1] = self.model._fake_step(
-                    new_pred_xs[t], new_sol[t]
-                )
+                X_hat[t + 1] = self.model._fake_step(X_hat[t], U_hat[t])
             except ValueError:
                 raise ValueError(
                     "Failed to update controls with iLQR, likely nans or infs came up"
                 )
 
-        return new_pred_xs, new_sol
+        return X_hat, U_hat
 
     def forward(self, curr_x, X_g, U):
         """ forward step of iLQR

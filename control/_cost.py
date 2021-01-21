@@ -50,14 +50,14 @@ class Cost:
         n_controls = len(CONTROL_CONFIG["W"])
 
         # first symbolic for nice printing of the cost eq
-        x = MatrixSymbol("x", n_states, 1)
-        u = MatrixSymbol("u", n_controls, 1)
+        X = MatrixSymbol("X", n_states, 1)
+        U = MatrixSymbol("U", n_controls, 1)
 
         Q = MatrixSymbol("Q", n_states, n_states)
         R = MatrixSymbol("R", n_controls, n_controls)
         W = MatrixSymbol("W", n_controls, 1)
 
-        self.cost_function = x.T * Q * x + u.T * R * u + u.T * W
+        self.cost_function = X.T * Q * X + U.T * R * U + U.T * W
 
     def calc_cost(self, X, U, X_g):
         """ calculate the cost of input U
@@ -111,23 +111,23 @@ class Cost:
 
         return diff_x
 
-    def input_cost_fn(self, u):
+    def input_cost_fn(self, U):
         """ input cost functions
         Args:
-            u (numpy.ndarray): input, shape(pred_len, controls_size)
+            U (numpy.ndarray): input, shape(pred_len, controls_size)
                 or shape(pop_size, pred_len, controls_size)
         Returns:
             cost (numpy.ndarray): cost of input, shape(pred_len, controls_size) or
                 shape(pop_size, pred_len, controls_size)
         """
-        return (u ** 2) * self.R_ + u * self.W_
+        return (U ** 2) * self.R_ + U * self.W_
 
-    def state_cost_fn(self, x, g_x):
+    def state_cost_fn(self, X, X_g):
         """ state cost function
         Args:
-            x (numpy.ndarray): state, shape(pred_len, state_size)
+            X (numpy.ndarray): state, shape(pred_len, state_size)
                 or shape(pop_size, pred_len, state_size)
-            g_x (numpy.ndarray): goal state, shape(pred_len, state_size)
+            X_g (numpy.ndarray): goal state, shape(pred_len, state_size)
                 or shape(pop_size, pred_len, state_size)
         Returns:
             cost (numpy.ndarray): cost of state, shape(pred_len, state_size) or
@@ -135,80 +135,80 @@ class Cost:
 
 
             Cost of state, is given bY
-            (x - X_g)T * Q * (x - x_g)
+            (X - X_g)T * Q * (X - x_g)
         """
-        diff = self.fit_diff_in_range(x - g_x)
+        diff = self.fit_diff_in_range(X - X_g)
 
         return (diff ** 2) * self.Q_
 
-    def gradient_cost_fn_with_state(self, x, g_x):
+    def gradient_cost_fn_with_state(self, X, X_g):
         """ gradient of costs with respect to the state
 
         Args:
-            x (numpy.ndarray): state, shape(pred_len, state_size)
-            g_x (numpy.ndarray): goal state, shape(pred_len, state_size)
+            X (numpy.ndarray): state, shape(pred_len, state_size)
+            X_g (numpy.ndarray): goal state, shape(pred_len, state_size)
         
         Returns:
             l_x (numpy.ndarray): gradient of cost, shape(pred_len, state_size)
                 or shape(1, state_size)
         """
-        diff = self.fit_diff_in_range(x - g_x)
+        diff = self.fit_diff_in_range(X - X_g)
         return 2.0 * (diff) * self.Q_
 
-    def gradient_cost_fn_with_input(self, x, u):
+    def gradient_cost_fn_with_input(self, X, U):
         """ gradient of costs with respect to the input
 
         Args:
-            x (numpy.ndarray): state, shape(pred_len, state_size)
-            u (numpy.ndarray): goal state, shape(pred_len, controls_size)
+            X (numpy.ndarray): state, shape(pred_len, state_size)
+            U (numpy.ndarray): goal state, shape(pred_len, controls_size)
         
         Returns:
             l_u (numpy.ndarray): gradient of cost, shape(pred_len, controls_size)
         """
-        return 2.0 * u * self.R_ + self.W_
+        return 2.0 * U * self.R_ + self.W_
 
-    def hessian_cost_fn_with_state(self, x, g_x):
+    def hessian_cost_fn_with_state(self, X, X_g):
         """ hessian costs with respect to the state
 
         Args:
-            x (numpy.ndarray): state, shape(pred_len, state_size)
-            g_x (numpy.ndarray): goal state, shape(pred_len, state_size)
+            X (numpy.ndarray): state, shape(pred_len, state_size)
+            X_g (numpy.ndarray): goal state, shape(pred_len, state_size)
         
         Returns:
             l_xx (numpy.ndarray): gradient of cost,
                 shape(pred_len, state_size, state_size) or
                 shape(1, state_size, state_size) or
         """
-        (pred_len, _) = x.shape
+        (pred_len, _) = X.shape
         return np.tile(2.0 * self.Q, (pred_len, 1, 1))
 
-    def hessian_cost_fn_with_input(self, x, u):
+    def hessian_cost_fn_with_input(self, X, U):
         """ hessian costs with respect to the input
 
         Args:
-            x (numpy.ndarray): state, shape(pred_len, state_size)
-            u (numpy.ndarray): goal state, shape(pred_len, controls_size)
+            X (numpy.ndarray): state, shape(pred_len, state_size)
+            U (numpy.ndarray): goal state, shape(pred_len, controls_size)
         
         Returns:
             l_uu (numpy.ndarray): gradient of cost,
                 shape(pred_len, controls_size, controls_size)
         """
-        (pred_len, _) = u.shape
+        (pred_len, _) = U.shape
 
         return np.tile(2.0 * self.R, (pred_len, 1, 1))
 
-    def hessian_cost_fn_with_input_state(self, x, u):
+    def hessian_cost_fn_with_input_state(self, X, U):
         """ hessian costs with respect to the state and input
 
         Args:
-            x (numpy.ndarray): state, shape(pred_len, state_size)
-            u (numpy.ndarray): goal state, shape(pred_len, controls_size)
+            X (numpy.ndarray): state, shape(pred_len, state_size)
+            U (numpy.ndarray): goal state, shape(pred_len, controls_size)
         
         Returns:
             l_ux (numpy.ndarray): gradient of cost ,
                 shape(pred_len, controls_size, state_size)
         """
-        (_, state_size) = x.shape
-        (pred_len, controls_size) = u.shape
+        (_, state_size) = X.shape
+        (pred_len, controls_size) = U.shape
 
         return np.zeros((pred_len, controls_size, state_size))
