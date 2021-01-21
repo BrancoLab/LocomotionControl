@@ -26,15 +26,17 @@ CONTROL_CONFIG = dict(
     STATE_SIZE=7,
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R=np.diag([1, 1, 1]) * 1e-2,  # control cost
+    R_start=np.diag([1, 1, 1])
+    * 1e-4,  # control cost for first few simulation steps
+    R_run=np.diag([1, 1, 1]) * 1e-2,  # control cost
     W=np.diag([-1, -1, -1])
-    * 1e-1,  # control negative cost | should be < 0 | penalizes negative controls
-    Q=np.diag([1, 1, 1, 1, 1, 0, 0])
+    * 5e1,  # should be < 0 | penalizes negative controls
+    Q=np.diag([1, 1, 1, 1, 3, 0, 0])
     * 10000,  # state cost | x, y, theta, v, omega, taul, taur
 )
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
-    prediction_length=20,
+    prediction_length=30,
     n_ahead=20,  # start prediction states from N steps ahead
 )
 

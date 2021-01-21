@@ -15,7 +15,6 @@ class Controller(Cost):
         self.controls_size = CONTROL_CONFIG["controls_size"]
         self.state_size = CONTROL_CONFIG["STATE_SIZE"]
         self.angle_idx = CONTROL_CONFIG["ANGLE_IDX"]
-        self.update_matrices()
 
         # Params
         self.max_iter = iLQR_CONFIG["max_iter"]

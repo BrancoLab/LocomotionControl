@@ -109,11 +109,11 @@ class Manager:
                     self.itern = itern
                     progress.advance(task_id, 1)
 
-                    # change planning horizon
+                    # change control costs
                     if itern < 10:
-                        CONTROL_CONFIG["R"] = np.diag([1, 1, 1]) * 1e-5
+                        CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_start"]
                     else:
-                        CONTROL_CONFIG["R"] = np.diag([1, 1, 1]) * 1e-3
+                        CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_run"]
 
                     # Plan
                     curr_state = np.array(self.model.curr_x)
@@ -123,12 +123,6 @@ class Manager:
 
                     # Solve control
                     u = self.controller.solve(curr_state, goal_states)
-
-                    # check that the controls are reasonable
-                    # if np.max(u) > 100000:
-                    #     raise ValueError(
-                    #         "Something went wrong while computing controls, got very large values"
-                    #     )
 
                     # step
                     self.model.step(

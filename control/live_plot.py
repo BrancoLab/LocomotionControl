@@ -100,7 +100,9 @@ class Plotter:
             ax.set(xlim=[itern - 30, itern + 5])
 
         minc, maxc = np.min(history["N_r"][-50:]), np.max(history["N_r"][-50:])
-        self.control_ax.set(lim=[minc, maxc])
+        self.control_ax.set(
+            ylim=[minc - np.abs(minc * 2), maxc + np.abs(maxc * 2)]
+        )
 
         # display plot
         self.f.canvas.draw()

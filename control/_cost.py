@@ -44,7 +44,7 @@ class Cost:
             Latex representation of cost and it's derivative
         """
         n_states = len(CONTROL_CONFIG["Q"])
-        n_controls = len(CONTROL_CONFIG["R"])
+        n_controls = len(CONTROL_CONFIG["W"])
 
         # first symbolic for nice printing of the cost eq
         x = MatrixSymbol("x", n_states, 1)
