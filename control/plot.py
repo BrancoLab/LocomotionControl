@@ -94,6 +94,16 @@ def _plot_xy(history, trajectory, plot_every, duration, ax=None):
         outline_color=[0.2, 0.2, 0.2],
     )
 
+    ax.scatter(
+        history["x"][0],
+        history["y"][0],
+        color=colors["tracking"],
+        lw=2,
+        zorder=120,
+        edgecolors=[0.2, 0.2, 0.2],
+        s=200,
+    )
+
     # Set ax properties
     ax.set(xlabel="cm", ylabel="cm", title=f"Duration: {duration}s")
 
