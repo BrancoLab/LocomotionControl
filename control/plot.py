@@ -96,8 +96,8 @@ def _plot_xy(history, trajectory, plot_every, duration, ax=None):
     )
 
     ax.scatter(
-        history["x"][0],
-        history["y"][0],
+        history["x"].values[0],
+        history["y"].values[0],
         color=colors["tracking"],
         lw=2,
         zorder=120,

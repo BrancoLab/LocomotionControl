@@ -33,7 +33,7 @@ CONTROL_CONFIG = dict(
     W=np.diag([-1, -1, -1]) * 1e2,  # should be < 0
     # control smoothness
     Z_start=np.diag([1, 1, 1]) * 0,
-    Z_run=np.diag([1, 1, 1]) * 1e-4,
+    Z_run=np.diag([1, 1, 1]) * 0,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
     Q=np.diag([1, 1, 1, 1, 3, 0, 0]) * 1e4,
