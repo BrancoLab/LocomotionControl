@@ -124,7 +124,7 @@ def _plot_control(history, ax=None):
 
     plot_line_outlined(
         ax,
-        rolling_mean(var, window=31),
+        rolling_mean(var, 21),
         color=colors[name],
         lw=2,
         solid_capstyle="round",
