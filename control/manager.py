@@ -124,8 +124,8 @@ class Manager:
                         is_warmup = False
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_run"]
 
-                        # change Z the next step
-                        if itern > 11:
+                        # change Z a bit later
+                        if itern > 15:
                             CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_run"]
 
                         # prediction length has another option

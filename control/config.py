@@ -26,15 +26,17 @@ CONTROL_CONFIG = dict(
     STATE_SIZE=7,
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
-    R_start=np.diag([1, 1, 1])
-    * 1e-4,  # control cost for first few simulation steps
-    R_run=np.diag([1, 1, 1]) * 1e-2,  # control cost
-    W=np.diag([-1, -1, -1])
-    * 1e2,  # should be < 0 | penalizes negative controls
-    Z_start=np.diag([1, 1, 1]) * 0,  # enforce smooth controls
-    Z_run=np.diag([1, 1, 1]) * 1,  # enforce smooth controls
-    Q=np.diag([1, 1, 1, 1, 3, 0, 0])
-    * 10000,  # state cost | x, y, theta, v, omega, taul, taur
+    # control magnitude
+    R_start=np.diag([1, 1, 1]) * 1e-4,
+    R_run=np.diag([1, 1, 1]) * 1e-2,
+    # positive controls
+    W=np.diag([-1, -1, -1]) * 1e2,  # should be < 0
+    # control smoothness
+    Z_start=np.diag([1, 1, 1]) * 0,
+    Z_run=np.diag([1, 1, 1]) * 0,
+    # state error cost
+    # state cost | x, y, theta, v, omega, taul, taur
+    Q=np.diag([1, 1, 1, 1, 3, 0, 0]) * 1e4,
 )
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
@@ -59,5 +61,6 @@ all_configs = (
     MOUSE,
     PLANNING_CONFIG,
     iLQR_CONFIG,
+    CONTROL_CONFIG,
     dict(dt=dt, px_to_cm=px_to_cm),
 )

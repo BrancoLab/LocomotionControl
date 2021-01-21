@@ -9,6 +9,7 @@ from fcutils.video.utils import (
     get_cap_from_images_folder,
     save_videocap_to_video,
 )
+from fcutils.maths.utils import rolling_mean
 
 from .history import load_results_from_folder
 
@@ -111,26 +112,25 @@ def _plot_xy(history, trajectory, plot_every, duration, ax=None):
 def _plot_control(history, ax=None):
     P, R, L = history["P"], history["N_r"], history["N_l"]
 
-    # plot traces
-    plot_line_outlined(
-        ax, P, color=colors["P"], label="$P$", lw=2, solid_capstyle="round",
-    )
-    plot_line_outlined(
-        ax,
-        R,
-        color=colors["N_r"],
-        label="$N_r$",
-        lw=2,
-        solid_capstyle="round",
-    )
+    for name, var in zip(("P", "N_r", "N_l"), (P, R, L)):
+        ax.plot(
+            var,
+            color=colors[name],
+            label=f"${name}$",
+            lw=4,
+            solid_capstyle="round",
+            alpha=0.5,
+        )
+
     plot_line_outlined(
         ax,
-        L,
-        color=colors["N_l"],
-        label="$N_l$",
+        rolling_mean(var, window=31),
+        color=colors[name],
         lw=2,
         solid_capstyle="round",
+        alpha=1,
     )
+
     ax.legend()
     ax.set(
         xlabel="# frames",
