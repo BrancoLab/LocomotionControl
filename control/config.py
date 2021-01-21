@@ -4,7 +4,7 @@ dt = 0.005
 px_to_cm = 1 / 8
 
 
-MANAGER_CONFIG = dict(exp_name="new_model", live_plot=False,)
+MANAGER_CONFIG = dict(exp_name="new_cost", live_plot=False,)
 
 TRAJECTORY_CONFIG = dict(
     traj_type="simulated",  # tracking or simulated # ! CHECK BEFORE REAL
@@ -31,6 +31,8 @@ CONTROL_CONFIG = dict(
     R_run=np.diag([1, 1, 1]) * 1e-2,  # control cost
     W=np.diag([-1, -1, -1])
     * 1e2,  # should be < 0 | penalizes negative controls
+    Z_start=np.diag([1, 1, 1]) * 0,  # enforce smooth controls
+    Z_run=np.diag([1, 1, 1]) * 1e-3,  # enforce smooth controls
     Q=np.diag([1, 1, 1, 1, 3, 0, 0])
     * 10000,  # state cost | x, y, theta, v, omega, taul, taur
 )

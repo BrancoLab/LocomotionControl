@@ -113,11 +113,14 @@ class Manager:
                     # change params for first few steps
                     if itern < 10:
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_start"]
+                        CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_start"]
+
                         PLANNING_CONFIG["prediction_length"] = PLANNING_CONFIG[
                             "prediction_length_start"
                         ]
                     else:
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_run"]
+                        CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_run"]
                         if itern < 30:
                             PLANNING_CONFIG[
                                 "prediction_length"

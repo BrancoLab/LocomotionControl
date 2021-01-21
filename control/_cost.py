@@ -7,15 +7,17 @@ from .config import CONTROL_CONFIG
 
 
 def calc_cost(
-    pred_xs, input_sample, X_g, state_cost_fn, input_cost_fn,
+    X_hat, U_hat, U_prev, X_g, state_cost_fn, input_cost_fn,
 ):
     """ calculate the cost 
 
     Args:
-        pred_xs (numpy.ndarray): predicted state trajectory, 
+        X_hat (numpy.ndarray): predicted state trajectory, 
             shape(pop_size, pred_len+1, state_size)
-        input_sample (numpy.ndarray): inputs U trajectory,
+        U_hat (numpy.ndarray): inputs U trajectory,
             shape(pop_size, pred_len+1, controls_size)
+        U_prev (numpy.ndarray): input at previous step, shape(pred_len, controls_size)
+                or shape(pop_size, pred_len, controls_size)
         X_g (numpy.ndarray): goal state trajectory,
             shape(pop_size, pred_len+1, state_size)
         state_cost_fn (function): state cost fucntion
@@ -25,11 +27,11 @@ def calc_cost(
         cost (numpy.ndarray): cost of the input sample, shape(pop_size, )
     """
     # state cost
-    state_pred_par_cost = state_cost_fn(pred_xs[:, 1:-1, :], X_g[:, 1:-1, :])
+    state_pred_par_cost = state_cost_fn(X_hat[:, 1:-1, :], X_g[:, 1:-1, :])
     state_cost = np.sum(np.sum(state_pred_par_cost, axis=-1), axis=-1)
 
     # act cost
-    act_pred_par_cost = input_cost_fn(input_sample)
+    act_pred_par_cost = input_cost_fn(U_hat, U_prev)
     act_cost = np.sum(np.sum(act_pred_par_cost, axis=-1), axis=-1)
 
     return state_cost + act_cost
@@ -51,15 +53,23 @@ class Cost:
 
         # first symbolic for nice printing of the cost eq
         X = MatrixSymbol("X", n_states, 1)
+        X_g = MatrixSymbol("X_g", n_states, 1)
         U = MatrixSymbol("U", n_controls, 1)
+        U_prev = MatrixSymbol("U_p", n_controls, 1)
 
         Q = MatrixSymbol("Q", n_states, n_states)
         R = MatrixSymbol("R", n_controls, n_controls)
         W = MatrixSymbol("W", n_controls, 1)
+        Z = MatrixSymbol("Z", n_controls, n_controls)
 
-        self.cost_function = X.T * Q * X + U.T * R * U + U.T * W
+        dX = X - X_g
+        dU = U - U_prev
 
-    def calc_cost(self, X, U, X_g):
+        self.cost_function = (
+            dX.T * Q * dX + U.T * R * U + U.T * W + dU.T * Z * dU
+        )
+
+    def calc_cost(self, X, U, U_prev, X_g):
         """ calculate the cost of input U
 
         Args:
@@ -67,6 +77,8 @@ class Cost:
                 current robot position
             U (numpy.ndarray): shape(pop_size, opt_dim), 
                 input U
+            U_prev (numpy.ndarray): input at previous step, shape(pred_len, controls_size)
+                or shape(pop_size, pred_len, controls_size)
             X_g (numpy.ndarray): shape(pred_len, state_size),
                 goal states
         Returns:
@@ -76,12 +88,12 @@ class Cost:
         pop_size = U.shape[0]
         X_g = np.tile(X_g, (pop_size, 1, 1))
 
-        # calc cost, pred_xs.shape = (pop_size, pred_len+1, state_size)
-        pred_xs = self.model.predict_trajectory(X, U)
+        # calc cost, X_hat.shape = (pop_size, pred_len+1, state_size)
+        X_hat = self.model.predict_trajectory(X, U)
 
         # get particle cost
         costs = calc_cost(
-            pred_xs, U, X_g, self.state_cost_fn, self.input_cost_fn,
+            X_hat, U, U_prev, X_g, self.state_cost_fn, self.input_cost_fn,
         )
 
         return costs
@@ -111,16 +123,19 @@ class Cost:
 
         return diff_x
 
-    def input_cost_fn(self, U):
+    def input_cost_fn(self, U, U_prev):
         """ input cost functions
         Args:
             U (numpy.ndarray): input, shape(pred_len, controls_size)
+                or shape(pop_size, pred_len, controls_size)
+            U_prev (numpy.ndarray): input at previous step, shape(pred_len, controls_size)
                 or shape(pop_size, pred_len, controls_size)
         Returns:
             cost (numpy.ndarray): cost of input, shape(pred_len, controls_size) or
                 shape(pop_size, pred_len, controls_size)
         """
-        return (U ** 2) * self.R_ + U * self.W_
+        dU = U - U_prev
+        return (U ** 2) * self.R_ + U * self.W_ + (dU ** 2) * self.Z_
 
     def state_cost_fn(self, X, X_g):
         """ state cost function
@@ -155,17 +170,20 @@ class Cost:
         diff = self.fit_diff_in_range(X - X_g)
         return 2.0 * (diff) * self.Q_
 
-    def gradient_cost_fn_with_input(self, X, U):
+    def gradient_cost_fn_with_input(self, X, U, U_prev):
         """ gradient of costs with respect to the input
 
         Args:
             X (numpy.ndarray): state, shape(pred_len, state_size)
             U (numpy.ndarray): goal state, shape(pred_len, controls_size)
+            U_prev (numpy.ndarray): input at previous step, shape(pred_len, controls_size)
+                or shape(pop_size, pred_len, controls_size)
         
         Returns:
             l_u (numpy.ndarray): gradient of cost, shape(pred_len, controls_size)
         """
-        return 2.0 * U * self.R_ + self.W_
+        dU = U - U_prev
+        return 2.0 * U * self.R_ + self.W_ + 2 * dU * self.Z_
 
     def hessian_cost_fn_with_state(self, X, X_g):
         """ hessian costs with respect to the state
@@ -195,7 +213,7 @@ class Cost:
         """
         (pred_len, _) = U.shape
 
-        return np.tile(2.0 * self.R, (pred_len, 1, 1))
+        return np.tile(2.0 * self.R + 2 * self.Z, (pred_len, 1, 1))
 
     def hessian_cost_fn_with_input_state(self, X, U):
         """ hessian costs with respect to the state and input

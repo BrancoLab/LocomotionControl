@@ -32,11 +32,13 @@ class Controller(Cost):
         self.Q = CONTROL_CONFIG["Q"]
         self.R = CONTROL_CONFIG["R"]
         self.W = CONTROL_CONFIG["W"]
+        self.Z = CONTROL_CONFIG["Z"]
 
-        # store diagonal matrices
+        # store diags to speed up computations
         self.Q_ = np.diag(self.Q)
         self.R_ = np.diag(self.R)
         self.W_ = np.diag(self.W)
+        self.Z_ = np.diag(self.Z)
 
     def solve(self, X, X_g):
         """ calculate the optimal inputs
@@ -61,6 +63,7 @@ class Controller(Cost):
             U = np.zeros((self.pred_len, self.controls_size))
             U[: len(self.prev_sol)] = self.prev_sol
             U[len(self.prev_sol) :] = self.prev_sol[-1]
+            self.prev_sol = U
 
         # initialize variables
         update_sol = True
@@ -98,6 +101,7 @@ class Controller(Cost):
                 new_cost = calc_cost(
                     X_hat[np.newaxis, :, :],
                     U_hat[np.newaxis, :, :],
+                    self.prev_sol[np.newaxis, :, :],
                     X_g[np.newaxis, :, :],
                     self.state_cost_fn,
                     self.input_cost_fn,
@@ -134,8 +138,6 @@ class Controller(Cost):
             raise ValueError("nans or inf in solution!")
 
         # update prev U
-        if len(U) != len(self.prev_sol):
-            self.prev_sol = np.zeros_like(U)
         self.prev_sol[:-1] = U[1:]
         self.prev_sol[-1] = U[-1]  # last use the terminal input
         return U[0]
@@ -208,7 +210,9 @@ class Controller(Cost):
         X = self.model.predict_trajectory(curr_x, U)
 
         # check costs
-        cost = self.calc_cost(curr_x, U[np.newaxis, :, :], X_g)
+        cost = self.calc_cost(
+            curr_x, U[np.newaxis, :, :], self.prev_sol[np.newaxis, :, :], X_g
+        )
 
         # calc gradient in batch
         f_x = self.model.calc_gradient(X[:-1], U, wrt="x")
@@ -251,7 +255,7 @@ class Controller(Cost):
 
         # cost wrt to the input
         # l_u.shape = (pred_len, controls_size)
-        l_u = self.gradient_cost_fn_with_input(X[:-1], U) * dt
+        l_u = self.gradient_cost_fn_with_input(X[:-1], U, self.prev_sol) * dt
 
         # l_xx.shape = (pred_len+1, state_size, state_size)
         l_xx = self.hessian_cost_fn_with_state(X[:-1], g_x[:-1]) * dt

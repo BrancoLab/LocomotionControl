@@ -99,11 +99,6 @@ class Plotter:
         for ax in (self.control_ax, self.tau_ax):
             ax.set(xlim=[itern - 30, itern + 5])
 
-        minc, maxc = np.min(history["N_r"][-50:]), np.max(history["N_r"][-50:])
-        self.control_ax.set(
-            ylim=[minc - np.abs(minc * 2), maxc + np.abs(maxc * 2)]
-        )
-
         # display plot
         self.f.canvas.draw()
         plt.pause(0.01)
@@ -173,7 +168,6 @@ class Plotter:
         ax.clear()
 
         P, R, L = history["P"], history["N_r"], history["N_l"]
-        n = len(R)
 
         # plot traces
         plot_line_outlined(
@@ -203,16 +197,21 @@ class Plotter:
             solid_joinstyle="round",
             solid_capstyle="round",
         )
+        ax.axhline(0, lw=2, color=[0.3, 0.3, 0.3], zorder=-1)
 
         # set axes
-        ymin = np.min(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
-        ymax = np.max(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+        ymin = np.min(np.vstack([P[-15:], R[-15:], L[-15:]]))
+        ymax = np.max(np.vstack([P[-15:], R[-15:], L[-15:]]))
 
-        if n > keep_n:
+        n = len(R)
+        if n > 20:
+            ymin = -20000
+            ymax = +20000
+        else:
             ymin -= np.abs(ymin) * 0.1
             ymax += np.abs(ymax) * 0.1
 
-            ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
+        ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
 
         ax.set(ylabel="Controls (a.u)", xlabel="step n")
         ax.legend()
@@ -245,6 +244,7 @@ class Plotter:
             solid_joinstyle="round",
             solid_capstyle="round",
         )
+        ax.axhline(0, lw=2, color=[0.3, 0.3, 0.3], zorder=-1)
 
         # set axes
         ymin = np.min(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
