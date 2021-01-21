@@ -21,6 +21,7 @@ from .config import (
     CONTROL_CONFIG,
     TRAJECTORY_CONFIG,
     all_configs,
+    PLANNING_CONFIG,
 )
 from control import paths
 
@@ -109,11 +110,22 @@ class Manager:
                     self.itern = itern
                     progress.advance(task_id, 1)
 
-                    # change control costs
+                    # change params for first few steps
                     if itern < 10:
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_start"]
+                        PLANNING_CONFIG["prediction_length"] = PLANNING_CONFIG[
+                            "prediction_length_start"
+                        ]
                     else:
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_run"]
+                        if itern < 30:
+                            PLANNING_CONFIG[
+                                "prediction_length"
+                            ] = PLANNING_CONFIG["prediction_length_run"]
+                        else:
+                            PLANNING_CONFIG[
+                                "prediction_length"
+                            ] = PLANNING_CONFIG["prediction_length_long"]
 
                     # Plan
                     curr_state = np.array(self.model.curr_x)

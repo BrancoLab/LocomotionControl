@@ -43,10 +43,9 @@ def simulated():
     prev_phi = 0
 
     for n in range(100):
-        # draw random angle and
-        # sign = -1 if np.random.random() < 0.5 else 1
-        # _phi = np.random.uniform(0, 50) * sign
-        _phi = 90
+        # draw random angle and distance for next point
+        sign = -1 if np.random.random() < 0.5 else 1
+        _phi = np.random.uniform(0, 50) * sign
         if n == 0:
             phi = np.random.uniform(0, 360)
         phi = _phi + prev_phi

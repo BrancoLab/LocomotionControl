@@ -30,13 +30,15 @@ CONTROL_CONFIG = dict(
     * 1e-4,  # control cost for first few simulation steps
     R_run=np.diag([1, 1, 1]) * 1e-2,  # control cost
     W=np.diag([-1, -1, -1])
-    * 5e1,  # should be < 0 | penalizes negative controls
+    * 1e2,  # should be < 0 | penalizes negative controls
     Q=np.diag([1, 1, 1, 1, 3, 0, 0])
     * 10000,  # state cost | x, y, theta, v, omega, taul, taur
 )
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
-    prediction_length=30,
+    prediction_length_start=10,  # prediction length for the first few steps
+    prediction_length_run=30,  # length for a few iters after start ones
+    prediction_length_long=50,  # length after that
     n_ahead=20,  # start prediction states from N steps ahead
 )
 

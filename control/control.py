@@ -10,8 +10,6 @@ class Controller(Cost):
         Cost.__init__(self)
         self.model = model
 
-        self.pred_len = PLANNING_CONFIG["prediction_length"]
-
         self.controls_size = CONTROL_CONFIG["controls_size"]
         self.state_size = CONTROL_CONFIG["STATE_SIZE"]
         self.angle_idx = CONTROL_CONFIG["ANGLE_IDX"]
@@ -49,13 +47,20 @@ class Controller(Cost):
         Returns:
             opt_input (numpy.ndarray): optimal input, shape(controls_size, )
         """
+        self.pred_len = PLANNING_CONFIG["prediction_length"]
         self.update_matrices()
 
         # get previous solution and adjust to adapt to prediction length
 
         if self.prev_sol is None:
             self.prev_sol = np.zeros((self.pred_len, self.controls_size))
-        U = self.prev_sol.copy()
+
+        if len(self.prev_sol) == self.pred_len:
+            U = self.prev_sol.copy()
+        else:
+            U = np.zeros((self.pred_len, self.controls_size))
+            U[: len(self.prev_sol)] = self.prev_sol
+            U[len(self.prev_sol) :] = self.prev_sol[-1]
 
         # initialize variables
         update_sol = True
@@ -129,9 +134,10 @@ class Controller(Cost):
             raise ValueError("nans or inf in solution!")
 
         # update prev U
+        if len(U) != len(self.prev_sol):
+            self.prev_sol = np.zeros_like(U)
         self.prev_sol[:-1] = U[1:]
         self.prev_sol[-1] = U[-1]  # last use the terminal input
-
         return U[0]
 
     def calc_input(self, k, K, pred_xs, U, alpha):

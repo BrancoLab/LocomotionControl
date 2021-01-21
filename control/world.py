@@ -6,7 +6,7 @@ from ._world import simulated, from_tracking
 
 
 class World:
-    curr_traj_waypoint_idx = None
+    curr_traj_waypoint_idx = 1
     moved_to_next = []
     itern = 0
 
@@ -27,15 +27,24 @@ class World:
         n_ahead = PLANNING_CONFIG["n_ahead"]
         pred_len = PLANNING_CONFIG["prediction_length"] + 1
 
-        min_idx = np.argmin(
-            np.linalg.norm(curr_x[:2] - self.trajectory[:, :2], axis=1)
+        # get the closest traj point in the next chunk of trajectory
+        curr_idx = self.curr_traj_waypoint_idx
+        min_idx = (
+            np.argmin(
+                np.linalg.norm(
+                    curr_x[:2]
+                    - self.trajectory[curr_idx - 1 : curr_idx + 10, :2],
+                    axis=1,
+                )
+            )
+            + curr_idx
         )
 
         # keep track of where in the trajectory we are
         if min_idx + n_ahead != self.curr_traj_waypoint_idx:
             self.moved_to_next.append(self.itern)
 
-        self.curr_traj_waypoint_idx = min_idx + n_ahead
+        self.curr_traj_waypoint_idx = min_idx
         self.current_traj_waypoint = self.trajectory[min_idx, :]
 
         start = min_idx + n_ahead  # don't overshoot
