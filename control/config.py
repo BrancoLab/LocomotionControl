@@ -32,7 +32,7 @@ CONTROL_CONFIG = dict(
     W=np.diag([-1, -1, -1])
     * 1e2,  # should be < 0 | penalizes negative controls
     Z_start=np.diag([1, 1, 1]) * 0,  # enforce smooth controls
-    Z_run=np.diag([1, 1, 1]) * 1e-3,  # enforce smooth controls
+    Z_run=np.diag([1, 1, 1]) * 1,  # enforce smooth controls
     Q=np.diag([1, 1, 1, 1, 3, 0, 0])
     * 10000,  # state cost | x, y, theta, v, omega, taul, taur
 )

@@ -112,6 +112,8 @@ class Manager:
 
                     # change params for first few steps
                     if itern < 10:
+                        is_warmup = True
+                        logger.debug(f"Step: {itern} | warmup phase")
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_start"]
                         CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_start"]
 
@@ -119,8 +121,14 @@ class Manager:
                             "prediction_length_start"
                         ]
                     else:
+                        is_warmup = False
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_run"]
-                        CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_run"]
+
+                        # change Z the next step
+                        if itern > 11:
+                            CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_run"]
+
+                        # prediction length has another option
                         if itern < 30:
                             PLANNING_CONFIG[
                                 "prediction_length"
@@ -160,6 +168,7 @@ class Manager:
                             self.world.current_traj_waypoint,
                             itern,
                             elapsed=itern * dt,
+                            is_warmup=is_warmup,
                         )
 
                     # check if we're done

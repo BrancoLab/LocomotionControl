@@ -7,7 +7,7 @@ from fcutils.plotting.colors import desaturate_color
 from fcutils.plotting.plot_elements import plot_line_outlined
 
 from .plot import colors
-from .config import dt, px_to_cm, MOUSE, PLANNING_CONFIG
+from .config import dt, px_to_cm, MOUSE
 
 
 def press(event, self):
@@ -56,7 +56,13 @@ class Plotter:
         )
 
     def update(
-        self, history, curr_goals, current_traj_waypoint, itern, elapsed=None
+        self,
+        history,
+        curr_goals,
+        current_traj_waypoint,
+        itern,
+        elapsed=None,
+        is_warmup=False,
     ):
         ax = self.xy_ax
         ax.clear()
@@ -89,7 +95,7 @@ class Plotter:
         )
 
         # plot control
-        self._plot_control(history)
+        self._plot_control(history, is_warmup)
 
         # plot speed and other variables
         self._plot_current_variables(history)
@@ -162,7 +168,7 @@ class Plotter:
         ax.axis("equal")
         ax.axis("off")
 
-    def _plot_control(self, history, keep_s=1.2):
+    def _plot_control(self, history, is_warmup, keep_s=1.2):
         keep_n = int(keep_s / dt)
         ax = self.control_ax
         ax.clear()
@@ -204,9 +210,9 @@ class Plotter:
         ymax = np.max(np.vstack([P[-15:], R[-15:], L[-15:]]))
 
         n = len(R)
-        if n > 20:
-            ymin = -20000
-            ymax = +20000
+        if n > 20 and not is_warmup:
+            ymin = -5000
+            ymax = +15000
         else:
             ymin -= np.abs(ymin) * 0.1
             ymax += np.abs(ymax) * 0.1
@@ -268,10 +274,7 @@ class Plotter:
         ax = self.sax
         ax.clear()
 
-        X_trace = (
-            np.array(history["trajectory_idx"][:-1])
-            - PLANNING_CONFIG["n_ahead"]
-        )
+        X_trace = np.array(history["trajectory_idx"][:-1])
         if not len(X_trace):
             return
 
