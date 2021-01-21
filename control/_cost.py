@@ -7,16 +7,16 @@ from .config import CONTROL_CONFIG
 
 
 def calc_cost(
-    pred_xs, input_sample, g_xs, state_cost_fn, input_cost_fn,
+    pred_xs, input_sample, X_g, state_cost_fn, input_cost_fn,
 ):
     """ calculate the cost 
 
     Args:
         pred_xs (numpy.ndarray): predicted state trajectory, 
             shape(pop_size, pred_len+1, state_size)
-        input_sample (numpy.ndarray): inputs samples trajectory,
+        input_sample (numpy.ndarray): inputs U trajectory,
             shape(pop_size, pred_len+1, controls_size)
-        g_xs (numpy.ndarray): goal state trajectory,
+        X_g (numpy.ndarray): goal state trajectory,
             shape(pop_size, pred_len+1, state_size)
         state_cost_fn (function): state cost fucntion
         input_cost_fn (function): input cost fucntion
@@ -25,7 +25,7 @@ def calc_cost(
         cost (numpy.ndarray): cost of the input sample, shape(pop_size, )
     """
     # state cost
-    state_pred_par_cost = state_cost_fn(pred_xs[:, 1:-1, :], g_xs[:, 1:-1, :])
+    state_pred_par_cost = state_cost_fn(pred_xs[:, 1:-1, :], X_g[:, 1:-1, :])
     state_cost = np.sum(np.sum(state_pred_par_cost, axis=-1), axis=-1)
 
     # act cost
@@ -59,29 +59,29 @@ class Cost:
 
         self.cost_function = x.T * Q * x + u.T * R * u + u.T * W
 
-    def calc_cost(self, curr_x, samples, g_xs):
-        """ calculate the cost of input samples
+    def calc_cost(self, X, U, X_g):
+        """ calculate the cost of input U
 
         Args:
-            curr_x (numpy.ndarray): shape(state_size),
+            X (numpy.ndarray): shape(state_size),
                 current robot position
-            samples (numpy.ndarray): shape(pop_size, opt_dim), 
-                input samples
-            g_xs (numpy.ndarray): shape(pred_len, state_size),
+            U (numpy.ndarray): shape(pop_size, opt_dim), 
+                input U
+            X_g (numpy.ndarray): shape(pred_len, state_size),
                 goal states
         Returns:
             costs (numpy.ndarray): shape(pop_size, )
         """
         # get size
-        pop_size = samples.shape[0]
-        g_xs = np.tile(g_xs, (pop_size, 1, 1))
+        pop_size = U.shape[0]
+        X_g = np.tile(X_g, (pop_size, 1, 1))
 
         # calc cost, pred_xs.shape = (pop_size, pred_len+1, state_size)
-        pred_xs = self.model.predict_trajectory(curr_x, samples)
+        pred_xs = self.model.predict_trajectory(X, U)
 
         # get particle cost
         costs = calc_cost(
-            pred_xs, samples, g_xs, self.state_cost_fn, self.input_cost_fn,
+            pred_xs, U, X_g, self.state_cost_fn, self.input_cost_fn,
         )
 
         return costs
