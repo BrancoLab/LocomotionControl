@@ -37,6 +37,9 @@ def calc_cost(
 
 class Cost:
     def __init__(self):
+        """
+            Handles cost computation and its derivatives
+        """
         self.make_equations()
 
     def make_equations(self):
