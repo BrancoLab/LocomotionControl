@@ -33,11 +33,12 @@ CONTROL_CONFIG = dict(
     W=np.diag([-1, -1, -1]) * 1e2,  # should be < 0
     # control smoothness
     Z_start=np.diag([1, 1, 1]) * 0,
-    Z_run=np.diag([1, 1, 1]) * 0,
+    Z_run=np.diag([1, 1, 1]) * 1e-4,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
     Q=np.diag([1, 1, 1, 1, 3, 0, 0]) * 1e4,
 )
+
 
 PLANNING_CONFIG = dict(  # params used to compute goal states to be used for control
     prediction_length_start=10,  # prediction length for the first few steps
@@ -61,6 +62,6 @@ all_configs = (
     MOUSE,
     PLANNING_CONFIG,
     iLQR_CONFIG,
-    CONTROL_CONFIG,
+    {k: str(v) for k, v in CONTROL_CONFIG.items()},
     dict(dt=dt, px_to_cm=px_to_cm),
 )

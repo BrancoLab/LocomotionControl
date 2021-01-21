@@ -30,7 +30,7 @@ def simulated():
         The finally compute the bezier path across all these points
     """
 
-    duration = 5  # np.random.uniform(1.5, 6)
+    duration = 15  # np.random.uniform(1.5, 6)
     n_steps = int(duration / dt)
 
     logger.info(
