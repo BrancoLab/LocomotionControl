@@ -145,9 +145,7 @@ def _plot_control(history, ax=None):
 
     ax.legend()
     ax.set(
-        xlabel="# frames",
-        ylabel="Torque\n($\\frac{cm^2 g}{s^2}$)",
-        title="Control history",
+        xlabel="# frames", ylabel="Controls (a.u.)", title="Control history",
     )
 
 

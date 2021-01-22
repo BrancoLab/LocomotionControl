@@ -111,7 +111,7 @@ class Manager:
                     progress.advance(task_id, 1)
 
                     # change params for first few steps
-                    if itern < 2:
+                    if itern < 5:
                         is_warmup = True
                         logger.debug(f"Step: {itern} | warmup phase")
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_start"]
