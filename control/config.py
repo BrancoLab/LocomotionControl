@@ -27,8 +27,8 @@ CONTROL_CONFIG = dict(
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
     # control magnitude
-    R_start=np.diag([1, 1, 1]) * 1e-1,
-    R_run=np.diag([1, 1, 1]) * 1e-1,
+    R_start=np.diag([1, 1, 1]) * 1e-5,
+    R_run=np.diag([1, 1, 1]) * 1e-2,
     # positive controls
     W=np.diag([-1, -1, -1]) * 1e2,  # should be < 0
     # control smoothness
