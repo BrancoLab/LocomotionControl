@@ -208,8 +208,13 @@ class Plotter:
         # set axes
         ymin = np.min(np.vstack([P[-15:], R[-15:], L[-15:]]))
         ymax = np.max(np.vstack([P[-15:], R[-15:], L[-15:]]))
-        ymin -= np.abs(ymin) * 0.1
-        ymax += np.abs(ymax) * 0.1
+        ymin -= np.abs(ymin) * 0.4
+        ymax += np.abs(ymax) * 0.4
+
+        if ymin > 0:
+            ymin = 0
+        if ymax < 10000:
+            ymax = 10000
 
         n = len(R)
         ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])

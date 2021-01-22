@@ -51,16 +51,31 @@ def _make_figure():
     xy_ax.axis("equal")
     # xy_ax.axis("off")
 
+    # axes in frames
     control_ax = f.add_subplot(gs[0, 2:4])
-    sax = f.add_subplot(gs[2, :2])  # speed trajectory
     # accel_ax = f.add_subplot(gs[0, 4:6])
     # cost_ax = f.add_subplot(gs[1, 4:6])
 
     tau_ax = f.add_subplot(gs[0, 4:6])
-    omega_ax = f.add_subplot(gs[1, 4:6])
-    theta_ax = f.add_subplot(gs[1, 2:4])
+    speed_frames_ax = f.add_subplot(gs[1, 2:4])
+    omega_frames_ax = f.add_subplot(gs[1, 4:6])
 
-    return f, xy_ax, control_ax, sax, tau_ax, omega_ax, theta_ax
+    # axes in traj progression
+    sax = f.add_subplot(gs[2, :2])  # speed trajectory
+    theta_ax = f.add_subplot(gs[2, 2:4])
+    omega_ax = f.add_subplot(gs[2, 4:6])
+
+    return (
+        f,
+        xy_ax,
+        control_ax,
+        sax,
+        tau_ax,
+        omega_ax,
+        theta_ax,
+        speed_frames_ax,
+        omega_frames_ax,
+    )
 
 
 def _plot_xy(history, trajectory, plot_every, duration, ax=None):
@@ -164,7 +179,7 @@ def _plot_tau(history, ax=None):
     )
 
 
-def _plot_v(history, trajectory, plot_every, ax=None):
+def _plot_v(history, trajectory, plot_every, ax=None, ax_frames=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 3]))[::plot_every],
@@ -186,6 +201,13 @@ def _plot_v(history, trajectory, plot_every, ax=None):
         zorder=100,
     )
 
+    ax_frames.plot(
+        np.degrees(history["v"]), color=colors["v"], lw=5, zorder=100,
+    )
+    ax.set(
+        xlabel="# frames", ylabel="Speed (cm/s)", title="Speed trajectory",
+    )
+
     ax.set(
         xlabel="Trajectory idx",
         ylabel="Speed (cm/s)",
@@ -193,7 +215,7 @@ def _plot_v(history, trajectory, plot_every, ax=None):
     )
 
 
-def _plot_omega(history, trajectory, plot_every, ax=None):
+def _plot_omega(history, trajectory, plot_every, ax=None, ax_frames=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 4]))[::plot_every],
@@ -213,6 +235,15 @@ def _plot_omega(history, trajectory, plot_every, ax=None):
         color=colors["omega"],
         lw=3,
         zorder=100,
+    )
+
+    ax_frames.plot(
+        np.degrees(history["omega"]), color=colors["omega"], lw=5, zorder=100,
+    )
+    ax.set(
+        xlabel="# frames",
+        ylabel="Ang. speed. (deg/s)",
+        title="Ang. speed. trajectory",
     )
 
     ax.set(
@@ -255,14 +286,28 @@ def plot_results(results_folder, plot_every=20, save_path=None):
     history, info, trajectory, trial = load_results_from_folder(results_folder)
     duration = info["duration"]
 
-    f, xy_ax, control_ax, sax, tau_ax, omega_ax, theta_ax = _make_figure()
+    (
+        f,
+        xy_ax,
+        control_ax,
+        sax,
+        tau_ax,
+        omega_ax,
+        theta_ax,
+        speed_frames_ax,
+        omega_frames_ax,
+    ) = _make_figure()
 
     _plot_xy(history, trajectory, plot_every, duration, ax=xy_ax)
     _plot_control(history, ax=control_ax)
     _plot_tau(history, ax=tau_ax)
-    _plot_v(history, trajectory, plot_every, ax=sax)
-    _plot_omega(history, trajectory, plot_every, ax=omega_ax)
-    _plot_theta(history, trajectory, plot_every, ax=theta_ax)
+    _plot_v(history, trajectory, plot_every, ax=sax, ax_frames=speed_frames_ax)
+    _plot_omega(
+        history, trajectory, plot_every, ax=omega_ax, ax_frames=omega_frames_ax
+    )
+    _plot_theta(
+        history, trajectory, plot_every, ax=theta_ax,
+    )
 
     clean_axes(f)
     f.tight_layout()

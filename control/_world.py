@@ -47,7 +47,10 @@ def simulated():
         sign = -1 if np.random.random() < 0.5 else 1
         _phi = np.random.uniform(0, 50) * sign
         if n == 0:
-            phi = np.random.uniform(0, 360)
+            _phi = np.random.uniform(0, 360)
+        elif n == 1:  # second segment should be straight
+            _phi = 0
+
         phi = _phi + prev_phi
         prev_phi += _phi
 

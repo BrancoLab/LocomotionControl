@@ -186,8 +186,8 @@ class ModelDynamics(object):
         # solve system of equations
         solution = solve([eq1, eq2])
 
-        r = np.float64(solution[self.variables["tau_r"]])
-        l = np.float64(solution[self.variables["tau_l"]])
+        r = np.float64(solution[self.variables["tau_r"]]) * 0.5
+        l = np.float64(solution[self.variables["tau_l"]]) * 0.5
         return r, l
 
     def _make_simbols(self):
