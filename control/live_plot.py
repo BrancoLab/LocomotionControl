@@ -213,8 +213,8 @@ class Plotter:
 
         if ymin > 0:
             ymin = 0
-        if ymax < 10000:
-            ymax = 10000
+        if ymax < 5000:
+            ymax = 5000
 
         n = len(R)
         ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])

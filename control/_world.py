@@ -88,7 +88,7 @@ def simulated():
     )
 
     # adjust speed
-    v *= speedup_factor
+    v *= speedup_factor / 2
     v *= 1 / dt
 
     # get 0 vectors for tau
