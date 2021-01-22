@@ -38,7 +38,7 @@ CONTROL_CONFIG = dict(
     # state cost | x, y, theta, v, omega, taul, taur
 
     Q=np.diag([30, 30, 30, 20, 30, 0, 0]) * 1e4,
-
+)
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
