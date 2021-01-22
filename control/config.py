@@ -36,13 +36,11 @@ CONTROL_CONFIG = dict(
     Z_run=np.diag([1, 1, 1]) * 4e-1,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-
     Q=np.diag([30, 30, 30, 20, 30, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
-    prediction_length_start=15,  # prediction length for the first few steps
     prediction_length_start=20,  # prediction length for the first few steps
     prediction_length_run=20,  # length for a few iters after start ones
     prediction_length_long=20,  # length after that
