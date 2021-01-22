@@ -1,5 +1,6 @@
 import numpy as np
-from loguru import logger
+
+# from loguru import logger
 
 from .config import iLQR_CONFIG, CONTROL_CONFIG, PLANNING_CONFIG, dt
 from ._cost import Cost, calc_cost
@@ -62,7 +63,7 @@ class Controller(Cost):
         else:
             U = np.zeros((self.pred_len, self.controls_size))
             U[: len(self.prev_sol)] = self.prev_sol
-            U[len(self.prev_sol) :] = self.prev_sol[-1]
+            U[len(self.prev_sol) :] = self.prev_sol[-1]  # noqa: E203
             self.prev_sol = U
 
         # initialize variables
@@ -128,11 +129,11 @@ class Controller(Cost):
                 self.delta = max(1.0, self.delta) * self.init_delta
                 self.mu = max(self.mu_min, self.mu * self.delta)
                 if self.mu >= self.mu_max:
-                    logger.debug("Reached max regularization term")
+                    # logger.debug("Reached max regularization term")
                     break
 
-        if not accepted_sol:
-            logger.debug("Failed to converge to a solution")
+        # if not accepted_sol:
+        #     logger.debug("Failed to converge to a solution")
 
         if np.any(np.isnan(U)) or np.any(np.isinf(U)):
             raise ValueError("nans or inf in solution!")
@@ -177,7 +178,8 @@ class Controller(Cost):
                 X_hat[t + 1] = self.model._fake_step(X_hat[t], U_hat[t])
             except ValueError:
                 raise ValueError(
-                    "Failed to update controls with iLQR, likely nans or infs came up"
+                    "Failed to update controls with iLQR, "
+                    + "likely nans or infs came up"
                 )
 
         return X_hat, U_hat
@@ -189,7 +191,7 @@ class Controller(Cost):
             curr_x (numpy.ndarray): current state, shape(state_size, )
             X_g (numpy.ndarrya): goal trajectory, shape(plan_len, state_size)
             U (numpy.ndarray): solutions, shape(plan_len, controls_size)
-        
+
         Returns:
             f_x (numpy.ndarray): gradient of model with respecto to state,
                 shape(pred_len, state_size, state_size)
@@ -231,7 +233,7 @@ class Controller(Cost):
 
     def _calc_gradient_hessian_cost(self, X, g_x, U):
         """ calculate gradient and hessian of model and cost fn
-        
+
         Args:
             X (numpy.ndarray): predict traj,
                 shape(pred_len+1, state_size)
@@ -246,7 +248,7 @@ class Controller(Cost):
                 shape(pred_len+1, state_size, state_size)
             l_uu (numpy.ndarray): hessian of cost,
                 shape(pred_len+1, controls_size, controls_size)
-            l_ux (numpy.ndarray): hessian of cost, 
+            l_ux (numpy.ndarray): hessian of cost,
                 shape(pred_len, controls_size, state_size)
         """
         # cost wrt to the state
@@ -285,7 +287,7 @@ class Controller(Cost):
                 shape(pred_len, controls_size, controls_size)
             l_ux (numpy.ndarray): hessian of cost with respect
                 to state and input, shape(pred_len, controls_size, state_size)
-        
+
         Returns:
             k (numpy.ndarray): gain, shape(pred_len, controls_size)
             K (numpy.ndarray): gain, shape(pred_len, controls_size, state_size)
