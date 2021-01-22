@@ -27,23 +27,23 @@ CONTROL_CONFIG = dict(
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
     # control magnitude
-    R_start=np.diag([1, 1, 1]) * 1e-2,
-    R_run=np.diag([1, 1, 1]) * 1e-2,
+    R_start=np.diag([1, 1, 1]) * 1e-1,
+    R_run=np.diag([1, 1, 1]) * 1e-1,
     # positive controls
     W=np.diag([-1, -1, -1]) * 1e2,  # should be < 0
     # control smoothness
-    Z_start=np.diag([1, 1, 1]) * 4e-1,
+    Z_start=np.diag([1, 1, 1]) * 0,
     Z_run=np.diag([1, 1, 1]) * 4e-1,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([30, 30, 30, 20, 20, 0, 0]) * 1e4,
+    Q=np.diag([30, 30, 30, 20, 30, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
-    prediction_length_start=20,  # prediction length for the first few steps
-    prediction_length_run=30,  # length for a few iters after start ones
-    prediction_length_long=50,  # length after that
+    prediction_length_start=15,  # prediction length for the first few steps
+    prediction_length_run=20,  # length for a few iters after start ones
+    prediction_length_long=20,  # length after that
     n_ahead=5,  # start prediction states from N steps ahead
 )
 
