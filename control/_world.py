@@ -31,10 +31,10 @@ def simulated():
     """
 
     duration = 10  # np.random.uniform(1.5, 6)
-    n_steps = int(duration / dt)
+    n_frames = int(duration / dt)
 
     logger.info(
-        f"Making simulated traj with duration: {duration} and n steps: {n_steps}"
+        f"Making simulated traj with duration: {duration} and n steps: {n_frames}"
     )
 
     # ? make simulated trajectory of N points
@@ -71,7 +71,7 @@ def simulated():
     theta[0] = theta[1]
 
     # Get ang vel
-    speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_steps
+    speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_frames
 
     omega = derivative(theta)
     omega[0] = omega[1]
@@ -79,7 +79,7 @@ def simulated():
 
     # Get speed
     v = calc_distance_between_points_in_a_vector_2d(x, y)
-    # v = np.linspace(50, 100, len(x))
+
     logger.info(
         f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}, total angle: {np.sum(np.abs(np.degrees(derivative(theta)))):.3f}"
     )

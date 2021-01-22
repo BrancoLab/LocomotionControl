@@ -211,8 +211,8 @@ class Plotter:
 
         n = len(R)
         if n > 20 and not is_warmup:
-            ymin = -5000
-            ymax = +15000
+            ymin = 2500
+            ymax = 7500
         else:
             ymin -= np.abs(ymin) * 0.1
             ymax += np.abs(ymax) * 0.1

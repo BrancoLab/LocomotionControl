@@ -32,19 +32,19 @@ CONTROL_CONFIG = dict(
     # positive controls
     W=np.diag([-1, -1, -1]) * 1e2,  # should be < 0
     # control smoothness
-    Z_start=np.diag([1, 1, 1]) * 1e-1,
-    Z_run=np.diag([1, 1, 1]) * 1e-1,
+    Z_start=np.diag([1, 1, 1]) * 4e-2,
+    Z_run=np.diag([1, 1, 1]) * 4e-2,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([1, 1, 1, 30, 30, 0, 0]) * 1e4,
+    Q=np.diag([30, 30, 30, 1, 1, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
     prediction_length_start=10,  # prediction length for the first few steps
-    prediction_length_run=30,  # length for a few iters after start ones
-    prediction_length_long=50,  # length after that
-    n_ahead=20,  # start prediction states from N steps ahead
+    prediction_length_run=20,  # length for a few iters after start ones
+    prediction_length_long=30,  # length after that
+    n_ahead=5,  # start prediction states from N steps ahead
 )
 
 iLQR_CONFIG = dict(

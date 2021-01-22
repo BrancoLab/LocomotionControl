@@ -116,7 +116,6 @@ class Manager:
                         logger.debug(f"Step: {itern} | warmup phase")
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_start"]
                         CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_start"]
-
                         PLANNING_CONFIG["prediction_length"] = PLANNING_CONFIG[
                             "prediction_length_start"
                         ]
@@ -125,18 +124,18 @@ class Manager:
                         CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_run"]
 
                         # change Z a bit later
-                        if itern > 15:
+                        if itern > 7:
                             CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_run"]
 
                         # prediction length has another option
-                        if itern < 30:
-                            PLANNING_CONFIG[
-                                "prediction_length"
-                            ] = PLANNING_CONFIG["prediction_length_run"]
-                        else:
-                            PLANNING_CONFIG[
-                                "prediction_length"
-                            ] = PLANNING_CONFIG["prediction_length_long"]
+                        # if itern < 7:
+                        #     PLANNING_CONFIG[
+                        #         "prediction_length"
+                        #     ] = PLANNING_CONFIG["prediction_length_run"]
+                        # else:
+                        PLANNING_CONFIG["prediction_length"] = PLANNING_CONFIG[
+                            "prediction_length_long"
+                        ]
 
                     # Plan
                     curr_state = np.array(self.model.curr_x)
