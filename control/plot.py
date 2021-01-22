@@ -114,21 +114,18 @@ def _plot_control(history, ax=None):
 
     for name, var in zip(("P", "N_r", "N_l"), (P, R, L)):
         ax.plot(
-            var,
-            color=colors[name],
-            label=f"${name}$",
-            lw=4,
-            solid_capstyle="round",
-            alpha=0.5,
+            var, color=colors[name], lw=2, solid_capstyle="round", alpha=0.3,
         )
 
         plot_line_outlined(
             ax,
             rolling_mean(var, 21),
             color=colors[name],
+            label=f"${name}$",
             lw=2,
             solid_capstyle="round",
             alpha=1,
+            outline=3,
         )
 
     ax.legend()
