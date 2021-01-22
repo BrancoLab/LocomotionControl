@@ -34,15 +34,21 @@ class Model(ModelDynamics):
         ModelDynamics.__init__(self)
 
     def initialize(self, trajectory):
+        # get the model's torques give it's velocities and accelerations
+        v, omega = trajectory[0, 3], trajectory[0, 4]
+        vdot = trajectory[1, 3] - v
+        omegadot = trajectory[1, 4] - omega
+        taur, taul = self.get_torques_given_speeds(v, vdot, omega, omegadot)
+
         # start th emodel at the start of the trajectory
         self.curr_x = state(
-            trajectory[0, 0],
-            trajectory[0, 1],
-            trajectory[0, 2],
-            trajectory[0, 3],
-            trajectory[0, 4],
-            trajectory[0, 5],
-            trajectory[0, 6],
+            trajectory[0, 0],  # x
+            trajectory[0, 1],  # y
+            trajectory[0, 2],  # theta
+            trajectory[0, 3],  # v
+            trajectory[0, 4],  # omega
+            taur,  # tau_r
+            taul,  # tau_l
         )
 
     def step(self, u, curr_goal):

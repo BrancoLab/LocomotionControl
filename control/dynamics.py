@@ -2,14 +2,15 @@ from sympy import (
     symbols,
     cos,
     sin,
+    Eq,
+    solve,
 )
 
 import numpy as np
 
-# from numba import jit
+from control.config import MOUSE
 
 
-# @jit(nopython=True)
 def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
     """
         fast implementation of models dyamics
@@ -48,7 +49,6 @@ def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
     return res
 
 
-# @jit(nopython=True)
 def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
     """
         Fast implementation of the model's derivative wrt to state
@@ -97,7 +97,6 @@ def fast_model_jacobian_state(theta, v, omega, L, R, m, d, m_w):
     return res
 
 
-# @jit(nopython=True)
 def fast_model_jacobian_input():
     """
         Fast implementation of the model's derivative wrt to
@@ -152,8 +151,44 @@ class ModelDynamics(object):
         self.calc_model_jacobian_input = fast_model_jacobian_input
 
         # to get sympy expressions to compute dynamics:
-        # self.get_combined_dynamics_kinematics()
+        self.get_combined_dynamics_kinematics()
         # self.get_jacobians()
+
+    def get_torques_given_speeds(self, v, vdot, omega, omegadot):
+        """ 
+            Inverts the model's dynamics to compute what the torques should be 
+            given the model's current linear and angular speeds and accelerations.
+            This is used to initialize the torques correctly when the simulations are started.
+
+            The computation is carried out using sympy and replacing variables appropriately
+            in the dynamics equations.
+        """
+        # get symbols
+        vdot_s, omegadot_s = symbols("vdot, omegadot", real=True)
+
+        # prepare subs
+        subs = [
+            (self.variables["d"], MOUSE["d"]),
+            (self.variables["m"], MOUSE["m"]),
+            (self.variables["m_w"], MOUSE["m_w"]),
+            (self.variables["R"], MOUSE["R"]),
+            (self.variables["L"], MOUSE["L"]),
+            (self.variables["v"], v),
+            (self.variables["omega"], omega),
+            (vdot_s, vdot),
+            (omegadot_s, omegadot),
+        ]
+
+        # substitute variables
+        eq1 = Eq(vdot_s, self.equations["vdot"]).subs(subs)
+        eq2 = Eq(omegadot_s, self.equations["omegadot"]).subs(subs)
+
+        # solve system of equations
+        solution = solve([eq1, eq2])
+
+        r = np.float64(solution[self.variables["tau_r"]])
+        l = np.float64(solution[self.variables["tau_l"]])
+        return r, l
 
     def _make_simbols(self):
         """
