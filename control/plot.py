@@ -122,14 +122,14 @@ def _plot_control(history, ax=None):
             alpha=0.5,
         )
 
-    plot_line_outlined(
-        ax,
-        rolling_mean(var, 21),
-        color=colors[name],
-        lw=2,
-        solid_capstyle="round",
-        alpha=1,
-    )
+        plot_line_outlined(
+            ax,
+            rolling_mean(var, 21),
+            color=colors[name],
+            lw=2,
+            solid_capstyle="round",
+            alpha=1,
+        )
 
     ax.legend()
     ax.set(
