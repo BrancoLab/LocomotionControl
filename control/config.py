@@ -36,7 +36,7 @@ CONTROL_CONFIG = dict(
     Z_run=np.diag([1, 1, 1]) * 0,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([1, 1, 1, 1, 3, 0, 0]) * 1e6,
+    Q=np.diag([1, 1, 1, 30, 30, 0, 0]) * 1e4,
 )
 
 
