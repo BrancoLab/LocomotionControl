@@ -87,9 +87,13 @@ class Manager:
         # logger.warning("Soimulation specific logging disabled")
         logger.remove()
         logger.add(sys.stdout, level="DEBUG")
-        filename = str(self.datafolder / f"{MANAGER_CONFIG['exp_name']}.log")
+        filename = "log.log"
         logger.add(filename, level="DEBUG")
         logger.info(f"Saving data at: {self.datafolder}")
+
+        # Log config
+        for conf in all_configs:
+            logger.info(json.dumps(conf, sort_keys=True, indent=4))
 
     # ------------------------------ Run simulation ------------------------------ #
     def run(self, n_secs=1):
@@ -208,10 +212,6 @@ class Manager:
             raise ValueError(f"Failed to upload to dropbox with error: {e}")
 
     def wrap_up(self):
-        # Log config
-        for conf in all_configs:
-            logger.info(json.dumps(conf, sort_keys=True, indent=4))
-
         # Save stuff
         self.history.save(
             self.datafolder, self.world.trajectory, self.world.trial
