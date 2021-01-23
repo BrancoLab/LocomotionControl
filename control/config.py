@@ -4,7 +4,7 @@ dt = 0.005
 px_to_cm = 1 / 8
 
 
-MANAGER_CONFIG = dict(exp_name="new_cost", live_plot=False,)
+MANAGER_CONFIG = dict(exp_name="morning_W_rep_long_hor_Q_2", live_plot=False,)
 
 TRAJECTORY_CONFIG = dict(
     traj_type="simulated",  # tracking or simulated # ! CHECK BEFORE REAL
@@ -27,28 +27,28 @@ CONTROL_CONFIG = dict(
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
     # control magnitude
-    R_start=np.diag([1, 1, 1]) * 1e-5,
+    R_start=np.diag([1, 1, 1]) * 1e-2,
     R_run=np.diag([1, 1, 1]) * 1e-2,
     # positive controls
-    W=np.diag([-1, -1, -1]) * 1e2,  # should be < 0
+    W=np.diag([-1, -1, -1]) * 1e1,  # should be < 0
     # control smoothness
     Z_start=np.diag([1, 1, 1]) * 4e-1,
     Z_run=np.diag([1, 1, 1]) * 4e-1,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([30, 30, 30, 20, 30, 0, 0]) * 1e4,
+    Q=np.diag([50, 50, 30, 30, 30, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
     prediction_length_start=20,  # prediction length for the first few steps
-    prediction_length_run=20,  # length for a few iters after start ones
-    prediction_length_long=20,  # length after that
+    prediction_length_run=30,  # length for a few iters after start ones
+    prediction_length_long=40,  # length after that
     n_ahead=5,  # start prediction states from N steps ahead
 )
 
 iLQR_CONFIG = dict(
-    max_iter=500,  # number of iterations for descent
+    max_iter=1000,  # number of iterations for descent
     init_mu=1.0,
     mu_min=1e-6,
     mu_max=1e20,
