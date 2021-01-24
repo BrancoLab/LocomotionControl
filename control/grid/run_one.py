@@ -19,7 +19,9 @@ def main(config):
 
     for rep in range(5):
         folder = base / f"{name}_rep_{rep}"
-        Manager(winstor=True, folder=folder, config_file=config).run(n_secs=12)
+        Manager(
+            winstor=True, folder=folder, config_file=config, to_db=False
+        ).run(n_secs=12)
 
 
 if __name__ == "__main__":
