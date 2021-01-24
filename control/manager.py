@@ -3,6 +3,7 @@ import numpy as np
 import json
 from rich import print
 import shutil
+from pathlib import Path
 
 import sys
 
@@ -26,7 +27,14 @@ from .utils import from_json
 
 
 class Manager:
-    def __init__(self, winstor=False, trialn=None, config_file=None):
+    def __init__(
+        self,
+        winstor=False,
+        trialn=None,
+        config_file=None,
+        folder=None,
+        to_db=True,
+    ):
         """
             Main class to run a control simulation and saving the results
 
@@ -35,7 +43,10 @@ class Manager:
                 trialn: int. Set to int to use a specific trial when running on tracking data
                 config_file: str, Path. Path to a config .json file to replace parameters set
                     in control/config.py (e.g. for hyperparameters optimization)
+                folder: str, Path. Path to folder where data will be saved (override default)
+                to_db: bool. If true data will be uploaded to dropbox when done
         """
+        self.to_db = to_db
         self.winstor = winstor
 
         # Set up
@@ -50,7 +61,7 @@ class Manager:
                 config.MANAGER_CONFIG["exp_name"]
                 + f"_{timestamp()}_{np.random.randint(10000)}"
             )
-        self.setup_paths()
+        self.setup_paths(folder=folder)
         self.start_logging()
 
         # set up params
@@ -117,7 +128,7 @@ class Manager:
             config.PARAMS,
         )
 
-    def setup_paths(self):
+    def setup_paths(self, folder=None):
         if self.winstor:
             main = paths.winstor_main
             self.trials_cache = paths.winstor_trial_cache
@@ -125,8 +136,13 @@ class Manager:
             main = paths.main_fld
             self.trials_cache = paths.trials_cache
 
+        # override default save folder
+        if folder is None:
+            self.datafolder = main / config.MANAGER_CONFIG["exp_name"]
+        else:
+            self.datafolder = Path(folder)
+
         # make main and frames folder
-        self.datafolder = main / config.MANAGER_CONFIG["exp_name"]
         self.datafolder.mkdir(exist_ok=True)
         self.frames_folder = self.datafolder / "frames"
         self.frames_folder.mkdir(exist_ok=True)
@@ -284,7 +300,7 @@ class Manager:
         )
 
         # Upload to dropbox
-        if self.winstor:
+        if self.winstor and self.to_db:
             try:
                 logger.info("Uploading to dropbox")
                 self.upload_to_db()
