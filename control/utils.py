@@ -1,6 +1,22 @@
 import numpy as np
 from scipy.special import comb
+import json
 from scipy import interpolate
+
+
+def to_json(obj, fpath):
+    """ saves an object to json """
+    if isinstance(obj, str):
+        obj = json.loads(obj, indent=4, sort_keys=True)
+
+    with open(fpath, "w") as out:
+        json.dump(obj, out, indent=4, sort_keys=True)
+
+
+def from_json(fpath):
+    """ loads an object from json """
+    with open(fpath, "r") as fin:
+        return json.load(fin)
 
 
 def cart2pol(x, y):

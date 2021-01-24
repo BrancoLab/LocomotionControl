@@ -15,39 +15,47 @@ from ._io import DropBoxUtils, upload_folder
 from .live_plot import Plotter
 from .plot import plot_results, animate_from_images
 from .history import History
-from .config import (
-    dt,
-    MANAGER_CONFIG,
-    CONTROL_CONFIG,
-    TRAJECTORY_CONFIG,
-    all_configs,
-    PLANNING_CONFIG,
-)
+
+from control import config
 from control import paths
 
 from .world import World
 from .control import Controller
 from .model import Model
+from .utils import from_json
 
 
 class Manager:
-    def __init__(self, winstor=False, trialn=None):
+    def __init__(self, winstor=False, trialn=None, config_file=None):
+        """
+            Main class to run a control simulation and saving the results
+
+            Arguments:
+                winstor: bool. Set to true when running remotely on HPC
+                trialn: int. Set to int to use a specific trial when running on tracking data
+                config_file: str, Path. Path to a config .json file to replace parameters set
+                    in control/config.py (e.g. for hyperparameters optimization)
+        """
         self.winstor = winstor
 
+        # Set up
         # setup experiment name
-        if TRAJECTORY_CONFIG["traj_type"] == "tracking" and winstor:
-            MANAGER_CONFIG["exp_name"] = (
-                MANAGER_CONFIG["exp_name"] + f"_trial_{self.world.trial.name}"
+        if config.TRAJECTORY_CONFIG["traj_type"] == "tracking" and winstor:
+            config.MANAGER_CONFIG["exp_name"] = (
+                config.MANAGER_CONFIG["exp_name"]
+                + f"_trial_{self.world.trial.name}"
             )
         else:
-            MANAGER_CONFIG["exp_name"] = (
-                MANAGER_CONFIG["exp_name"]
+            config.MANAGER_CONFIG["exp_name"] = (
+                config.MANAGER_CONFIG["exp_name"]
                 + f"_{timestamp()}_{np.random.randint(10000)}"
             )
-
-        # Set up
         self.setup_paths()
         self.start_logging()
+
+        # set up params
+        if config_file is not None:
+            self.override_configs(config_file)
 
         # Set up classes
         self.history = History()
@@ -59,7 +67,7 @@ class Manager:
         self.history.info["goal_duration"] = self.world.duration
 
         # Set up plotting
-        if MANAGER_CONFIG["live_plot"]:
+        if config.MANAGER_CONFIG["live_plot"]:
             self.plotter = Plotter(
                 self.frames_folder,
                 self.world.trajectory,
@@ -68,6 +76,46 @@ class Manager:
             self.plotter.make_figure()
 
     # ---------------------------------- Set up ---------------------------------- #
+
+    def override_configs(self, config_file):
+        """
+            Replace parameters from control/config.py with those
+            specified in a config .json file. 
+        """
+        logger.debug(f"Setting new params from file: {config_file}")
+
+        # load
+        new_params = from_json(config_file)
+
+        # keep experiment name
+        new_params["MANAGER_CONFIG"]["exp_name"] = config.MANAGER_CONFIG[
+            "exp_name"
+        ]
+
+        # fix matrices
+        new_params["CONTROL_CONFIG"] = {
+            k: v if isinstance(v, int) else np.diag(v)
+            for k, v in new_params["CONTROL_CONFIG"].items()
+        }
+
+        # override
+        config.CONTROL_CONFIG = new_params["CONTROL_CONFIG"]
+        config.MANAGER_CONFIG = new_params["MANAGER_CONFIG"]
+        config.MOUSE = new_params["MOUSE"]
+        config.PARAMS = new_params["PARAMS"]
+        config.PLANNING_CONFIG = new_params["PLANNING_CONFIG"]
+        config.TRAJECTORY_CONFIG = new_params["TRAJECTORY_CONFIG"]
+        config.iLQR_CONFIG = new_params["iLQR_CONFIG"]
+
+        config.all_configs = (
+            config.MANAGER_CONFIG,
+            config.TRAJECTORY_CONFIG,
+            config.MOUSE,
+            config.PLANNING_CONFIG,
+            config.iLQR_CONFIG,
+            {k: str(v) for k, v in config.CONTROL_CONFIG.items()},
+            config.PARAMS,
+        )
 
     def setup_paths(self):
         if self.winstor:
@@ -78,7 +126,7 @@ class Manager:
             self.trials_cache = paths.trials_cache
 
         # make main and frames folder
-        self.datafolder = main / MANAGER_CONFIG["exp_name"]
+        self.datafolder = main / config.MANAGER_CONFIG["exp_name"]
         self.datafolder.mkdir(exist_ok=True)
         self.frames_folder = self.datafolder / "frames"
         self.frames_folder.mkdir(exist_ok=True)
@@ -92,7 +140,7 @@ class Manager:
         logger.info(f"Saving data at: {self.datafolder}")
 
         # Log config
-        for conf in all_configs:
+        for conf in config.all_configs:
             logger.info(json.dumps(conf, sort_keys=True, indent=4))
 
     # ------------------------------ Run simulation ------------------------------ #
@@ -100,9 +148,9 @@ class Manager:
         # initialize world/history
         # step to frames
         # conclude
-        n_steps = int(n_secs / dt)
+        n_steps = int(n_secs / config.PARAMS["dt"])
         print(
-            f"\n\n[bold  green]Starting simulation with {n_steps} steps [{n_secs}s at {dt} s/step][/bold  green]"
+            f"\n\n[bold  green]Starting simulation with {n_steps} steps [{n_secs}s at {config.PARAMS['dt']} s/step][/bold  green]"
         )
         with GracefulInterruptHandler() as h:
             with progress:
@@ -118,28 +166,30 @@ class Manager:
                     if itern < 5:
                         is_warmup = True
                         logger.debug(f"Step: {itern} | warmup phase")
-                        CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_start"]
-                        CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_start"]
-                        PLANNING_CONFIG["prediction_length"] = PLANNING_CONFIG[
-                            "prediction_length_start"
+                        config.CONTROL_CONFIG["R"] = config.CONTROL_CONFIG[
+                            "R_start"
                         ]
+                        config.CONTROL_CONFIG["Z"] = config.CONTROL_CONFIG[
+                            "Z_start"
+                        ]
+                        config.PLANNING_CONFIG[
+                            "prediction_length"
+                        ] = config.PLANNING_CONFIG["prediction_length_start"]
                     else:
                         is_warmup = False
-                        CONTROL_CONFIG["R"] = CONTROL_CONFIG["R_run"]
+                        config.CONTROL_CONFIG["R"] = config.CONTROL_CONFIG[
+                            "R_run"
+                        ]
+
+                        config.PLANNING_CONFIG[
+                            "prediction_length"
+                        ] = config.PLANNING_CONFIG["prediction_length_run"]
 
                         # change Z a bit later
                         if itern > 7:
-                            CONTROL_CONFIG["Z"] = CONTROL_CONFIG["Z_run"]
-
-                        # prediction length has another option
-                        # if itern < 7:
-                        #     PLANNING_CONFIG[
-                        #         "prediction_length"
-                        #     ] = PLANNING_CONFIG["prediction_length_run"]
-                        # else:
-                        PLANNING_CONFIG["prediction_length"] = PLANNING_CONFIG[
-                            "prediction_length_long"
-                        ]
+                            config.CONTROL_CONFIG["Z"] = config.CONTROL_CONFIG[
+                                "Z_run"
+                            ]
 
                     # Plan
                     curr_state = np.array(self.model.curr_x)
@@ -164,13 +214,13 @@ class Manager:
                     )
 
                     # update plot
-                    if MANAGER_CONFIG["live_plot"]:
+                    if config.MANAGER_CONFIG["live_plot"]:
                         self.plotter.update(
                             self.history.record,
                             goal_states,
                             self.world.current_traj_waypoint,
                             itern,
-                            elapsed=itern * dt,
+                            elapsed=itern * config.PARAMS["dt"],
                             is_warmup=is_warmup,
                         )
 
@@ -187,8 +237,11 @@ class Manager:
         try:
             animate_from_images(
                 str(self.frames_folder),
-                str(self.datafolder / f"{MANAGER_CONFIG['exp_name']}.mp4"),
-                int(round(1 / dt)),
+                str(
+                    self.datafolder
+                    / f"{config.MANAGER_CONFIG['exp_name']}.mp4"
+                ),
+                int(round(1 / config.PARAMS["dt"])),
             )
         except (ValueError, FileNotFoundError):
             print("Failed to generate video from frames.. ")
@@ -218,7 +271,7 @@ class Manager:
         )
 
         # make live plot
-        if MANAGER_CONFIG["live_plot"]:
+        if config.MANAGER_CONFIG["live_plot"]:
             self.make_video()
         else:
             shutil.rmtree(str(self.frames_folder))

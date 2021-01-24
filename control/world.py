@@ -1,7 +1,7 @@
 import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
-from .config import TRAJECTORY_CONFIG, PLANNING_CONFIG
+from control import config
 from ._world import simulated, from_tracking
 
 
@@ -11,7 +11,7 @@ class World:
     itern = 0
 
     def __init__(self, trials_cache, trialn):
-        if TRAJECTORY_CONFIG["traj_type"] == "tracking":
+        if config.TRAJECTORY_CONFIG["traj_type"] == "tracking":
             self.trajectory, self.duration, self.trial = from_tracking(
                 trials_cache, trialn
             )
@@ -24,8 +24,8 @@ class World:
             find the next N sates, based on planning
         """
         traj_length = len(self.trajectory)
-        n_ahead = PLANNING_CONFIG["n_ahead"]
-        pred_len = PLANNING_CONFIG["prediction_length"] + 1
+        n_ahead = config.PLANNING_CONFIG["n_ahead"]
+        pred_len = config.PLANNING_CONFIG["prediction_length"] + 1
 
         # get the closest traj point in the next chunk of trajectory
         curr_idx = self.curr_traj_waypoint_idx
@@ -92,7 +92,7 @@ class World:
         goal_xy = self.trajectory[-1, :2]
         dist = calc_distance_between_points_2d(mouse_xy, goal_xy)
 
-        if dist <= TRAJECTORY_CONFIG["min_dist"]:
+        if dist <= config.TRAJECTORY_CONFIG["min_dist"]:
             return True
         else:
             return False

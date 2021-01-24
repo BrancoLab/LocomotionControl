@@ -2,7 +2,7 @@ import numpy as np
 
 dt = 0.005
 px_to_cm = 1 / 8
-
+PARAMS = dict(dt=dt, px_to_cm=px_to_cm)
 
 MANAGER_CONFIG = dict(exp_name="morning_W_rep_long_hor_Q_2", live_plot=False,)
 
@@ -42,8 +42,7 @@ CONTROL_CONFIG = dict(
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
     prediction_length_start=20,  # prediction length for the first few steps
-    prediction_length_run=40,  # length for a few iters after start ones
-    prediction_length_long=60,  # length after that
+    prediction_length_run=60,  # length after that
     n_ahead=5,  # start prediction states from N steps ahead
 )
 
@@ -63,5 +62,5 @@ all_configs = (
     PLANNING_CONFIG,
     iLQR_CONFIG,
     {k: str(v) for k, v in CONTROL_CONFIG.items()},
-    dict(dt=dt, px_to_cm=px_to_cm),
+    PARAMS,
 )

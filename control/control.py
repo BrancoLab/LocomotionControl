@@ -2,7 +2,7 @@ import numpy as np
 
 # from loguru import logger
 
-from .config import iLQR_CONFIG, CONTROL_CONFIG, PLANNING_CONFIG, dt
+from control import config
 from ._cost import Cost, calc_cost
 
 
@@ -11,29 +11,29 @@ class Controller(Cost):
         Cost.__init__(self)
         self.model = model
 
-        self.controls_size = CONTROL_CONFIG["controls_size"]
-        self.state_size = CONTROL_CONFIG["STATE_SIZE"]
-        self.angle_idx = CONTROL_CONFIG["ANGLE_IDX"]
+        self.controls_size = config.CONTROL_CONFIG["controls_size"]
+        self.state_size = config.CONTROL_CONFIG["STATE_SIZE"]
+        self.angle_idx = config.CONTROL_CONFIG["ANGLE_IDX"]
 
         # Params
-        self.max_iter = iLQR_CONFIG["max_iter"]
-        self.init_mu = iLQR_CONFIG["init_mu"]
-        self.mu = iLQR_CONFIG["init_mu"]
-        self.mu_min = iLQR_CONFIG["mu_min"]
-        self.mu_max = iLQR_CONFIG["mu_max"]
-        self.init_delta = iLQR_CONFIG["init_delta"]
-        self.delta = iLQR_CONFIG["init_delta"]
-        self.threshold = iLQR_CONFIG["threshold"]
+        self.max_iter = config.iLQR_CONFIG["max_iter"]
+        self.init_mu = config.iLQR_CONFIG["init_mu"]
+        self.mu = config.iLQR_CONFIG["init_mu"]
+        self.mu_min = config.iLQR_CONFIG["mu_min"]
+        self.mu_max = config.iLQR_CONFIG["mu_max"]
+        self.init_delta = config.iLQR_CONFIG["init_delta"]
+        self.delta = config.iLQR_CONFIG["init_delta"]
+        self.threshold = config.iLQR_CONFIG["threshold"]
 
         # Initialize
         self.prev_sol = None
 
     def update_matrices(self):
         # get matrices
-        self.Q = CONTROL_CONFIG["Q"]
-        self.R = CONTROL_CONFIG["R"]
-        self.W = CONTROL_CONFIG["W"]
-        self.Z = CONTROL_CONFIG["Z"]
+        self.Q = config.CONTROL_CONFIG["Q"]
+        self.R = config.CONTROL_CONFIG["R"]
+        self.W = config.CONTROL_CONFIG["W"]
+        self.Z = config.CONTROL_CONFIG["Z"]
 
         # store diags to speed up computations
         self.Q_ = np.diag(self.Q)
@@ -50,7 +50,7 @@ class Controller(Cost):
         Returns:
             opt_input (numpy.ndarray): optimal input, shape(controls_size, )
         """
-        self.pred_len = PLANNING_CONFIG["prediction_length"]
+        self.pred_len = config.PLANNING_CONFIG["prediction_length"]
         self.update_matrices()
 
         # get previous solution and adjust to adapt to prediction length
@@ -253,20 +253,32 @@ class Controller(Cost):
         """
         # cost wrt to the state
         # l_x.shape = (pred_len+1, state_size)
-        l_x = self.gradient_cost_fn_with_state(X[:-1], g_x[:-1]) * dt
+        l_x = (
+            self.gradient_cost_fn_with_state(X[:-1], g_x[:-1])
+            * config.PARAMS["dt"]
+        )
 
         # cost wrt to the input
         # l_u.shape = (pred_len, controls_size)
-        l_u = self.gradient_cost_fn_with_input(X[:-1], U, self.prev_sol) * dt
+        l_u = (
+            self.gradient_cost_fn_with_input(X[:-1], U, self.prev_sol)
+            * config.PARAMS["dt"]
+        )
 
         # l_xx.shape = (pred_len+1, state_size, state_size)
-        l_xx = self.hessian_cost_fn_with_state(X[:-1], g_x[:-1]) * dt
+        l_xx = (
+            self.hessian_cost_fn_with_state(X[:-1], g_x[:-1])
+            * config.PARAMS["dt"]
+        )
 
         # l_uu.shape = (pred_len, controls_size, controls_size)
-        l_uu = self.hessian_cost_fn_with_input(X[:-1], U) * dt
+        l_uu = self.hessian_cost_fn_with_input(X[:-1], U) * config.PARAMS["dt"]
 
         # l_ux.shape = (pred_len, controls_size, state_size)
-        l_ux = self.hessian_cost_fn_with_input_state(X[:-1], U) * dt
+        l_ux = (
+            self.hessian_cost_fn_with_input_state(X[:-1], U)
+            * config.PARAMS["dt"]
+        )
 
         return l_x, l_xx, l_u, l_uu, l_ux
 
