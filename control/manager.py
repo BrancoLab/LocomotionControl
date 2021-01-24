@@ -87,7 +87,7 @@ class Manager:
         # logger.warning("Soimulation specific logging disabled")
         logger.remove()
         logger.add(sys.stdout, level="DEBUG")
-        filename = "log.log"
+        filename = str(self.datafolder / "log.log")
         logger.add(filename, level="DEBUG")
         logger.info(f"Saving data at: {self.datafolder}")
 
