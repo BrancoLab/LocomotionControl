@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from fcutils.video.utils import get_cap_from_file, get_video_params
 from fcutils.maths.stimuli_detection import get_onset_offset
+from fcutils.maths.utils import derivative
 
 
 logger.configure(
@@ -73,7 +74,9 @@ def load_bonsai(folder, name):
         logger.warning(f"[b r]found missing frames in diff_array!")
 
     frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
-    if len(frame_trigger_times) == len(diff_array):
+    if len(frame_trigger_times) == len(diff_array) or len(
+        frame_trigger_times
+    ) == 2 * len(diff_array):
         logger.debug(
             "[b green]Number of trigger times matches number of frames"
         )
@@ -93,52 +96,18 @@ def load_bonsai(folder, name):
         plt.show()
 
     # Get stimuli times in frame number
-    # stim_start =
-    # TODO extract stim start from files
-    # TODO check that the number of stim starts matches what's in the stimuli csv file
-    logger.warning("[orange]Stimuli start time extract not yet implemented")
+    stim_starts = get_onset_offset(analog[:, 1], 1.5)[0]
+    later_starts = stim_starts[derivative(stim_starts) > 1000]
+    if len(later_starts):
+        stim_starts = np.concatenate([[stim_starts[0]], later_starts])
+    else:
+        stim_starts = np.array(stim_starts[0]).reshape(1)
 
-    return Path(video), stimuli
+    if len(stim_starts) == len(stimuli):
+        logger.debug("[b green]Number of stimuli starts is correct")
+    else:
+        logger.warning(
+            f"[b red]Expected: {len(stimuli)} stimuli but found {len(stim_starts)} detect stimuli onsets"
+        )
 
-
-def preproces_folder(folder):
-    """
-        Gets all the experiments in a folder a pre-process all of them  
-
-        
-        Arguments:
-            folder: str, Path. Path to folder with data
-    """
-
-    def clean(file_name):
-        """
-            Remove suffixes
-        """
-        bad = ("_video", "_stimuli", "_camera", "_analog")
-
-        for bd in bad:
-            file_name = file_name.replace(bd, "")
-
-        return file_name
-
-    folder = Path(folder)
-
-    # Get each unique experiment name
-    experiments = set(
-        [
-            clean(f.stem)
-            for f in folder.glob("FC_*")
-            if f.is_file() and "test" not in f.name
-        ]
-    )
-
-    logger.debug(f"Preprocess folder found these experiments: {experiments}")
-
-    for experiment in experiments:
-        load_bonsai(folder, experiment)
-
-
-if __name__ == "__main__":
-    preproces_folder(
-        "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD_raw",
-    )
+    return Path(video), stim_starts

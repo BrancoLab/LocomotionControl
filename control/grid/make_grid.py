@@ -24,9 +24,9 @@ BASH = """#! /bin/bash
 #SBATCH -p cpu # partition (queue)
 #SBATCH -N 1   # number of nodes
 #SBATCH --mem 1gb # memory pool for all cores
-#SBATCH --job-name="GRID"
+#SBATCH --job-name="G NAME"
 #SBATCH -n 1
-#SBATCH --time=01:00:00
+#SBATCH --time=03:00:00
 #SBATCH -o out.out
 #SBATCH -e err.err
 
@@ -155,8 +155,10 @@ class Grid:
         )
         bash_path = self.save_path / "bash_files" / f"control_GRID_{count}.sh"
 
-        bash = BASH.replace("CONFIG_PATH", f'"{hpc_config_path}"').replace(
-            "\\", "/"
+        bash = (
+            BASH.replace("CONFIG_PATH", f'"{hpc_config_path}"')
+            .replace("\\", "/")
+            .replace("NAME", config_path.name)
         )
 
         with open(bash_path, "w") as out:

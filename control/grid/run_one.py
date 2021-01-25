@@ -1,6 +1,7 @@
 import click
 from pyinspect import install_traceback
 from pathlib import Path
+import shutil
 import sys
 
 sys.path.append("./")
@@ -25,6 +26,10 @@ def main(config):
     # Create a folder to save the data in
     name = Path(config).stem
     base = grid_folder / "simulations" / name
+
+    # remove pre-existing folders and make a new one
+    if base.exists():
+        shutil.rmtree(str(base))
     base.mkdir(exist_ok=True)
 
     # Get the trajectories files
