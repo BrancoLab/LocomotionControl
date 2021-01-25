@@ -2,7 +2,7 @@ import numpy as np
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 from control import config
-from ._world import simulated, from_tracking
+from control import trajectories
 
 
 class World:
@@ -10,13 +10,40 @@ class World:
     moved_to_next = []
     itern = 0
 
-    def __init__(self, trials_cache, trialn):
-        if config.TRAJECTORY_CONFIG["traj_type"] == "tracking":
-            self.trajectory, self.duration, self.trial = from_tracking(
-                trials_cache, trialn
-            )
+    def __init__(self, trials_cache, trialn, trajectory=None):
+        """
+            Creates/loads a trajectorys and takes care of planning (selecing
+            goal states) during simulations. Can either load a saved trajectory, 
+            load a trajectory from tracking data or create a simulated trajectory.
+
+
+            Arguments:
+                trials_cache: str, Path to a .h5 files with trials metadata
+                trialn: int. If loading tracking data, the trial number to use.
+                    If None a random trial is used.
+                trajectory: str, Path. Path to a .npy file with trajectory information,
+                    overrides the creation of a new trajectory.
+        """
+        if trajectory is None:
+            # simulate or load from tracking
+            if config.TRAJECTORY_CONFIG["traj_type"] == "tracking":
+                (
+                    self.trajectory,
+                    self.duration,
+                    self.trial,
+                ) = trajectories.from_tracking(trials_cache, trialn)
+            else:
+                (
+                    self.trajectory,
+                    self.duration,
+                    self.trial,
+                ) = trajectories.simulated()
         else:
-            self.trajectory, self.duration, self.trial = simulated()
+            (
+                self.trajectory,
+                self.duration,
+                self.trial,
+            ) = trajectories.from_file(trajectory)
 
     def plan(self, curr_x):
         """

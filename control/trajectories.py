@@ -11,8 +11,25 @@ from fcutils.maths.utils import derivative
 from .utils import interpolate_nans, calc_bezier_path, pol2cart
 from .config import dt, px_to_cm, TRAJECTORY_CONFIG
 
+# --------------------------------- from file -------------------------------- #
 
-# ------------------------------ From real data ------------------------------ #
+
+def from_file(file_path):
+    """
+        Load a trajectory from a .npy file. Currently the duration parameter
+        is hardcoded, but ideally it should be inferred somehow. 
+    """
+    duration = 10  # ! this is hardcoded but it shouldn't be ideally
+
+    logger.debug("Loadin saved trajectory from: {file_path}")
+    trajectory = np.load(file_path)
+
+    return trajectory, duration, None
+
+
+# --------------------------------- simulated -------------------------------- #
+
+
 def simulated():
     """
         Creates an artificial trajectory similar to the ones
@@ -29,6 +46,7 @@ def simulated():
 
         The finally compute the bezier path across all these points
     """
+    logger.debug("Creating a simulated trajectory")
 
     duration = 10  # np.random.uniform(1.5, 6)
     n_frames = int(duration / dt)
@@ -105,11 +123,15 @@ def simulated():
     )
 
 
+# ------------------------------ From real data ------------------------------ #
+
+
 def from_tracking(cache_fld, trialn=None):
     """
         Get a trajectory from real tracking data, cleaning it up
         a little in the process.
     """
+    logger.debug(f"Loading trajectory from tracing. Trial number: {trialn}")
 
     # Get a trial
     trials = pd.read_hdf(cache_fld, key="hdf")

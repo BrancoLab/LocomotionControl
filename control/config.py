@@ -61,6 +61,9 @@ all_configs = (
     MOUSE,
     PLANNING_CONFIG,
     iLQR_CONFIG,
-    {k: str(v) for k, v in CONTROL_CONFIG.items()},
+    {
+        k: v if isinstance(v, int) else str(np.diag(v))
+        for k, v in CONTROL_CONFIG.items()
+    },
     PARAMS,
 )

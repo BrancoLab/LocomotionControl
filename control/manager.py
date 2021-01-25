@@ -34,6 +34,7 @@ class Manager:
         config_file=None,
         folder=None,
         to_db=True,
+        trajectory_file=None,
     ):
         """
             Main class to run a control simulation and saving the results
@@ -45,6 +46,7 @@ class Manager:
                     in control/config.py (e.g. for hyperparameters optimization)
                 folder: str, Path. Path to folder where data will be saved (override default)
                 to_db: bool. If true data will be uploaded to dropbox when done
+                trajectory_file: str, Path. Path to a .npy file with trajectory data.
         """
         self.to_db = to_db
         self.winstor = winstor
@@ -70,7 +72,9 @@ class Manager:
 
         # Set up classes
         self.history = History()
-        self.world = World(self.trials_cache, trialn)
+        self.world = World(
+            self.trials_cache, trialn, trajectory=trajectory_file
+        )
         self.model = Model()
         self.controller = Controller(self.model)
 
