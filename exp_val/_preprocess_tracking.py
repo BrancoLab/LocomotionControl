@@ -4,6 +4,7 @@ import pandas as pd
 from loguru import logger
 from rich.logging import RichHandler
 from myterial import indigo_light as il
+import matplotlib.pyplot as plt
 
 
 from fcutils.video.utils import get_cap_from_file, get_video_params
@@ -47,11 +48,13 @@ def load_bonsai(folder, name):
     folder = Path(folder)
 
     # load analog
+    logger.debug("loading analog")
     analog = np.fromfile(
         folder / (name + "_analog.bin"), dtype=np.double
     ).reshape(-1, 2)
 
     # load video metadata
+    logger.debug("loading video")
     video = str(folder / (name + "_video.avi"))
     nframes, w, h, fps, _ = get_video_params(get_cap_from_file(video))
     logger.debug(
@@ -59,13 +62,13 @@ def load_bonsai(folder, name):
     )
 
     # load stimuli and frame deltas
+    logger.debug("loading stimuli")
     diff_array = pd.read_csv(folder / (name + "_camera.csv")).Item2.values
     stimuli = pd.read_csv(folder / (name + "_stimuli.csv")).Item2
 
     # check that no missing frames occurred
     if np.all(diff_array[1:]) == 1:
         logger.debug(f"[b green]Diff array didnt report any missing frames")
-
     else:
         logger.warning(f"[b r]found missing frames in diff_array!")
 
@@ -79,6 +82,15 @@ def load_bonsai(folder, name):
             f"[b red]mismatch between frame triggers and number of frames. "
             f"Found {len(frame_trigger_times)} triggers and {len(diff_array)} frames"
         )
+        plt.plot(analog[:, 0])
+        plt.scatter(
+            frame_trigger_times,
+            np.ones_like(frame_trigger_times),
+            color="r",
+            s=200,
+            zorder=100,
+        )
+        plt.show()
 
     # Get stimuli times in frame number
     # stim_start =
@@ -89,8 +101,44 @@ def load_bonsai(folder, name):
     return Path(video), stimuli
 
 
+def preproces_folder(folder):
+    """
+        Gets all the experiments in a folder a pre-process all of them  
+
+        
+        Arguments:
+            folder: str, Path. Path to folder with data
+    """
+
+    def clean(file_name):
+        """
+            Remove suffixes
+        """
+        bad = ("_video", "_stimuli", "_camera", "_analog")
+
+        for bd in bad:
+            file_name = file_name.replace(bd, "")
+
+        return file_name
+
+    folder = Path(folder)
+
+    # Get each unique experiment name
+    experiments = set(
+        [
+            clean(f.stem)
+            for f in folder.glob("FC_*")
+            if f.is_file() and "test" not in f.name
+        ]
+    )
+
+    logger.debug(f"Preprocess folder found these experiments: {experiments}")
+
+    for experiment in experiments:
+        load_bonsai(folder, experiment)
+
+
 if __name__ == "__main__":
-    load_bonsai(
+    preproces_folder(
         "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD_raw",
-        "FC_210107_test",
     )

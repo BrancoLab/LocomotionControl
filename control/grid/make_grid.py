@@ -155,7 +155,9 @@ class Grid:
         )
         bash_path = self.save_path / "bash_files" / f"control_GRID_{count}.sh"
 
-        bash = BASH.replace("CONFIG_PATH", f'"{hpc_config_path}"')
+        bash = BASH.replace("CONFIG_PATH", f'"{hpc_config_path}"').replace(
+            "\\", "/"
+        )
 
         with open(bash_path, "w") as out:
             out.write(bash)

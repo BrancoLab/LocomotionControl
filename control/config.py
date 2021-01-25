@@ -30,7 +30,7 @@ CONTROL_CONFIG = dict(
     R_start=np.diag([1, 1, 1]) * 1e-2,
     R_run=np.diag([1, 1, 1]) * 1e-2,
     # positive controls
-    W=np.diag([-1, -1, -1]) * 1e1,  # should be < 0
+    W=np.diag([-1, -1, -1]) * 0,  # should be < 0
     # control smoothness
     Z_start=np.diag([1, 1, 1]) * 4e-1,
     Z_run=np.diag([1, 1, 1]) * 1e2,

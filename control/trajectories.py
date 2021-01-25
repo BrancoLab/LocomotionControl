@@ -21,7 +21,7 @@ def from_file(file_path):
     """
     duration = 10  # ! this is hardcoded but it shouldn't be ideally
 
-    logger.debug("Loadin saved trajectory from: {file_path}")
+    logger.debug(f"Loading saved trajectory from: {file_path}")
     trajectory = np.load(file_path)
 
     return trajectory, duration, None
