@@ -19,8 +19,7 @@ logger.add(sys.stdout, level="DEBUG")
     as .json file for running on HPC
 """
 
-BASH = """
-#! /bin/bash
+BASH = """#! /bin/bash
 
 #SBATCH -p cpu # partition (queue)
 #SBATCH -N 1   # number of nodes
@@ -164,7 +163,7 @@ class Grid:
 
 if __name__ == "__main__":
     save_path = Path(
-        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/control_grid_search"
+        "Z:\\swc\\branco\\Federico\\Locomotion\\control\\control_grid_search"
     )
 
     Grid(save_path=save_path)

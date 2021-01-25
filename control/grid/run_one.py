@@ -1,6 +1,9 @@
 import click
 from pyinspect import install_traceback
 from pathlib import Path
+import sys
+
+sys.path.append("./")
 
 from control.manager import Manager
 from control.paths import winstor_main
