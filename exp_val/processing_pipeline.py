@@ -62,9 +62,9 @@ class ProcessingPipeline:
                         sel_fps=trials_clips_fps,
                     )
 
-                # all done
+                # all done for this experiment
                 self.records["pre_processed"].append(experiment)
-        self.update_records()
+                self.update_records()
 
         # check tracking
         # TODO check for each video if tracking data exists

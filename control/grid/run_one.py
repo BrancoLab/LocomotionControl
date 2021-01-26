@@ -3,6 +3,8 @@ from pyinspect import install_traceback
 from pathlib import Path
 import shutil
 import sys
+from loguru import logger
+
 
 sys.path.append("./")
 
@@ -26,6 +28,11 @@ def main(config):
     # Create a folder to save the data in
     name = Path(config).stem
     base = grid_folder / "simulations" / name
+    base.mkdir(exist_ok=True)
+
+    # add logging
+    logger.add(str(base / "log.log"), level="WARNING")
+    logger.warning(f"unning simulations with config file: {config}")
 
     # remove pre-existing folders and make a new one
     # if base.exists():
@@ -44,13 +51,20 @@ def main(config):
         # check if simulation ran already
         if folder.exists():
             if (
-                len(folder.glob("*")) > 3
+                len([f for f in folder.glob("*") if f.is_file()]) > 3
             ):  # the simulation was already completed
+                logger.warning(
+                    f"Skipping rep {rep} because it was complete already"
+                )
                 continue
             else:  # simulation incomplete, remove folder
+                logger.warning(
+                    f"Rrep {rep} was not complete, removing previous run"
+                )
                 shutil.rmtree(str(folder))
 
         # if it didn't run the run it now
+        logger.warning(f"Running simulation for rep: {rep}")
         Manager(
             winstor=True,
             folder=folder,
@@ -58,6 +72,7 @@ def main(config):
             to_db=False,
             trajectory_file=traj_file,
         ).run(n_secs=12)
+        logger.warning(f"Completed simulation for rep: {rep}\n\n")
 
 
 if __name__ == "__main__":

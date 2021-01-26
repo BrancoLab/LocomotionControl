@@ -39,4 +39,5 @@ for fld in track(simulations_folders, description="checking..."):
     for subfld in subs:
         if not len(dir_files(subfld)) > 3:
             logger.info(f"Incomplete simulation: {fld.name} - {subfld.name}")
+
 # %%
