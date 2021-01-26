@@ -65,14 +65,18 @@ def main(config):
 
         # if it didn't run the run it now
         logger.warning(f"Running simulation for rep: {rep}")
-        Manager(
-            winstor=True,
-            folder=folder,
-            config_file=config,
-            to_db=False,
-            trajectory_file=traj_file,
-        ).run(n_secs=12)
-        logger.warning(f"Completed simulation for rep: {rep}\n\n")
+        try:
+            Manager(
+                winstor=True,
+                folder=folder,
+                config_file=config,
+                to_db=False,
+                trajectory_file=traj_file,
+            ).run(n_secs=12)
+        except Exception as e:
+            logger.warning(f"Failed simulation with error: {e}")
+        else:
+            logger.warning(f"Completed simulation for rep: {rep}\n\n")
 
 
 if __name__ == "__main__":

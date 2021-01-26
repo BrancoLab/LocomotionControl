@@ -5,6 +5,7 @@ from pathlib import Path
 from loguru import logger
 from rich.progress import track
 from rich.logging import RichHandler
+from myterial import orange
 
 logger.configure(
     handlers=[{"sink": RichHandler(markup=True), "format": "{message}"}]
@@ -41,15 +42,19 @@ good = True
 for fld in track(simulations_folders, description="checking..."):
     subs = subdirs(fld)
     if len(subs) < 5:
-        logger.info(f"Not all simulations ran for: {fld.name}")
+        logger.info(f"[{orange}] Not all simulations ran for: {fld.name}")
         good = False
 
     for subfld in subs:
         if not len(dir_files(subfld)) > 3:
-            logger.info(f"Incomplete simulation: {fld.name} - {subfld.name}")
+            logger.info(
+                f"[{orange}] Incomplete simulation: {fld.name} - {subfld.name}"
+            )
             good = False
 
 if not good:
-    logger.warning("[b red]At least one simulationw as incomplete")
+    logger.warning("[b red]At least one simulation is incomplete")
+else:
+    logger.info("[b green]All simulations are completed, yay!")
 
 # %%
