@@ -52,9 +52,8 @@ def main(config):
 
         # check if simulation ran already
         if folder.exists():
-            if (
-                len([f for f in folder.glob("*") if f.is_file()]) > 3
-            ):  # the simulation was already completed
+            _files = [f for f in folder.glob("outcome.png")]
+            if _files:  # the simulation was already completed
                 logger.warning(
                     f"Skipping rep {rep} because it was complete already"
                 )
