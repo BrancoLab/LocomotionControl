@@ -50,7 +50,7 @@ class ProcessingPipeline:
                 for n, stim in enumerate(stimuli):
                     start, end = stim - (2 * fps), stim + (10 * fps)
                     out_vid = self.trials_clips_folder / (
-                        f"{experiment}_trial_{n}"
+                        f"{experiment}_trial_{n}.mp4"
                     )
 
                     trim_clip(

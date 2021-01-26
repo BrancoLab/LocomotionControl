@@ -28,9 +28,10 @@ def main(config):
     base = grid_folder / "simulations" / name
 
     # remove pre-existing folders and make a new one
-    if base.exists():
-        shutil.rmtree(str(base))
-    base.mkdir(exist_ok=True)
+    # if base.exists():
+    #     shutil.rmtree(str(base))
+    if not base.exists():
+        base.mkdir(exist_ok=True)
 
     # Get the trajectories files
     traj_fld = grid_folder / "trajectories"
@@ -39,6 +40,17 @@ def main(config):
     # Run simulations
     for rep, traj_file in enumerate(trajectories):
         folder = base / f"{name}_rep_{rep}"
+
+        # check if simulation ran already
+        if folder.exists():
+            if (
+                len(folder.glob("*")) > 3
+            ):  # the simulation was already completed
+                continue
+            else:  # simulation incomplete, remove folder
+                shutil.rmtree(str(folder))
+
+        # if it didn't run the run it now
         Manager(
             winstor=True,
             folder=folder,

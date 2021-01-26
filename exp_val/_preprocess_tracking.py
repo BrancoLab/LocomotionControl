@@ -95,7 +95,7 @@ def load_bonsai(folder, name):
         )
         plt.show()
 
-    # Get stimuli times in frame number
+    # Get stimuli times in sample number
     stim_starts = get_onset_offset(analog[:, 1], 1.5)[0]
     later_starts = stim_starts[derivative(stim_starts) > 1000]
     if len(later_starts):
@@ -110,4 +110,15 @@ def load_bonsai(folder, name):
             f"[b red]Expected: {len(stimuli)} stimuli but found {len(stim_starts)} detect stimuli onsets"
         )
 
-    return Path(video), stim_starts
+    # get stimuli times in frame number
+    stim_frames = []
+    for stim in stim_starts:
+        stim_frames.append(np.abs(frame_trigger_times - stim).argmin())
+    stim_frames = np.array(stim_frames)
+
+    if np.any(stim_frames > nframes):
+        raise ValueError(
+            "Found a stimulus that appears to have happened after the first video frame"
+        )
+
+    return Path(video), stim_frames

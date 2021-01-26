@@ -26,7 +26,7 @@ BASH = """#! /bin/bash
 #SBATCH --mem 1gb # memory pool for all cores
 #SBATCH --job-name="G NAME"
 #SBATCH -n 1
-#SBATCH --time=03:00:00
+#SBATCH --time=05:00:00
 #SBATCH -o out.out
 #SBATCH -e err.err
 
