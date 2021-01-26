@@ -24,7 +24,7 @@ BASH = """#! /bin/bash
 #SBATCH -p cpu # partition (queue)
 #SBATCH -N 1   # number of nodes
 #SBATCH --mem 1gb # memory pool for all cores
-#SBATCH --job-name="G NAME"
+#SBATCH --job-name="NAME"
 #SBATCH -n 1
 #SBATCH --time=15:00:00
 #SBATCH -o out.out
@@ -158,7 +158,7 @@ class Grid:
         bash = (
             BASH.replace("CONFIG_PATH", f'"{hpc_config_path}"')
             .replace("\\", "/")
-            .replace("NAME", config_path.name)
+            .replace("NAME", str(count))
         )
 
         with open(bash_path, "w") as out:

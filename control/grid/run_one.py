@@ -68,15 +68,24 @@ def main(config):
         # if it didn't run the run it now
         logger.warning(f"Running simulation for rep: {rep}")
         try:
-            Manager(
+            manager = Manager(
                 winstor=True,
                 folder=folder,
                 config_file=config,
                 to_db=False,
                 trajectory_file=traj_file,
-            ).run(n_secs=12)
+            )
+            manager.run(n_secs=12)
         except Exception as e:
-            logger.warning(f"Failed simulation with error: {e}")
+            logger.warning(
+                f"Failed simulation with error: {e}. Attempting to save data anyway"
+            )
+            try:
+                manager.wrapup()
+            except Exception as e:
+                logger.warning(f"Failed saving results with error: {e}")
+            else:
+                logger.warning("Succesfully saved data")
         else:
             logger.warning(f"Completed simulation for rep: {rep}\n\n")
 
