@@ -32,7 +32,7 @@ def main(config):
 
     # add logging
     logger.add(str(base / "log.log"), level="WARNING")
-    logger.warning(f"unning simulations with config file: {config}")
+    logger.warning(f"Running simulations with config file: {config.name}")
 
     # remove pre-existing folders and make a new one
     # if base.exists():

@@ -179,6 +179,8 @@ class Manager:
                 )
 
                 for itern in range(n_steps):
+                    if itern % 100 == 0:
+                        logger.info(f"Iteration: {itern}")
                     self.itern = itern
                     progress.advance(task_id, 1)
 

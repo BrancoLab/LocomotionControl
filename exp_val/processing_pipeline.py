@@ -40,14 +40,18 @@ class ProcessingPipeline:
             self.experiments, description="preprocessing..."
         ):
             if experiment not in self.records["pre_processed"]:
+                logger.debug(f"\n\n\n[b magenta]Preprocessing: {experiment}")
                 # check bonsai saved data correctly
-                video_path, stimuli = load_bonsai(self.raw_folder, experiment)
+                video_path, stimuli = load_bonsai(
+                    self.raw_folder, experiment, fps
+                )
 
                 # make trials clips
                 logger.debug(
                     f"Generating clips for {len(stimuli)} trials | fps {fps} -> {trials_clips_fps}"
                 )
                 for n, stim in enumerate(stimuli):
+                    stim = int(stim / 2)  # ! remove
                     start, end = stim - (2 * fps), stim + (10 * fps)
                     out_vid = self.trials_clips_folder / (
                         f"{experiment}_trial_{n}.mp4"
