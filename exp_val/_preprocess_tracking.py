@@ -16,10 +16,57 @@ logger.configure(
 )
 
 
-"""
-Take files from bonsai and analyse them to check everything's fine, then run DLC on them
+TRACKING_BASH_TEMPLATE = """#! /bin/bash
 
+#SBATCH -p gpu # partition (queue)
+#SBATCH -N 1   # number of nodes
+#SBATCH --mem 80G # memory pool for all cores
+#SBATCH --gres=gpu:gtx1080:1
+#SBATCH -n 10
+#SBATCH -t 2-0:0 # time
+#SBATCH	-o err.err
+#SBATCH -e err.err
+#SBATCH --mail-user=federicoclaudi@protonmail.com
+#SBATCH --mail-type=FAIL
+
+echo "loading conda env"
+module load miniconda
+module load nvidia/9.0
+
+conda activate dlc
+export DLClight=True
+export CUDA_VISIBLE_DEVICES=1
+
+echo "running tracking"
+/nfs/winstor/branco/Federico/Locomotion/control/LocomotionControl/exp_val/dlc_on_hpc.py \\
+        /nfs/winstor/branco/Federico/Locomotion/control/experimental_validation/2WDD/Kinematics_FC-FC-2021-01-25/config.yaml \\
+        VIDEO \\
+        SAVE
 """
+
+
+def make_bash_text(experiment, video_path, save_path):
+    """
+        Creates a string with the content of a .sh script for running 
+        deeplabcut on HPC
+    """
+    if not Path(video_path).exists():
+        raise ValueError("Video doesnt exist")
+    if not Path(save_path).exists():
+        raise ValueError("Save folder doesnt exist")
+
+    video_path = video_path.replace("Z:\\swc\\", "/nfs/winstor/").replace(
+        "\\", "/"
+    )
+    save_path = save_path.replace("Z:\\swc\\", "/nfs/winstor/").replace(
+        "\\", "/"
+    )
+
+    return (
+        TRACKING_BASH_TEMPLATE.replace("EXP", experiment)
+        .replace("VIDEO", video_path)
+        .replace("SAVE", save_path)
+    )
 
 
 def load_bonsai(folder, name, exp_fps):

@@ -4,10 +4,11 @@ from loguru import logger
 from rich.progress import track
 
 from fcutils.video.utils import trim_clip
+from pyinspect.utils import dir_files
 
 sys.path.append("./")
 from control.utils import from_json, to_json
-from exp_val._preprocess_tracking import load_bonsai
+from exp_val._preprocess_tracking import load_bonsai, make_bash_text
 
 
 class ProcessingPipeline:
@@ -18,12 +19,13 @@ class ProcessingPipeline:
                 - create cut-out videos of the trials
                 - check if tracking data exists, if yes clean it and save it
         """
-        fps = 60  # hard coded for now
-        trials_clips_fps = 4  # fps of trials clips
+        self.fps = 60  # hard coded for now
+        self.trials_clips_fps = 4  # fps of trials clips
 
         self.data_folder = Path(data_folder)
         self.raw_folder = self.data_folder / "RAW"
         self.tracking_folder = self.data_folder / "TRACKING_DATA"
+        self.tracking_bash_folder = self.data_folder / "tracking_bash_scripts"
         self.trials_clips_folder = self.data_folder / "TRIALS_CLIPS"
 
         # get records
@@ -36,41 +38,10 @@ class ProcessingPipeline:
         self.experiments = self.get_experiments_in_folder()
 
         # pre-process
-        for experiment in track(
-            self.experiments, description="preprocessing..."
-        ):
-            if experiment not in self.records["pre_processed"]:
-                logger.debug(f"\n\n\n[b magenta]Preprocessing: {experiment}")
-                # check bonsai saved data correctly
-                video_path, stimuli = load_bonsai(
-                    self.raw_folder, experiment, fps
-                )
-
-                # make trials clips
-                logger.debug(
-                    f"Generating clips for {len(stimuli)} trials | fps {fps} -> {trials_clips_fps}"
-                )
-                for n, stim in enumerate(stimuli):
-                    start, end = stim - (2 * fps), stim + (10 * fps)
-                    out_vid = self.trials_clips_folder / (
-                        f"{experiment}_trial_{n}.mp4"
-                    )
-
-                    trim_clip(
-                        str(video_path),
-                        str(out_vid),
-                        frame_mode=True,
-                        start_frame=start,
-                        stop_frame=end,
-                        sel_fps=trials_clips_fps,
-                    )
-
-                # all done for this experiment
-                self.records["pre_processed"].append(experiment)
-                self.update_records()
+        self.preprocess()
 
         # check tracking
-        # TODO check for each video if tracking data exists
+        self.check_tracking()
 
     def get_experiments_in_folder(self):
         """
@@ -116,6 +87,72 @@ class ProcessingPipeline:
         """
         logger.debug(f"Updating records logs: {self.records}")
         to_json(self.records, self.records_path)
+
+    def preprocess(self):
+        """
+            Checks that bonsai saved all fine correctly and loads some necessary stuff
+        """
+        for experiment in track(
+            self.experiments, description="preprocessing..."
+        ):
+            if experiment not in self.records["pre_processed"]:
+                logger.debug(f"\n\n\n[b magenta]Preprocessing: {experiment}")
+                # check bonsai saved data correctly
+                video_path, stimuli = load_bonsai(
+                    self.raw_folder, experiment, self.fps
+                )
+
+                # make trials clips
+                logger.debug(
+                    f"Generating clips for {len(stimuli)} trials | fps {self.fps} -> {self.trials_clips_fps}"
+                )
+                for n, stim in enumerate(stimuli):
+                    start, end = stim - (2 * self.fps), stim + (10 * self.fps)
+                    out_vid = self.trials_clips_folder / (
+                        f"{experiment}_trial_{n}.mp4"
+                    )
+
+                    trim_clip(
+                        str(video_path),
+                        str(out_vid),
+                        frame_mode=True,
+                        start_frame=start,
+                        stop_frame=end,
+                        sel_fps=self.trials_clips_fps,
+                    )
+
+                # all done for this experiment
+                self.records["pre_processed"].append(experiment)
+                self.update_records()
+
+    def check_tracking(self):
+        for experiment in track(
+            self.experiments, description="checking tracking..."
+        ):
+            bash_path = self.tracking_bash_folder / f"{experiment}.sh"
+            if experiment not in self.records["tracked"]:
+                # generate a bash script for tracking
+                logger.debug(
+                    f"Generating tracking bash script for: {experiment}"
+                )
+
+                with open(bash_path, "w") as out:
+                    out.write(
+                        make_bash_text(
+                            experiment,
+                            str(self.raw_folder / f"{experiment}_video.avi"),
+                            str(self.tracking_folder),
+                        )
+                    )
+
+            else:
+                # already tracked, remove bash script
+                if bash_path.exists():
+                    bash_path.unlink()
+
+        logger.info(
+            f"{len(dir_files(self.tracking_bash_folder))} experiments left to track"
+        )
 
 
 if __name__ == "__main__":
