@@ -9,7 +9,7 @@ def track(config_file, video, dest_fld):
         [video],
         gputouse=0,
         destfolder=dest_fld,
-        videotype=".mp4",
+        videotype=".avi",
         save_as_csv=False,
         dynamic=(False, 0.5, 10),
     )
