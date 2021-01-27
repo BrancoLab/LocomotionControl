@@ -51,7 +51,6 @@ class ProcessingPipeline:
                     f"Generating clips for {len(stimuli)} trials | fps {fps} -> {trials_clips_fps}"
                 )
                 for n, stim in enumerate(stimuli):
-                    stim = int(stim / 2)  # ! remove
                     start, end = stim - (2 * fps), stim + (10 * fps)
                     out_vid = self.trials_clips_folder / (
                         f"{experiment}_trial_{n}.mp4"
@@ -82,7 +81,7 @@ class ProcessingPipeline:
             """
                 Remove suffixes
             """
-            bad = ("_video", "_stimuli", "_camera", "_analog")
+            bad = ("_video", "_stimuli", "_camera", "_analog", "_orig")
 
             for bd in bad:
                 file_name = file_name.replace(bd, "")
@@ -120,5 +119,5 @@ class ProcessingPipeline:
 
 
 if __name__ == "__main__":
-    data_folder = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD_raw"
+    data_folder = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD"
     ProcessingPipeline(data_folder)

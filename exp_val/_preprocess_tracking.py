@@ -155,6 +155,6 @@ def load_bonsai(folder, name, exp_fps):
 
 
 if __name__ == "__main__":
-    fld = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation"
-    name = "FC_210122_BAcamtest3"
+    fld = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD\\RAW"
+    name = "FC_210127_BA1099283"
     load_bonsai(fld, name, 60)
