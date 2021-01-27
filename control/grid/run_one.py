@@ -80,7 +80,7 @@ def main(config):
                 f"Failed simulation with error: {e}. Attempting to save data anyway"
             )
             try:
-                manager.wrapup()
+                manager.wrap_up()
             except Exception as e:
                 logger.warning(f"Failed saving results with error: {e}")
             else:
