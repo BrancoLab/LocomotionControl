@@ -153,7 +153,7 @@ class Manager:
 
     def start_logging(self):
         # logger.warning("Soimulation specific logging disabled")
-        # logger.remove()
+        logger.remove()
         logger.add(sys.stdout, level="DEBUG")
         filename = str(self.datafolder / "log.log")
         logger.add(filename, level="DEBUG")
