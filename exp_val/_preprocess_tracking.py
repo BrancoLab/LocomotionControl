@@ -136,6 +136,11 @@ def load_bonsai(folder, name, exp_fps):
             f"[b red]mismatch between frame triggers and number of frames. "
             f"Found {len(frame_trigger_times)} triggers and {nframes} frames"
         )
+        if np.abs(len(frame_trigger_times) - nframes) > 100:
+            raise ValueError(
+                f"[b red]mismatch between frame triggers and number of frames. "
+                f"Found {len(frame_trigger_times)} triggers and {nframes} frames"
+            )
 
         """ tp plot stuff for inspection
             import matplotlib.pyplot as plt
@@ -191,10 +196,10 @@ def load_bonsai(folder, name, exp_fps):
         stim_frames = np.array(stim_frames)
         logger.debug(f"Found {len(stim_frames)} stimuli")
 
-        # if np.any(stim_frames > nframes):
-        #     raise ValueError(
-        #         "Found a stimulus that appears to have happened after the first video frame"
-        #     )
+        if np.any(stim_frames > nframes):
+            raise ValueError(
+                "Found a stimulus that appears to have happened after the first video frame"
+            )
     else:
         logger.info("No stimuli found in experiment")
         stim_frames = np.array([])
@@ -204,5 +209,5 @@ def load_bonsai(folder, name, exp_fps):
 
 if __name__ == "__main__":
     fld = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD\\RAW"
-    name = "FC_210128_BA1099273"
+    name = "FC_210128_BA1099282"
     load_bonsai(fld, name, 60)

@@ -52,7 +52,7 @@ class ProcessingPipeline:
         self.experiments = self.get_experiments_in_folder()
 
         # pre-process
-        # self.preprocess()
+        self.preprocess()
 
         # check tracking
         self.check_tracking()
@@ -85,9 +85,7 @@ class ProcessingPipeline:
             ]
         )
 
-        logger.debug(
-            f"Preprocess folder found these {len(experiments)} experiments"
-        )
+        logger.debug(f"Preprocess found these {len(experiments)} experiments")
         return experiments
 
     def initialize_records(self):
@@ -201,14 +199,15 @@ class ProcessingPipeline:
                 if "_tracking" in f.stem
             ]
             to_process = [
-                f
-                for f in dlc_files
-                if f.stem.split("_DLC")[0] not in processed
+                f for f in dlc_files if f.stem.split("DLC")[0] not in processed
             ]
-            logger.debug(f"{len(to_process)} tracking files to process")
+            logger.debug(
+                f"Found {len(to_process)} tracking files to process in '{folder.name}'"
+            )
 
-            for fpath in to_process:
-                logger.debug(f"Processing tracking data for {fpath.name}")
+            for fpath in track(
+                to_process, description="processing tracking data..."
+            ):
                 # process data
                 tracking = prepare_tracking_data(
                     str(fpath),
@@ -247,7 +246,7 @@ class ProcessingPipeline:
                 data = {**tracking_data, **bone_data}
 
                 # save
-                out = folder / (fpath.stem.split("_DLC")[0] + "_tracking.h5")
+                out = folder / (fpath.stem.split("DLC")[0] + "_tracking.h5")
                 pd.DataFrame(data).to_hdf(out, key="hdf")
 
 

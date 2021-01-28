@@ -48,7 +48,7 @@ def simulated():
     """
     logger.debug("Creating a simulated trajectory")
 
-    duration = 10  # np.random.uniform(1.5, 6)
+    duration = np.random.uniform(3, 6)
     n_frames = int(duration / dt)
 
     logger.info(
@@ -60,7 +60,7 @@ def simulated():
     points = [np.array([0, 0])]
     prev_phi = 0
 
-    for n in range(100):
+    for n in range(50):
         # draw random angle and distance for next point
         sign = -1 if np.random.random() < 0.5 else 1
         _phi = np.random.uniform(0, 50) * sign
