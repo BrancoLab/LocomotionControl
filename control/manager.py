@@ -316,5 +316,4 @@ class Manager:
                 logger.info(f"Failed to upload to dropbox with error: {e}")
             else:
                 logger.info("Uploading succesfull")
-
-            shutil.rmtree(str(self.datafolder))
+                shutil.rmtree(str(self.datafolder))

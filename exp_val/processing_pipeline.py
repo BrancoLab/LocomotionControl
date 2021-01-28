@@ -168,6 +168,13 @@ class ProcessingPipeline:
             f"{len(dir_files(self.tracking_bash_folder))} videos left to track with DLC"
         )
 
+    def process_tracking(self):
+        """
+            Processes DLC output to clean it up, augment it and put it 
+            in a manageble format. Does so for all tracking in the tracking 
+            folder and and in the trials clips folder.
+        """
+
 
 if __name__ == "__main__":
     data_folder = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD"
