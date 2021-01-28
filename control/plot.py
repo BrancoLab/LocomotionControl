@@ -217,7 +217,7 @@ def _plot_omega(history, trajectory, plot_every, ax=None, ax_frames=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 4]))[::plot_every],
-        trajectory[:, 4][::plot_every],
+        np.degrees(trajectory[:, 4][::plot_every]),
         color=desaturate_color(colors["omega"]),
         label="trajectory speed",
         lw=1,

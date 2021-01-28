@@ -11,7 +11,9 @@ install_traceback(
 @click.option("--trialn", default=None, help="Trial number.")
 @click.option("--config", default=None, help="Config.json file")
 def main(trialn, config):
-    Manager(winstor=True, trialn=trialn, config_file=config).run(n_secs=12)
+    Manager(winstor=True, trialn=trialn, config_file=config, to_db=False).run(
+        n_secs=12
+    )
 
 
 if __name__ == "__main__":
