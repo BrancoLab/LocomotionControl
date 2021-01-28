@@ -96,7 +96,7 @@ def simulated():
     # Get ang vel
     speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_frames
 
-    omega = derivative(theta) * speedup_factor
+    omega = derivative(theta) * speedup_factor / 2
     omega[0] = omega[1]
     omega *= 1 / dt
 
