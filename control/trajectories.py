@@ -73,6 +73,8 @@ def simulated():
         prev_phi += _phi
 
         rho = np.random.uniform(10, 25)
+        if n < 3:
+            rho = 30
 
         # get next point's coordinates
         previous = points[-1]

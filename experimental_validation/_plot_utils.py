@@ -9,6 +9,7 @@ from myterial import (
     blue_grey_darker,
     pink,
     pink_darker,
+    teal,
 )
 
 # ---------------------------------------------------------------------------- #
@@ -39,7 +40,9 @@ def point(bp, ax, tracking, frames, **kwargs):
     ax.scatter(x, y, **kwargs)
 
 
-def draw_mouse(ax, tracking, frames, bps=None, **kwargs):
+def draw_mouse(
+    ax, tracking, whole_session_tracking, frames, bps=None, **kwargs
+):
     """
         Draw a mouse's outline as a polygon
         whose vertices lay at the coordinates
@@ -47,23 +50,40 @@ def draw_mouse(ax, tracking, frames, bps=None, **kwargs):
 
         Given a tracking dataframe and a set of selected frames
     """
-    bps = bps or ("tail_base", "LH", "l_ear", "snout", "r_ear", "RH",)
-    patches = []
-    for n in frames:  # range(len(tracking["body_x"])):
-        x = [tracking[f"{bp}_x"].values[n] for bp in bps]
-        y = [tracking[f"{bp}_y"].values[n] for bp in bps]
-        patches.append(Polygon(np.vstack([x, y]).T, True, lw=None))
+    # plot whole session tracking in the background
+    x = whole_session_tracking.body_x.values
+    y = whole_session_tracking.body_y.values
+    ax.plot(x, y, color=blue_grey_darker, lw=0.76, alpha=0.5, zorder=0)
 
-    p = PatchCollection(patches, alpha=0.1, color=blue_grey_darker, lw=None)
-    ax.add_collection(p)
+    # bps = bps or ("tail_base", "left_hl", "left_ear", "snout", "right_ear", "right_hl",)
+    # patches = []
+    # for n in frames:  # range(len(tracking["body_x"])):
+    #     x = [tracking[f"{bp}_x"].values[n] for bp in bps]
+    #     y = [tracking[f"{bp}_y"].values[n] for bp in bps]
+    #     patches.append(Polygon(np.vstack([x, y]).T, True, lw=None))
+
+    # p = PatchCollection(patches, alpha=0.1, color=blue_grey_darker, lw=None)
+    # ax.add_collection(p)
 
     ax.plot(
         tracking["body_x"][frames[0] :],
         tracking["body_y"][frames[0] :],
-        lw=3,
-        alpha=0.4,
-        color=[0.4, 0.4, 0.4],
-        zorder=-5,
+        lw=2,
+        alpha=1,
+        color=blue_grey_darker,
+        zorder=1,
+    )
+
+    # mark start and stop
+    n = [0, -1]
+    ax.scatter(
+        tracking["body_x"].iloc[n],
+        tracking["body_y"].iloc[n],
+        lw=1,
+        edgecolors=blue_grey_darker,
+        alpha=1,
+        c=[salmon, teal],
+        zorder=100,
     )
 
 
@@ -72,37 +92,37 @@ def draw_paws_steps(paw_colors, ax, tracking, step_starts, start):
     # Plot paws
     for paw, color in paw_colors.items():
         point(
-            paw, ax, tracking, step_starts, zorder=1, color=color, s=50,
+            paw, ax, tracking, step_starts, zorder=1, color=color, s=10,
         )
 
-    # plot paw lines
-    line(
-        "LH", "RF", ax, tracking, step_starts, color=salmon, lw=2, zorder=2,
-    )
-    line(
-        "RH", "LF", ax, tracking, step_starts, color=indigo, lw=2, zorder=2,
-    )
-    line(
-        "tail_base",
-        "snout",
-        ax,
-        tracking,
-        step_starts,
-        color=pink,
-        lw=3,
-        zorder=2,
-    )
-    line(
-        "tail_base",
-        "snout",
-        ax,
-        tracking,
-        np.arange(start, len(tracking["body_x"])),
-        color=pink_darker,
-        lw=1,
-        zorder=-2,
-        alpha=0.2,
-    )
+    # # plot paw lines
+    # line(
+    #     "left_hl", "right_fl", ax, tracking, step_starts, color=salmon, lw=2, zorder=2,
+    # )
+    # line(
+    #     "right_hl", "left_fl", ax, tracking, step_starts, color=indigo, lw=2, zorder=2,
+    # )
+    # line(
+    #     "tail_base",
+    #     "snout",
+    #     ax,
+    #     tracking,
+    #     step_starts,
+    #     color=pink,
+    #     lw=3,
+    #     zorder=2,
+    # )
+    # line(
+    #     "tail_base",
+    #     "snout",
+    #     ax,
+    #     tracking,
+    #     np.arange(start, len(tracking["body_x"])),
+    #     color=pink_darker,
+    #     lw=1,
+    #     zorder=-2,
+    #     alpha=0.2,
+    # )
 
 
 def mark_steps(ax, starts, ends, y, side, scale, noise=0, **kwargs):

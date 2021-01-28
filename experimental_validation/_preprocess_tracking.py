@@ -38,7 +38,7 @@ export DLClight=True
 export CUDA_VISIBLE_DEVICES=1
 
 echo "running tracking"
-python /nfs/winstor/branco/Federico/Locomotion/control/LocomotionControl/exp_val/dlc_on_hpc.py \\
+python /nfs/winstor/branco/Federico/Locomotion/control/LocomotionControl/experimental_validation/dlc_on_hpc.py \\
         /nfs/winstor/branco/Federico/Locomotion/control/experimental_validation/2WDD/Kinematics_FC-FC-2021-01-25/config.yaml \\
         VIDEO \\
         SAVE

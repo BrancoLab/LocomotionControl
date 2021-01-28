@@ -9,8 +9,14 @@ from pyinspect.utils import dir_files
 
 sys.path.append("./")
 from control.utils import from_json, to_json
-from exp_val._preprocess_tracking import load_bonsai, make_bash_text
-from exp_val._tracking import prepare_tracking_data, compute_body_segments
+from experimental_validation._preprocess_tracking import (
+    load_bonsai,
+    make_bash_text,
+)
+from experimental_validation._tracking import (
+    prepare_tracking_data,
+    compute_body_segments,
+)
 
 
 class ProcessingPipeline:
