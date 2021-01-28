@@ -38,7 +38,7 @@ export DLClight=True
 export CUDA_VISIBLE_DEVICES=1
 
 echo "running tracking"
-/nfs/winstor/branco/Federico/Locomotion/control/LocomotionControl/exp_val/dlc_on_hpc.py \\
+python /nfs/winstor/branco/Federico/Locomotion/control/LocomotionControl/exp_val/dlc_on_hpc.py \\
         /nfs/winstor/branco/Federico/Locomotion/control/experimental_validation/2WDD/Kinematics_FC-FC-2021-01-25/config.yaml \\
         VIDEO \\
         SAVE
@@ -161,7 +161,7 @@ def load_bonsai(folder, name, exp_fps):
     expected_n_frames = np.floor(exp_dur * exp_fps).astype(np.int64)
     if np.abs(expected_n_frames - nframes) > 5:
         logger.warning(
-            f"[b red]Expected {expected_n_frames} frames but found {nframes} in video"
+            f"[b yellow]Expected {expected_n_frames} frames but found {nframes} in video"
         )
     else:
         logger.debug(
@@ -189,6 +189,7 @@ def load_bonsai(folder, name, exp_fps):
         for stim in stim_starts:
             stim_frames.append(np.abs(frame_trigger_times - stim).argmin())
         stim_frames = np.array(stim_frames)
+        logger.debug(f"Found {len(stim_frames)} stimuli")
 
         # if np.any(stim_frames > nframes):
         #     raise ValueError(
@@ -203,5 +204,5 @@ def load_bonsai(folder, name, exp_fps):
 
 if __name__ == "__main__":
     fld = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD\\RAW"
-    name = "FC_210127_BA1099283"
+    name = "FC_210127_BA1099290"
     load_bonsai(fld, name, 60)

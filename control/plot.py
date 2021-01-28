@@ -200,7 +200,7 @@ def _plot_v(history, trajectory, plot_every, ax=None, ax_frames=None):
     )
 
     ax_frames.plot(
-        np.degrees(history["v"]), color=colors["v"], lw=5, zorder=100,
+        history["v"], color=colors["v"], lw=5, zorder=100,
     )
     ax.set(
         xlabel="# frames", ylabel="Speed (cm/s)", title="Speed trajectory",
@@ -217,7 +217,7 @@ def _plot_omega(history, trajectory, plot_every, ax=None, ax_frames=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 4]))[::plot_every],
-        np.degrees(trajectory[:, 4][::plot_every]),
+        trajectory[:, 4][::plot_every],
         color=desaturate_color(colors["omega"]),
         label="trajectory speed",
         lw=1,

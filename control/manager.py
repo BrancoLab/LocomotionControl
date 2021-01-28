@@ -64,11 +64,13 @@ class Manager:
                 + f"_{timestamp()}_{np.random.randint(10000)}"
             )
         self.setup_paths(folder=folder)
-        self.start_logging()
 
         # set up params
         if config_file is not None:
             self.override_configs(config_file)
+
+        # start logger
+        self.start_logging()
 
         # Set up classes
         self.history = History()

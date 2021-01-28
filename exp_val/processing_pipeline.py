@@ -69,7 +69,7 @@ class ProcessingPipeline:
         )
 
         logger.debug(
-            f"Preprocess folder found these experiments: {experiments}"
+            f"Preprocess folder found these {len(experiments)} experiments"
         )
         return experiments
 
@@ -85,7 +85,6 @@ class ProcessingPipeline:
         """
             Saves the records to file
         """
-        logger.debug(f"Updating records logs: {self.records}")
         to_json(self.records, self.records_path)
 
     def preprocess(self):
@@ -126,6 +125,22 @@ class ProcessingPipeline:
                 self.update_records()
 
     def check_tracking(self):
+        """
+            Checks that all videos have been tracked with dlc, 
+            if not it creates a .sh file for each video
+            so that it can be tracked on HPC
+        """
+        # check which experiments have been tracked
+        tracked = [
+            f.name.split("_videoDLC")[0]
+            for f in dir_files(self.tracking_folder, "*.h5")
+        ]
+        for exp in self.experiments:
+            if exp in tracked and exp not in self.records["tracked"]:
+                self.records["tracked"].append(exp)
+                self.update_records()
+
+        # create bash files for experiments to track
         for experiment in track(
             self.experiments, description="checking tracking..."
         ):
@@ -144,14 +159,13 @@ class ProcessingPipeline:
                             str(self.tracking_folder),
                         )
                     )
-
             else:
                 # already tracked, remove bash script
                 if bash_path.exists():
                     bash_path.unlink()
 
         logger.info(
-            f"{len(dir_files(self.tracking_bash_folder))} experiments left to track"
+            f"{len(dir_files(self.tracking_bash_folder))} videos left to track with DLC"
         )
 
 
