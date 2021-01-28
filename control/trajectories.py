@@ -63,7 +63,7 @@ def simulated():
     for n in range(50):
         # draw random angle and distance for next point
         sign = -1 if np.random.random() < 0.5 else 1
-        _phi = np.random.uniform(0, 50) * sign
+        _phi = np.random.uniform(0, 65) * sign
         if n == 0:
             _phi = np.random.uniform(0, 360)
         elif n == 1:  # second segment should be straight
