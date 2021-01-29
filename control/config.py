@@ -4,7 +4,7 @@ dt = 0.005
 px_to_cm = 1 / 8
 PARAMS = dict(dt=dt, px_to_cm=px_to_cm)
 
-MANAGER_CONFIG = dict(exp_name="omega", live_plot=False,)
+MANAGER_CONFIG = dict(exp_name="same_no_W", live_plot=False,)
 
 TRAJECTORY_CONFIG = dict(
     traj_type="simulated",  # tracking or simulated # ! CHECK BEFORE REAL
@@ -36,7 +36,7 @@ CONTROL_CONFIG = dict(
     Z_run=np.diag([1, 1, 1]) * 1e2,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([50, 50, 20, 100, 50, 0, 0]) * 1e4,
+    Q=np.diag([50, 50, 20, 100, 150, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control

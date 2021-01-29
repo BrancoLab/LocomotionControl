@@ -4,12 +4,10 @@ import pandas as pd
 from loguru import logger
 import sys
 import numpy as np
-from rich import print
 
 from fcutils.plotting.utils import (
     set_figure_subplots_aspect,
     clean_axes,
-    save_figure,
 )
 from fcutils.maths.utils import rolling_mean
 from myterial import (
@@ -18,23 +16,23 @@ from myterial import (
     indigo,
     salmon,
     blue_grey_darker,
-    orange,
 )
 from pyinspect.utils import dir_files
 
-sys.path.append('./')
+sys.path.append("./")
 
-from experimental_validation._plot_utils import draw_paws_steps, draw_mouse, mark_steps
-from experimental_validation._steps_utils import (
-    get_steps,
-    print_steps_summary,
-    stride_from_speed,
+from experimental_validation._plot_utils import (
+    draw_paws_steps,
+    draw_mouse,
+    mark_steps,
 )
+from experimental_validation._steps_utils import get_steps
+from control.utils import from_json
 
 
-'''
+"""
     Code to extracts steps data from tracking of mice running
-'''
+"""
 
 step_speed_th = 25  # cm / s
 fps = 60
@@ -51,23 +49,45 @@ paw_colors = {
 
 def run():
     # Get paths
-    folder = Path('Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD')
-    trials_folder = folder / 'TRIALS_CLIPS'
-    tracking_folder = folder / 'TRACKING_DATA'
-    analysis_folder = folder / 'ANALYSIS'
+    folder = Path(
+        "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD"
+    )
+    trials_folder = folder / "TRIALS_CLIPS"
+    tracking_folder = folder / "TRACKING_DATA"
+    analysis_folder = folder / "ANALYSIS"
     analysis_folder.mkdir(exist_ok=True)
 
+    trials_records = from_json(trials_folder / "trials_records.json")
+
     # Get files
-    tracking_files = dir_files(trials_folder, '*_tracking.h5')
-    logger.info(f'Starting steps analysis. Found {len(tracking_files)} files') 
+    tracking_files = dir_files(trials_folder, "*_tracking.h5")
+    logger.info(f"Starting steps analysis. Found {len(tracking_files)} files")
     # loop over files
-    for path in tracking_files:
-        logger.info(f'Analyzing {path.name}')
+    for n, path in enumerate(tracking_files):
+        if n == 0:
+            continue
+        logger.info(f"Analyzing {path.name}")
+
+        # Check that its a trial to be analyzed
+        tname = path.stem.replace("_tracking", "")
+        if (
+            tname not in trials_records
+            or trials_records[tname]["good"] == "tbd"
+        ):
+            logger.warning(
+                f"Trial {tname}  not in trials records, dont know if should analyze. Skipping."
+            )
+            continue
+        if not trials_records[tname]["good"]:
+            logger.info(f"Trial {tname} is not to be analyzed")
+            continue
 
         # get the tracking for the trial and for the whole session
-        session_name = path.stem.split('_trial')[0] + '_video_tracking.h5'
-        whole_session_tracking = pd.read_hdf(tracking_folder / session_name, key='hdf')
-        tracking = pd.read_hdf(path, key='hdf')
+        session_name = path.stem.split("_trial")[0] + "_video_tracking.h5"
+        whole_session_tracking = pd.read_hdf(
+            tracking_folder / session_name, key="hdf"
+        )
+        tracking = pd.read_hdf(path, key="hdf")
 
         # make figure
         (
@@ -81,22 +101,32 @@ def run():
             stride_hist_ax,
         ) = make_figure()
 
-
         # get when mouse crosses Y threshold
-        y = t(tracking["body_y"], start=0)
+        y = t(tracking["body_y"], start=0, scale=False)
         try:
-            start = np.where(y <= 1300)[0][-]
-            logger.info(f'Start at frame: {start}')
-        except  ValueError:
-            logger.info('In this trial mouse didnt go below Y threshold, skipping')
+            start = np.where(y > 1300)[0][-1]
+            end = np.where(y > 280)[0][-1]
+            logger.info(
+                f"Start at frame: {start}/{len(y)} and end after {end - start} frames (frame {end})"
+            )
+        except IndexError:
+            logger.info(
+                "In this trial mouse didnt go below Y threshold, skipping"
+            )
             continue
 
         # prep data
-        LH_speed = t(tracking["left_hl_speed"], start=start) * fps
-        LF_speed = t(tracking["left_fl_speed"], start=start) * fps
-        RH_speed = t(tracking["right_hl_speed"], start=start) * fps
-        RF_speed = t(tracking["right_fl_speed"], start=start) * fps
+        LH_speed = t(tracking["left_hl_speed"], start=start, end=end) * fps
+        LF_speed = t(tracking["left_fl_speed"], start=start, end=end) * fps
+        RH_speed = t(tracking["right_hl_speed"], start=start, end=end) * fps
+        RF_speed = t(tracking["right_fl_speed"], start=start, end=end) * fps
 
+        speeds = dict(
+            left_hl=LH_speed,
+            left_fl=LF_speed,
+            right_hl=RH_speed,
+            right_fl=RF_speed,
+        )
 
         # get steps
         (
@@ -110,90 +140,98 @@ def run():
             diag_data,
             step_starts,
         ) = get_steps(
-            LH_speed, LF_speed, RH_speed, RF_speed, step_speed_th, start=start
+            LH_speed, LF_speed, RH_speed, RF_speed, step_speed_th, start=start,
         )
 
         # draw mouse and steps
         draw_mouse(tracking_ax, tracking, whole_session_tracking, step_starts)
         draw_paws_steps(paw_colors, tracking_ax, tracking, step_starts, start)
 
-        # # Plot paw speeds
-        # for n, (paw, color) in enumerate(paw_colors.items()):
-        #     if paw in ("LH", "RH"):
-        #         alpha = 0.2
-        #     else:
-        #         alpha = 1
-        #     spd = t(tracking[f"{paw}_speed"]) * fps
+        # Plot paw speeds
+        for n, (paw, color) in enumerate(paw_colors.items()):
+            if "_fl" in paw:
+                alpha = 0.2
+            else:
+                alpha = 1
 
-        #     paws_ax.plot(spd, color=color, lw=2, alpha=alpha, label=paw)
-        #     cum_speeds_ax.plot(
-        #         np.cumsum(spd), color=color, lw=2, alpha=alpha, label=paw
-        #     )
-        # paws_ax.legend()
-        # cum_speeds_ax.legend()
-        # paws_ax.axhline(step_speed_th, lw=1, ls=":", color="k", zorder=-1)
-        # paws_ax.axhline(0, lw=2, color="k", zorder=1)
+            paws_ax.plot(
+                speeds[paw], color=color, lw=2, alpha=alpha, label=paw
+            )
+            cum_speeds_ax.plot(
+                np.cumsum(speeds[paw]),
+                color=color,
+                lw=2,
+                alpha=alpha,
+                label=paw,
+            )
+        paws_ax.legend()
+        cum_speeds_ax.legend()
+        paws_ax.axhline(step_speed_th, lw=1, ls=":", color="k", zorder=-1)
+        paws_ax.axhline(0, lw=2, color="k", zorder=1)
 
-        # # Plot orientation
-        # orientation = t(r(tracking["body_whole_bone_orientation"]), scale=False)
-        # ori_ax.plot(
-        #     orientation - orientation[0],
-        #     label="body angle",
-        #     color=blue_grey_darker,
-        #     lw=4,
-        # )
-        # ori_ax.legend()
+        # Plot orientation
+        orientation = t(
+            r(tracking["body_whole_bone_orientation"]), scale=False
+        )
+        ori_ax.plot(
+            orientation - orientation[0],
+            label="body angle",
+            color=blue_grey_darker,
+            lw=4,
+        )
+        ori_ax.legend()
 
-        # # draw steps times
-        # for n, (paw, steps) in enumerate(
-        #     zip(("right_fl", "left_hl", "left_fl", "right_hl"), (RF_steps, LH_steps, LF_steps, RH_steps))
-        # ):
-        #     mark_steps(
-        #         paws_ax,
-        #         steps.starts,
-        #         steps.ends,
-        #         -10 * (n + 1),
-        #         paw,
-        #         5,
-        #         color=paw_colors[paw],
-        #         alpha=0.9,
-        #         zorder=-1,
-        #         lw=2,
-        #     )
+        # draw steps times
+        for n, (paw, steps) in enumerate(
+            zip(
+                ("right_fl", "left_hl", "left_fl", "right_hl"),
+                (RF_steps, LH_steps, LF_steps, RH_steps),
+            )
+        ):
+            mark_steps(
+                paws_ax,
+                steps.starts,
+                steps.ends,
+                -10 * (n + 1),
+                paw,
+                5,
+                color=paw_colors[paw],
+                alpha=0.9,
+                zorder=-1,
+                lw=2,
+            )
 
-        # # draw diagonal steps
-        # mark_steps(
-        #     paws_ax,
-        #     R_diagonal_steps.starts,
-        #     R_diagonal_steps.ends,
-        #     -80,
-        #     "Diag.",
-        #     5,
-        #     noise=0,
-        #     alpha=1,
-        #     zorder=-1,
-        #     lw=2,
-        #     color="b",
-        # )
+        # draw diagonal steps
+        mark_steps(
+            paws_ax,
+            R_diagonal_steps.starts,
+            R_diagonal_steps.ends,
+            -80,
+            "Diag.",
+            5,
+            noise=0,
+            alpha=1,
+            zorder=-1,
+            lw=2,
+            color="b",
+        )
 
-        # mark_steps(
-        #     paws_ax,
-        #     L_diagonal_steps.starts,
-        #     L_diagonal_steps.ends,
-        #     -80 + -80 / 5,
-        #     "Diag.",
-        #     5,
-        #     noise=0,
-        #     alpha=1,
-        #     zorder=-1,
-        #     lw=2,
-        #     color="r",
-        # )
-
+        mark_steps(
+            paws_ax,
+            L_diagonal_steps.starts,
+            L_diagonal_steps.ends,
+            -80 + -80 / 5,
+            "Diag.",
+            5,
+            noise=0,
+            alpha=1,
+            zorder=-1,
+            lw=2,
+            color="r",
+        )
 
         plt.show()
         break
-
 
 
 # ----------------------------- utility functions ---------------------------- #
@@ -201,7 +239,7 @@ def run():
 
 def make_figure():
     f = plt.figure(constrained_layout=True, figsize=(16, 9))
-    gs = f.add_gridspec(3, 6)
+    gs = f.add_gridspec(3, 5)
 
     tracking_ax = f.add_subplot(gs[:, :2])
     tracking_ax.axis("equal")
@@ -245,8 +283,9 @@ def make_figure():
     # draw some lines on tracking ax
     # to denote arena areas
     for mark in (1850, 1600, 1300, 1050, 450, 380):
-        tracking_ax.axhline(mark, lw=5, ls='--', color=[0.3, 0.3, 0.3], alpha=.1, zorder=-1)
-
+        tracking_ax.axhline(
+            mark, lw=5, ls="--", color=[0.3, 0.3, 0.3], alpha=0.1, zorder=-1
+        )
 
     set_figure_subplots_aspect(wspace=0.6, hspace=0.4)
     clean_axes(f)
@@ -263,7 +302,7 @@ def make_figure():
     )
 
 
-def t(d, scale=True, start=0):
+def t(d, scale=True, start=0, end=-1):
     """
         Transform data by smoothing and
         going  from px to cm
@@ -273,7 +312,7 @@ def t(d, scale=True, start=0):
     except Exception:
         pass
 
-    d = rolling_mean(d[start:], 2)
+    d = rolling_mean(d[start:end], 5)
 
     if scale:
         return d * cm_per_px
@@ -296,5 +335,6 @@ def r(a):
         out[:idx] = np.nan
         return out
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()
