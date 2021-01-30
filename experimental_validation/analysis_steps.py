@@ -26,7 +26,11 @@ from experimental_validation._plot_utils import (
     draw_mouse,
     mark_steps,
 )
-from experimental_validation._steps_utils import get_steps
+from experimental_validation._steps_utils import (
+    print_steps_summary,
+    stride_from_speed,
+    get_steps,
+)
 from control.utils import from_json
 
 
@@ -49,12 +53,16 @@ paw_colors = {
 
 def run():
     # Get paths
-    folder = Path(
+    data_folder = Path(
         "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD"
     )
-    trials_folder = folder / "TRIALS_CLIPS"
-    tracking_folder = folder / "TRACKING_DATA"
-    analysis_folder = folder / "ANALYSIS"
+    save_folder = Path(
+        "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\experimental_validation\\2WDD\\analysis"
+    )
+
+    trials_folder = data_folder / "TRIALS_CLIPS"
+    tracking_folder = data_folder / "TRACKING_DATA"
+    analysis_folder = data_folder / "ANALYSIS"
     analysis_folder.mkdir(exist_ok=True)
 
     trials_records = from_json(trials_folder / "trials_records.json")
@@ -64,8 +72,9 @@ def run():
     logger.info(f"Starting steps analysis. Found {len(tracking_files)} files")
     # loop over files
     for n, path in enumerate(tracking_files):
-        if n == 0:
+        if n != 2:
             continue
+
         logger.info(f"Analyzing {path.name}")
 
         # Check that its a trial to be analyzed
@@ -104,8 +113,14 @@ def run():
         # get when mouse crosses Y threshold
         y = t(tracking["body_y"], start=0, scale=False)
         try:
-            start = np.where(y > 1300)[0][-1]
-            end = np.where(y > 280)[0][-1]
+            start = np.where(y > 1400)[0][-1]
+            end = np.where(y > 300)[0][-1]
+
+            # check if the mouse stops in this interval
+            bspeed = t(tracking["body_speed"], start=start, end=end) * fps
+            if np.any(bspeed < 5):
+                end = np.where(bspeed < 5)[0][0] + start
+
             logger.info(
                 f"Start at frame: {start}/{len(y)} and end after {end - start} frames (frame {end})"
             )
@@ -120,6 +135,13 @@ def run():
         LF_speed = t(tracking["left_fl_speed"], start=start, end=end) * fps
         RH_speed = t(tracking["right_hl_speed"], start=start, end=end) * fps
         RF_speed = t(tracking["right_fl_speed"], start=start, end=end) * fps
+        body_speed = t(tracking["body_speed"], start=start, end=end) * fps
+        orientation = t(
+            r(tracking["body_whole_bone_orientation"]),
+            scale=False,
+            start=start,
+            end=end,
+        )
 
         speeds = dict(
             left_hl=LH_speed,
@@ -164,15 +186,20 @@ def run():
                 alpha=alpha,
                 label=paw,
             )
+        paws_ax.plot(
+            body_speed,
+            color=blue_grey_darker,
+            lw=2,
+            alpha=1,
+            label="body",
+            zorder=-1,
+        )
         paws_ax.legend()
         cum_speeds_ax.legend()
         paws_ax.axhline(step_speed_th, lw=1, ls=":", color="k", zorder=-1)
         paws_ax.axhline(0, lw=2, color="k", zorder=1)
 
         # Plot orientation
-        orientation = t(
-            r(tracking["body_whole_bone_orientation"]), scale=False
-        )
         ori_ax.plot(
             orientation - orientation[0],
             label="body angle",
@@ -229,6 +256,74 @@ def run():
             lw=2,
             color="r",
         )
+
+        # ------------------------------ stride vs angle ----------------------------- #
+        # get stride length vs turn angle
+        summary = dict(
+            number=[],
+            stride_delta=[],
+            angle_delta=[],
+            side=[],
+            start=[],
+            end=[],
+            pearsonr=[],
+        )
+        for n, step in diag_data.items():
+            # stride delta
+
+            if step["side"] == "L":
+                left, right = step["paws"]
+            else:
+                right, left = step["paws"]
+
+            r_stride = stride_from_speed(
+                t(tracking[f"{right}_speed"]), step["start"], step["end"]
+            )
+            l_stride = stride_from_speed(
+                t(tracking[f"{left}_speed"]), step["start"], step["end"]
+            )
+
+            summary["stride_delta"].append(l_stride - r_stride)
+
+            # angle delta
+            turn = orientation[step["end"]] - orientation[step["start"]]
+            summary["angle_delta"].append(turn)
+
+            # more info
+            summary["number"].append(n)
+            summary["side"].append(step["side"])
+            summary["start"].append(step["start"])
+            summary["end"].append(step["end"])
+            summary["pearsonr"].append(step["pearsonr"])
+
+        # plot stride length vs turn angle
+        turn_ax.scatter(
+            summary["stride_delta"],
+            summary["angle_delta"],
+            s=50,
+            c=[1 if s == "R" else 0 for s in summary["side"]],
+            zorder=10,
+            lw=1,
+            edgecolors=[0.2, 0.2, 0.2],
+            cmap="bwr",
+        )
+
+        # plot histograms
+        turn_hist_ax.hist(summary["angle_delta"], color=[0.3, 0.3, 0.3])
+        turn_hist_ax.set(
+            title=f"Total ammount turned: {np.sum(summary['angle_delta']):.1f}"
+        )
+
+        left_travel = np.mean([np.sum(LH_speed), np.sum(LF_speed)])
+        right_travel = np.mean([np.sum(RH_speed), np.sum(RF_speed)])
+        stride_hist_ax.hist(summary["stride_delta"], color=[0.3, 0.3, 0.3])
+        stride_hist_ax.set(
+            title=f"Total ammount travelled L:{left_travel:.1f} - R:{right_travel:.1f}"
+        )
+
+        # print steps data and save
+        print_steps_summary(summary)
+        pd.DataFrame(summary).to_hdf(save_folder / (tname + ".h5"), key="hdf")
 
         plt.show()
         break

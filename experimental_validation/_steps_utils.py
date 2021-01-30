@@ -304,12 +304,12 @@ def get_steps(
             pooled_starts.append(R_diagonal_steps.starts[idx - 1])
             pooled_ends.append(R_diagonal_steps.ends[idx - 1])
             data = R_diag_data[idx - 1]
-            data["paws"] = ("RH", "LF")
+            data["paws"] = ("right_hl", "left_fl")
         else:
             pooled_starts.append(L_diagonal_steps.starts[idx - 1])
             pooled_ends.append(L_diagonal_steps.ends[idx - 1])
             data = L_diag_data[idx - 1]
-            data["paws"] = ("LH", "RF")
+            data["paws"] = ("left_hl", "right_fl")
 
         data["side"] = side
         diag_data[count] = data
