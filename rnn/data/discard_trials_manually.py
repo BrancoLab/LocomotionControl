@@ -2,12 +2,16 @@
 from pigeon import annotate
 from IPython.display import display, Image
 from pathlib import Path
-import sys
 from loguru import logger
+import sys
+import os
+
+module_path = Path(os.path.abspath(os.path.join("."))).parent.parent
 
 from fcutils import path
+from fcutils.progress import track
 
-sys.path.append("./")
+sys.path.append(str(module_path))
 from control.history import load_results_from_folder
 
 """
@@ -23,12 +27,14 @@ from control.history import load_results_from_folder
     Curation steps:
         - algorithmically remove catastrophic failures
         - manual pass on data to remove bad ones
-        - second manual pass to mae sure everthing's OK
 """
 
 
 fld = Path("D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\RNN\\training_data")
 flds = path.subdirs(fld)
+if flds is None:
+    raise ValueError("Did not find any simulations folders")
+logger.info(f"Found {len(flds)} folders")
 
 # %%
 
@@ -37,19 +43,27 @@ flds = path.subdirs(fld)
 # ---------------------------------------------------------------------------- #
 logger.info("Step 1: remove catastrophic failures")
 to_discard = []
-for fld in flds:
+for subfld in track(flds):
     # get the proprtion of trajectory waypoints visited
-    history, info, trajectory, _ = load_results_from_folder(fld)
+    try:
+        history, info, trajectory, _ = load_results_from_folder(subfld)
+    except FileNotFoundError:
+        logger.debug(f"Skipped {subfld}")
+        to_discard.append(subfld)
+        continue
 
     prop_visited = len(history.trajectory_idx.unique()) / trajectory.shape[0]
 
-    if prop_visited < 0.7:
-        to_discard.append(fld)
+    if prop_visited < 0.8:
+        to_discard.append(subfld)
 
 logger.info(f"Found {len(to_discard)}/{len(flds)} simulations to discard.")
-# for fld in to_discard:
-#     path.delete(fld)
-# flds = path.subdirs(fld)
+for subfld in to_discard:
+    try:
+        path.delete(subfld)
+    except Exception:
+        continue
+flds = path.subdirs(fld)
 
 
 # %%
@@ -74,35 +88,17 @@ annotations = annotate(
     display_fn=lambda filename: display(Image(filename)),
 )
 
-
-kept = {fld: img for fld, img in images.items() if annotations[img] == "good"}
-logger.info(f"Kept {len(kept)}/{len(images)} simulations")
-
 # %%
+annotations_dict = {k: v for (k, v) in annotations}
+_images = {
+    fld: img for fld, img in images.items() if img in annotations_dict.keys()
+}
+discard = {
+    fld: img for fld, img in _images.items() if annotations_dict[img] == "bad"
+}
+logger.info(f"Discarded {len(discard)}/{len(images)} simulations")
 
-# ---------------------------------------------------------------------------- #
-#                                 3. INSPECTION                                #
-# ---------------------------------------------------------------------------- #
-
-# second round of quality checks
-annotations = annotate(
-    kept.values(),
-    options=["good", "bad"],
-    display_fn=lambda filename: display(Image(filename)),
-)
-
-kept = {fld: img for fld, img in images.items() if annotations[img] == "good"}
-logger.info(f"Kept {len(kept)}/{len(images)} simulations")
-
-# %%
-
-# ---------------------------------------------------------------------------- #
-#                                  4. CLEANUP                                  #
-# ---------------------------------------------------------------------------- #
-# remove bad data from folder
-for fld in images.keys():
-    if fld not in kept.keys():
-        path.delete(fld)
-
+for subfld in discard.keys():
+    path.delete(subfld)
 flds = path.subdirs(fld)
-logger.info(f"At the end {len(flds)} simulations are left.s")
+logger.info(f"We are left with {len(flds)} folders")
