@@ -9,6 +9,8 @@ import json
 import numpy as np
 import torch
 
+from fcutils.path import to_json
+
 from control._io import DropBoxUtils, upload_folder
 
 from rnn.dataset.dataset import is_win
@@ -32,7 +34,6 @@ from rnn.train_params import (
     l2norm,
 )
 from rnn.analysis import Pipeline
-from rnn.analysis.utils import to_json
 
 
 # Set up
