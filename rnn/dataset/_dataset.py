@@ -2,7 +2,6 @@ import pandas as pd
 import numpy.random as rnd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from rich.progress import track
 from rich import print
 import numpy as np
 import torch.utils.data as data
@@ -13,6 +12,7 @@ from scipy.signal import resample
 
 from fcutils.maths.signals import rolling_mean
 from fcutils.path import subdirs
+from fcutils.progress import track
 
 from pyrnn._utils import torchify
 from myterial import (
@@ -179,7 +179,14 @@ class Dataset(data.Dataset, RNNPaths):
         X, Y = self._get_random()
 
         f, axarr = plt.subplots(nrows=3, figsize=(14, 8), sharex=False)
-        axarr[0].plot(X[0, :, 0], X[0, :, 1])
+
+        # plot first two variables against each other
+        if self.polar:
+            axarr[0].remove()
+            ax = f.add_subplot(3, 1, 1, projection="polar")
+            ax.scatter(X[0, :, 0], X[0, :, 1], lw=2, c=np.arange(X.shape[1]))
+        else:
+            axarr[0].plot(X[0, :, 0], X[0, :, 1], lw=2, color="k")
 
         for n, name in enumerate(self.inputs_names):
             axarr[1].plot(X[0, :, n], lw=2, label=name, color=colors[n])
@@ -229,14 +236,17 @@ class Preprocessing(RNNPaths):
         into a structured dataset that can be used for training RNNs
     """
 
+    start = 100  # drop first N frames
+    end = 20  # drop last N frames
+
     name = "dataset name"
     description = "base"  # updated in subclasses to describe dataset
 
-    smoothing_window = 51  # used to smooth inputs and outputs
+    smoothing_window = 11  # used to smooth inputs and outputs
 
     # names of inputs and outputs of dataset
-    inputs_names = ("x", "y", "theta", "v", "omega")
-    outputs_names = ("out1", "out2")
+    inputs_names = ()  # to be overwritten
+    outputs_names = ()
 
     def __init__(self, test_size=0.1, truncate_at=None, **kwargs):
         RNNPaths.__init__(self, dataset_name=self.name, **kwargs)
@@ -330,7 +340,11 @@ class Preprocessing(RNNPaths):
         # concatenate the values under each columns to fit a scaler
         scaler = MinMaxScaler(feature_range=(-1, 1))
         data = pd.DataFrame(
-            {c: np.concatenate(df[c].values) for c in df.columns}
+            {
+                c: np.concatenate(df[c].values)
+                for c in df.columns
+                if c != "index"
+            }
         )
         return scaler.fit(data)
 
@@ -400,6 +414,8 @@ class Preprocessing(RNNPaths):
 
         # as dataframe
         data = pd.DataFrame(data)
+        data = data.iloc[self.start : -self.end].reset_index()
+        del data["index"]
 
         # split and normalize
         train, test = self.split_and_normalize(data)

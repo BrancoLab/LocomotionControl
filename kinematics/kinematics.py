@@ -8,6 +8,7 @@ from matplotlib.patches import Polygon
 
 
 from fcutils.maths.signals import rolling_mean, derivative
+from fcutils.maths import coordinates
 from fcutils.progress import track
 
 from myterial import (
@@ -137,10 +138,7 @@ class Kinematics:
         """
             R is the transform matrix to remove rotations of the body axis. 
         """
-        theta = np.radians(self.orientation[frame] + 180)
-        return np.array(
-            [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
-        )
+        return coordinates.R(self.orientation[frame] + 180)
 
     def bparts(self, frame, egocentric=False):
         """
