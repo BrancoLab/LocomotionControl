@@ -1,11 +1,8 @@
-import sys
 from loguru import logger
 from pathlib import Path
 
 from pyinspect.utils import dir_files
-
-sys.path.append("./")
-from control.utils import from_json, to_json
+from fcutils.path import from_json, to_json
 
 """
     code to facilitate the manual selection of which trials should be kept for analysis
@@ -22,7 +19,7 @@ trials_folder = folder / "TRIALS_CLIPS"
 
 records_path = trials_folder / "trials_records.json"
 if not records_path.exists():
-    to_json({}, records_path)
+    to_json(records_path, {})
 
 records = from_json(records_path)
 
@@ -35,7 +32,7 @@ for trial in trials:
     name = trial.stem
     if name not in records.keys():
         records[name] = dict(good="tbd")
-to_json(records, records_path)
+to_json(records_path, records)
 
 
 # check how many good trials we have

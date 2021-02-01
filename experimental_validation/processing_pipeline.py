@@ -5,10 +5,10 @@ from rich.progress import track
 import pandas as pd
 
 from fcutils.video import trim_clip
+from fcutils.path import from_json, to_json
 from pyinspect.utils import dir_files
 
 sys.path.append("./")
-from control.utils import from_json, to_json
 from experimental_validation._preprocess_tracking import (
     load_bonsai,
     make_bash_text,
@@ -100,13 +100,13 @@ class ProcessingPipeline:
 
         """
         content = dict(pre_processed=[], tracked=[],)
-        to_json(content, self.records_path)
+        to_json(self.records_path, content)
 
     def update_records(self):
         """
             Saves the records to file
         """
-        to_json(self.records, self.records_path)
+        to_json(self.records_path, self.records)
 
     def preprocess(self):
         """

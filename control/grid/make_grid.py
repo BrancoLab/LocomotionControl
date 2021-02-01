@@ -5,9 +5,10 @@ from datetime import timedelta
 import sys
 from rich.progress import track
 
+from fcutils.path import to_json
+
 sys.path.append("./")
 from control import config
-from control.utils import to_json
 from control import paths
 
 
@@ -144,7 +145,7 @@ class Grid:
         config_path = (
             self.save_path / "config_files" / f"control_GRID_{count}.json"
         )
-        to_json(clean(params), config_path)
+        to_json(config_path, clean(params))
 
         # save BASH
         hpc_config_path = (

@@ -90,7 +90,7 @@ def make_rnn(data, winstor):
         params = rnn.params
         params["dataset_name"] = data.name
         params["dataset_length"] = len(data)
-        to_json(params, data.rnn_folder / f"rnn.json")
+        to_json(data.rnn_folder / f"rnn.json", params)
     return rnn
 
 
@@ -131,7 +131,7 @@ def fit(rnn, winstor, data):
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",
     )
-    to_json(info, data.rnn_folder / f"training_params.json")
+    to_json(data.rnn_folder / f"training_params.json", info)
 
     # FIT
     save_path = (
