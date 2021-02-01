@@ -54,7 +54,7 @@ DATASET.smoothing_window = 61  # used to smooth inputs and outputs
 # --------------------------------- training --------------------------------- #
 
 batch_size = 2048
-epochs = 25000
+epochs = 10000
 lr_milestones = [1000, 6000, 15000]
 lr = 0.001
 stop_loss = None

@@ -7,9 +7,7 @@ from myterial import indigo_light as il
 
 
 from fcutils.video import get_video_params
-from fcutils.maths.stimuli_detection import get_onset_offset
-from fcutils.maths.signals import derivative
-
+from fcutils.maths.signals import get_onset_offset, derivative
 
 logger.configure(
     handlers=[{"sink": RichHandler(markup=True), "format": "{message}"}]
@@ -175,11 +173,7 @@ def load_bonsai(folder, name, exp_fps):
 
     # Get stimuli times in sample number
     stim_starts = get_onset_offset(analog[:, 1], 1.5)[0]
-    later_starts = stim_starts[derivative(stim_starts) > 1000]
-    if len(later_starts):
-        stim_starts = np.concatenate([[stim_starts[0]], later_starts])
-    else:
-        stim_starts = np.array(stim_starts[0]).reshape(1)
+    stim_starts = stim_starts[derivative(stim_starts) > 1000]
 
     if not stimuli.empty:
         if len(stim_starts) == len(stimuli):
@@ -188,6 +182,7 @@ def load_bonsai(folder, name, exp_fps):
             logger.warning(
                 f"[b red]Expected: {len(stimuli)} stimuli but found {len(stim_starts)} detect stimuli onsets"
             )
+            raise ValueError
 
         # get stimuli times in frame number
         stim_frames = []

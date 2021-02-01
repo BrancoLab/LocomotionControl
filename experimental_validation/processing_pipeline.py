@@ -1,11 +1,12 @@
 import sys
 from pathlib import Path
 from loguru import logger
-from rich.progress import track
 import pandas as pd
 
 from fcutils.video import trim_clip
 from fcutils.path import from_json, to_json
+from fcutils import path
+from fcutils.progress import track
 from pyinspect.utils import dir_files
 
 sys.path.append("./")
@@ -127,7 +128,11 @@ class ProcessingPipeline:
                     f"Generating clips for {len(stimuli)} trials | fps {self.fps} -> {self.trials_clips_fps}"
                 )
                 for n, stim in enumerate(stimuli):
-                    start, end = stim - (2 * self.fps), stim + (10 * self.fps)
+                    logger.debug(f"Generating clips for stim {n}")
+                    start, end = (
+                        int(stim - (2 * self.fps)),
+                        int(stim + (10 * self.fps)),
+                    )
                     out_vid = self.trials_clips_folder / (
                         f"{experiment}_trial_{n}.mp4"
                     )
@@ -135,11 +140,14 @@ class ProcessingPipeline:
                     trim_clip(
                         str(video_path),
                         str(out_vid),
-                        frame_mode=True,
                         start_frame=start,
-                        stop_frame=end,
-                        sel_fps=self.trials_clips_fps,
+                        end_frame=end,
+                        fps=self.trials_clips_fps,
                     )
+
+                    if path.size(out_vid, fmt=False) < 2000:
+                        path.delete(out_vid)
+                        raise ValueError("Clip video too small")
 
                 # all done for this experiment
                 self.records["pre_processed"].append(experiment)
