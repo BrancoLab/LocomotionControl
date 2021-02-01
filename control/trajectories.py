@@ -6,7 +6,7 @@ from fcutils.maths.geometry import (
     calc_angle_between_points_of_vector_2d,
     calc_distance_between_points_in_a_vector_2d,
 )
-from fcutils.maths.utils import derivative
+from fcutils.maths.signals import derivative
 
 from .utils import interpolate_nans, calc_bezier_path, pol2cart
 from .config import dt, px_to_cm, TRAJECTORY_CONFIG

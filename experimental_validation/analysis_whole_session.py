@@ -1,18 +1,9 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
-from loguru import logger
 
-from fcutils.plotting.utils import clean_axes
 from pyinspect.utils import dir_files
-from myterial import (
-    salmon_darker,
-    indigo_darker,
-    indigo,
-    salmon,
-    blue_grey_darker,
-    orange,
-)
+from myterial import blue_grey_darker
 
 folder = Path(
     "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD"

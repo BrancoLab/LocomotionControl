@@ -6,8 +6,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from fcutils.maths.utils import derivative, rolling_mean
-from fcutils.video.utils import trim_clip
+from fcutils.maths.signals import derivative, rolling_mean
+from fcutils.video import trim_clip
 
 from tracking._tracking import (
     prepare_tracking_data,

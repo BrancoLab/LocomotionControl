@@ -4,7 +4,7 @@ from loguru import logger
 from rich.progress import track
 import pandas as pd
 
-from fcutils.video.utils import trim_clip
+from fcutils.video import trim_clip
 from pyinspect.utils import dir_files
 
 sys.path.append("./")

@@ -5,11 +5,11 @@ from loguru import logger
 import sys
 import numpy as np
 
-from fcutils.plotting.utils import (
+from fcutils.plot.figure import (
     set_figure_subplots_aspect,
     clean_axes,
 )
-from fcutils.maths.utils import rolling_mean
+from fcutils.maths.signals import rolling_mean
 from myterial import (
     salmon_darker,
     indigo_darker,

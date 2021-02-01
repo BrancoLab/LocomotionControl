@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from seaborn import regplot
 import numpy as np
-from fcutils.plotting.utils import clean_axes
+from fcutils.plot.figure import clean_axes
 
 from myterial import blue_grey_darker, salmon, indigo
 

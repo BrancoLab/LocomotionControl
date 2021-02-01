@@ -12,8 +12,8 @@ sys.path.append("./")
 
 from myterial import salmon
 
-from fcutils.maths.utils import derivative
-from fcutils.plotting.utils import clean_axes
+from fcutils.maths.signals import derivative
+from fcutils.plot.figure import clean_axes
 
 from pyrnn.render import render_fixed_points
 from pyrnn._utils import flatten_h

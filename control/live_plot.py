@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import logging
 
-from fcutils.plotting.utils import clean_axes
+from fcutils.plot.figure import clean_axes
 from fcutils.plotting.colors import desaturate_color
-from fcutils.plotting.plot_elements import plot_line_outlined
+from fcutils.plot.elements import plot_line_outlined
 
 from .plot import colors
 from .config import dt, px_to_cm, MOUSE

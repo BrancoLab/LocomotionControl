@@ -6,9 +6,9 @@ from rich.logging import RichHandler
 from myterial import indigo_light as il
 
 
-from fcutils.video.utils import get_cap_from_file, get_video_params
+from fcutils.video import get_cap_from_file, get_video_params
 from fcutils.maths.stimuli_detection import get_onset_offset
-from fcutils.maths.utils import derivative
+from fcutils.maths.signals import derivative
 
 
 logger.configure(
