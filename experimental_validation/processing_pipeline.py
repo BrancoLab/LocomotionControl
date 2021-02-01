@@ -4,7 +4,7 @@ from loguru import logger
 from rich.progress import track
 import pandas as pd
 
-from fcutils.video.utils import trim_clip
+from fcutils.video import trim_clip
 from pyinspect.utils import dir_files
 
 sys.path.append("./")
@@ -219,7 +219,7 @@ class ProcessingPipeline:
                     str(fpath),
                     likelihood_th=0.999,
                     median_filter=True,
-                    filter_kwargs={"kernel": 11},
+                    filter_kwargs={"kernel_size": 11},
                     compute=True,
                     smooth_dir_mvmt=True,
                     interpolate_nans=True,

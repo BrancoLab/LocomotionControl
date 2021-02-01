@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import circmean
 
-from fcutils.file_io.utils import check_file_exists
-from fcutils.maths.filtering import median_filter_1d
+from scipy.signal import medfilt as median_filter_1d
 from fcutils.maths.geometry import (
     calc_angle_between_vectors_of_points_2d as get_bone_angle,
 )
@@ -154,7 +153,6 @@ def prepare_tracking_data(
 
     # Load the tracking data
     if tracking_filepath is not None:
-        check_file_exists(tracking_filepath, raise_error=True)
         if ".h5" not in tracking_filepath:
             raise ValueError("Expected .h5 in the tracking data file path")
 
@@ -201,7 +199,7 @@ def prepare_tracking_data(
                 ] = get_dir_of_mvmt_from_xy(x, y)
             else:
                 tracking[bp]["direction_of_movement"] = median_filter_1d(
-                    get_dir_of_mvmt_from_xy(x, y), kernel=41
+                    get_dir_of_mvmt_from_xy(x, y), kernel_size=41
                 )
 
             tracking[bp]["angular_velocity"] = calc_ang_velocity(

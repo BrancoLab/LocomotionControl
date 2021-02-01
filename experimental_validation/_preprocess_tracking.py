@@ -6,9 +6,9 @@ from rich.logging import RichHandler
 from myterial import indigo_light as il
 
 
-from fcutils.video.utils import get_cap_from_file, get_video_params
-from fcutils.maths.stimuli_detection import get_onset_offset
-from fcutils.maths.utils import derivative
+from fcutils.video import get_video_params
+from fcutils.maths.signals import get_onset_offset
+from fcutils.maths import derivative
 
 
 logger.configure(
@@ -106,7 +106,7 @@ def load_bonsai(folder, name, exp_fps):
     # load video metadata
     logger.debug("loading video")
     video = str(folder / (name + "_video.avi"))
-    nframes, w, h, fps, _ = get_video_params(get_cap_from_file(video))
+    nframes, w, h, fps, _ = get_video_params(video)
     logger.debug(
         f"[{il}]Video params: {nframes} frames {w}x{h}px at {fps} fps | {nframes/fps:.2f}s in total"
     )
