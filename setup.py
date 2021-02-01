@@ -21,6 +21,8 @@ requirements = [
     "loguru",
     "pyrnn",
     "vedo",
+    "fcutils",
+    "celluloid",
 ]
 
 setup(

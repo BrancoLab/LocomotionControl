@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from fcutils.plotting.utils import save_figure
+from fcutils.plot.figure import save_figure
 from myterial import orange
 
 from pyrnn.analysis.dimensionality import get_n_components_with_pca

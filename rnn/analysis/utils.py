@@ -5,8 +5,8 @@ from einops import repeat
 import numpy as np
 
 
-from fcutils.maths.utils import derivative
-from fcutils.file_io.io import load_yaml
+from fcutils.maths.signals import derivative
+from fcutils.path import from_json, from_yaml
 
 from pyrnn import RNN, is_win
 from pyrnn.analysis import (
@@ -109,21 +109,6 @@ def fit_fps(rnn, h, fld, **kwargs):
 # ------------------------------------ I/O ----------------------------------- #
 
 
-def to_json(obj, fpath):
-    """ saves an object to json """
-    if isinstance(obj, str):
-        obj = json.loads(obj, indent=4, sort_keys=True)
-
-    with open(fpath, "w") as out:
-        json.dump(obj, out, indent=4, sort_keys=True)
-
-
-def from_json(fpath):
-    """ loads an object from json """
-    with open(fpath, "r") as fin:
-        return json.load(fin)
-
-
 def get_file(folder, pattern):
     """ Finds the path of a file in a folder given a pattern """
     try:
@@ -155,7 +140,7 @@ def load_from_folder(fld, winstor=False):
     # load params from yml or json
     try:
         settings_file = get_file(fld, "rnn.yaml")
-        settings = json.loads(load_yaml(str(settings_file)))
+        settings = json.loads(from_yaml(str(settings_file)))
     except Exception:
         settings_file = get_file(fld, "rnn.json")
         settings = from_json(settings_file)

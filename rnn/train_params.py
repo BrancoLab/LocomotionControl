@@ -1,3 +1,6 @@
+import sys
+
+sys.path.append("./")
 from rnn.dataset import datasets
 
 """
@@ -55,10 +58,3 @@ epochs = 25000
 lr_milestones = [1000, 6000, 15000]
 lr = 0.001
 stop_loss = None
-
-
-if __name__ == "__main__":
-    # Create a dataset from the raw data
-    DATASET().make()
-    DATASET().plot_random()
-    DATASET().plot_durations()

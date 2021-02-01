@@ -3,13 +3,13 @@ import os
 from pyinspect.utils import timestamp
 from pyrnn import RNN
 from pyrnn.plot import plot_training_loss
-from rich import print
 import click
 from loguru import logger
 import json
-from myterial import orange
 import numpy as np
 import torch
+
+from fcutils.path import to_json
 
 from control._io import DropBoxUtils, upload_folder
 
@@ -34,7 +34,6 @@ from rnn.train_params import (
     l2norm,
 )
 from rnn.analysis import Pipeline
-from rnn.analysis.utils import to_json
 
 
 # Set up
@@ -71,7 +70,7 @@ def setup_loggers(winstor, data):
 def make_rnn(data, winstor):
     logger.bind(main=True).info("Creating RNN")
     rnn = RNN(
-        controls_size=len(data.inputs_names),
+        input_size=len(data.inputs_names),
         output_size=len(data.outputs_names),
         n_units=n_units,
         dale_ratio=dale_ratio,
@@ -90,7 +89,8 @@ def make_rnn(data, winstor):
         # save RNN params
         params = rnn.params
         params["dataset_name"] = data.name
-        to_json(params, data.rnn_folder / f"rnn.json")
+        params["dataset_length"] = len(data)
+        to_json(data.rnn_folder / f"rnn.json", params)
     return rnn
 
 
@@ -99,32 +99,39 @@ def make_rnn(data, winstor):
 
 @logger.catch
 def fit(rnn, winstor, data):
-    print(
-        f"Training RNN:", rnn, f"with dataset: [{orange}]{name}", sep="\n",
+    logger.bind(main=True).info(
+        f"Training RNN:", rnn, f"with dataset: {name}", sep="\n",
     )
 
     # log/save training parameters
-    info = dict(
-        dataset=data.name,
-        dataset_length=len(data),
-        n_epochs=epochs,
-        lr=lr,
-        batch_size=batch_size,
-        lr_milestones=lr_milestones,
-        l2norm=l2norm,
-        stop_loss=stop_loss,
-        report_path=None,
-        augment_probability=data.augment_probability,
-        to_chunks=data.to_chunks,
-        chunk_length=data.chunk_length if data.to_chunks else None,
-        warmup=data.warmup,
-        warmup_len=data.warmup_len,
-        smoothing_window_size=data.smoothing_window,
-    )
+    try:
+        info = dict(
+            dataset=data.name,
+            dataset_length=len(data),
+            n_epochs=epochs,
+            lr=lr,
+            batch_size=batch_size,
+            lr_milestones=lr_milestones,
+            l2norm=l2norm,
+            stop_loss=stop_loss,
+            report_path=None,
+            augment_probability=data.augment_probability,
+            to_chunks=data.to_chunks,
+            chunk_length=data.chunk_length if data.to_chunks else None,
+            warmup=data.warmup,
+            warmup_len=data.warmup_len,
+            smoothing_window_size=data.smoothing_window,
+        )
+    except Exception as e:
+        logger.bind(main=True).warning(
+            f"Failed to collate training info with error: {e}",
+        )
+        raise ValueError("Failed to collate info prior to fitting model")
+
     logger.bind(main=True).info(
         f"Training params:\n{json.dumps(info, sort_keys=True, indent=4)}",
     )
-    to_json(info, data.rnn_folder / f"training_params.json")
+    to_json(data.rnn_folder / f"training_params.json", info)
 
     # FIT
     save_path = (
@@ -146,7 +153,6 @@ def fit(rnn, winstor, data):
         save_at_min_loss=True,
         save_path=save_path,
     )
-    print("Training finished, last loss: ", loss_history[-1])
     logger.bind(main=True).info(
         f"Finished training.\nMin loss: {np.min(loss_history)}\nLast loss: {loss_history[-1]}",
     )
@@ -181,7 +187,7 @@ def load_minloss(data, winstor):
     rnn = RNN.load(
         min_loss_path,
         n_units=n_units,
-        controls_size=len(data.inputs_names),
+        input_size=len(data.inputs_names),
         output_size=len(data.outputs_names),
         on_gpu=use_gpu,
         load_kwargs=dict(map_location=torch.device("cpu"))
@@ -268,6 +274,7 @@ def train(winstor):
     rnn = make_rnn(data, winstor)
 
     # fit
+    logger.bind(main=True).info("Starting to fit model")
     loss_history = fit(rnn, winstor, data)
 
     # wrap up

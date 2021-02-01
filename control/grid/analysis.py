@@ -12,7 +12,7 @@ from scipy.spatial.distance import euclidean
 from sklearn.metrics import mean_squared_error as MSE
 
 
-from fcutils.maths.utils import derivative
+from fcutils.maths.signals import derivative
 from pyinspect.utils import dir_files, subdirs
 
 sys.path.append("./")

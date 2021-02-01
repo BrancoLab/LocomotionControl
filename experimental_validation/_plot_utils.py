@@ -12,7 +12,7 @@ from myterial import (
 )
 
 
-from fcutils.plotting.plot_elements import plot_line_outlined
+from fcutils.plot.elements import plot_line_outlined
 
 # ---------------------------------------------------------------------------- #
 #                                  plot utils                                  #

@@ -7,8 +7,8 @@ from myterial import indigo_light as il
 
 
 from fcutils.video import get_video_params
-from fcutils.maths.signals import get_onset_offset
-from fcutils.maths import derivative
+from fcutils.maths.stimuli_detection import get_onset_offset
+from fcutils.maths.signals import derivative
 
 
 logger.configure(

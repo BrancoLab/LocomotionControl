@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-from fcutils.plotting.utils import clean_axes
-from fcutils.plotting.plot_elements import plot_line_outlined
+from fcutils.plot.figure import clean_axes
+from fcutils.plot.elements import plot_line_outlined
 
 from myterial import salmon, purple, indigo, cyan, orange
 

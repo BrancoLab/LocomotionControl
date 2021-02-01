@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 from random import choice
 from scipy.signal import resample
 
-from fcutils.maths.utils import rolling_mean
+from fcutils.maths.signals import rolling_mean
+from fcutils.path import subdirs
 
 from pyrnn._utils import torchify
-from pyinspect.utils import subdirs
 from myterial import (
     orange,
     salmon,
@@ -278,8 +278,7 @@ class Preprocessing(RNNPaths):
         """
         inputs = self.get_inputs(trajectory, history)
         smoothed = [
-            rolling_mean(np.array(x), window=self.smoothing_window)
-            for x in inputs
+            rolling_mean(np.array(x), self.smoothing_window) for x in inputs
         ]
         return smoothed
 
@@ -292,8 +291,7 @@ class Preprocessing(RNNPaths):
         """
         outputs = self.get_outputs(history)
         smoothed = [
-            rolling_mean(np.array(x), window=self.smoothing_window)
-            for x in outputs
+            rolling_mean(np.array(x), self.smoothing_window) for x in outputs
         ]
         return smoothed
 

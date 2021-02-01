@@ -9,7 +9,7 @@ from rich.box import SIMPLE_HEAD
 
 from myterial import blue, salmon, pink_light
 
-from fcutils.maths.utils import derivative
+from fcutils.maths.signals import derivative
 from fcutils.maths.geometry import calc_distance_between_points_2d
 
 # ----------------------------------- misc ----------------------------------- #

@@ -2,14 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import logging
 
-from fcutils.plotting.utils import clean_axes, save_figure
-from fcutils.plotting.colors import desaturate_color
-from fcutils.plotting.plot_elements import plot_line_outlined
-from fcutils.video.utils import (
+from fcutils.plot.figure import clean_axes, save_figure
+from fcutils.plot.colors import desaturate_color
+from fcutils.plot.elements import plot_line_outlined
+from fcutils.video import (
     get_cap_from_images_folder,
     save_videocap_to_video,
 )
-from fcutils.maths.utils import rolling_mean
+from fcutils.maths.signals import rolling_mean
 
 from .history import load_results_from_folder
 
