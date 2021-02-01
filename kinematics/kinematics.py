@@ -15,7 +15,6 @@ from myterial import (
     salmon_darker,
     indigo,
     indigo_darker,
-    blue_grey,
     blue_grey_darker,
     green_dark,
     teal,
@@ -34,6 +33,8 @@ PAW_COLORS = dict(
     B=teal_dark,
     tail_base=green_dark,
     B2=green_dark,
+    right_ear=green_dark,
+    left_ear=green_dark,
 )
 
 BP = namedtuple("bp", "x, y")
@@ -44,10 +45,10 @@ class BodyPart:
         """
             Represents tracking data of a single body part
         """
-        self.x = rolling_mean(tracking[f"{bpname}_x"].values, 1) * cm_per_px
-        self.y = rolling_mean(tracking[f"{bpname}_y"].values, 1) * cm_per_px
+        self.x = rolling_mean(tracking[f"{bpname}_x"].values, 5) * cm_per_px
+        self.y = rolling_mean(tracking[f"{bpname}_y"].values, 5) * cm_per_px
         self.speed = (
-            rolling_mean(tracking[f"{bpname}_speed"].values, 1)
+            rolling_mean(tracking[f"{bpname}_speed"].values, 5)
             * cm_per_px
             * fps
         )
@@ -85,6 +86,12 @@ class Kinematics:
         self.FL = BodyPart(tracking, "left_fl", self.cm_per_px, self.fps)
         self.HR = BodyPart(tracking, "right_hl", self.cm_per_px, self.fps)
         self.FR = BodyPart(tracking, "right_fl", self.cm_per_px, self.fps)
+        self.left_ear = BodyPart(
+            tracking, "left_ear", self.cm_per_px, self.fps
+        )
+        self.right_ear = BodyPart(
+            tracking, "right_ear", self.cm_per_px, self.fps
+        )
         self.snout = BodyPart(tracking, "snout", self.cm_per_px, self.fps)
         self.body = BodyPart(tracking, "body", self.cm_per_px, self.fps)
         self.tail_base = BodyPart(
@@ -94,18 +101,15 @@ class Kinematics:
         self.bps = dict(
             HL=self.HL,
             FL=self.FL,
+            left_ear=self.left_ear,
             snout=self.snout,
+            right_ear=self.right_ear,
             FR=self.FR,
             HR=self.HR,
             body=self.body,
             tail_base=self.tail_base,
         )
-        self.segments = dict(
-            L=("HL", "FR"),
-            R=("HR", "FL"),
-            B=("tail_base", "body"),
-            B2=("body", "snout"),
-        )
+        self.segments = dict(L=("HL", "FR"), R=("HR", "FL"),)
 
         theta = np.degrees(
             np.unwrap(np.radians(tracking["body_lower_bone_orientation"]))
@@ -181,6 +185,10 @@ class Kinematics:
         axarr[0].set(xlim=[0, 40], ylim=[0, 80])
         axarr[1].set(xlim=[-10, 10], ylim=[-10, 10])
 
+        head = ("snout", "right_ear", "body", "left_ear")
+        body = ("FL", "FR", "HR", "tail_base", "HL")
+        paws = ("FL", "FR", "HR", "HL")
+
         for frame in track(
             range(self.n_frames),
             total=self.n_frames,
@@ -190,38 +198,44 @@ class Kinematics:
             bps_ego = self.bparts(frame, egocentric=True)
 
             # draw mouse
-            for ax, _bps in zip(axarr, (bps, bps_ego)):
-                x = [bp.x for name, bp in _bps.items() if name != "body"]
-                y = [bp.y for name, bp in _bps.items() if name != "body"]
-                mouse = Polygon(
-                    np.vstack([x, y]).T,
-                    True,
-                    lw=2,
-                    color=blue_grey,
-                    joinstyle="round",
-                    edgecolor=blue_grey_darker,
-                    zorder=-5,
-                    alpha=1,
-                )
-                ax.add_artist(mouse)
+            for names, color in zip((head, body), (salmon, teal_dark)):
+                for ax, _bps in zip(axarr, (bps, bps_ego)):
+                    x = [_bps[name].x for name in names]
+                    y = [_bps[name].y for name in names]
+                    mouse = Polygon(
+                        np.vstack([x, y]).T,
+                        True,
+                        lw=2,
+                        color=color,
+                        joinstyle="round",
+                        edgecolor=blue_grey_darker,
+                        zorder=-5,
+                        alpha=1,
+                    )
+                    ax.add_artist(mouse)
 
             # draw each PAW
-            for name, paw in bps.items():
+            for name, bp in bps.items():
                 color = PAW_COLORS[name]
+                if name in paws:
+                    s, lw = 100, 0.5
+                else:
+                    s, lw = 140, 1
+
                 axarr[0].scatter(
-                    paw.x,
-                    paw.y,
-                    s=100,
+                    bp.x,
+                    bp.y,
+                    s=s,
                     color=color,
-                    lw=1,
+                    lw=lw,
                     edgecolors=[0.2, 0.2, 0.2],
                 )
                 axarr[1].scatter(
                     bps_ego[name].x,
                     bps_ego[name].y,
-                    s=100,
+                    s=s,
                     color=color,
-                    lw=1,
+                    lw=lw,
                     edgecolors=[0.2, 0.2, 0.2],
                 )
 
