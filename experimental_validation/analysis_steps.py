@@ -50,6 +50,9 @@ paw_colors = {
     "right_hl": indigo,
 }
 
+# TODO: utility to load whole session tacking, trial tracking + video
+# TODO: save results (incl. start/end) to file in analysiss folder
+
 
 def run():
     # Get paths
