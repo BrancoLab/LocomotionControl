@@ -14,11 +14,55 @@ from fcutils.maths.geometry import (
 )
 from fcutils.maths.geometry import calc_ang_velocity
 from fcutils.maths.geometry import calc_distance_between_points_2d
+from fcutils.maths.signals import rolling_mean
+
 
 """
     Utility functions to extract and clean up tracking data
     from DLC and perform operations on tracking data.
 """
+
+cm_per_px = 1 / 30.8
+fps = 60
+
+
+def transform(d, scale=True, start=0, end=-1):
+    """
+        Transform 1d tracking data by smoothing and
+        going  from px to cm
+
+        Arguments:
+            d: np.array, pd.Series. Data
+            scale: bool. If true the data are scaled to go from px to cm
+            start, end: int. Start and end frames, used to truncate data
+    """
+    try:
+        d = d.values
+    except Exception:
+        pass
+
+    d = rolling_mean(d[start:end], 5)
+
+    if scale:
+        return d * cm_per_px
+    else:
+        return d
+
+
+def unwrap(a):
+    """
+        unwrap circular data
+    """
+    if not np.any(np.isnan(a)):
+        return np.degrees(np.unwrap(np.radians(a)))
+    else:
+        # unwrap only non-nan
+        idx = np.where(np.isnan(a))[0][-1] + 1
+
+        out = np.zeros_like(a)
+        out[idx:] = np.degrees(np.unwrap(np.radians(a[idx:])))
+        out[:idx] = np.nan
+        return out
 
 
 # ---------------------------------------------------------------------------- #

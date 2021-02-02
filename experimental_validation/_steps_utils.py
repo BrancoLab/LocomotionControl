@@ -10,7 +10,6 @@ from rich.box import SIMPLE_HEAD
 from myterial import blue, salmon, pink_light
 
 from fcutils.maths.signals import derivative
-from fcutils.maths.geometry import calc_distance_between_points_2d
 
 # ----------------------------------- misc ----------------------------------- #
 
@@ -79,31 +78,6 @@ def print_steps_summary(summary):
 
     main_tb.add_row(subtables[0], " ", subtables[1])
     print("\n", main_tb)
-
-
-# ---------------------------------------------------------------------------- #
-#                                    STRIDE                                    #
-# ---------------------------------------------------------------------------- #
-
-
-def stride_from_speed(speed, start, end):
-    """
-        Given a paw's speed trace and the
-        start and end of the swing phase of a  step
-        returns the length of the stride
-    """
-    return np.sum(speed[start:end])
-
-
-def stride_from_position(x, y, start, end):
-    """
-        Given the xy tracking of a paw and the
-        start and end of the swing phase of a  step
-        returns the length of the stride
-    """
-    p1 = (x[start], y[start])
-    p2 = (x[end], y[end])
-    return calc_distance_between_points_2d(p1, p2)
 
 
 # ---------------------------------------------------------------------------- #
@@ -227,108 +201,3 @@ def get_diagonal_steps(hind, fore, hind_speed, fore_speed):
         )
 
     return step_times(good_starts, good_ends), data
-
-
-def get_steps(
-    LH_speed,
-    LF_speed,
-    RH_speed,
-    RF_speed,
-    step_speed_th,
-    precise_th=12,
-    start=0,
-):
-    """ 
-        Given speed traces for the four limbs, this function returns the 
-        steps the animal took, in particular it looks for 'diagonal' steps
-        (when the animal is in trot) involving pairs of diagonally connected limbs
-
-        Arguments:
-            LH/LF/RH/RF_speed: 1d numpy arrays with speed of each limb
-            step_speed_th: float, initial threshold for step onset/offset (swing phase)
-            precise_th: float, second threshold for more accurately identifying the
-                onset and offset of steps
-
-        Returns:
-            LH/LF/RH/RF_steps: step_times named tuples with onset/offset of steps
-                for each limb
-            diagonal_steps: step_times named tuples with onset/offset of diagonal steps
-            diag_data: dictionary with data about each diagonal step (e.g. which side, based
-                on hind limb)
-            step_starts: 1d numpy array with time of each RH diagonal step, useful for plotting.
-
-    """
-    LH_steps = get_paw_steps_times(
-        LH_speed, step_speed_th, precise_th=precise_th
-    )
-    RF_steps = get_paw_steps_times(
-        RF_speed, step_speed_th, precise_th=precise_th
-    )
-    L_diagonal_steps, L_diag_data = get_diagonal_steps(
-        LH_steps, RF_steps, LH_speed, RF_speed
-    )
-
-    RH_steps = get_paw_steps_times(
-        RH_speed, step_speed_th, precise_th=precise_th
-    )
-    LF_steps = get_paw_steps_times(
-        LF_speed, step_speed_th, precise_th=precise_th
-    )
-    R_diagonal_steps, R_diag_data = get_diagonal_steps(
-        RH_steps, LF_steps, RH_speed, LF_speed
-    )
-
-    # merge R/L diagonal steps
-    _starts = np.concatenate(
-        (R_diagonal_steps.starts, L_diagonal_steps.starts)
-    )
-    _names = np.concatenate(
-        [
-            [
-                "R" + str(x + 1)
-                for x in np.arange(len(R_diagonal_steps.starts))
-            ],
-            [
-                "L" + str(x + 1)
-                for x in np.arange(len(L_diagonal_steps.starts))
-            ],
-        ]
-    )
-    _names = _names[np.argsort(_starts)]
-
-    pooled_starts, pooled_ends, diag_data = [], [], {}
-    count = 0
-    for n in _names:
-        side, idx = n[0], int(n[1])
-        if side == "R":
-            pooled_starts.append(R_diagonal_steps.starts[idx - 1])
-            pooled_ends.append(R_diagonal_steps.ends[idx - 1])
-            data = R_diag_data[idx - 1]
-            data["paws"] = ("right_hl", "left_fl")
-        else:
-            pooled_starts.append(L_diagonal_steps.starts[idx - 1])
-            pooled_ends.append(L_diagonal_steps.ends[idx - 1])
-            data = L_diag_data[idx - 1]
-            data["paws"] = ("left_hl", "right_fl")
-
-        data["side"] = side
-        diag_data[count] = data
-        count += 1
-    diagonal_steps = step_times(pooled_starts, pooled_ends)
-
-    # step starts
-    step_starts = (
-        np.array(R_diagonal_steps.starts) + start
-    )  # to mark the start of each L-R step sequence
-
-    return (
-        LH_steps,
-        RF_steps,
-        LF_steps,
-        RH_steps,
-        R_diagonal_steps,
-        L_diagonal_steps,
-        diagonal_steps,
-        diag_data,
-        step_starts,
-    )

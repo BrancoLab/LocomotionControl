@@ -32,6 +32,8 @@ from rnn.train_params import (
     stop_loss,
     name,
     l2norm,
+    tau,
+    dt,
 )
 from rnn.analysis import Pipeline
 
@@ -80,6 +82,8 @@ def make_rnn(data, winstor):
         w_out_bias=w_out_bias,
         w_out_train=w_out_train,
         on_gpu=is_win if not winstor else True,
+        tau=tau,
+        dt=dt,
     )
     logger.bind(main=True).info(
         f"Rnn params:\n{json.dumps(rnn.params, sort_keys=True, indent=4)}",

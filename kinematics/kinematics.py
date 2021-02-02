@@ -1,15 +1,14 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
-from collections import namedtuple
 from celluloid import Camera
 from matplotlib.patches import Polygon
+import sys
 
 
-from fcutils.maths.signals import rolling_mean, derivative
 from fcutils.maths import coordinates
 from fcutils.progress import track
+from fcutils.video import get_cap_from_file, get_cap_selected_frame
 
 from myterial import (
     salmon,
@@ -17,108 +16,53 @@ from myterial import (
     indigo,
     indigo_darker,
     blue_grey_darker,
-    green_dark,
-    teal,
-    teal_dark,
+    blue_grey,
+    red,
+    red_darker,
+    red_light,
 )
+
+sys.path.append("./")
+from experimental_validation.trials import Trials, BodyPart
+
 
 PAW_COLORS = dict(
-    HL=salmon,
-    FL=indigo,
-    HR=salmon_darker,
-    FR=indigo_darker,
-    L=salmon,
-    R=indigo,
-    body=teal,
-    snout=teal_dark,
-    B=teal_dark,
-    tail_base=green_dark,
-    B2=green_dark,
-    right_ear=green_dark,
-    left_ear=green_dark,
+    left_hl=salmon,
+    left_fl=salmon_darker,
+    left_ear=red,
+    snout=red_darker,
+    body=red,
+    tail_base=red_light,
+    right_hl=indigo,
+    right_fl=indigo_darker,
+    right_ear=red,
+    left_paws="k",
+    right_paws="k",
 )
-
-BP = namedtuple("bp", "x, y")
-
-
-class BodyPart:
-    def __init__(self, tracking, bpname, cm_per_px, fps):
-        """
-            Represents tracking data of a single body part
-        """
-        self.x = rolling_mean(tracking[f"{bpname}_x"].values, 5) * cm_per_px
-        self.y = rolling_mean(tracking[f"{bpname}_y"].values, 5) * cm_per_px
-        self.speed = (
-            rolling_mean(tracking[f"{bpname}_speed"].values, 5)
-            * cm_per_px
-            * fps
-        )
-
-    def to_egocentric(self, frame, T, R):
-        """
-            Transforms the body parts coordinates from allocentric
-            to egocentric (wrt to the body's position and orientation)
-
-            Arguments:
-                frame: int. Frame number
-                T: np.ndarray. Transform matrix to convert allo -> ego
-                R: np.ndarray. Transform matrix to remove rotations of body axis
-        """
-        point = np.array([self.x[frame], self.y[frame]])
-        ego_point = R @ (point + T)
-        return ego_point
 
 
 class Kinematics:
-    cm_per_px = 1 / 30.8
-    fps = 60
+    segments = dict(
+        left_paws=("left_hl", "right_fl"), right_paws=("right_hl", "left_fl"),
+    )
 
-    def __init__(self, tracking_data_path):
+    def __init__(self, trial):
         """
             Represents the tracking data of multiple body parts and 
             provides methods for applying transforms to data (e.g. going
             from allocentric to egocentric representations)
+
+            Arguments
+                trial:
+                    instance of Trial class
         """
-        # load tracking data from a .h5 file
-        tracking = pd.read_hdf(tracking_data_path, key="hdf")
-        self.n_frames = len(tracking)
+        if not trial.has_tracking:
+            raise ValueError(f"{trial} has no tracking")
 
-        self.HL = BodyPart(tracking, "left_hl", self.cm_per_px, self.fps)
-        self.FL = BodyPart(tracking, "left_fl", self.cm_per_px, self.fps)
-        self.HR = BodyPart(tracking, "right_hl", self.cm_per_px, self.fps)
-        self.FR = BodyPart(tracking, "right_fl", self.cm_per_px, self.fps)
-        self.left_ear = BodyPart(
-            tracking, "left_ear", self.cm_per_px, self.fps
-        )
-        self.right_ear = BodyPart(
-            tracking, "right_ear", self.cm_per_px, self.fps
-        )
-        self.snout = BodyPart(tracking, "snout", self.cm_per_px, self.fps)
-        self.body = BodyPart(tracking, "body", self.cm_per_px, self.fps)
-        self.tail_base = BodyPart(
-            tracking, "tail_base", self.cm_per_px, self.fps
-        )
+        self.trial = trial
 
-        self.bps = dict(
-            HL=self.HL,
-            FL=self.FL,
-            left_ear=self.left_ear,
-            snout=self.snout,
-            right_ear=self.right_ear,
-            FR=self.FR,
-            HR=self.HR,
-            body=self.body,
-            tail_base=self.tail_base,
-        )
-        self.segments = dict(L=("HL", "FR"), R=("HR", "FL"),)
-
-        theta = np.degrees(
-            np.unwrap(np.radians(tracking["body_lower_bone_orientation"]))
-        )
-        self.orientation = rolling_mean(theta, 5)
-
-        self.v = self.body.speed
-        self.omega = derivative(self.orientation) * self.fps
+        # get the video
+        self.video = get_cap_from_file(self.trial.trial_video)
 
     def T(self, frame):
         """
@@ -131,16 +75,32 @@ class Kinematics:
             Returns:
                 R: 2x1 np.array with transform matrix for translations
         """
-        x, y = self.body.x[frame], self.body.y[frame]
+        x, y = self.trial.body.x[frame], self.trial.body.y[frame]
         return np.array([-x, -y])
 
     def R(self, frame):
         """
             R is the transform matrix to remove rotations of the body axis. 
         """
-        return coordinates.R(self.orientation[frame] + 180)
+        return coordinates.R(self.trial.orientation[frame] + 180)
 
-    def bparts(self, frame, egocentric=False):
+    def get_frames(self, frame):
+        """
+            Gets the video frame from the trial video and rotates/crops it
+            to align it with the egocentric view
+
+            Arguments:
+                frame: int. Frame number
+
+            Returns:
+                whole_frame: np.ndarray with whole frame
+                ego_frame: np.ndarray with frame for egocentric view
+        """
+        whole_frame = get_cap_selected_frame(self.video, frame)
+
+        return whole_frame, None
+
+    def bparts_positions(self, frame, egocentric=False):
         """
             Returns the position of all body parts at a given 
             frame.
@@ -153,21 +113,23 @@ class Kinematics:
             Returns:
                 bp: dict of body parts coordintes
         """
-        if not egocentric:
-            return {
-                bp: BP(bpart.x[frame], bpart.y[frame])
-                for bp, bpart in self.bps.items()
-            }
-        else:
-            T = self.T(frame)
-            R = self.R(frame)
+        # get transform matrices for egocentric
+        T = self.T(frame)
+        R = self.R(frame)
 
-            parts = {}
-            for bp, bpart in self.bps.items():
+        # get bps positions
+        positions = {}
+        for bp in self.trial.bp_names:
+            bpart = getattr(self.trial, bp)
+
+            if not egocentric:
+                positions[bp] = BodyPart.from_data(
+                    bp, bpart.x[frame], bpart.y[frame], bpart.speed[frame]
+                )
+            else:
                 x, y = bpart.to_egocentric(frame, T, R)
-                parts[bp] = BP(x, y)
-
-            return parts
+                positions[bp] = BodyPart.from_data(bp, x, y, np.nan)
+        return positions
 
     def animate(self, fps=60):
         """
@@ -183,50 +145,53 @@ class Kinematics:
         axarr[0].set(xlim=[0, 40], ylim=[0, 80])
         axarr[1].set(xlim=[-10, 10], ylim=[-10, 10])
 
-        head = ("snout", "right_ear", "body", "left_ear")
-        body = ("FL", "FR", "HR", "tail_base", "HL")
-        paws = ("FL", "FR", "HR", "HL")
-
         for frame in track(
-            range(self.n_frames),
-            total=self.n_frames,
+            range(self.trial.n_frames),
+            total=self.trial.n_frames,
             description="Animating...",
         ):
-            bps = self.bparts(frame)
-            bps_ego = self.bparts(frame, egocentric=True)
+            # get body parts position
+            bps = self.bparts_positions(frame)
+            bps_ego = self.bparts_positions(frame, egocentric=True)
+
+            # draw video frames
+            whole, rotated = self.get_frames(frame + self.trial.start)
+            axarr[0].imshow(whole, origin="upper", extent=(0, 40, 0, 80))
 
             # draw mouse
-            for names, color in zip((head, body), (salmon, teal_dark)):
+            _names = (self.trial.head_names, self.trial.body_names)
+            colors = (blue_grey, blue_grey_darker)
+            for names, color in zip(_names, colors):
                 for ax, _bps in zip(axarr, (bps, bps_ego)):
                     x = [_bps[name].x for name in names]
                     y = [_bps[name].y for name in names]
                     mouse = Polygon(
                         np.vstack([x, y]).T,
                         True,
-                        lw=2,
+                        lw=0,
                         color=color,
                         joinstyle="round",
-                        edgecolor=blue_grey_darker,
                         zorder=-5,
-                        alpha=1,
+                        alpha=0.5,
                     )
                     ax.add_artist(mouse)
 
             # draw each PAW
             for name, bp in bps.items():
                 color = PAW_COLORS[name]
-                if name in paws:
-                    s, lw = 100, 0.5
+                if name in self.trial.paws_names:
+                    s, lw, alpha = 160, 1, 1
                 else:
-                    s, lw = 140, 1
+                    s, lw, alpha = 80, 0.4, 0.8
 
                 axarr[0].scatter(
                     bp.x,
                     bp.y,
-                    s=s,
+                    s=int(s / 3),
                     color=color,
                     lw=lw,
                     edgecolors=[0.2, 0.2, 0.2],
+                    alpha=alpha,
                 )
                 axarr[1].scatter(
                     bps_ego[name].x,
@@ -235,6 +200,7 @@ class Kinematics:
                     color=color,
                     lw=lw,
                     edgecolors=[0.2, 0.2, 0.2],
+                    alpha=alpha,
                 )
 
             # draw lines between paws
@@ -274,7 +240,6 @@ class Kinematics:
 # TODO: animation make plots pretty
 
 if __name__ == "__main__":
-    kin = Kinematics(
-        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/experimental_validation/FC_210122_BA1099282_trial_9_tracking.h5"
-    )
-    kin.animate(fps=20)
+    trial = Trials()[-1]
+    kin = Kinematics(trial)
+    kin.animate(fps=4)

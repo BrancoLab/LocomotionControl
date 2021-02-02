@@ -9,7 +9,7 @@ from fcutils.plot.figure import (
     set_figure_subplots_aspect,
     clean_axes,
 )
-from fcutils.maths.signals import rolling_mean
+
 from myterial import (
     salmon_darker,
     indigo_darker,
@@ -17,7 +17,6 @@ from myterial import (
     salmon,
     blue_grey_darker,
 )
-from pyinspect.utils import dir_files
 
 sys.path.append("./")
 
@@ -26,21 +25,18 @@ from experimental_validation._plot_utils import (
     draw_mouse,
     mark_steps,
 )
-from experimental_validation._steps_utils import (
-    print_steps_summary,
-    stride_from_speed,
-    get_steps,
-)
-from control.utils import from_json
-
+from experimental_validation._steps_utils import print_steps_summary
+from experimental_validation.trials import Trials
+from experimental_validation import paths
 
 """
     Code to extracts steps data from tracking of mice running
 """
 
-step_speed_th = 25  # cm / s
+
 fps = 60
-cm_per_px = 1 / 30.8
+step_speed_th = 25  # cm / s
+
 
 paws = ("left_fl", "right_fl", "left_hl", "right_hl")
 paw_colors = {
@@ -50,56 +46,24 @@ paw_colors = {
     "right_hl": indigo,
 }
 
-# TODO: utility to load whole session tacking, trial tracking + video
-# TODO: save results (incl. start/end) to file in analysiss folder
 
-
-def run():
+def run(save_folder):
     # Get paths
-    data_folder = Path(
-        "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD"
-    )
-    save_folder = Path(
-        "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\experimental_validation\\2WDD\\analysis"
-    )
-
-    trials_folder = data_folder / "TRIALS_CLIPS"
-    tracking_folder = data_folder / "TRACKING_DATA"
-    analysis_folder = data_folder / "ANALYSIS"
+    analysis_folder = paths.folder_2WDD / "ANALYSIS"
     analysis_folder.mkdir(exist_ok=True)
 
-    trials_records = from_json(trials_folder / "trials_records.json")
+    trials = Trials()
 
-    # Get files
-    tracking_files = dir_files(trials_folder, "*_tracking.h5")
-    logger.info(f"Starting steps analysis. Found {len(tracking_files)} files")
-    # loop over files
-    for n, path in enumerate(tracking_files):
-        if n != 2:
+    # loop over trials
+    logger.info(f"Starting steps analysis of {trials}")
+    for n, trial in enumerate(trials):
+        # if n != 2:
+        #     continue
+
+        logger.info(f"Analyzing {trial}")
+        if not trial.has_tracking or not trial.good:
+            logger.info("Trial doesnt have tracking or is bad.")
             continue
-
-        logger.info(f"Analyzing {path.name}")
-
-        # Check that its a trial to be analyzed
-        tname = path.stem.replace("_tracking", "")
-        if (
-            tname not in trials_records
-            or trials_records[tname]["good"] == "tbd"
-        ):
-            logger.warning(
-                f"Trial {tname}  not in trials records, dont know if should analyze. Skipping."
-            )
-            continue
-        if not trials_records[tname]["good"]:
-            logger.info(f"Trial {tname} is not to be analyzed")
-            continue
-
-        # get the tracking for the trial and for the whole session
-        session_name = path.stem.split("_trial")[0] + "_video_tracking.h5"
-        whole_session_tracking = pd.read_hdf(
-            tracking_folder / session_name, key="hdf"
-        )
-        tracking = pd.read_hdf(path, key="hdf")
 
         # make figure
         (
@@ -113,48 +77,6 @@ def run():
             stride_hist_ax,
         ) = make_figure()
 
-        # get when mouse crosses Y threshold
-        y = t(tracking["body_y"], start=0, scale=False)
-        try:
-            start = np.where(y > 1400)[0][-1]
-            end = np.where(y > 300)[0][-1]
-
-            # check if the mouse stops in this interval
-            bspeed = t(tracking["body_speed"], start=start, end=end) * fps
-            if np.any(bspeed < 5):
-                end = np.where(bspeed < 5)[0][0] + start
-
-            logger.info(
-                f"Start at frame: {start}/{len(y)} and end after {end - start} frames (frame {end})"
-            )
-        except IndexError:
-            logger.info(
-                "In this trial mouse didnt go below Y threshold, skipping"
-            )
-            continue
-
-        raise NotImplementedError("fill in metadata")
-
-        # prep data
-        LH_speed = t(tracking["left_hl_speed"], start=start, end=end) * fps
-        LF_speed = t(tracking["left_fl_speed"], start=start, end=end) * fps
-        RH_speed = t(tracking["right_hl_speed"], start=start, end=end) * fps
-        RF_speed = t(tracking["right_fl_speed"], start=start, end=end) * fps
-        body_speed = t(tracking["body_speed"], start=start, end=end) * fps
-        orientation = t(
-            r(tracking["body_whole_bone_orientation"]),
-            scale=False,
-            start=start,
-            end=end,
-        )
-
-        speeds = dict(
-            left_hl=LH_speed,
-            left_fl=LF_speed,
-            right_hl=RH_speed,
-            right_fl=RF_speed,
-        )
-
         # get steps
         (
             LH_steps,
@@ -166,13 +88,18 @@ def run():
             diagonal_steps,
             diag_data,
             step_starts,
-        ) = get_steps(
-            LH_speed, LF_speed, RH_speed, RF_speed, step_speed_th, start=start,
-        )
+        ) = trial.extract_steps(step_speed_th)
 
         # draw mouse and steps
-        draw_mouse(tracking_ax, tracking, whole_session_tracking, step_starts)
-        draw_paws_steps(paw_colors, tracking_ax, tracking, step_starts, start)
+        draw_mouse(
+            tracking_ax,
+            trial.tracking,
+            trial.whole_session_tracking,
+            step_starts,
+        )
+        draw_paws_steps(
+            paw_colors, tracking_ax, trial.tracking, step_starts, trial.start
+        )
 
         # Plot paw speeds
         for n, (paw, color) in enumerate(paw_colors.items()):
@@ -182,17 +109,17 @@ def run():
                 alpha = 1
 
             paws_ax.plot(
-                speeds[paw], color=color, lw=2, alpha=alpha, label=paw
+                trial.speeds[paw], color=color, lw=2, alpha=alpha, label=paw
             )
             cum_speeds_ax.plot(
-                np.cumsum(speeds[paw]),
+                np.cumsum(trial.speeds[paw]),
                 color=color,
                 lw=2,
                 alpha=alpha,
                 label=paw,
             )
         paws_ax.plot(
-            body_speed,
+            trial.body.speed,
             color=blue_grey_darker,
             lw=2,
             alpha=1,
@@ -204,10 +131,10 @@ def run():
         paws_ax.axhline(step_speed_th, lw=1, ls=":", color="k", zorder=-1)
         paws_ax.axhline(0, lw=2, color="k", zorder=1)
 
-        # Plot orientation
+        # Plot orientation delta
         ori_ax.plot(
-            orientation - orientation[0],
-            label="body angle",
+            trial.orientation - trial.orientation[0],
+            label="body angle delta",
             color=blue_grey_darker,
             lw=4,
         )
@@ -281,17 +208,20 @@ def run():
             else:
                 right, left = step["paws"]
 
-            r_stride = stride_from_speed(
-                t(tracking[f"{right}_speed"]), step["start"], step["end"]
+            r_stride = np.sum(
+                trial.right_hl.truncate(step["start"], step["end"]).speed
             )
-            l_stride = stride_from_speed(
-                t(tracking[f"{left}_speed"]), step["start"], step["end"]
+            l_stride = np.sum(
+                trial.left_hl.truncate(step["start"], step["end"]).speed
             )
 
             summary["stride_delta"].append(l_stride - r_stride)
 
             # angle delta
-            turn = orientation[step["end"]] - orientation[step["start"]]
+            turn = (
+                trial.orientation[step["end"]]
+                - trial.orientation[step["start"]]
+            )
             summary["angle_delta"].append(turn)
 
             # more info
@@ -319,8 +249,12 @@ def run():
             title=f"Total ammount turned: {np.sum(summary['angle_delta']):.1f}"
         )
 
-        left_travel = np.mean([np.sum(LH_speed), np.sum(LF_speed)])
-        right_travel = np.mean([np.sum(RH_speed), np.sum(RF_speed)])
+        left_travel = np.mean(
+            [np.sum(trial.left_hl.speed), np.sum(trial.left_fl.speed)]
+        )
+        right_travel = np.mean(
+            [np.sum(trial.right_hl.speed), np.sum(trial.right_fl.speed)]
+        )
         stride_hist_ax.hist(summary["stride_delta"], color=[0.3, 0.3, 0.3])
         stride_hist_ax.set(
             title=f"Total ammount travelled L:{left_travel:.1f} - R:{right_travel:.1f}"
@@ -328,7 +262,9 @@ def run():
 
         # print steps data and save
         print_steps_summary(summary)
-        pd.DataFrame(summary).to_hdf(save_folder / (tname + ".h5"), key="hdf")
+        pd.DataFrame(summary).to_hdf(
+            save_folder / (trial.name + ".h5"), key="hdf"
+        )
 
         plt.show()
         break
@@ -402,39 +338,8 @@ def make_figure():
     )
 
 
-def t(d, scale=True, start=0, end=-1):
-    """
-        Transform data by smoothing and
-        going  from px to cm
-    """
-    try:
-        d = d.values
-    except Exception:
-        pass
-
-    d = rolling_mean(d[start:end], 5)
-
-    if scale:
-        return d * cm_per_px
-    else:
-        return d
-
-
-def r(a):
-    """
-        unwrap circular data
-    """
-    if not np.any(np.isnan(a)):
-        return np.degrees(np.unwrap(np.radians(a)))
-    else:
-        # unwrap only non-nan
-        idx = np.where(np.isnan(a))[0][-1] + 1
-
-        out = np.zeros_like(a)
-        out[idx:] = np.degrees(np.unwrap(np.radians(a[idx:])))
-        out[:idx] = np.nan
-        return out
-
-
 if __name__ == "__main__":
-    run()
+    save_folder = Path(
+        "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\experimental_validation\\2WDD\\analysis"
+    )
+    run(save_folder)

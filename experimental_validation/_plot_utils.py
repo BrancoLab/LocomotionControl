@@ -53,9 +53,10 @@ def draw_mouse(
         Given a tracking dataframe and a set of selected frames
     """
     # plot whole session tracking in the background
-    x = whole_session_tracking.body_x.values
-    y = whole_session_tracking.body_y.values
-    ax.plot(x, y, color=blue_grey_darker, lw=0.76, alpha=0.15, zorder=0)
+    if whole_session_tracking is not None:
+        x = whole_session_tracking.body_x.values
+        y = whole_session_tracking.body_y.values
+        ax.plot(x, y, color=blue_grey_darker, lw=0.76, alpha=0.15, zorder=0)
 
     bps = bps or (
         "tail_base",

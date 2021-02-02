@@ -32,7 +32,8 @@ w_in_train = True
 w_out_bias = False
 w_out_train = True
 l2norm = 0  # recurrent weights normalization
-
+tau = 100  # time constant (ms)
+dt = 5  # interval between samples (ms)
 
 # ---------------------------------- dataset --------------------------------- #
 
