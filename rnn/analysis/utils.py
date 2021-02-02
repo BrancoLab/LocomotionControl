@@ -8,7 +8,7 @@ import numpy as np
 from fcutils.maths.signals import derivative
 from fcutils.path import from_json, from_yaml
 
-from pyrnn import RNN, is_win
+from pyrnn import CTRNN as RNN, is_win
 from pyrnn.analysis import (
     FixedPoints,
     list_fixed_points,
