@@ -8,22 +8,23 @@ from pathlib import Path
 import sys
 
 
-from pyrnn._progress import base_progress as progress
+from fcutils.progress import progress
+from fcutils.path import from_json
+
 from pyrnn._utils import GracefulInterruptHandler
 from pyinspect.utils import timestamp
 
-from ._io import DropBoxUtils, upload_folder
-from .live_plot import Plotter
-from .plot import plot_results
-from .history import History
+from control._io import DropBoxUtils, upload_folder
+from control.live_plot import Plotter
+from control.plot import plot_results
+from control.history import History
 
 from control import config
 from control import paths
 
-from .world import World
-from .control import Controller
-from .model import Model
-from .utils import from_json
+from control.world import World
+from control.control import Controller
+from control.model import Model
 
 
 class Manager:

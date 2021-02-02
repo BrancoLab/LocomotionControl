@@ -7,8 +7,9 @@ from fcutils.maths.geometry import (
     calc_distance_between_points_in_a_vector_2d,
 )
 from fcutils.maths.signals import derivative
+from fcutils.maths.coordinates import pol2cart
 
-from .utils import interpolate_nans, calc_bezier_path, pol2cart
+from .utils import interpolate_nans, calc_bezier_path
 from .config import dt, px_to_cm, TRAJECTORY_CONFIG
 
 # --------------------------------- from file -------------------------------- #
