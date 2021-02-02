@@ -160,7 +160,11 @@ def load_from_folder(fld, winstor=False):
     dataset.warmup = False
 
     # load RNN
-    del settings["on_gpu"], settings["dataset_name"]
+    del (
+        settings["on_gpu"],
+        settings["dataset_name"],
+        settings["dataset_length"],
+    )
     rnn = RNN.load(
         str(get_file(fld, "minloss.pt")),
         **settings,
