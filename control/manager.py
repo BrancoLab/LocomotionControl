@@ -14,7 +14,7 @@ from pyinspect.utils import timestamp
 
 from ._io import DropBoxUtils, upload_folder
 from .live_plot import Plotter
-from .plot import plot_results, animate_from_images
+from .plot import plot_results
 from .history import History
 
 from control import config
@@ -258,18 +258,6 @@ class Manager:
 
     # ---------------------------------- Wrap up --------------------------------- #
     def make_video(self):
-        try:
-            animate_from_images(
-                str(self.frames_folder),
-                str(
-                    self.datafolder
-                    / f"{config.MANAGER_CONFIG['exp_name']}.mp4"
-                ),
-                int(round(1 / config.PARAMS["dt"])),
-            )
-        except (ValueError, FileNotFoundError):
-            print("Failed to generate video from frames.. ")
-
         # remove frames folder if everything's okay
         try:
             shutil.rmtree(str(self.frames_folder))

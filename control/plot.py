@@ -4,15 +4,10 @@ import logging
 
 from fcutils.plot.figure import clean_axes, save_figure
 from fcutils.plot.elements import plot_line_outlined
-from fcutils.video import (
-    get_cap_from_images_folder,
-    save_videocap_to_video,
-)
 from fcutils.maths.signals import rolling_mean
 
 from .history import load_results_from_folder
 
-# from .config import dt
 
 colors = dict(
     x=[0.5, 0.5, 0.5],
@@ -28,17 +23,6 @@ colors = dict(
     N_r="#ff8c00",
     N_l="#e2734e",
 )
-
-
-def animate_from_images(folder, savepath, fps):
-    cap = get_cap_from_images_folder(folder, img_format="%2d.png")
-    save_videocap_to_video(cap, savepath, ".mp4", fps=fps)
-
-    gifpath = savepath.replace(".mp4", ".gif")
-    logging.info(
-        "To save the video as GIF, use: \n"
-        + f'ffmpeg -i "{savepath}" -f gif "{gifpath}"'
-    )
 
 
 def _make_figure():
