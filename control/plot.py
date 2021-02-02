@@ -3,7 +3,6 @@ import numpy as np
 import logging
 
 from fcutils.plot.figure import clean_axes, save_figure
-from fcutils.plot.colors import desaturate_color
 from fcutils.plot.elements import plot_line_outlined
 from fcutils.video import (
     get_cap_from_images_folder,
@@ -182,7 +181,7 @@ def _plot_v(history, trajectory, plot_every, ax=None, ax_frames=None):
     ax.scatter(
         np.arange(len(trajectory[:, 3]))[::plot_every],
         trajectory[:, 3][::plot_every],
-        color=desaturate_color(colors["v"]),
+        color=colors["v"],
         label="trajectory speed",
         lw=1,
         edgecolors="white",
@@ -218,7 +217,7 @@ def _plot_omega(history, trajectory, plot_every, ax=None, ax_frames=None):
     ax.scatter(
         np.arange(len(trajectory[:, 4]))[::plot_every],
         np.degrees(trajectory[:, 4][::plot_every]),
-        color=desaturate_color(colors["omega"]),
+        color=colors["omega"],
         label="trajectory speed",
         lw=1,
         edgecolors="white",
@@ -256,7 +255,7 @@ def _plot_theta(history, trajectory, plot_every, ax=None):
     ax.scatter(
         np.arange(len(trajectory[:, 2]))[::plot_every],
         np.degrees(trajectory[:, 2][::plot_every]),
-        color=desaturate_color(colors["theta"]),
+        color=colors["theta"],
         label="trajectory orientation",
         lw=1,
         edgecolors="white",

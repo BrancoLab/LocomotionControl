@@ -3,7 +3,6 @@ import numpy as np
 import logging
 
 from fcutils.plot.figure import clean_axes
-from fcutils.plotting.colors import desaturate_color
 from fcutils.plot.elements import plot_line_outlined
 
 from .plot import colors
@@ -134,7 +133,7 @@ class Plotter:
             history["x"],
             history["y"],
             lw=9,
-            color=desaturate_color(colors["tracking"]),
+            color=colors["tracking"],
             zorder=-1,
             solid_capstyle="round",
         )
