@@ -172,8 +172,8 @@ class PredictTauFromRPsyVOmega(Dataset, Preprocessing):
 
 if __name__ == "__main__":
     datasets = (
-        # PredictTauFromDeltaXYT,
-        # PredictPNNFromDeltaXYT,
+        PredictTauFromDeltaXYT,
+        PredictPNNFromDeltaXYT,
         PredictPNNFromRPsyVOmega,
         PredictTauFromRPsyVOmega,
     )

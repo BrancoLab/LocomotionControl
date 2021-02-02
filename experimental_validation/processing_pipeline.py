@@ -147,7 +147,7 @@ class ProcessingPipeline:
 
                     if path.size(out_vid, fmt=False) < 2000:
                         path.delete(out_vid)
-                        raise ValueError("Clip video too small")
+                        logger.warning("Clip video too small, removing it")
 
                 # all done for this experiment
                 self.records["pre_processed"].append(experiment)

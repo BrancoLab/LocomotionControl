@@ -30,7 +30,9 @@ from control.history import load_results_from_folder
 """
 
 
-fld = Path("D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\RNN\\training_data")
+fld = Path(
+    "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\RNN\\training_data_temp"
+)
 flds = path.subdirs(fld)
 if flds is None:
     raise ValueError("Did not find any simulations folders")
@@ -102,3 +104,5 @@ for subfld in discard.keys():
     path.delete(subfld)
 flds = path.subdirs(fld)
 logger.info(f"We are left with {len(flds)} folders")
+
+# %%

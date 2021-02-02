@@ -6,7 +6,7 @@ import numpy as np
 from fcutils.plot.figure import clean_axes
 from fcutils.plot.elements import plot_line_outlined
 
-from myterial import salmon, purple, indigo, cyan, orange
+from myterial import salmon, purple, indigo, cyan, orange, amber
 
 from pyrnn._utils import npify
 
@@ -16,11 +16,18 @@ from pyrnn._utils import npify
 COLORS = dict(
     x=purple,
     y=indigo,
+    r=purple,
+    psy=indigo,
+    v=orange,
+    omega=amber,
     theta=cyan,
     tau_R=orange,
     tau_L=salmon,
     nudot_R=orange,
     nudot_L=salmon,
+    P=orange,
+    N_R=salmon,
+    N_L=indigo,
 )
 
 

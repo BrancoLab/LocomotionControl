@@ -1,4 +1,17 @@
-from myterial import salmon, salmon_dark, light_green_dark, light_green
+from myterial import (
+    salmon,
+    salmon_dark,
+    light_green_dark,
+    light_green,
+    teal,
+    teal_dark,
+    indigo,
+    indigo_dark,
+    amber,
+    amber_dark,
+    brown,
+    brown_dark,
+)
 import matplotlib.pyplot as plt
 from pyrnn._plot import clean_axes
 
@@ -33,8 +46,15 @@ def plot_predictions(model, dataset):
     axarr[0].set(title="inputs")
     axarr[0].legend()
 
-    cc = [salmon, light_green]
-    oc = [salmon_dark, light_green_dark]
+    cc = [salmon, light_green, teal, indigo, amber, brown]
+    oc = [
+        salmon_dark,
+        light_green_dark,
+        teal_dark,
+        indigo_dark,
+        amber_darker,
+        brown_dark,
+    ]
     for n in range(n_outputs):
         axarr[1].plot(
             Y[0, :, n],

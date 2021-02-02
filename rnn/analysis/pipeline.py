@@ -164,7 +164,7 @@ class Pipeline:
                 _show: bool. If true the figure is shown to user
         """
         save_figure(
-            figure, self.analysis_folder / name, verbose=False,
+            figure, self.analysis_folder / name,
         )
         self.logger.debug(f"Saved {(self.analysis_folder / name).stem} figure")
 
@@ -269,7 +269,7 @@ class Pipeline:
 
 if __name__ == "__main__":
     # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210115_163342_RNN_repeating_dataset_predict_tau_from_deltaXYT"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_124118_RNN_highLR_dataset_predict_PNN_from_RPsy"
 
     fps_kwargs = dict(max_fixed_points=3, max_iters=6000, lr_decay_epoch=1500,)
 

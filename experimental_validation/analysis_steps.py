@@ -133,6 +133,8 @@ def run():
             )
             continue
 
+        raise NotImplementedError("fill in metadata")
+
         # prep data
         LH_speed = t(tracking["left_hl_speed"], start=start, end=end) * fps
         LF_speed = t(tracking["left_fl_speed"], start=start, end=end) * fps

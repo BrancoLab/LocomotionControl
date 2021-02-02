@@ -12,7 +12,7 @@ from rnn.dataset import datasets
 # ---------------------------------- Dataset --------------------------------- #
 N_trials = -1  # number of trials to use, set to -1 to use entire dataset
 
-dataset_name = "dataset_predict_" + "tau_from_deltaXYT"
+dataset_name = "dataset_predict_" + "PNN_from_RPsy"
 
 try:
     DATASET = datasets[dataset_name]

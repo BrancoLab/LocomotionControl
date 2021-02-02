@@ -278,6 +278,8 @@ class Manager:
             raise ValueError(f"Failed to upload to dropbox with error: {e}")
 
     def wrap_up(self):
+        logger.info("Wrapping up simulation")
+
         # Save stuff
         self.history.save(
             self.datafolder, self.world.trajectory, self.world.trial
@@ -290,6 +292,7 @@ class Manager:
             shutil.rmtree(str(self.frames_folder))
 
         # save summary plot
+        logger.info("Generating plots")
         plot_results(
             self.datafolder,
             plot_every=15,

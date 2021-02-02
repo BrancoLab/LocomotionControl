@@ -17,7 +17,7 @@ folder = Path(
 )
 trials_folder = folder / "TRIALS_CLIPS"
 
-records_path = trials_folder / "trials_records.json"
+records_path = folder / "trials_records.json"
 if not records_path.exists():
     to_json(records_path, {})
 

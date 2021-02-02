@@ -168,7 +168,7 @@ class DynamicsVis(Pipeline):
         # render input weights as vectors
         W_in = pca.transform(self.W_in.T)
         vecs_in = render_vectors(
-            [W_in.T[0, :], W_in.T[1, :], W_in.T[2, :]],
+            [W_in[n, :] for n in range(W_in.shape[0])],
             self.input_names,
             [COLORS[l] for l in self.input_names],
         )
@@ -176,7 +176,7 @@ class DynamicsVis(Pipeline):
         # render output weights
         W_out = pca.transform(self.W_out)
         vecs_out = render_vectors(
-            [W_out[0, :], W_out[1, :]],
+            [W_out[n, :] for n in range(W_out.shape[0])],
             self.output_names,
             [COLORS[l] for l in self.output_names],
             scale=50,
@@ -372,7 +372,7 @@ class DynamicsVis(Pipeline):
 
 if __name__ == "__main__":
     # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
-    fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210115_163342_RNN_repeating_dataset_predict_tau_from_deltaXYT"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_124118_RNN_highLR_dataset_predict_PNN_from_RPsy"
 
     # TODO figure out why angle of W_out projections looks different in 2 and 3 dimensions
 
