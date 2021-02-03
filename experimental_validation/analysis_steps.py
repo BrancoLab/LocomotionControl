@@ -28,6 +28,7 @@ from experimental_validation._plot_utils import (
 from experimental_validation._steps_utils import print_steps_summary
 from experimental_validation.trials import Trials
 from experimental_validation import paths
+from kinematics.steps import Steps
 
 """
     Code to extracts steps data from tracking of mice running
@@ -78,17 +79,15 @@ def run(save_folder):
         ) = make_figure()
 
         # get steps
+        steps = Steps(trial)
         (
-            LH_steps,
-            RF_steps,
-            LF_steps,
-            RH_steps,
+            swing_phases,
             R_diagonal_steps,
             L_diagonal_steps,
             diagonal_steps,
             diag_data,
             step_starts,
-        ) = trial.extract_steps(step_speed_th)
+        ) = steps.extract_steps()
 
         # draw mouse and steps
         draw_mouse(
@@ -141,12 +140,7 @@ def run(save_folder):
         ori_ax.legend()
 
         # draw steps times
-        for n, (paw, steps) in enumerate(
-            zip(
-                ("right_fl", "left_hl", "left_fl", "right_hl"),
-                (RF_steps, LH_steps, LF_steps, RH_steps),
-            )
-        ):
+        for n, (paw, steps) in enumerate(swing_phases.items()):
             mark_steps(
                 paws_ax,
                 steps.starts,
@@ -198,7 +192,6 @@ def run(save_folder):
             side=[],
             start=[],
             end=[],
-            pearsonr=[],
         )
         for n, step in diag_data.items():
             # stride delta
@@ -229,7 +222,6 @@ def run(save_folder):
             summary["side"].append(step["side"])
             summary["start"].append(step["start"])
             summary["end"].append(step["end"])
-            summary["pearsonr"].append(step["pearsonr"])
 
         # plot stride length vs turn angle
         turn_ax.scatter(

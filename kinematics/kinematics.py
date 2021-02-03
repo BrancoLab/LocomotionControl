@@ -12,35 +12,22 @@ from fcutils.progress import track
 from fcutils.video import get_cap_from_file, get_cap_selected_frame
 
 from myterial import (
-    salmon,
-    salmon_darker,
-    indigo,
-    indigo_darker,
     blue_grey_darker,
     blue_grey,
-    red,
-    red_darker,
-    red_light,
 )
 
 sys.path.append("./")
-from experimental_validation.trials import Trials, BodyPart
+from experimental_validation.trials import Trials
 from experimental_validation._tracking import cm_per_px
 
-
-PAW_COLORS = dict(
-    left_hl=salmon,
-    left_fl=salmon_darker,
-    left_ear=red,
-    snout=red_darker,
-    body=red,
-    tail_base=red_light,
-    right_hl=indigo,
-    right_fl=indigo_darker,
-    right_ear=red,
-    left_paws="k",
-    right_paws="k",
+from kinematics.fixtures import (
+    BODY_PARTS_NAMES,
+    BODY_PARTS_COLORS,
+    HEAD_NAMES,
+    BODY_NAMES,
+    PAWS_NAMES,
 )
+from kinematics.bodypart import BodyPart
 
 
 class Kinematics:
@@ -133,16 +120,16 @@ class Kinematics:
 
         # get bps positions
         positions = {}
-        for bp in self.trial.bp_names:
+        for bp in BODY_PARTS_NAMES:
             bpart = getattr(self.trial, bp)
 
             if not egocentric:
-                positions[bp] = BodyPart.from_data(
-                    bp, bpart.x[frame], bpart.y[frame], bpart.speed[frame]
-                )
+                positions[bp] = bpart.at_frame(frame)
             else:
                 x, y = bpart.to_egocentric(frame, T, R)
-                positions[bp] = BodyPart.from_data(bp, x, y, np.nan)
+                positions[bp] = BodyPart.from_data(
+                    bp, x, y, np.nan
+                )  # ! speed is not adjusted!
         return positions
 
     def animate(self, fps=60):
@@ -174,7 +161,7 @@ class Kinematics:
             axarr[1].imshow(rotated, origin="lower", extent=(-10, 10, -10, 10))
 
             # draw mouse
-            _names = (self.trial.head_names, self.trial.body_names)
+            _names = (HEAD_NAMES, BODY_NAMES)
             colors = (blue_grey, blue_grey_darker)
             for names, color in zip(_names, colors):
                 for ax, _bps in zip(axarr, (bps, bps_ego)):
@@ -193,8 +180,8 @@ class Kinematics:
 
             # draw each PAW
             for name, bp in bps.items():
-                color = PAW_COLORS[name]
-                if name in self.trial.paws_names or name == "body":
+                color = BODY_PARTS_COLORS[name]
+                if name in PAWS_NAMES or name == "body":
                     s, lw, alpha = 160, 1, 1
                 else:
                     s, lw, alpha = 80, 0.4, 0.8
@@ -230,7 +217,7 @@ class Kinematics:
                     [bps[bp1].y, bps[bp2].y],
                     lw=lw,
                     zorder=100,
-                    color=PAW_COLORS[side],
+                    color=BODY_PARTS_COLORS[side],
                     solid_capstyle="round",
                 )
 
@@ -239,7 +226,7 @@ class Kinematics:
                     [bps_ego[bp1].y, bps_ego[bp2].y],
                     lw=lw,
                     zorder=100,
-                    color=PAW_COLORS[side],
+                    color=BODY_PARTS_COLORS[side],
                     solid_capstyle="round",
                 )
 

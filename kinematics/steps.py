@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 
 sys.path.append("./")
 
@@ -7,10 +8,7 @@ from kinematics._steps import (
     get_diagonal_steps,
     step_times,
 )
-
-# TODO finish refactoring this code
-# TODO check DLC
-# TODO make RNN work
+from kinematics.fixtures import PAWS_NAMES
 
 
 class Steps:
@@ -19,24 +17,6 @@ class Steps:
             Extract step start/end times from the tracking data of a trial
         """
         self.trial = trial
-
-    def get_steps_per_paw(self):
-        """
-            Get the steps for each single paw (start/end o swing phases)
-        """
-        self.LH_steps = get_paw_steps_times(
-            self.left_hl.speed, step_speed_th, precise_th=precise_th
-        )
-        self.RF_steps = get_paw_steps_times(
-            self.right_fl.speed, step_speed_th, precise_th=precise_th
-        )
-
-        self.RH_steps = get_paw_steps_times(
-            self.right_hl.speed, step_speed_th, precise_th=precise_th
-        )
-        self.LF_steps = get_paw_steps_times(
-            self.left_fl.speed, step_speed_th, precise_th=precise_th
-        )
 
     def extract_steps(
         self, step_speed_th, precise_th=12,
@@ -60,22 +40,22 @@ class Steps:
                 step_starts: 1d numpy array with time of each RH diagonal step, useful for plotting.
 
         """
-        # get steps for each paw
+        # get swing phase start/stop for each paw
+        swing_phases = {
+            paw: get_paw_steps_times(
+                self.trial.speeds[paw], step_speed_th, precise_th=precise_th
+            )
+            for paw in PAWS_NAMES
+        }
         self.get_steps_per_paw(precise_th)
 
         # Get diagonal steps (opposite pairs both moving)
         L_diagonal_steps, L_diag_data = get_diagonal_steps(
-            self.LH_steps,
-            self.RF_steps,
-            self.trial.left_hl.speed,
-            self.trial.right_fl.speed,
+            swing_phases["left_hl"], swing_phases["right_fl"],
         )
 
         R_diagonal_steps, R_diag_data = get_diagonal_steps(
-            self.RH_steps,
-            self.LF_steps,
-            self.trial.right_hl.speed,
-            self.trial.left_fl.speed,
+            swing_phases["right_hl"], swing_phases["left_fl"],
         )
 
         # merge R/L diagonal steps to get complete step
@@ -122,10 +102,7 @@ class Steps:
         )  # to mark the start of each L-R step sequence
 
         return (
-            LH_steps,
-            RF_steps,
-            LF_steps,
-            RH_steps,
+            swing_phases,
             R_diagonal_steps,
             L_diagonal_steps,
             diagonal_steps,

@@ -1,3 +1,13 @@
+import sys
+import numpy as np
+
+from fcutils.maths.signals import rolling_mean
+
+sys.path.append("./")
+
+from experimental_validation._tracking import cm_per_px, fps
+
+
 class BodyPart:
     def __init__(self, bpname, tracking=None, start=0, end=-1):
         """
@@ -40,6 +50,18 @@ class BodyPart:
         speed = self.speed.copy()[start:end]
 
         return BodyPart.from_data(self.name, x, y, speed)
+
+    def at_frame(self, frame):
+        """
+            Returns a copy of itself with only data for a given
+            frame
+
+            Arguments:
+                frame: int. Frame number
+        """
+        return BodyPart.from_data(
+            self.name, self.x[frame], self.y[frame], self.speed[frame]
+        )
 
     def to_egocentric(self, frame, T, R):
         """

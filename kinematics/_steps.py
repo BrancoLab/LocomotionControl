@@ -1,7 +1,6 @@
 import numpy as np
 from collections import namedtuple
 import pandas as pd
-from scipy.stats import pearsonr
 
 from rich.table import Table
 from rich import print
@@ -60,7 +59,6 @@ def print_steps_summary(summary):
         tb.add_column(
             "angle delta", justify="right", footer=foot(summary.angle_delta)
         )
-        tb.add_column("Correlation", justify="center")
 
         for i, step in summary.iterrows():
             tb.add_row(
@@ -71,7 +69,6 @@ def print_steps_summary(summary):
                 str(step["end"] - step["start"]),
                 f"{step['stride_delta']:.3f}",
                 f"{step['angle_delta']:.3f}",
-                f"{step['pearsonr']:.3f}",
                 style=blue if step["side"] == "R" else salmon,
             )
         subtables.append(tb)
@@ -94,7 +91,7 @@ def get_paw_steps_times(speed, step_speed_th, precise_th=12):
 
         First it finds the times where the paw speed 
         was >= stop speed th, then it finds the onset/offset
-        more precisly by looking for when the speed
+        more precisely by looking for when the speed
         went above or below precise_th cm/s
     """
     # get approximate times
@@ -122,7 +119,7 @@ def get_paw_steps_times(speed, step_speed_th, precise_th=12):
     return step_times(precise_starts, precise_ends)
 
 
-def get_diagonal_steps(hind, fore, hind_speed, fore_speed):
+def get_diagonal_steps(hind, fore):
     """
         Given the start/end times of the swing 
         phases for a hind paw and a (diagonally
@@ -139,7 +136,6 @@ def get_diagonal_steps(hind, fore, hind_speed, fore_speed):
 
         Arguments: 
             hind/fore: step_times namedtuples with start/end of steps
-            hind/fore_speed: 1d numpy arrays with paw speed
     """
     # get an arr that is 1 when either is stepping
     last = max(hind.ends[-1], fore.ends[-1])
@@ -175,7 +171,6 @@ def get_diagonal_steps(hind, fore, hind_speed, fore_speed):
                 fore_end=[end for end in fore.ends if end <= e][-1],
                 hind_start=[start for start in hind.starts if start >= s][0],
                 hind_end=[end for end in hind.ends if end <= e][-1],
-                pearsonr=pearsonr(fore_speed[s:e], hind_speed[s:e])[0],
             )
         except Exception:
             continue
