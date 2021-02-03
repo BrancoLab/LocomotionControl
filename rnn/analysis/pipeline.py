@@ -25,6 +25,7 @@ from rnn.analysis._visuals import (
     plot_outputs,
     plot_rnn_weights,
 )
+from rnn.dataset import plot_predictions
 
 """
     A standardized set of analyses to run on any RNN
@@ -230,6 +231,11 @@ class Pipeline:
         return h, X, O, Y
 
     def plot(self):
+        # plot predictions
+        for i in range(10):
+            f = plot_predictions(self.rnn, self.dataset)
+            self._show_save_plot(f, f"predictions_{i}.png", _show=False)
+
         # plot network inputs
         f = plot_inputs(
             self.X[self.idx_to_visualize, :, :], self.dataset.inputs_names
@@ -268,8 +274,7 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_124118_RNN_highLR_dataset_predict_PNN_from_RPsy"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_162557_RNN_ctime_largerLR_dataset_predict_PNN_from_RPsy"
 
     fps_kwargs = dict(max_fixed_points=3, max_iters=6000, lr_decay_epoch=1500,)
 

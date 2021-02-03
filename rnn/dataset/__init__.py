@@ -11,6 +11,7 @@ from myterial import (
     amber_dark,
     brown,
     brown_dark,
+    amber_darker,
 )
 import matplotlib.pyplot as plt
 from pyrnn._plot import clean_axes
@@ -27,6 +28,10 @@ def plot_predictions(model, dataset):
     Run the model on a single batch and plot
     the model's prediction's against the
     input data and labels.
+
+    Arguments:
+        model: a trained RNN
+        dataset: a dataset
     """
     X, Y = dataset._get_random()
 

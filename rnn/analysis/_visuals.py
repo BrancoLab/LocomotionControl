@@ -6,7 +6,17 @@ import numpy as np
 from fcutils.plot.figure import clean_axes
 from fcutils.plot.elements import plot_line_outlined
 
-from myterial import salmon, purple, indigo, cyan, orange, amber
+from myterial import (
+    salmon,
+    cyan,
+    orange,
+    red_dark,
+    purple_dark,
+    indigo_dark,
+    green_dark,
+    brown,
+    blue_grey_dark,
+)
 
 from pyrnn._utils import npify
 
@@ -14,20 +24,20 @@ from pyrnn._utils import npify
     Visualization and plotting code for RNN analysis
 """
 COLORS = dict(
-    x=purple,
-    y=indigo,
-    r=purple,
-    psy=indigo,
-    v=orange,
-    omega=amber,
+    x=red_dark,
+    y=purple_dark,
+    r=red_dark,
+    psy=purple_dark,
+    v=indigo_dark,
+    omega=cyan,
     theta=cyan,
     tau_R=orange,
     tau_L=salmon,
     nudot_R=orange,
     nudot_L=salmon,
-    P=orange,
-    N_R=salmon,
-    N_L=indigo,
+    P=green_dark,
+    N_R=brown,
+    N_L=blue_grey_dark,
 )
 
 

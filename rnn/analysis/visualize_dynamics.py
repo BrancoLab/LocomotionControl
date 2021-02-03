@@ -171,6 +171,7 @@ class DynamicsVis(Pipeline):
             [W_in[n, :] for n in range(W_in.shape[0])],
             self.input_names,
             [COLORS[l] for l in self.input_names],
+            scale=0.1,
         )
 
         # render output weights
@@ -180,7 +181,7 @@ class DynamicsVis(Pipeline):
             self.output_names,
             [COLORS[l] for l in self.output_names],
             scale=50,
-            showplane=True,
+            showplane=False,
             showline=False,
         )
 
@@ -305,25 +306,17 @@ class DynamicsVis(Pipeline):
 
         # plot readout directions
         out = pca.transform(self.W_out)
-        scale = 300
-        ax.arrow(
-            0,
-            0,
-            out[0, 0 * scale],
-            out[0, 1] * scale,
-            color=COLORS[self.output_names[0]],
-            width=0.25,
-            label=self.output_names[0],
-        )
-        ax.arrow(
-            0,
-            0,
-            out[1, 0] * scale,
-            out[1, 1] * scale,
-            color=COLORS[self.output_names[1]],
-            width=0.25,
-            label=self.output_names[1],
-        )
+        scale = 200
+        for n in range(out.shape[0]):
+            ax.arrow(
+                0,
+                0,
+                out[n, 0 * scale],
+                out[n, 1] * scale,
+                color=COLORS[self.output_names[n]],
+                width=0.25,
+                label=self.output_names[n],
+            )
 
         ax.legend()
         ax.set(xlabel="PC1", ylabel="PC2")
@@ -371,8 +364,7 @@ class DynamicsVis(Pipeline):
 
 
 if __name__ == "__main__":
-    # fld = r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\RNN\trained\210113_175110_RNN_train_inout_dataset_predict_tau_from_deltaXYT"
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_124118_RNN_highLR_dataset_predict_PNN_from_RPsy"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_162447_RNN_ctime_largeLR_dataset_predict_PNN_from_RPsy"
 
     # TODO figure out why angle of W_out projections looks different in 2 and 3 dimensions
 
