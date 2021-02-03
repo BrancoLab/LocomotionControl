@@ -41,7 +41,7 @@ def transform(d, scale=True, start=0, end=-1):
     except Exception:
         pass
 
-    d = rolling_mean(d[start:end], 5)
+    d = d[start:end]
 
     if scale:
         return d * cm_per_px

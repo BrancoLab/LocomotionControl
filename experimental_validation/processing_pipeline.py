@@ -225,9 +225,9 @@ class ProcessingPipeline:
                 # process data
                 tracking = prepare_tracking_data(
                     str(fpath),
-                    likelihood_th=0.999,
-                    median_filter=True,
-                    filter_kwargs={"kernel_size": 11},
+                    likelihood_th=0.8,
+                    median_filter=False,
+                    filter_kwargs=None,
                     compute=True,
                     smooth_dir_mvmt=True,
                     interpolate_nans=True,

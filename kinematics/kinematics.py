@@ -4,6 +4,7 @@ from loguru import logger
 from celluloid import Camera
 from matplotlib.patches import Polygon
 import sys
+from PIL import Image
 
 
 from fcutils.maths import coordinates
@@ -24,6 +25,7 @@ from myterial import (
 
 sys.path.append("./")
 from experimental_validation.trials import Trials, BodyPart
+from experimental_validation._tracking import cm_per_px
 
 
 PAW_COLORS = dict(
@@ -84,7 +86,7 @@ class Kinematics:
         """
         return coordinates.R(self.trial.orientation[frame] + 180)
 
-    def get_frames(self, frame):
+    def get_video_frames(self, frame):
         """
             Gets the video frame from the trial video and rotates/crops it
             to align it with the egocentric view
@@ -98,7 +100,19 @@ class Kinematics:
         """
         whole_frame = get_cap_selected_frame(self.video, frame)
 
-        return whole_frame, None
+        # crop and rotate frame for egocentric view
+        ego_frame = Image.fromarray(whole_frame)
+
+        cut = int(10 * 1 / cm_per_px)
+        x = int(self.trial.body.x[frame - self.trial.start] * 1 / cm_per_px)
+        y = int(self.trial.body.y[frame - self.trial.start] * 1 / cm_per_px)
+        ego_frame = ego_frame.crop(box=(x - cut, y - cut, x + cut, y + cut))
+
+        ego_frame = ego_frame.rotate(
+            -self.trial.orientation[frame - self.trial.start] + 180
+        )
+
+        return whole_frame, ego_frame
 
     def bparts_positions(self, frame, egocentric=False):
         """
@@ -138,11 +152,11 @@ class Kinematics:
             Argument:
                 fps = int. Fps of animation
         """
-        logger.info("Creating animation")
+        logger.info(f"Creating animation: {self.trial.n_frames} frames")
         f, axarr = plt.subplots(ncols=2, figsize=(12, 8))
         camera = Camera(f)
 
-        axarr[0].set(xlim=[0, 40], ylim=[0, 80])
+        axarr[0].set(xlim=[0, 45], ylim=[0, 65])
         axarr[1].set(xlim=[-10, 10], ylim=[-10, 10])
 
         for frame in track(
@@ -155,8 +169,9 @@ class Kinematics:
             bps_ego = self.bparts_positions(frame, egocentric=True)
 
             # draw video frames
-            whole, rotated = self.get_frames(frame + self.trial.start)
-            axarr[0].imshow(whole, origin="upper", extent=(0, 40, 0, 80))
+            whole, rotated = self.get_video_frames(frame + self.trial.start)
+            axarr[0].imshow(whole, origin="lower", extent=(0, 45, 0, 65))
+            axarr[1].imshow(rotated, origin="lower", extent=(-10, 10, -10, 10))
 
             # draw mouse
             _names = (self.trial.head_names, self.trial.body_names)
@@ -179,7 +194,7 @@ class Kinematics:
             # draw each PAW
             for name, bp in bps.items():
                 color = PAW_COLORS[name]
-                if name in self.trial.paws_names:
+                if name in self.trial.paws_names or name == "body":
                     s, lw, alpha = 160, 1, 1
                 else:
                     s, lw, alpha = 80, 0.4, 0.8
@@ -206,15 +221,15 @@ class Kinematics:
             # draw lines between paws
             for side, (bp1, bp2) in self.segments.items():
                 if side in ("B", "B2"):
-                    lw = 10
-                else:
                     lw = 5
+                else:
+                    lw = 3
 
                 axarr[0].plot(
                     [bps[bp1].x, bps[bp2].x],
                     [bps[bp1].y, bps[bp2].y],
                     lw=lw,
-                    zorder=-1,
+                    zorder=100,
                     color=PAW_COLORS[side],
                     solid_capstyle="round",
                 )
@@ -223,7 +238,7 @@ class Kinematics:
                     [bps_ego[bp1].x, bps_ego[bp2].x],
                     [bps_ego[bp1].y, bps_ego[bp2].y],
                     lw=lw,
-                    zorder=-1,
+                    zorder=100,
                     color=PAW_COLORS[side],
                     solid_capstyle="round",
                 )
@@ -236,10 +251,7 @@ class Kinematics:
         logger.debug("done")
 
 
-# TODO: animation add video frames
-# TODO: animation make plots pretty
-
 if __name__ == "__main__":
-    trial = Trials()[-1]
+    trial = Trials(only_tracked=True)[0]
     kin = Kinematics(trial)
-    kin.animate(fps=4)
+    kin.animate(fps=20)
