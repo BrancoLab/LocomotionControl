@@ -52,6 +52,10 @@ class Manager:
         self.to_db = to_db
         self.winstor = winstor
 
+        self.world = World(
+            self.trials_cache, trialn, trajectory=trajectory_file
+        )
+
         # Set up
         # setup experiment name
         if config.TRAJECTORY_CONFIG["traj_type"] == "tracking" and winstor:
@@ -75,9 +79,7 @@ class Manager:
 
         # Set up classes
         self.history = History()
-        self.world = World(
-            self.trials_cache, trialn, trajectory=trajectory_file
-        )
+
         self.model = Model()
         self.controller = Controller(self.model)
 
