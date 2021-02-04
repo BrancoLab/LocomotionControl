@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 if sys.platform == "darwin":
-    trials_cache = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/behav_data/psychometric_trials_augmented.h5"
+    trials_cache = "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion/behav_data/trials_cache.h5"
 
     main_fld = Path(
         "/Users/federicoclaudi/Dropbox (UCL - SWC)/Rotation_vte/Locomotion"
@@ -18,7 +18,7 @@ if sys.platform == "darwin":
     )
 else:
     trials_cache = Path(
-        "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\behav_data\\psychometric_trials_augmented.h5"
+        "Z:\\swc\\branco\\Federico\\Locomotion\\control\\trials_cache.h5"
     )
 
     main_fld = Path(
@@ -37,6 +37,8 @@ analysis_fld = str(Path(main_fld) / "analysis")
 
 # winstor paths
 winstor_main = Path("/nfs/winstor/branco/Federico/Locomotion/control/data")
-winstor_trial_cache = "/nfs/winstor/branco/Federico/Locomotion/control/psychometric_trials_augmented.h5"
+winstor_trial_cache = (
+    "/nfs/winstor/branco/Federico/Locomotion/control/trials_cache.h5"
+)
 winstor_rnn = "/nfs/winstor/branco/Federico/Locomotion/control/RNN"
 winstor_db_app = ""

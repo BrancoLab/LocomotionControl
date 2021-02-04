@@ -56,7 +56,7 @@ trials = Trials(only_tracked=True)
 # collate all trials and plot them
 f, ax = plt.subplots(figsize=(10, 10))
 
-collated = dict(ID=[], x=[], y=[], theta=[], v=[], omega=[])
+collated = dict(ID=[], x=[], y=[], theta=[], v=[], omega=[], fps=[])
 n = 0
 for trial in track(trials, description="Collating", transient=True):
     # smooth variables
@@ -85,6 +85,7 @@ for trial in track(trials, description="Collating", transient=True):
     collated["theta"].append(theta)
     collated["v"].append(v)
     collated["omega"].append(omega)
+    collated["fps"].append(60)
 
     ax.plot(x, y)
 

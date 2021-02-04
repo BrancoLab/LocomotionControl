@@ -148,15 +148,16 @@ def from_tracking(cache_file, trialn=None):
     x = trial.x * px_to_cm
     y = trial.y * px_to_cm
 
-    angle = interpolate_nans(trial.orientation)
+    angle = interpolate_nans(trial.theta)
     angle = np.radians(90 - angle)
     angle = np.unwrap(angle)
 
-    speed = trial.speed * fps * px_to_cm
+    speed = trial.v * fps * px_to_cm
     ang_speed = derivative(angle)
 
     # resample variables so that samples are uniformly distributed
-    vrs = (x, y, angle, speed, ang_speed)
+    zeros = np.zeros_like(speed) * 0.001  # to avoid 0 in divisions
+    vrs = (x, y, angle, speed, ang_speed, zeros, zeros)
     t = np.arange(len(x))
     vrs = [
         calc_bezier_path(
@@ -164,11 +165,6 @@ def from_tracking(cache_file, trialn=None):
         )
         for v in vrs
     ]
-
-    # get 0 vectors for tau
-    # zeros = np.zeros_like(v) * 0.001  # to avoid 0 in divisions
-
-    raise NotImplementedError("Add 0s")
 
     # stack
     trajectory = np.vstack(vrs).T
