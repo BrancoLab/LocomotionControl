@@ -11,9 +11,10 @@ from fcutils.maths.signals import rolling_mean, derivative
 sys.path.append("./")
 
 from experimental_validation import paths
-from experimental_validation._tracking import transform, unwrap, cm_per_px, fps
+from experimental_validation._tracking import transform, unwrap, fps
 
 from kinematics.bodypart import BodyPart
+from kinematics.fixtures import BODY_PARTS_NAMES
 
 
 class Trial:
@@ -74,6 +75,9 @@ class Trial:
     def __rich__(self):
         return f"Trial: [{orange}]{self.name}"
 
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
     @property
     def whole_session_tracking(self):
         if self.whole_session_tracking_path is not None:
@@ -123,7 +127,7 @@ class Trial:
             Cleans up and organizes the tracking data for easier use
         """
         # get each body part
-        for bp in self.bp_names:
+        for bp in BODY_PARTS_NAMES:
             setattr(
                 self,
                 bp,

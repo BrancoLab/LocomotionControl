@@ -37,3 +37,10 @@ BODY_PARTS_COLORS = dict(
     left_paws="k",
     right_paws="k",
 )
+
+PAWS_COLORS = dict(
+    left_fl=salmon_darker,
+    right_fl=indigo_darker,
+    left_hl=salmon,
+    right_hl=indigo,
+)

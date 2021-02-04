@@ -28,6 +28,7 @@ from kinematics.fixtures import (
     PAWS_NAMES,
 )
 from kinematics.bodypart import BodyPart
+from kinmeatics.plot_utils import point, line
 
 
 class Kinematics:
@@ -186,18 +187,18 @@ class Kinematics:
                 else:
                     s, lw, alpha = 80, 0.4, 0.8
 
-                axarr[0].scatter(
-                    bp.x,
-                    bp.y,
+                point(
+                    bp,
+                    axarr[0],
                     s=int(s / 3),
                     color=color,
                     lw=lw,
                     edgecolors=[0.2, 0.2, 0.2],
                     alpha=alpha,
                 )
-                axarr[1].scatter(
-                    bps_ego[name].x,
-                    bps_ego[name].y,
+                point(
+                    bps_ego[name],
+                    axarr[1],
                     s=s,
                     color=color,
                     lw=lw,
@@ -212,22 +213,21 @@ class Kinematics:
                 else:
                     lw = 3
 
-                axarr[0].plot(
-                    [bps[bp1].x, bps[bp2].x],
-                    [bps[bp1].y, bps[bp2].y],
+                line(
+                    bps[bp1],
+                    bps[bp2],
+                    axarr[0],
                     lw=lw,
                     zorder=100,
                     color=BODY_PARTS_COLORS[side],
-                    solid_capstyle="round",
                 )
-
-                axarr[1].plot(
-                    [bps_ego[bp1].x, bps_ego[bp2].x],
-                    [bps_ego[bp1].y, bps_ego[bp2].y],
+                line(
+                    bps_ego[bp1],
+                    bps_ego[bp2],
+                    axarr[1],
                     lw=lw,
                     zorder=100,
                     color=BODY_PARTS_COLORS[side],
-                    solid_capstyle="round",
                 )
 
             camera.snap()

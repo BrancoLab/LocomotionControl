@@ -10,25 +10,18 @@ from fcutils.plot.figure import (
     clean_axes,
 )
 
-from myterial import (
-    salmon_darker,
-    indigo_darker,
-    indigo,
-    salmon,
-    blue_grey_darker,
-)
+from myterial import blue_grey_darker
 
 sys.path.append("./")
 
-from experimental_validation._plot_utils import (
-    draw_paws_steps,
-    draw_mouse,
-    mark_steps,
-)
-from experimental_validation._steps_utils import print_steps_summary
+from experimental_validation._plot_utils import draw_tracking
 from experimental_validation.trials import Trials
 from experimental_validation import paths
+
 from kinematics.steps import Steps
+from kinematics.plot_utils import draw_mouse, mark_steps, draw_paws_steps_XY
+from kinematics.fixtures import PAWS_COLORS
+from kinematics._steps import print_steps_summary
 
 """
     Code to extracts steps data from tracking of mice running
@@ -37,15 +30,6 @@ from kinematics.steps import Steps
 
 fps = 60
 step_speed_th = 25  # cm / s
-
-
-paws = ("left_fl", "right_fl", "left_hl", "right_hl")
-paw_colors = {
-    "left_fl": indigo_darker,
-    "right_fl": salmon_darker,
-    "left_hl": salmon,
-    "right_hl": indigo,
-}
 
 
 def run(save_folder):
@@ -58,9 +42,6 @@ def run(save_folder):
     # loop over trials
     logger.info(f"Starting steps analysis of {trials}")
     for n, trial in enumerate(trials):
-        # if n != 2:
-        #     continue
-
         logger.info(f"Analyzing {trial}")
         if not trial.has_tracking or not trial.good:
             logger.info("Trial doesnt have tracking or is bad.")
@@ -90,18 +71,17 @@ def run(save_folder):
         ) = steps.extract_steps()
 
         # draw mouse and steps
+        if trial.whole_session_tracking is not None:
+            draw_tracking(trial.whole_session_tracking, tracking_ax)
+
         draw_mouse(
-            tracking_ax,
-            trial.tracking,
-            trial.whole_session_tracking,
-            step_starts,
-        )
-        draw_paws_steps(
-            paw_colors, tracking_ax, trial.tracking, step_starts, trial.start
+            trial, tracking_ax, step_starts,
         )
 
+        draw_paws_steps_XY(trial, tracking_ax, step_starts, trial.start)
+
         # Plot paw speeds
-        for n, (paw, color) in enumerate(paw_colors.items()):
+        for n, (paw, color) in enumerate(PAWS_COLORS.items()):
             if "_fl" in paw:
                 alpha = 0.2
             else:
@@ -148,7 +128,7 @@ def run(save_folder):
                 -10 * (n + 1),
                 paw,
                 5,
-                color=paw_colors[paw],
+                color=PAWS_COLORS[paw],
                 alpha=0.9,
                 zorder=-1,
                 lw=2,
