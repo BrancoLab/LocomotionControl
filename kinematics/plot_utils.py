@@ -3,7 +3,7 @@ from matplotlib.collections import PatchCollection
 import numpy as np
 from vedo.colors import colorMap
 
-from fcutils.plotting.plot_element import plot_line_outlined
+from fcutils.plot.elements import plot_line_outlined
 
 from myterial import (
     indigo,
@@ -13,28 +13,43 @@ from myterial import (
     teal_darker,
 )
 
-from kinematics.fixtures import BODY_PARTS_NAMES, PAWS_COLORS
+
+from kinematics.fixtures import BODY_NAMES, PAWS_COLORS
 
 
-def line(bp1, bp2, ax, tracking, frames, **kwargs):
+def line(bp1, bp2, ax, frames=None, **kwargs):
     """ deaw a line between body parts
         given a tracking dataframe and selected frames
     """
-    x1 = tracking[bp1].x[frames]
-    y1 = tracking[bp1].y[frames]
-    x2 = tracking[bp2].x[frames]
-    y2 = tracking[bp2].y[frames]
+    if frames is None:
+        frames = np.zeros(1)
+
+    try:
+        x1 = bp1.x[frames]
+        y1 = bp1.y[frames]
+        x2 = bp2.x[frames]
+        y2 = bp2.y[frames]
+    except IndexError:
+        x1, y1 = bp1.x, bp1.y
+        x2, y2 = bp2.x, bp2.y
 
     ax.plot([x1, x2], [y1, y2], solid_capstyle="round", **kwargs)
 
 
-def point(bp, ax, tracking, frames, **kwargs):
+def point(bp, ax, frames=None, **kwargs):
     """
         Draw a scatter point over  a body part
         given a tracking dataframe and selected frames
     """
-    x = tracking[bp].x[frames]
-    y = tracking[bp].y[frames]
+    if frames is None:
+        frames = np.zeros(1)
+
+    try:
+        x = bp.x[frames]
+        y = bp.y[frames]
+    except IndexError:
+        # only one frame in data
+        x, y = bp.x, bp.y
 
     ax.scatter(x, y, **kwargs)
 
@@ -54,7 +69,7 @@ def draw_mouse(trial, ax, frames, bps=None, **kwargs):
             bps: list of str of body parts names
     """
     # plot body outline
-    bps = bps or BODY_PARTS_NAMES
+    bps = bps or BODY_NAMES
     patches = []
     for n in frames:
         x = [trial[bp].x[n] for bp in bps]
@@ -62,7 +77,7 @@ def draw_mouse(trial, ax, frames, bps=None, **kwargs):
         patches.append(Polygon(np.vstack([x, y]).T, True, lw=None, zorder=-5))
 
     p = PatchCollection(
-        patches, alpha=0.3, color=blue_grey_darker, lw=None, zorder=-5
+        patches, alpha=0.1, color=blue_grey_darker, lw=None, zorder=-5
     )
     ax.add_collection(p)
 
@@ -93,7 +108,7 @@ def draw_mouse(trial, ax, frames, bps=None, **kwargs):
     )
 
 
-def draw_paws_steps_XY(trial, ax, step_starts, start):
+def draw_paws_steps_XY(trial, ax, step_starts):
     """
         Plot the position of paws and lines between them
         on the XY plane
@@ -125,16 +140,13 @@ def draw_paws_steps_XY(trial, ax, step_starts, start):
     )
 
 
-def mark_steps(ax, starts, ends, y, side, scale, noise=0, **kwargs):
+def mark_steps(ax, starts, ends, y, scale, noise=0, **kwargs):
     """
         Draw lines to mark when steps start/end
 
         Y is the height in the plot where the horix lines are drawn
     """
     starts, ends = list(starts), list(ends)
-
-    # mark which side it is
-    ax.text(0, y, side, horizontalalignment="left")
 
     _color = kwargs.pop("color", None)
     # mark each step

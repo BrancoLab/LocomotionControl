@@ -4,10 +4,10 @@ dt = 0.005
 px_to_cm = 1 / 8
 PARAMS = dict(dt=dt, px_to_cm=px_to_cm)
 
-MANAGER_CONFIG = dict(exp_name="SIMULATED", live_plot=False,)
+MANAGER_CONFIG = dict(exp_name="TRACKING", live_plot=False,)
 
 TRAJECTORY_CONFIG = dict(
-    traj_type="simulated",  # tracking or simulated # ! CHECK BEFORE REAL
+    traj_type="tracking",  # tracking or simulated # ! CHECK BEFORE REAL
     n_steps=1000,
     min_dist=5,  # when within this distance from end, stop
 )

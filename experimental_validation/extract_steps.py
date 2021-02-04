@@ -9,19 +9,21 @@ from fcutils.plot.figure import (
     set_figure_subplots_aspect,
     clean_axes,
 )
-
+from fcutils.plot.figure import save_figure
 from myterial import blue_grey_darker
+from fcutils.progress import track
+from fcutils.maths.signals import rolling_mean
 
 sys.path.append("./")
 
 from experimental_validation._plot_utils import draw_tracking
 from experimental_validation.trials import Trials
-from experimental_validation import paths
+from experimental_validation._tracking import cm_per_px
 
 from kinematics.steps import Steps
 from kinematics.plot_utils import draw_mouse, mark_steps, draw_paws_steps_XY
 from kinematics.fixtures import PAWS_COLORS
-from kinematics._steps import print_steps_summary
+from kinematics._steps import print_steps_summary, stride_length
 
 """
     Code to extracts steps data from tracking of mice running
@@ -29,23 +31,25 @@ from kinematics._steps import print_steps_summary
 
 
 fps = 60
-step_speed_th = 25  # cm / s
+step_speed_th = 25  # cm / s | steps are considered if peak speed > this
+precise_th = 9  # cm / s | to find precise step times
 
 
-def run(save_folder):
-    # Get paths
-    analysis_folder = paths.folder_2WDD / "ANALYSIS"
-    analysis_folder.mkdir(exist_ok=True)
-
+def extract_all(save_folder):
     trials = Trials()
 
     # loop over trials
     logger.info(f"Starting steps analysis of {trials}")
-    for n, trial in enumerate(trials):
+    for n, trial in track(enumerate(trials), total=len(trials)):
         logger.info(f"Analyzing {trial}")
         if not trial.has_tracking or not trial.good:
             logger.info("Trial doesnt have tracking or is bad.")
             continue
+
+        # smooth things
+        trial.orientation = rolling_mean(trial.orientation, 4)
+        trial.v = rolling_mean(trial.v, 4)
+        trial.speeds = {k: rolling_mean(v, 4) for k, v in trial.speeds.items()}
 
         # make figure
         (
@@ -67,18 +71,19 @@ def run(save_folder):
             L_diagonal_steps,
             diagonal_steps,
             diag_data,
-            step_starts,
-        ) = steps.extract_steps()
+            step_starts_R,
+            step_starts_L,
+        ) = steps.extract_steps(step_speed_th, precise_th=precise_th)
 
         # draw mouse and steps
         if trial.whole_session_tracking is not None:
             draw_tracking(trial.whole_session_tracking, tracking_ax)
 
         draw_mouse(
-            trial, tracking_ax, step_starts,
+            trial, tracking_ax, step_starts_R,
         )
 
-        draw_paws_steps_XY(trial, tracking_ax, step_starts, trial.start)
+        draw_paws_steps_XY(trial, tracking_ax, step_starts_R)
 
         # Plot paw speeds
         for n, (paw, color) in enumerate(PAWS_COLORS.items()):
@@ -98,16 +103,17 @@ def run(save_folder):
                 label=paw,
             )
         paws_ax.plot(
-            trial.body.speed,
+            trial.v,
             color=blue_grey_darker,
             lw=2,
             alpha=1,
             label="body",
             zorder=-1,
         )
-        paws_ax.legend()
         cum_speeds_ax.legend()
-        paws_ax.axhline(step_speed_th, lw=1, ls=":", color="k", zorder=-1)
+        paws_ax.axhline(step_speed_th, lw=2, ls="--", color="k", zorder=-1)
+        paws_ax.axhline(precise_th, lw=1, ls=":", color="k", zorder=-1)
+
         paws_ax.axhline(0, lw=2, color="k", zorder=1)
 
         # Plot orientation delta
@@ -121,15 +127,18 @@ def run(save_folder):
 
         # draw steps times
         for n, (paw, steps) in enumerate(swing_phases.items()):
+            if "hl" in paw:
+                alpha = 1
+            else:
+                alpha = 0.2
             mark_steps(
                 paws_ax,
                 steps.starts,
                 steps.ends,
                 -10 * (n + 1),
-                paw,
                 5,
                 color=PAWS_COLORS[paw],
-                alpha=0.9,
+                alpha=alpha,
                 zorder=-1,
                 lw=2,
             )
@@ -140,7 +149,6 @@ def run(save_folder):
             R_diagonal_steps.starts,
             R_diagonal_steps.ends,
             -80,
-            "Diag.",
             5,
             noise=0,
             alpha=1,
@@ -154,7 +162,6 @@ def run(save_folder):
             L_diagonal_steps.starts,
             L_diagonal_steps.ends,
             -80 + -80 / 5,
-            "Diag.",
             5,
             noise=0,
             alpha=1,
@@ -181,12 +188,10 @@ def run(save_folder):
             else:
                 right, left = step["paws"]
 
-            r_stride = np.sum(
-                trial.right_hl.truncate(step["start"], step["end"]).speed
+            r_stride = stride_length(
+                trial.right_hl, step["start"], step["end"]
             )
-            l_stride = np.sum(
-                trial.left_hl.truncate(step["start"], step["end"]).speed
-            )
+            l_stride = stride_length(trial.left_hl, step["start"], step["end"])
 
             summary["stride_delta"].append(l_stride - r_stride)
 
@@ -235,11 +240,14 @@ def run(save_folder):
         # print steps data and save
         print_steps_summary(summary)
         pd.DataFrame(summary).to_hdf(
-            save_folder / (trial.name + ".h5"), key="hdf"
+            save_folder / (trial.name + "_extracted_steps.h5"), key="hdf"
         )
+        save_figure(f, save_folder / (trial.name + "_extracted_steps"))
+        plt.close(f)
+        del f
 
-        plt.show()
-        break
+        # plt.show()
+        # break
 
 
 # ----------------------------- utility functions ---------------------------- #
@@ -258,14 +266,14 @@ def make_figure():
     turn_hist_ax = f.add_subplot(gs[1, 4])
     stride_hist_ax = f.add_subplot(gs[2, 4])
 
-    x, y = 5, 45  # axes lims for summary plot
+    x, y = 10, 45  # axes lims for summary plot
     turn_ax.set(  # summary ax
         title="stride difference vs turn angle",
-        xlim=[-x, x],
+        # xlim=[-x, x],
         xticks=[-x, 0, x],
         xticklabels=[f"R>L\n{-x}", "R=L\n0", f"R<L\n{x}"],
         xlabel="(L-R) stride-delta\m(cm)",
-        ylim=[-y, y],
+        # ylim=[-y, y],
         yticks=[-y, 0, y],
         yticklabels=[f"turn\nleft\n{-y}", "no\nturn\n0", f"turn\nright\n{y}"],
         ylabel="(end-start) angle-delta\n(deg)",
@@ -273,13 +281,15 @@ def make_figure():
     turn_ax.axvline(0, ls="--", color=[0.5, 0.5, 0.5])
     turn_ax.axhline(0, ls="--", color=[0.5, 0.5, 0.5])
 
+    tracking_ax.set(xlim=[-10, 45], ylim=[0, 65], xlabel="cm", ylabel="cm")
+
     # tracking_ax.axis("off")
     paws_ax.set(title="paw speed", ylabel="speed\ncm/s", xlabel="Time\nframes")
     cum_speeds_ax.set(
         title="Dist.travelled", ylabel="Distance\ncm", xlabel="Time\nframes"
     )
     ori_ax.set(
-        title="orientation", ylabel="ang\ndegrees", xlabel="Time\nframes"
+        title="orientation", ylabel="$\Delta angle$", xlabel="Time\nframes"
     )
     turn_hist_ax.set(
         title="turn angle hist", ylabel="count", xlabel="turn angle"
@@ -292,7 +302,12 @@ def make_figure():
     # to denote arena areas
     for mark in (1850, 1600, 1300, 1050, 450, 380):
         tracking_ax.axhline(
-            mark, lw=5, ls="--", color=[0.3, 0.3, 0.3], alpha=0.1, zorder=-1
+            mark * cm_per_px,
+            lw=5,
+            ls="--",
+            color=[0.3, 0.3, 0.3],
+            alpha=0.1,
+            zorder=-1,
         )
 
     set_figure_subplots_aspect(wspace=0.6, hspace=0.4)
@@ -314,4 +329,4 @@ if __name__ == "__main__":
     save_folder = Path(
         "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\experimental_validation\\2WDD\\analysis"
     )
-    run(save_folder)
+    extract_all(save_folder)

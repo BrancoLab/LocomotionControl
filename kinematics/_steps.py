@@ -9,6 +9,27 @@ from rich.box import SIMPLE_HEAD
 from myterial import blue, salmon, pink_light
 
 from fcutils.maths.signals import derivative
+from fcutils.maths.geometry import calc_distance_between_points_2d
+
+
+def stride_length(paw, start, end):
+    """
+        Computes the length of a paw's stride
+        by measuring the distance between the paws's
+        position at the start and end of a step
+
+        Arguments:
+            paw: BodyPart object1
+            start, end: int. Start and end frames
+
+        Returns:
+            stride: float. 
+    """
+    pstart = paw.at_frame(start)
+    pend = paw.at_frame(end)
+    stride = calc_distance_between_points_2d(pstart.xy, pend.xy)
+    return stride
+
 
 # ----------------------------------- misc ----------------------------------- #
 

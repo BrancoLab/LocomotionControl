@@ -18,13 +18,16 @@ from kinematics.fixtures import BODY_PARTS_NAMES
 
 
 class Trial:
-    def __init__(self, name, info):
+    def __init__(self, name, info, tracking_path=None, get_endpoints=True):
         """
             Represents a single trial, with pointers to its metadata, files etc.
 
             Arguments:
                 name: str. Trial name.
                 info: dict. Metadata
+                tracking_path: str, Path. Path to tracking data
+                get_endpoints: bool. If true trial start/end are extracted from
+                    tracking to get when mouse is locomoting
         """
         self.name = name
         self.session_name = name.split("_trial")[0]
@@ -34,7 +37,9 @@ class Trial:
         self.trial_video = files(paths.TRIALS_CLIPS, f"{name}.mp4")
 
         # get tracking data
-        tracking_path = files(paths.TRIALS_CLIPS, f"{name}_tracking.h5")
+        tracking_path = tracking_path or files(
+            paths.TRIALS_CLIPS, f"{name}_tracking.h5"
+        )
         if tracking_path is not None:
             self.has_tracking = True
             self.tracking = pd.read_hdf(tracking_path, key="hdf")
@@ -59,7 +64,11 @@ class Trial:
 
         # clean up tracking data
         if self.has_tracking:
-            self.get_start_and_end()
+            if get_endpoints:
+                self.get_start_and_end()
+            else:
+                self.start, self.end = 0, len(self.tracking["body_speed"])
+                self.good = True
 
             if self.good:
                 self.cleanup_tracking()
@@ -78,6 +87,11 @@ class Trial:
     def __getitem__(self, key):
         return self.__dict__[key]
 
+    def __len__(self):
+        if self.has_tracking:
+            return len(self.body.x)
+        return None
+
     @property
     def whole_session_tracking(self):
         if self.whole_session_tracking_path is not None:
@@ -94,7 +108,7 @@ class Trial:
         """
         y = transform(self.tracking["body_y"], start=0, scale=False)
         try:
-            start = np.where(y > 1350)[0][-1]
+            start = np.where(y > 1400)[0][-1]
             end = np.where(y > 300)[0][-1]
 
             # check if the mouse stops in this interval
@@ -136,7 +150,7 @@ class Trial:
 
         # get body orientation
         self.orientation = transform(
-            unwrap(self.tracking["body_whole_bone_orientation"]),
+            unwrap(self.tracking["body_lower_bone_orientation"]),
             scale=False,
             start=self.start,
             end=self.end,
@@ -163,8 +177,10 @@ class Trials:
             Loads and stores all trials and metadata
         """
         self.trecords = from_json(paths.trials_records)
-
-        logger.info(f"Found metadata for {len(self.trecords)} trials")
+        n_good = len([t for t in self.trecords.values() if t["good"]])
+        logger.info(
+            f"Found metadata for {len(self.trecords)} trials [{n_good} good ones]"
+        )
 
         self.trials = [
             Trial(name, info)

@@ -9,7 +9,9 @@ from experimental_validation._tracking import cm_per_px, fps
 
 
 class BodyPart:
-    def __init__(self, bpname, tracking=None, start=0, end=-1):
+    def __init__(
+        self, bpname, tracking=None, start=0, end=-1, smooth_window=5
+    ):
         """
             Represents tracking data of a single body part
         """
@@ -28,6 +30,19 @@ class BodyPart:
             self.x = self.x[start:end]
             self.y = self.y[start:end]
             self.speed = self.speed[start:end]
+
+    def __repr__(self):
+        return "BodyPart: " + self.name + f" [{len(self)}] "
+
+    def __str__(self):
+        return self.name
+
+    def __len__(self):
+        return len(self.x)
+
+    @property
+    def xy(self):
+        return np.vstack([self.x, self.y])
 
     @classmethod
     def from_data(cls, name, x, y, speed):

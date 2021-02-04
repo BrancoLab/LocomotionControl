@@ -129,7 +129,7 @@ def simulated():
 # ------------------------------ From real data ------------------------------ #
 
 
-def from_tracking(cache_fld, trialn=None):
+def from_tracking(cache_file, trialn=None):
     """
         Get a trajectory from real tracking data, cleaning it up
         a little in the process.
@@ -137,7 +137,7 @@ def from_tracking(cache_fld, trialn=None):
     logger.debug(f"Loading trajectory from tracing. Trial number: {trialn}")
 
     # Get a trial
-    trials = pd.read_hdf(cache_fld, key="hdf")
+    trials = pd.read_hdf(cache_file, key="hdf")
     if trialn is None:
         trial = trials.sample().iloc[0]
     else:

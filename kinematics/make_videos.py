@@ -17,8 +17,9 @@ from myterial import (
 )
 
 sys.path.append("./")
-from experimental_validation.trials import Trials
 from experimental_validation._tracking import cm_per_px
+from experimental_validation.trials import Trials
+from experimental_validation.paths import analysis_folder
 
 from kinematics.fixtures import (
     BODY_PARTS_NAMES,
@@ -28,7 +29,7 @@ from kinematics.fixtures import (
     PAWS_NAMES,
 )
 from kinematics.bodypart import BodyPart
-from kinmeatics.plot_utils import point, line
+from kinematics.plot_utils import point, line
 
 
 class Kinematics:
@@ -53,6 +54,7 @@ class Kinematics:
 
         # get the video
         self.video = get_cap_from_file(self.trial.trial_video)
+        self.save_path = analysis_folder / f"{self.trial.name}_kinematics.mp4"
 
     def T(self, frame):
         """
@@ -140,7 +142,15 @@ class Kinematics:
             Argument:
                 fps = int. Fps of animation
         """
-        logger.info(f"Creating animation: {self.trial.n_frames} frames")
+        if self.save_path.exists():
+            logger.info(
+                'Video for trial "{trial.name}" exists already, skipping.'
+            )
+            return
+
+        logger.info(
+            f"Creating animation: {self.trial.n_frames} frames for : '{self.trial.name}'"
+        )
         f, axarr = plt.subplots(ncols=2, figsize=(12, 8))
         camera = Camera(f)
 
@@ -151,6 +161,7 @@ class Kinematics:
             range(self.trial.n_frames),
             total=self.trial.n_frames,
             description="Animating...",
+            transient=True,
         ):
             # get body parts position
             bps = self.bparts_positions(frame)
@@ -234,11 +245,11 @@ class Kinematics:
 
         logger.info("Saving animation at video.mp4")
         interval = int(np.ceil(1000 / fps))
-        camera.animate(interval=interval).save("video.mp4")
+        camera.animate(interval=interval).save(str(self.save_path))
         logger.debug("done")
 
 
 if __name__ == "__main__":
-    trial = Trials(only_tracked=True)[0]
-    kin = Kinematics(trial)
-    kin.animate(fps=20)
+    for trial in track(Trials(only_tracked=True)):
+        kin = Kinematics(trial)
+        kin.animate(fps=20)

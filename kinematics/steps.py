@@ -47,7 +47,6 @@ class Steps:
             )
             for paw in PAWS_NAMES
         }
-        self.get_steps_per_paw(precise_th)
 
         # Get diagonal steps (opposite pairs both moving)
         L_diagonal_steps, L_diag_data = get_diagonal_steps(
@@ -97,9 +96,10 @@ class Steps:
         diagonal_steps = step_times(pooled_starts, pooled_ends)
 
         # step starts
-        step_starts = (
-            np.array(R_diagonal_steps.starts) + self.start
-        )  # to mark the start of each L-R step sequence
+        # step_starts = np.concatenate((
+        #     np.array(R_diagonal_steps.starts),
+        #     np.array(L_diagonal_steps.starts)
+        # ))  # to mark the start of each L-R step sequence
 
         return (
             swing_phases,
@@ -107,5 +107,6 @@ class Steps:
             L_diagonal_steps,
             diagonal_steps,
             diag_data,
-            step_starts,
+            np.array(R_diagonal_steps.starts),
+            np.array(L_diagonal_steps.starts),
         )

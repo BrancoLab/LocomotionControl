@@ -20,7 +20,7 @@ from control.history import load_results_from_folder
         - there shouldn't have been catastrophic failures
         - the simulation's trajectory should be close to goal trajectory for all variables.
 
-    Note: this is not to manually curate trials from behavioural data before running the
+    Note: this is **not** to manually curate trials from behavioural data before running the
     simulations on them, this is to curate the results of the simulations before
     creating datasets for RNN training.
 
