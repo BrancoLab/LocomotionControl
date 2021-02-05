@@ -16,6 +16,7 @@ goal = namedtuple(
 _dxdt = namedtuple(
     "dxdt", "x_dot, y_dot, theta_dot, v_dot, omega_dot, taudot_r, taudot_l"
 )
+wheel_velocities = namedtuple("wheel_velocities", "phidot_r , phidot_l")
 
 
 class Model(ModelDynamics):
@@ -35,18 +36,18 @@ class Model(ModelDynamics):
 
     def initialize(self, trajectory):
         # get the model's torques give it's velocities and accelerations
-        v, omega = trajectory[0, 3], trajectory[0, 4]
-        vdot = trajectory[1, 3] - v
-        omegadot = trajectory[1, 4] - omega
+        v, omega = trajectory[10, 3], trajectory[10, 4]
+        vdot = trajectory[11, 3] - v
+        omegadot = trajectory[11, 4] - omega
         taur, taul = self.get_torques_given_speeds(v, vdot, omega, omegadot)
 
         # start th emodel at the start of the trajectory
         self.curr_x = state(
-            trajectory[0, 0],  # x
-            trajectory[0, 1],  # y
-            trajectory[0, 2],  # theta
-            trajectory[0, 3],  # v
-            trajectory[0, 4],  # omega
+            trajectory[10, 0],  # x
+            trajectory[10, 1],  # y
+            trajectory[10, 2],  # theta
+            trajectory[10, 3],  # v
+            trajectory[10, 4],  # omega
             # trajectory[0, 5],  # tau_r
             # trajectory[0, 6],  # tau_l
             taur,
@@ -58,12 +59,10 @@ class Model(ModelDynamics):
         self.curr_x = state(*self.curr_x)
         self.curr_goal = goal(*curr_goal)
         u = control(*np.array(u).ravel())
+        self.curr_control = u
 
         variables = merge(u, self.curr_x, MOUSE)
         inputs = [variables[a] for a in self._M_args]
-
-        # Update history
-        self.curr_control = u
 
         # Compute dxdt
         dxdt = self.calc_dxdt(*inputs).ravel()
@@ -72,6 +71,11 @@ class Model(ModelDynamics):
         # Step
         next_x = np.array(self.curr_x) + dxdt * dt
         self.curr_x = state(*next_x)
+
+        # get wheel_accelerations
+        self.curr_wheel_velocities = wheel_velocities(
+            *self.get_wheel_velocities()
+        )
 
     # ------------------------------ Control related ----------------------------- #
 

@@ -22,6 +22,8 @@ colors = dict(
     P="#008060",
     N_r="#ff8c00",
     N_l="#e2734e",
+    phidot_r="#FF4500",
+    phidot_l="#87CEEB",
 )
 
 
@@ -34,8 +36,8 @@ def _make_figure():
     xy_ax.axis("equal")
     control_ax = f.add_subplot(gs[0, 2:4])
     tau_ax = f.add_subplot(gs[0, 4:6])
-    speed_frames_ax = f.add_subplot(gs[1, 2:4])
-    omega_frames_ax = f.add_subplot(gs[1, 4:6])
+    # speed_frames_ax = f.add_subplot(gs[1, 2:4])
+    wheel_speeds_ax = f.add_subplot(gs[1, 4:6])
     sax = f.add_subplot(gs[2, :2])  # speed trajectory
     theta_ax = f.add_subplot(gs[2, 2:4])
     omega_ax = f.add_subplot(gs[2, 4:6])
@@ -48,8 +50,7 @@ def _make_figure():
         tau_ax,
         omega_ax,
         theta_ax,
-        speed_frames_ax,
-        omega_frames_ax,
+        wheel_speeds_ax,
     )
 
 
@@ -152,7 +153,35 @@ def _plot_tau(history, ax=None):
     )
 
 
-def _plot_v(history, trajectory, plot_every, ax=None, ax_frames=None):
+def _plot_wheels(history, ax=None):
+    R, L = history["phidot_r"], history["phidot_l"]
+
+    # plot traces
+    plot_line_outlined(
+        ax,
+        R,
+        color=colors["phidot_r"],
+        label="$\\phi_R$",
+        lw=2,
+        solid_capstyle="round",
+    )
+    plot_line_outlined(
+        ax,
+        L,
+        color=colors["phidot_l"],
+        label="$\\phi_L$",
+        lw=2,
+        solid_capstyle="round",
+    )
+    ax.legend()
+    ax.set(
+        xlabel="# frames",
+        ylabel="wheels POC vel.\n(cm/s)",
+        title="Wheel POC speeds",
+    )
+
+
+def _plot_v(history, trajectory, plot_every, ax=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 3]))[::plot_every],
@@ -173,10 +202,6 @@ def _plot_v(history, trajectory, plot_every, ax=None, ax_frames=None):
         lw=3,
         zorder=100,
     )
-
-    ax_frames.plot(
-        history["v"], color=colors["v"], lw=5, zorder=100,
-    )
     ax.set(
         xlabel="# frames", ylabel="Speed (cm/s)", title="Speed trajectory",
     )
@@ -188,7 +213,7 @@ def _plot_v(history, trajectory, plot_every, ax=None, ax_frames=None):
     )
 
 
-def _plot_omega(history, trajectory, plot_every, ax=None, ax_frames=None):
+def _plot_omega(history, trajectory, plot_every, ax=None):
     # plot traj speed
     ax.scatter(
         np.arange(len(trajectory[:, 4]))[::plot_every],
@@ -210,9 +235,6 @@ def _plot_omega(history, trajectory, plot_every, ax=None, ax_frames=None):
         zorder=100,
     )
 
-    ax_frames.plot(
-        np.degrees(history["omega"]), color=colors["omega"], lw=5, zorder=100,
-    )
     ax.set(
         xlabel="# frames",
         ylabel="Ang. speed. (deg/s)",
@@ -267,23 +289,20 @@ def plot_results(results_folder, plot_every=20, save_path=None):
         tau_ax,
         omega_ax,
         theta_ax,
-        speed_frames_ax,
-        omega_frames_ax,
+        wheel_speeds_ax,
     ) = _make_figure()
 
     _plot_xy(history, trajectory, plot_every, duration, ax=xy_ax)
     _plot_control(history, ax=control_ax)
     _plot_tau(history, ax=tau_ax)
-    _plot_v(history, trajectory, plot_every, ax=sax, ax_frames=speed_frames_ax)
-    _plot_omega(
-        history, trajectory, plot_every, ax=omega_ax, ax_frames=omega_frames_ax
-    )
+    _plot_wheels(history, ax=wheel_speeds_ax)
+    _plot_v(history, trajectory, plot_every, ax=sax)
+    _plot_omega(history, trajectory, plot_every, ax=omega_ax)
     _plot_theta(
         history, trajectory, plot_every, ax=theta_ax,
     )
 
     clean_axes(f)
-    f.tight_layout()
 
     if save_path is not None:
         save_figure(f, str(save_path))

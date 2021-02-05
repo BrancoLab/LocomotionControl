@@ -234,6 +234,7 @@ class Manager:
                         self.model.curr_x,
                         self.model.curr_goal,
                         self.model.curr_control,
+                        self.model.curr_wheel_velocities,
                         dict(trajectory_idx=self.world.curr_traj_waypoint_idx),
                     )
 

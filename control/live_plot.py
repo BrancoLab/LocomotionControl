@@ -44,6 +44,7 @@ class Plotter:
 
         self.control_ax = self.f.add_subplot(gs[0, 2:4])
         self.tau_ax = self.f.add_subplot(gs[1, 2:4])
+        self.wheels_ax = self.f.add_subplot(gs[2, 2:4])
 
         self.theta_ax = self.f.add_subplot(gs[0, 4:6])  # orientation
         self.omega_ax = self.f.add_subplot(gs[1, 4:6])  # ang vel
@@ -100,9 +101,10 @@ class Plotter:
         # plot speed and other variables
         self._plot_current_variables(history)
         self._plot_taus(history)
+        self._plot_wheels(history)
 
         # fix x axes
-        for ax in (self.control_ax, self.tau_ax):
+        for ax in (self.control_ax, self.tau_ax, self.wheels_ax):
             ax.set(xlim=[itern - 30, itern + 5])
 
         # display plot
@@ -145,28 +147,28 @@ class Plotter:
         ax.scatter(  # plot body
             x,
             y,
-            s=600,
+            s=1400,
             color=colors["tracking"],
             lw=1.5,
             edgecolors=[0.3, 0.3, 0.3],
         )
 
         # plot body axis
-        dx = np.cos(t) * (MOUSE["length"] * (1 / px_to_cm) - 0.5)
+        dx = np.cos(t) * (MOUSE["length"] * (1 / px_to_cm))
         dy = np.sin(t) * (MOUSE["length"] * (1 / px_to_cm))
 
         ax.plot([x, x + dx], [y, y + dy], lw=8, color=colors["tracking"])
         ax.scatter(  # plot head
             x + dx,
             y + dy,
-            s=400,
+            s=1000,
             color=colors["tracking"],
             lw=1.5,
             edgecolors=[0.3, 0.3, 0.3],
         )
 
         ax.axis("equal")
-        ax.axis("off")
+        ax.set(xlabel="X (cm)", ylabel="Y (cm)")
 
     def _plot_control(self, history, is_warmup, keep_s=1.2):
         keep_n = int(keep_s / dt)
@@ -224,6 +226,9 @@ class Plotter:
         ax.set(title="Control")
 
     def _plot_taus(self, history, keep_s=1.2):
+        """
+            Plt wheel torques
+        """
         keep_n = int(keep_s / dt)
         ax = self.tau_ax
         ax.clear()
@@ -266,6 +271,49 @@ class Plotter:
         ax.legend()
         ax.set(title="Control")
 
+    def _plot_wheels(self, history, keep_s=1.2):
+        keep_n = int(keep_s / dt)
+        ax = self.wheels_ax
+        ax.clear()
+
+        R, L = history["phidot_r"], history["phidot_l"]
+        n = len(R)
+
+        # plot traces
+        plot_line_outlined(
+            ax,
+            R,
+            color=colors["phidot_r"],
+            label="$\\phi_R$",
+            lw=2,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+        plot_line_outlined(
+            ax,
+            L,
+            color=colors["phidot_l"],
+            label="$\\phi_L$",
+            lw=2,
+            solid_joinstyle="round",
+            solid_capstyle="round",
+        )
+        ax.axhline(0, lw=2, color=[0.3, 0.3, 0.3], zorder=-1)
+
+        # set axes
+        ymin = np.min(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+        ymax = np.max(np.vstack([R[n - keep_n : n], L[n - keep_n : n]]))
+
+        if n > keep_n:
+            ymin -= np.abs(ymin) * 0.1
+            ymax += np.abs(ymax) * 0.1
+
+            ax.set(xlim=[n - keep_n, n], ylim=[ymin, ymax])
+
+        ax.set(ylabel="wheels POC vel.\n(cm/s)", xlabel="step n")
+        ax.legend()
+        ax.set(title="Wheels velocity")
+
     def _plot_current_variables(self, history):
         """
             Plot the agent's current state vs where it should be
@@ -307,7 +355,11 @@ class Plotter:
         )
 
         ax.legend()
-        ax.set(title="Speed", ylabel="speed", xlabel="trajectory progression")
+        ax.set(
+            title="Speed",
+            ylabel="speed\n(cm/s)",
+            xlabel="trajectory progression",
+        )
 
         # ---------------------------------- ang vel --------------------------------- #
         self.omega_ax.clear()

@@ -186,8 +186,8 @@ class ModelDynamics(object):
         # solve system of equations
         solution = solve([eq1, eq2])
 
-        r = np.float64(solution[self.variables["tau_r"]]) * 0.5
-        l = np.float64(solution[self.variables["tau_l"]]) * 0.5
+        r = np.float64(solution[self.variables["tau_r"]])
+        l = np.float64(solution[self.variables["tau_l"]])
         return r, l
 
     def _make_simbols(self):
@@ -334,3 +334,29 @@ class ModelDynamics(object):
             for wrt in vrs:
                 name = f"{eqname}_wrt_{wrt}"
                 self.model_jacobian_input[name] = eq.diff(wrt)
+
+    def get_wheel_velocities(self):
+        """
+            Get the velocities
+            of the wheels' point of contact with the ground
+            given the current state dot and state
+        """
+        x_dot = self.curr_dxdt.x_dot
+        y_dot = self.curr_dxdt.y_dot
+        theta_dot = self.curr_dxdt.theta_dot
+        theta = self.curr_x.theta
+
+        R = MOUSE["R"]
+        L = MOUSE["L"]
+
+        K = np.array(
+            [
+                [R / 2 * np.cos(theta), R / 2 * np.cos(theta)],
+                [R / 2 * np.sin(theta), R / 2 * np.sin(theta)],
+                [R / (2 * L), -R / (2 * L)],
+            ]
+        )
+        q = np.array([x_dot, y_dot, theta_dot])
+
+        phis = R * np.linalg.pinv(K) @ q
+        return phis[0], phis[1]

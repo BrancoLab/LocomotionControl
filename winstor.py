@@ -13,7 +13,7 @@ install_traceback(
 def main(trialn, config):
     if trialn is not None:
         trialn = int(trialn)
-    Manager(winstor=True, trialn=trialn, config_file=config, to_db=False).run(
+    Manager(winstor=True, trialn=trialn, config_file=config, to_db=True).run(
         n_secs=12
     )
 

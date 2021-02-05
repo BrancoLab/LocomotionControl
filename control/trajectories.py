@@ -14,6 +14,7 @@ from fcutils.maths.geometry import (
 from .utils import calc_bezier_path
 from .config import dt, TRAJECTORY_CONFIG
 
+
 # --------------------------------- from file -------------------------------- #
 
 
@@ -152,6 +153,12 @@ def from_tracking(cache_file, trialn=None):
     # get expected number of simulation steps
     duration = len(trial.x) / trial.fps  # duration in seconds
     n_frames = int(duration / dt)  # n simulation steps
+
+    """
+        the trajectory will be M waypoint nd has to be completed in n_frames .
+        How many waypoints should we cover per frame?
+
+    """
     speedup_factor = TRAJECTORY_CONFIG["n_steps"] / (n_frames)
 
     # Get XY coordinates and interpolate
@@ -163,9 +170,9 @@ def from_tracking(cache_file, trialn=None):
 
     # Get theta
     theta = get_theta_from_xy(x, y)
-    theta = np.radians(90 - theta)
-    theta = np.unwrap(theta)
     theta[0] = theta[1]
+    theta = 90 - theta
+    theta = np.unwrap(np.radians(theta))
 
     # Get ang vel
     omega = derivative(theta) * speedup_factor
@@ -185,21 +192,22 @@ def from_tracking(cache_file, trialn=None):
     v *= speedup_factor
     v *= 1 / dt
 
-    import matplotlib.pyplot as plt
+    # import matplotlib.pyplot as plt
 
-    x1 = np.linspace(0, 1000, len(trial.v))
-    x2 = np.linspace(0, 1000, len(v))
+    # x1 = np.linspace(0, 1000, len(trial.v))
+    # x2 = np.linspace(0, 1000, len(v))
 
-    f, ax = plt.subplots()
-    ax.plot(x1, np.radians(trial.omega))
-    ax.plot(x2, omega)
-    plt.show()
+    # f, ax = plt.subplots()
+    # ax.plot(x1, np.radians(trial.omega))
+    # ax.plot(x2, omega)
+    # plt.show()
 
     # get 0 vectors for tau
     zeros = np.zeros_like(v) * 0.001  # to avoid 0 in divisions
 
     # stack
     trajectory = np.vstack([x, y, theta, v, omega, zeros, zeros]).T
+    trajectory = trajectory[150:-150, :]  # remove artefacts from bezier
 
     return (
         trajectory,
