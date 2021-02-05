@@ -32,18 +32,10 @@ def _make_figure():
 
     xy_ax = f.add_subplot(gs[:2, :2])
     xy_ax.axis("equal")
-    # xy_ax.axis("off")
-
-    # axes in frames
     control_ax = f.add_subplot(gs[0, 2:4])
-    # accel_ax = f.add_subplot(gs[0, 4:6])
-    # cost_ax = f.add_subplot(gs[1, 4:6])
-
     tau_ax = f.add_subplot(gs[0, 4:6])
     speed_frames_ax = f.add_subplot(gs[1, 2:4])
     omega_frames_ax = f.add_subplot(gs[1, 4:6])
-
-    # axes in traj progression
     sax = f.add_subplot(gs[2, :2])  # speed trajectory
     theta_ax = f.add_subplot(gs[2, 2:4])
     omega_ax = f.add_subplot(gs[2, 4:6])
