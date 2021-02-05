@@ -39,7 +39,8 @@ class Plotter:
         gs = self.f.add_gridspec(3, 6)
         self.xy_ax = self.f.add_subplot(gs[:, :2])
         self.xy_ax.axis("equal")
-        self.xy_ax.axis("off")
+        # self.xy_ax.axis("off")
+        self.xy_ax.set(xlabel="X (cm)", ylabel="Y (cm)")
 
         self.control_ax = self.f.add_subplot(gs[0, 2:4])
         self.tau_ax = self.f.add_subplot(gs[1, 2:4])
@@ -144,7 +145,7 @@ class Plotter:
         ax.scatter(  # plot body
             x,
             y,
-            s=200,
+            s=600,
             color=colors["tracking"],
             lw=1.5,
             edgecolors=[0.3, 0.3, 0.3],
@@ -158,7 +159,7 @@ class Plotter:
         ax.scatter(  # plot head
             x + dx,
             y + dy,
-            s=125,
+            s=400,
             color=colors["tracking"],
             lw=1.5,
             edgecolors=[0.3, 0.3, 0.3],

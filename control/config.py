@@ -1,7 +1,7 @@
 import numpy as np
 
 dt = 0.005
-px_to_cm = 1 / 8
+px_to_cm = 1  # 1 / 8
 PARAMS = dict(dt=dt, px_to_cm=px_to_cm)
 
 MANAGER_CONFIG = dict(exp_name="TRACKING", live_plot=False,)

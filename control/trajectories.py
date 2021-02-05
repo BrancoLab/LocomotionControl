@@ -3,14 +3,16 @@ import pandas as pd
 from loguru import logger
 
 from fcutils.maths.geometry import (
-    calc_angle_between_points_of_vector_2d,
-    calc_distance_between_points_in_a_vector_2d,
+    calc_angle_between_points_of_vector_2d as get_theta_from_xy,
 )
 from fcutils.maths.signals import derivative
 from fcutils.maths.coordinates import pol2cart
+from fcutils.maths.geometry import (
+    calc_distance_between_points_in_a_vector_2d as get_speed_from_xy,
+)
 
-from .utils import interpolate_nans, calc_bezier_path
-from .config import dt, px_to_cm, TRAJECTORY_CONFIG
+from .utils import calc_bezier_path
+from .config import dt, TRAJECTORY_CONFIG
 
 # --------------------------------- from file -------------------------------- #
 
@@ -89,7 +91,7 @@ def simulated():
     x, y = xy[:, 0], xy[:, 1]
 
     # Get theta
-    theta = calc_angle_between_points_of_vector_2d(x, y)
+    theta = get_theta_from_xy(x, y)
     theta = np.radians(90 - theta)
     theta = np.unwrap(theta)
     theta[0] = theta[1]
@@ -99,10 +101,11 @@ def simulated():
 
     omega = derivative(theta) * speedup_factor / 2
     omega[0] = omega[1]
+    omega[-1] = omega[-2]
     omega *= 1 / dt
 
     # Get speed
-    v = calc_distance_between_points_in_a_vector_2d(x, y)
+    v = get_speed_from_xy(x, y)
 
     logger.info(
         f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}, total angle: {np.sum(np.abs(np.degrees(derivative(theta)))):.3f}"
@@ -133,6 +136,9 @@ def from_tracking(cache_file, trialn=None):
     """
         Get a trajectory from real tracking data, cleaning it up
         a little in the process.
+
+        It expects that XY coordinates are given in cm, angular velocity is in degrees
+        per second (and theta in degrees) and speed in cm per second
     """
     logger.debug(f"Loading trajectory from tracing. Trial number: {trialn}")
 
@@ -143,33 +149,60 @@ def from_tracking(cache_file, trialn=None):
     else:
         trial = trials.iloc[trialn]
 
-    # Get variables
-    fps = trial.fps
-    x = trial.x * px_to_cm
-    y = trial.y * px_to_cm
+    # get expected number of simulation steps
+    duration = len(trial.x) / trial.fps  # duration in seconds
+    n_frames = int(duration / dt)  # n simulation steps
+    speedup_factor = TRAJECTORY_CONFIG["n_steps"] / (n_frames)
 
-    angle = interpolate_nans(trial.theta)
-    angle = np.radians(90 - angle)
-    angle = np.unwrap(angle)
+    # Get XY coordinates and interpolate
+    x = trial.x
+    y = trial.y
 
-    speed = trial.v * fps * px_to_cm
-    ang_speed = derivative(angle)
+    xy = calc_bezier_path(np.vstack([x, y]).T, TRAJECTORY_CONFIG["n_steps"])
+    x, y = xy[:, 0], xy[:, 1]
 
-    # resample variables so that samples are uniformly distributed
-    zeros = np.zeros_like(speed) * 0.001  # to avoid 0 in divisions
-    vrs = (x, y, angle, speed, ang_speed, zeros, zeros)
-    t = np.arange(len(x))
-    vrs = [
-        calc_bezier_path(
-            np.vstack([t, v]).T[:, 1], TRAJECTORY_CONFIG["n_steps"]
-        )
-        for v in vrs
-    ]
+    # Get theta
+    theta = get_theta_from_xy(x, y)
+    theta = np.radians(90 - theta)
+    theta = np.unwrap(theta)
+    theta[0] = theta[1]
+
+    # Get ang vel
+    omega = derivative(theta) * speedup_factor
+    omega[0] = omega[1]
+    omega[-1] = omega[-2]
+    omega *= 1 / dt
+
+    # Get speed
+    v = get_speed_from_xy(x, y)
+    v[0] = v[1]
+
+    logger.info(
+        f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}cm, total angle: {np.sum(np.abs(np.degrees(derivative(theta)))):.3f}deg"
+    )
+
+    # adjust speed
+    v *= speedup_factor
+    v *= 1 / dt
+
+    import matplotlib.pyplot as plt
+
+    x1 = np.linspace(0, 1000, len(trial.v))
+    x2 = np.linspace(0, 1000, len(v))
+
+    f, ax = plt.subplots()
+    ax.plot(x1, np.radians(trial.omega))
+    ax.plot(x2, omega)
+    plt.show()
+
+    # get 0 vectors for tau
+    zeros = np.zeros_like(v) * 0.001  # to avoid 0 in divisions
 
     # stack
-    trajectory = np.vstack(vrs).T
+    trajectory = np.vstack([x, y, theta, v, omega, zeros, zeros]).T
+
     return (
         trajectory,
-        len(x) / fps,
+        duration,
         trial,
     )
