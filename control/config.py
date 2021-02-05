@@ -9,7 +9,7 @@ MANAGER_CONFIG = dict(exp_name="TRACKING", live_plot=False,)
 TRAJECTORY_CONFIG = dict(
     traj_type="tracking",  # tracking or simulated # ! CHECK BEFORE REAL
     n_steps=1000,
-    min_dist=5,  # when within this distance from end, stop
+    min_dist=3,  # when within this distance from end, stop
 )
 
 
@@ -36,7 +36,7 @@ CONTROL_CONFIG = dict(
     Z_run=np.diag([1, 1, 1]) * 1e2,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([50, 50, 20, 100, 150, 0, 0]) * 1e4,
+    Q=np.diag([1000, 1000, 500, 500, 1000, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control
