@@ -12,7 +12,8 @@ from rnn.dataset import datasets
 # ---------------------------------- Dataset --------------------------------- #
 N_trials = -1  # number of trials to use, set to -1 to use entire dataset
 
-dataset_name = "dataset_predict_" + "PNN_from_RPsy"
+dataset_name = "dataset_predict_" + "PNN_from_RPsyVO"
+name = ""
 
 try:
     DATASET = datasets[dataset_name]
@@ -21,7 +22,6 @@ except KeyError:
         f"Could not find dataset {dataset_name}, available dataset: {datasets.keys()}"
     )
 
-name = "" + "_" + DATASET.name  # rnn name
 
 # ------------------------------------ RNN ----------------------------------- #
 n_units = 256  # number of units in the RNN

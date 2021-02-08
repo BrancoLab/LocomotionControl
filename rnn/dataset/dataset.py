@@ -1,6 +1,8 @@
 import sys
 
 from fcutils.maths.coordinates import cart2pol
+from fcutils.maths.array import unwrap
+from fcutils.maths.signals import derivative
 
 sys.path.append("./")
 from rnn.dataset._dataset import Preprocessing, Dataset
@@ -76,7 +78,7 @@ class PredictPNNFromDeltaXYT(Dataset, Preprocessing):
 # ---------------------------------------------------------------------------- #
 
 
-class PredictPNNFromRPsyVOmega(Dataset, Preprocessing):
+class PredictPNNFromRPsyVO(Dataset, Preprocessing):
     description = """
         Predict neural controls (P, N_L, N_R) from 
         the distance to the next state along the trajectory in
@@ -89,7 +91,7 @@ class PredictPNNFromRPsyVOmega(Dataset, Preprocessing):
     """
     polar = True
 
-    name = "dataset_predict_PNN_from_RPsy"
+    name = "dataset_predict_PNN_from_RPsyVO"
     inputs_names = ("r", "psy", "v", "omega")
     outputs_names = ("P", "N_R", "N_L")
 
@@ -112,6 +114,7 @@ class PredictPNNFromRPsyVOmega(Dataset, Preprocessing):
 
         # convert to polar coordinates
         r, psy = cart2pol(dx, dy)
+        psy = unwrap(psy)
 
         return r, psy, current_states.v.values, current_states.omega.values
 
@@ -123,7 +126,7 @@ class PredictPNNFromRPsyVOmega(Dataset, Preprocessing):
         )
 
 
-class PredictTauFromRPsyVOmega(Dataset, Preprocessing):
+class PredictTauFromRPsyVO(Dataset, Preprocessing):
     description = """
         Predict neural torques (tau right/left) from 
         the distance to the next state along the trajectory in
@@ -136,7 +139,7 @@ class PredictTauFromRPsyVOmega(Dataset, Preprocessing):
     """
     polar = True
 
-    name = "dataset_predict_Tau_from_RPsy"
+    name = "dataset_predict_Tau_from_RPsyVO"
     inputs_names = ("r", "psy", "v", "omega")
     outputs_names = ("tau_R", "tau_L")
 
@@ -159,6 +162,7 @@ class PredictTauFromRPsyVOmega(Dataset, Preprocessing):
 
         # convert to polar coordinates
         r, psy = cart2pol(dx, dy)
+        psy = unwrap(psy)
 
         return r, psy, current_states.v.values, current_states.omega.values
 
@@ -170,12 +174,61 @@ class PredictTauFromRPsyVOmega(Dataset, Preprocessing):
         )
 
 
+class PredictAccelerationsFromRPsyVO(Dataset, Preprocessing):
+    description = """
+        Predict the linear and angular accelerations based on current velocities and 
+        the polar distance to the next goal.
+        The 'next' state is defined as the state in the trajectory 500 ms in
+        the future compared to the current state.
+
+        Data are normalized in range (-1, 1) with a MinMaxScaler for each
+        variable independently.
+    """
+    polar = True
+
+    name = "dataset_predict_accelerations_from_RPsyVO"
+    inputs_names = ("r", "psy", "v", "omega")
+    outputs_names = ("vdot", "omegadot")
+
+    def __init__(self, *args, truncate_at=None, **kwargs):
+        Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
+        Dataset.__init__(self, *args, **kwargs)
+
+        self.n_frames_ahead = int(
+            500 / 5
+        )  # 0.005s is the dt of the simulations
+
+    def get_inputs(self, trajectory, history):
+        # Get current states and states 500 ms in the future
+        future_states = history.iloc[self.n_frames_ahead :].reset_index()
+        current_states = history.iloc[: -self.n_frames_ahead].reset_index()
+
+        # take the distance to the future states at each time point
+        dx = future_states.x - current_states.x
+        dy = future_states.y - current_states.y
+
+        # convert to polar coordinates
+        r, psy = cart2pol(dx, dy)
+        psy = unwrap(psy)
+
+        return r, psy, current_states.v.values, current_states.omega.values
+
+    def get_outputs(self, history):
+        vdot = derivative(history.v.iloc[: -self.n_frames_ahead])
+        vdot[0] = vdot[1]
+
+        omegadot = derivative(history.omega.iloc[: -self.n_frames_ahead])
+        omegadot[0] = omegadot[1]
+        return vdot, omegadot
+
+
 if __name__ == "__main__":
     datasets = (
-        PredictTauFromDeltaXYT,
-        PredictPNNFromDeltaXYT,
-        PredictPNNFromRPsyVOmega,
-        PredictTauFromRPsyVOmega,
+        # PredictTauFromDeltaXYT,
+        # PredictPNNFromDeltaXYT,
+        PredictPNNFromRPsyVO,
+        PredictTauFromRPsyVO,
+        PredictAccelerationsFromRPsyVO,
     )
 
     for dataset in datasets:

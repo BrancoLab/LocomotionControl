@@ -104,7 +104,7 @@ def make_rnn(data, winstor):
 @logger.catch
 def fit(rnn, winstor, data):
     logger.bind(main=True).info(
-        f"Training RNN:", rnn, f"with dataset: {name}", sep="\n",
+        f"Training RNN:", rnn, f"with dataset: {data.name}", sep="\n",
     )
 
     # log/save training parameters
@@ -206,7 +206,7 @@ def wrap_up(rnn, loss_history, winstor, data):
     logger.bind(main=True).info("Wrapping up")
 
     # save RNN
-    NAME = f"rnn_{name}.pt"
+    NAME = f"rnn_{name}_{data.name}.pt"
     if winstor:
         NAME = str(data.rnn_folder / NAME)
         rnn.params_to_file(str(data.rnn_folder / f"rnn.txt"))
@@ -268,7 +268,7 @@ def train(dataset, winstor):
     # load dataset
     data = _dataset(dataset_length=N_trials, winstor=winstor)
     if winstor:
-        data.make_save_rnn_folder(name)
+        data.make_save_rnn_folder(name + "_" + data.name)
 
     # start logging
     setup_loggers(winstor, data)
