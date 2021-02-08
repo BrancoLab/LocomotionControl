@@ -241,6 +241,7 @@ class Manager:
                     # update plot
                     if config.MANAGER_CONFIG["live_plot"]:
                         self.plotter.update(
+                            self.world.xy_original,
                             self.history.record,
                             goal_states,
                             self.world.current_traj_waypoint,

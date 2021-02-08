@@ -14,7 +14,7 @@ from fcutils.path import to_json
 from control._io import DropBoxUtils, upload_folder
 
 from rnn.dataset.dataset import is_win
-from rnn.dataset import plot_predictions
+from rnn.dataset import plot_predictions, datasets
 from rnn.train_params import (
     DATASET,
     N_trials,
@@ -251,13 +251,26 @@ def wrap_up(rnn, loss_history, winstor, data):
 
 
 @click.command()
+@click.argument("dataset", default="")
 @click.option("-w", "--winstor", is_flag=True, default=False)
-def train(winstor):
-    data = DATASET(dataset_length=N_trials, winstor=winstor)
+def train(dataset, winstor):
+    # get userinput dataset
+    if dataset:
+        try:
+            _dataset = datasets[dataset]
+        except KeyError:
+            raise KeyError(
+                f"Could not find dataset {dataset}, available dataset: {datasets.keys()}"
+            )
+    else:
+        _dataset = DATASET
 
+    # load dataset
+    data = _dataset(dataset_length=N_trials, winstor=winstor)
     if winstor:
         data.make_save_rnn_folder(name)
 
+    # start logging
     setup_loggers(winstor, data)
     logger.bind(main=True).info(
         "\n"

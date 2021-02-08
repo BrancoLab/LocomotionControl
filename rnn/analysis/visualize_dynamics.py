@@ -30,8 +30,6 @@ from rnn.analysis._visuals import (
 class DynamicsVis(Pipeline):
     SELECT_TRIALS = False  # show only some trials?
     COLOR_BY = "var"
-    START = 0  # first frame to show
-    STOP = -1  # last frame to show
 
     def __init__(
         self,
@@ -213,14 +211,12 @@ class DynamicsVis(Pipeline):
             msg = ""
 
         logger.debug(
-            f"[amber]Rendering"
-            f"\nRendering frames in range {self.START} - {self.STOP}",
-            f"\nColoring by: {self.COLOR_BY}" + msg,
+            f"[amber]Rendering" f"\nColoring by: {self.COLOR_BY}" + msg,
         )
 
         # render each trial individually
         _, acts = render_fixed_points(
-            self.h[self.idx_to_visualize, self.START : self.STOP, :],
+            self.h[self.idx_to_visualize, :, :],
             self.fixed_points,
             alpha=0.8,
             lw=0.05,  # 0.025,
@@ -364,7 +360,7 @@ class DynamicsVis(Pipeline):
 
 
 if __name__ == "__main__":
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_162447_RNN_ctime_largeLR_dataset_predict_PNN_from_RPsy"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210205_174615_RNN_smallLR_dataset_predict_PNN_from_RPsy"
 
     # TODO figure out why angle of W_out projections looks different in 2 and 3 dimensions
 

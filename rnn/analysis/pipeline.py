@@ -35,6 +35,8 @@ from rnn.dataset import plot_predictions
 class Pipeline:
     X = None
     SELECT_TRIALS = False
+    START = 100  # first frame to consider
+    STOP = -1  # last frame to consider
 
     def __init__(
         self,
@@ -195,6 +197,12 @@ class Pipeline:
                 O = np.load(self.O_path)
                 Y = np.load(self.Y_path)
 
+        # cut
+        X = X[:, self.START : self.STOP, :]
+        h = h[:, self.START : self.STOP, :]
+        O = O[:, self.START : self.STOP, :]
+        Y = Y[:, self.START : self.STOP, :]
+
         return unpad(X, h, O, Y)
 
     def calc_h(self):
@@ -274,7 +282,7 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210202_162557_RNN_ctime_largerLR_dataset_predict_PNN_from_RPsy"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210205_174615_RNN_smallLR_dataset_predict_PNN_from_RPsy"
 
     fps_kwargs = dict(max_fixed_points=3, max_iters=6000, lr_decay_epoch=1500,)
 

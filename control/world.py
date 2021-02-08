@@ -28,18 +28,21 @@ class World:
             # simulate or load from tracking
             if config.TRAJECTORY_CONFIG["traj_type"] == "tracking":
                 (
+                    self.xy_original,
                     self.trajectory,
                     self.duration,
                     self.trial,
                 ) = trajectories.from_tracking(trials_cache, trialn)
             else:
                 (
+                    self.xy_original,
                     self.trajectory,
                     self.duration,
                     self.trial,
                 ) = trajectories.simulated()
         else:
             (
+                self.xy_original,
                 self.trajectory,
                 self.duration,
                 self.trial,

@@ -28,7 +28,7 @@ def from_file(file_path):
     logger.debug(f"Loading saved trajectory from: {file_path}")
     trajectory = np.load(file_path)
 
-    return trajectory, duration, None
+    return None, trajectory, duration, None
 
 
 # --------------------------------- simulated -------------------------------- #
@@ -88,6 +88,7 @@ def simulated():
         points.append(nxt)
 
     # Interpolate line segments
+    original_xy = np.vstack(points)
     xy = calc_bezier_path(np.vstack(points), TRAJECTORY_CONFIG["n_steps"])
     x, y = xy[:, 0], xy[:, 1]
 
@@ -124,6 +125,7 @@ def simulated():
     trajectory = trajectory[200:-200, :]
 
     return (
+        original_xy,
         trajectory,
         duration,
         None,
@@ -164,6 +166,8 @@ def from_tracking(cache_file, trialn=None):
     # Get XY coordinates and interpolate
     x = trial.x
     y = trial.y
+
+    original_xy = np.vstack([x, y])
 
     xy = calc_bezier_path(np.vstack([x, y]).T, TRAJECTORY_CONFIG["n_steps"])
     x, y = xy[:, 0], xy[:, 1]
@@ -210,6 +214,7 @@ def from_tracking(cache_file, trialn=None):
     trajectory = trajectory[150:-150, :]  # remove artefacts from bezier
 
     return (
+        original_xy,
         trajectory,
         duration,
         trial,

@@ -58,6 +58,7 @@ class Plotter:
 
     def update(
         self,
+        xy_original,
         history,
         curr_goals,
         current_traj_waypoint,
@@ -77,6 +78,18 @@ class Plotter:
             lw=1,
             edgecolors=[0.8, 0.8, 0.8],
         )
+
+        # plot original trajectory points
+        if xy_original is not None:
+            ax.scatter(
+                xy_original[0, ::5],
+                xy_original[1, ::5],
+                s=100,
+                color=[0.2, 0.2, 0.2],
+                lw=1,
+                edgecolors=[0.2, 0.2, 0.2],
+                zorder=-5,
+            )
 
         # highlight current trajectory point
         ax.scatter(
