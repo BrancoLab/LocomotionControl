@@ -31,7 +31,7 @@ from control import paths
 
     Steps:
         1) load trials tracking from folder
-        2) augment data by mirroring
+        [2) augment data by mirroring]
         3) save and generate bash scripts
 
     # TODO NOW ======
@@ -44,6 +44,9 @@ from control import paths
         - more quality controls
 """
 
+TRIALS = Trials(only_tracked=True)
+
+
 # %%
 
 # --------------------------------- Get data --------------------------------- #
@@ -51,14 +54,20 @@ from control import paths
 
 X_mirror, Y_mirror = 25, 25  # coordinates around which to mirror data
 
-trials = Trials(only_tracked=True)
 
-# collate all trials and plot them
+# collate all TRIALS and plot them
 f, ax = plt.subplots(figsize=(10, 10))
 
-collated = dict(ID=[], x=[], y=[], theta=[], v=[], omega=[], fps=[])
+collated = dict(ID=[], name=[], x=[], y=[], theta=[], v=[], omega=[], fps=[])
 n = 0
-for trial in track(trials, description="Collating", transient=True):
+for trial in track(
+    range(len(TRIALS)),
+    description="Collating",
+    transient=True,
+    total=len(TRIALS),
+):
+    trial = TRIALS[trial]
+
     # smooth variables
     x = rolling_mean(trial.body.x, 6)
     y = rolling_mean(trial.body.y, 6)
@@ -86,6 +95,7 @@ for trial in track(trials, description="Collating", transient=True):
     collated["v"].append(v)
     collated["omega"].append(omega)
     collated["fps"].append(60)
+    collated["name"].append(trial.name)
 
     ax.plot(x, y)
 
@@ -134,3 +144,5 @@ for n, (i, t) in track(enumerate(trials.iterrows()), total=len(trials)):
 
     with open(save_fld / f"trial_{n}.sh", "w") as out:
         out.write(txt)
+
+# %%

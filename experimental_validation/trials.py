@@ -9,7 +9,6 @@ from fcutils.path import from_json, files
 from fcutils.maths.signals import rolling_mean, derivative
 
 sys.path.append("./")
-
 from experimental_validation import paths
 from experimental_validation._tracking import transform, unwrap, fps
 
@@ -18,6 +17,8 @@ from kinematics.fixtures import BODY_PARTS_NAMES
 
 
 class Trial:
+    fps = 60
+
     def __init__(self, name, info, tracking_path=None, get_endpoints=True):
         """
             Represents a single trial, with pointers to its metadata, files etc.
@@ -148,6 +149,24 @@ class Trial:
                 BodyPart(bp, self.tracking, start=self.start, end=self.end),
             )
 
+        # get direction of movement
+        x = derivative(self.body.x[::2])
+        y = derivative(self.body.y[::2])
+        theta = np.degrees(np.arctan2(x, y))
+        theta[0] = theta[1]
+
+        self.dirmvmt = np.zeros(len(self))
+        self.dirmvmt[::2] = theta
+        try:
+            self.dirmvmt[1::2] = theta
+        except ValueError:
+            self.dirmvmt[1::2] = theta[:-1]
+
+        # get angular velocity
+        self.omega = derivative(rolling_mean(self.dirmvmt, 6))
+        self.omega[0] = self.omega[1]
+        self.omega *= self.fps
+
         # get body orientation
         self.orientation = transform(
             unwrap(self.tracking["body_lower_bone_orientation"]),
@@ -156,9 +175,8 @@ class Trial:
             end=self.end,
         )
 
-        # store linear and angulare velocities
+        # store linear vel
         self.v = self.body.speed
-        self.omega = derivative(self.orientation) * fps
 
         # collate speeds for easier access
         self.speeds = dict(

@@ -14,12 +14,12 @@ TRAJECTORY_CONFIG = dict(
 
 
 MOUSE = dict(
-    L=2,  # half body width | cm
-    R=0.5,  # radius of wheels | cm
-    d=2,  # distance between axel and CoM | cm
+    L=0.002,  # half body width | cm
+    R=0.0005,  # radius of wheels | cm
+    d=0.002,  # distance between axel and CoM | cm
     length=5 * px_to_cm,  # cm | just for plotting
-    m=round(23 / 9.81, 2),  # mass | g
-    m_w=round(7.8 / 9.81, 2),  # mass of wheels/legs |g
+    m=round(0.023 / 9.81, 2),  # mass | g
+    m_w=round(0.078 / 9.81, 2),  # mass of wheels/legs |g
 )
 
 CONTROL_CONFIG = dict(

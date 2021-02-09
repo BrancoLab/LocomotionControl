@@ -2,16 +2,14 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from fcutils.maths.geometry import (
-    calc_angle_between_points_of_vector_2d as get_theta_from_xy,
-)
+
 from fcutils.maths.signals import derivative
 from fcutils.maths.coordinates import pol2cart
 from fcutils.maths.geometry import (
     calc_distance_between_points_in_a_vector_2d as get_speed_from_xy,
 )
 
-from .utils import calc_bezier_path
+from .utils import calc_bezier_path, get_theta_omega_from_xy
 from .config import dt, TRAJECTORY_CONFIG
 
 
@@ -92,19 +90,11 @@ def simulated():
     xy = calc_bezier_path(np.vstack(points), TRAJECTORY_CONFIG["n_steps"])
     x, y = xy[:, 0], xy[:, 1]
 
-    # Get theta
-    theta = get_theta_from_xy(x, y)
-    theta = np.radians(90 - theta)
-    theta = np.unwrap(theta)
-    theta[0] = theta[1]
-
-    # Get ang vel
+    # Get theta and omega
     speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_frames
 
-    omega = derivative(theta) * speedup_factor / 2
-    omega[0] = omega[1]
-    omega[-1] = omega[-2]
-    omega *= 1 / dt
+    theta, omega = get_theta_omega_from_xy(x, y, dt=dt)
+    omega *= speedup_factor
 
     # Get speed
     v = get_speed_from_xy(x, y)
@@ -172,17 +162,9 @@ def from_tracking(cache_file, trialn=None):
     xy = calc_bezier_path(np.vstack([x, y]).T, TRAJECTORY_CONFIG["n_steps"])
     x, y = xy[:, 0], xy[:, 1]
 
-    # Get theta
-    theta = get_theta_from_xy(x, y)
-    theta[0] = theta[1]
-    theta = 90 - theta
-    theta = np.unwrap(np.radians(theta))
-
-    # Get ang vel
-    omega = derivative(theta) * speedup_factor
-    omega[0] = omega[1]
-    omega[-1] = omega[-2]
-    omega *= 1 / dt
+    # Get theta and omega
+    theta, omega = get_theta_omega_from_xy(x, y, dt=dt)
+    omega *= speedup_factor
 
     # Get speed
     v = get_speed_from_xy(x, y)

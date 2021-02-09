@@ -144,7 +144,7 @@ class Kinematics:
         """
         if self.save_path.exists():
             logger.info(
-                'Video for trial "{trial.name}" exists already, skipping.'
+                f'Video for trial "{trial.name}" exists already, skipping.'
             )
             return
 

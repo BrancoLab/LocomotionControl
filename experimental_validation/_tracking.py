@@ -14,7 +14,6 @@ from fcutils.maths.geometry import (
 )
 from fcutils.maths.geometry import calc_ang_velocity
 from fcutils.maths.geometry import calc_distance_between_points_2d
-from fcutils.maths.signals import rolling_mean
 
 
 """
@@ -41,7 +40,8 @@ def transform(d, scale=True, start=0, end=-1):
     except Exception:
         pass
 
-    d = d[start:end]
+    if end is not None:
+        d = d[start:end]
 
     if scale:
         return d * cm_per_px

@@ -31,7 +31,7 @@ logger.info(f"Found {len(trials)} in folder")
 for trial in trials:
     name = trial.stem
     if name not in records.keys():
-        records[name] = dict(good="tbd")
+        records[name] = dict(good="tbd", perfect="tbd")
 to_json(records_path, records)
 
 
