@@ -14,7 +14,7 @@ def main(trialn, config):
     if trialn is not None:
         trialn = int(trialn)
     Manager(winstor=True, trialn=trialn, config_file=config, to_db=False).run(
-        n_secs=12
+        n_secs=4
     )
 
 

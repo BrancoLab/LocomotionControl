@@ -58,6 +58,7 @@ class Dataset(data.Dataset, RNNPaths):
             self.dataset = pd.read_hdf(self.dataset_train_path, key="hdf")[
                 :dataset_length
             ]
+            self.test_dataset = pd.read_hdf(self.dataset_test_path, key="hdf")
 
             self.inputs = self.dataset[list(self.inputs_names)]
             self.outputs = self.dataset[list(self.outputs_names)]
@@ -66,6 +67,13 @@ class Dataset(data.Dataset, RNNPaths):
 
     def __len__(self):
         return len(self.dataset)
+
+    def unscale(self, X, scaler):
+        """
+            Use the normalizers fitted during dataset creation to unscale
+            data.
+        """
+        return scaler.inverse_transform(X)
 
     def _get_random(self):
         """

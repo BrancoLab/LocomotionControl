@@ -41,7 +41,7 @@ CONTROL_CONFIG = dict(
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
-    prediction_length_start=20,  # prediction length for the first few steps
+    prediction_length_start=60,  # prediction length for the first few steps
     prediction_length_run=60,  # length after that
     n_ahead=15,  # start prediction states from N steps ahead
 )

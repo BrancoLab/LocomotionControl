@@ -35,6 +35,10 @@ COLORS = dict(
     tau_L=salmon,
     nudot_R=orange,
     nudot_L=salmon,
+    vdot=orange,
+    omegadot=salmon,
+    phidot_R=orange,
+    phidot_L=salmon,
     P=green_dark,
     N_R=brown,
     N_L=blue_grey_dark,
@@ -166,7 +170,11 @@ def render_vectors(
     """
     actors = []
     for point, c, l in zip(points, colors, labels):
-        actors.append(Arrow((0, 0, 0), point * scale, c=c, s=0.015).legend(l))
+        actors.append(
+            Arrow(
+                (0, 0, 0), point / np.linalg.norm(point) * scale, c=c, s=0.015
+            ).legend(l)
+        )
 
         if showline:
             actors.append(

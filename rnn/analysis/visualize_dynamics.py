@@ -1,36 +1,15 @@
-from vedo.colors import colorMap
-from loguru import logger
-from vedo import Text2D, show
-import numpy as np
 import matplotlib.pyplot as plt
-
-# from einops import repeat
-
+import numpy as np
 import sys
 
+from fcutils.maths.coordinates import pol2cart
+
+
 sys.path.append("./")
-
-from myterial import salmon
-
-from fcutils.maths.signals import derivative
-from fcutils.plot.figure import clean_axes
-
-from pyrnn.render import render_fixed_points
-from pyrnn._utils import flatten_h
-from pyrnn.analysis.dimensionality import PCA
-
-
 from rnn.analysis import Pipeline
-from rnn.analysis._visuals import (
-    render_vectors,
-    COLORS,
-)
 
 
 class DynamicsVis(Pipeline):
-    SELECT_TRIALS = False  # show only some trials?
-    COLOR_BY = "var"
-
     def __init__(
         self,
         folder,
@@ -40,14 +19,14 @@ class DynamicsVis(Pipeline):
         fps_kwargs={},
     ):
         """ 
-            Arguments:
-                folder: Path. Path to folder with RNN data
-                n_trials_in_h: int. Number of trials to use to compute h
-                interactive: bool. If true the pipeline is run in interactive mode and will show renderings and images
-                    interrupting the analysis for user to look at data
-                fit_fps: bool. If true the fixed points of the dynamics are found
-                fps_kwargs: dict. Dictionary of optional arguments for fps search
-        """
+                Arguments:
+                    folder: Path. Path to folder with RNN data
+                    n_trials_in_h: int. Number of trials to use to compute h
+                    interactive: bool. If true the pipeline is run in interactive mode and will show renderings and images
+                        interrupting the analysis for user to look at data
+                    fit_fps: bool. If true the fixed points of the dynamics are found
+                    fps_kwargs: dict. Dictionary of optional arguments for fps search
+            """
         Pipeline.__init__(
             self,
             folder,
@@ -57,313 +36,79 @@ class DynamicsVis(Pipeline):
             fps_kwargs=fps_kwargs,
         )
 
-    def _get_trial_colors(self, var):
+        # set things up
+        self.setup()
+        self.make_figure()
+
+        # unscale data
+        self.X_, self.Y_ = self.unscale_data()
+
+        # fit PCA on all data
+        # self.pca = PCA(n_components=3).fit(flatten_h(self.h))
+
+        # plot things
+        self.plot_xy()
+
+    def unscale_data(self):
         """
-            Gets a list of colors to color the actors of each trial. 
-            Each trial can be assigned a single color or a list of colors
-            with one color for each frame in the trial.
-
-            Arguments:
-                var: int. Index of variable to be used for setting colors
+            Undoes the scaling of input/output data used for
+            training the RNNs
         """
-        colors = []
+        # load normalizers
+        train_normalizer, test_normalizer = self.dataset.load_normalizers()
 
-        # vmin, vmax = -0.02, 0.02
+        # stack data
+        data = np.zeros(
+            (self.X.shape[0], self.X.shape[1], self.ninputs + self.noutputs)
+        )
+        data[:, :, : self.ninputs] = self.X.copy()
+        data[:, :, self.ninputs :] = self.Y.copy()
 
-        for trialn in range(self.n_trials):
-            if trialn in self.idx_to_visualize:
-                if self.COLOR_BY == "var":
-                    # ? color each frame in each trial
-                    vmin = np.nanmin(self.X[self.idx_to_visualize, :, var])
-
-                    D = self.X[trialn, :, var]
-                    colors.append(
-                        [
-                            colorMap(D[i], "bwr", vmin=vmin, vmax=-vmin,)
-                            for i in range(self.n_frames)
-                        ]
-                    )
-
-                elif self.COLOR_BY == "outvar":
-                    # ? color each frame in each trial
-                    vmin = np.nanmin(self.O[self.idx_to_visualize, :, 0])
-                    D = self.O[trialn, :, 0]
-                    colors.append(
-                        [
-                            colorMap(D[i], "bwr", vmin=vmin, vmax=-vmin,)
-                            for i in range(self.n_frames)
-                        ]
-                    )
-
-                elif self.COLOR_BY == "trial":
-                    # ? one color for the whole trial
-                    vmin = np.nanmin(self.X[self.idx_to_visualize, 0, var])
-                    colors.append(
-                        colorMap(
-                            self.X[trialn, 0, var],
-                            "viridis",
-                            vmin=vmin,
-                            vmax=-vmin,
-                        )
-                    )
-
-                elif self.COLOR_BY == "time":
-                    # ? color by time
-                    colors.append(
-                        [
-                            colorMap(i, "bwr", vmin=0, vmax=self.n_frames,)
-                            for i in range(self.n_frames)
-                        ]
-                    )
-
-                elif self.COLOR_BY == "speed":
-                    # ? color by speed of the dynamics
-                    speed = np.abs(
-                        np.nanmean(
-                            derivative(
-                                np.nan_to_num(self.h[trialn, :, :]), axis=0
-                            ),
-                            axis=1,
-                        )
-                    )
-                    colors.append(
-                        [colorMap(i, "bwr", vmin=0, vmax=0.015) for i in speed]
-                    )
-
-        return colors
-
-    def project_onto_plane(self, actors, plane):
-        """
-            Creates projections of single actors onto a given plane.
-
-            Arguments:
-                actors: list of actors
-                plane: Plane actor to project onto
-
-            Returns:
-                projections: list of actors with projections
-        """
-        projections = []
-        for act in actors:
-            projections.append(
-                act.clone().projectOnPlane(plane).c("k").alpha(1)
+        # scale
+        scaled = np.zeros_like(data)
+        for trial in range(data.shape[0]):
+            scaled[trial, :, :] = self.dataset.unscale(
+                data[trial], train_normalizer
             )
-        return projections
 
-    def render_input_output_vectors(self, pca):
+        return scaled[::, : self.ninputs], scaled[:, :, self.ninputs :]
+
+    def make_figure(self):
         """
-            Renders the PCA embedding of W_in 
-            and W_out weights matrices.
-
-            Arguments:
-                pca: PCA fitted to self.h
-
-            Returns:
-                actors: list of actors with vectors As Arrows
+            Create a figure to visualize the data in
         """
-        logger.debug("Rendering W_in and W_out")
 
-        # render input weights as vectors
-        W_in = pca.transform(self.W_in.T)
-        vecs_in = render_vectors(
-            [W_in[n, :] for n in range(W_in.shape[0])],
-            self.input_names,
-            [COLORS[l] for l in self.input_names],
-            scale=0.1,
-        )
+        f = plt.figure(figsize=(10, 10))
+        gs = f.add_gridspec(ncols=4, nrows=6)
+        self.xy_ax = f.add_subplot(gs[:2, :2])  # , aspect='equal')
+        self.pca_ax = f.add_subplot(gs[:2, 2:], projection="3d")
 
-        # render output weights
-        W_out = pca.transform(self.W_out)
-        vecs_out = render_vectors(
-            [W_out[n, :] for n in range(W_out.shape[0])],
-            self.output_names,
-            [COLORS[l] for l in self.output_names],
-            scale=50,
-            showplane=False,
-            showline=False,
-        )
+        f.tight_layout()
 
-        logger.debug(
-            f"Angle between read out vectors: {round(W_out[0, :].dot(W_out[1, :]), 4)}"
-        )
-
-        return vecs_in + vecs_out
-
-    def _render_by_var(self, var, pca):
+    def plot_xy(self):
         """
-            Create all actors to visualize dynamics colored according
-            to the values of an input variable
-
-            Arguments:
-                var: int. Index of variable to use
-                pca: PCA model fit to self.h
-            
-            Returns
-                actors: list of actors.
+            Plot the XY tracking for the input data, if the dataset uses
+            polar inputs , these have to be converted to cartesian coordinates
         """
-        colors = self._get_trial_colors(var)
-
-        if self.COLOR_BY == "var":
-            msg = "  by variable:  " + self.input_names[var]
-        elif self.COLOR_BY == "outvar":
-            msg = "  by variable:  " + self.output_names[var]
+        # check arguments names
+        if self.dataset.polar:
+            if self.input_names[0] != "r" or self.input_names[1] != "psy":
+                NotImplementedError("Unrecognized inputs names")
         else:
-            msg = ""
+            if self.input_names[0] != "x" or self.input_names[1] != "y":
+                NotImplementedError("Unrecognized inputs names")
 
-        logger.debug(
-            f"[amber]Rendering" f"\nColoring by: {self.COLOR_BY}" + msg,
-        )
+        # plot each trial
+        for trial in range(self.n_trials_in_h):
+            if self.dataset.polar:
+                x, y = pol2cart(self.X_[trial, :, 0], self.X_[trial, :, 1])
+            else:
+                x, y = self.X_[trial, :, 0], self.X_[trial, :, 1]
 
-        # render each trial individually
-        _, acts = render_fixed_points(
-            self.h[self.idx_to_visualize, :, :],
-            self.fixed_points,
-            alpha=0.8,
-            lw=0.05,  # 0.025,
-            mark_start=True,
-            start_color="r",
-            _show=False,
-            color=colors,
-            color_by_trial=True,
-            pca=pca,
-        )
-
-        # render variable name
-        acts.append(
-            Text2D(
-                "var: "
-                + self.input_names[var]
-                + f" Colored by: {self.COLOR_BY}"
-                + msg,
-                pos=3,
-            )
-        )
-
-        # render W_in and W_out
-        vectors = self.render_input_output_vectors(pca)
-
-        # project onto readout plane
-        # acts.extend(self.project_onto_plane(acts[:-1], vectors[-1]))
-
-        return acts + vectors
-
-    def plot_dynamics_projected_onto_readout_vectors(self):
-        """
-            Plots the dynamics projected onto the readout weights W_out
-        """
-        f, ax = plt.subplots(figsize=(16, 9))
-
-        for trialn in range(self.n_trials):
-            # compute dot product
-            out = np.apply_along_axis(self.W_out.dot, 1, self.h[trialn, :, :])
-
-            # plot
-            ax.plot(out[:, 0], out[:, 1], lw=3, color=salmon, alpha=0.5)
-            ax.set(
-                xlabel=self.output_names[0], ylabel=self.output_names[1],
-            )
-
-        clean_axes(f)
-        self._show_save_plot(f, "readout_projection.png", _show=False)
-
-    def _plot_pca(self, pca):
-        """
-            Plots the network's dynamics in 2D and each PC independently
-
-            Arguments:
-                pca: PCA with n_components=2 fitted to self.h
-        """
-        # plot each PC in its own subplot
-        f, axarr = plt.subplots(nrows=pca.n_components, figsize=(16, 9))
-        f.suptitle("All PCs")
-
-        for pc_n in range(pca.n_components):
-            for trialn in range(self.n_trials):
-                pcs = pca.transform(self.h[trialn, :, :])
-                axarr[pc_n].plot(
-                    pcs[:, pc_n], color=[0.3, 0.3, 0.3], alpha=0.7
-                )
-            axarr[pc_n].set(
-                title=f"PC: {pc_n}", xlabel="frames", ylabel="val."
-            )
-
-        clean_axes(f)
-        self._show_save_plot(f, "all_PCs.png", _show=False)
-
-        # plot first two PCs
-        if pca.n_components < 2:
-            return
-
-        f, ax = plt.subplots(figsize=(16, 9))
-        f.suptitle("First two PCs")
-        for trialn in range(self.n_trials):
-            pcs = pca.transform(self.h[trialn, :, :])
-            ax.plot(pcs[:, 0], pcs[:, 1], color=[0.3, 0.3, 0.3], alpha=0.7)
-
-        # plot readout directions
-        out = pca.transform(self.W_out)
-        scale = 200
-        for n in range(out.shape[0]):
-            ax.arrow(
-                0,
-                0,
-                out[n, 0 * scale],
-                out[n, 1] * scale,
-                color=COLORS[self.output_names[n]],
-                width=0.25,
-                label=self.output_names[n],
-            )
-
-        ax.legend()
-        ax.set(xlabel="PC1", ylabel="PC2")
-
-        clean_axes(f)
-        self._show_save_plot(f, "top_2_PCs.png", _show=False)
-
-    def visualize(self):
-        """
-            Renders the dynamics in 3D PCA space, coloring
-            the trials based on the values of each variable in X
-        """
-        logger.debug(f"Rendering dynamics")
-
-        # load data
-        self.setup(select=self.SELECT_TRIALS)
-
-        # fit PCA on all data even if not rendered
-        pca = PCA(n_components=3).fit(flatten_h(self.h))
-
-        # create actors for each variable using pyrnn
-        actors = []
-        for var in range(self.X.shape[-1]):
-            actors.append(self._render_by_var(var, pca))
-            break
-
-        # render everything in a single window
-        logger.debug("Render ready")
-        show(
-            actors,
-            N=len(actors),
-            size="full",
-            title="Dynamics",
-            axes=4,
-            interactive=self.interactive,
-        ).close()
-
-        # plot activity projected onto readout plane
-        self.plot_dynamics_projected_onto_readout_vectors()
-
-        # plot PCs
-        self._plot_pca(pca)
-
-        plt.show()
+            self.xy_ax.plot(x, y, lw=1, color=[0.2, 0.2, 0.2])
 
 
 if __name__ == "__main__":
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210205_174615_RNN_smallLR_dataset_predict_PNN_from_RPsy"
-
-    # TODO figure out why angle of W_out projections looks different in 2 and 3 dimensions
-
-    DynamicsVis(
-        fld, n_trials_in_h=128, fit_fps=False, interactive=True
-    ).visualize()
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\\210208_133747_RNN__dataset_predict_PNN_from_RPsyVO"
+    DynamicsVis(fld, n_trials_in_h=128, fit_fps=False, interactive=True)
+    plt.show()

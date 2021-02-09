@@ -120,6 +120,8 @@ class Pipeline:
         # store some variables for easier access
         self.input_names = self.dataset.inputs_names
         self.output_names = self.dataset.outputs_names
+        self.ninputs = len(self.input_names)
+        self.noutputs = len(self.output_names)
 
         self.W_in = npify(self.rnn.w_in.weight)
         self.W_rec = npify(self.rnn.w_rec.weight)
@@ -282,7 +284,7 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210205_174615_RNN_smallLR_dataset_predict_PNN_from_RPsy"
+    fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\\210208_133747_RNN__dataset_predict_PNN_from_RPsyVO"
 
     fps_kwargs = dict(max_fixed_points=3, max_iters=6000, lr_decay_epoch=1500,)
 
