@@ -64,21 +64,26 @@ class DynamicsVis(Pipeline):
 
         # stack data
         data = np.zeros(
-            (self.X.shape[0], self.X.shape[1], self.ninputs + self.noutputs)
+            (
+                self.X.shape[0],
+                self.X.shape[1],
+                2 + self.ninputs + self.noutputs,
+            )
         )
         data[:, :, : self.ninputs] = self.X.copy()
-        data[:, :, self.ninputs :] = self.Y.copy()
+        data[:, :, self.ninputs : -2] = self.Y.copy()
 
         # scale
         scaled = np.zeros_like(data)
         for trial in range(data.shape[0]):
             scaled[trial, :, :] = self.dataset.unscale(
-                data[trial], train_normalizer
+                np.vstack(self.dataset.dataset.iloc[trial].values).T,
+                train_normalizer,
             )
 
         # unpad
         X_ = scaled[:, :, : self.ninputs]
-        Y_ = scaled[:, :, self.ninputs :]
+        Y_ = scaled[:, :, self.ninputs : -2]
 
         X_[self.X == np.nan] = np.nan
         Y_[self.Y == np.nan] = np.nan

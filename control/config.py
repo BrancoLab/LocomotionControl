@@ -15,7 +15,7 @@ TRAJECTORY_CONFIG = dict(
 
 MOUSE = dict(
     L=2,  # half body width | cm
-    R=1,  # radius of wheels | cm
+    R=0.5,  # radius of wheels | cm
     d=2,  # distance between axel and CoM | cm
     length=5 * px_to_cm,  # cm | just for plotting
     m=23 / 9.81,  # mass | g
@@ -27,21 +27,21 @@ CONTROL_CONFIG = dict(
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
     # control magnitude
-    R_start=np.diag([1, 1, 1]) * 1,
-    R_run=np.diag([1, 1, 1]) * 1,
+    R_start=np.diag([1, 1, 1]) * 1e-2,
+    R_run=np.diag([1, 1, 1]) * 1e-3,
     # positive controls
-    W=np.diag([-1, -1, -1]) * 0,  # should be < 0
+    W=np.diag([-1, -1, -1]) * 100,  # should be < 0
     # control smoothness
-    Z_start=np.diag([1, 1, 1]) * 1e2,
+    Z_start=np.diag([1, 1, 1]) * 4e-1,
     Z_run=np.diag([1, 1, 1]) * 1e2,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([500, 500, 200, 100, 1500, 0, 0]) * 1e-4,
+    Q=np.diag([500, 500, 200, 100, 1500, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
-    prediction_length_start=60,  # prediction length for the first few steps
+    prediction_length_start=20,  # prediction length for the first few steps
     prediction_length_run=60,  # length after that
     n_ahead=15,  # start prediction states from N steps ahead
 )
