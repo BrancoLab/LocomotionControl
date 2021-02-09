@@ -14,12 +14,12 @@ TRAJECTORY_CONFIG = dict(
 
 
 MOUSE = dict(
-    L=0.02,  # half body width | m
-    R=0.005,  # radius of wheels | m
-    d=0.02,  # distance between axel and CoM | m
+    L=2,  # half body width | cm
+    R=1,  # radius of wheels | cm
+    d=2,  # distance between axel and CoM | cm
     length=5 * px_to_cm,  # cm | just for plotting
-    m=round(0.023 / 9.81, 2),  # mass | kg
-    m_w=round(0.0078 / 9.81, 2),  # mass of wheels/legs | kg
+    m=23 / 9.81,  # mass | g
+    m_w=8 / 9.81,  # mass of wheels/legs | g
 )
 
 CONTROL_CONFIG = dict(
@@ -36,7 +36,7 @@ CONTROL_CONFIG = dict(
     Z_run=np.diag([1, 1, 1]) * 1e2,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([500, 500, 200, 100, 1500, 0, 0]) * 1e-6,
+    Q=np.diag([500, 500, 200, 100, 1500, 0, 0]) * 1e-4,
 )
 
 # params used to compute goal states to be used for control
