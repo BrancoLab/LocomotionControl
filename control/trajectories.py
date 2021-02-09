@@ -171,7 +171,7 @@ def from_tracking(cache_file, trialn=None):
     v[0] = v[1]
 
     logger.info(
-        f"Simulated trajectory total distance: {np.sum(np.abs(v)):.3f}cm, total angle: {np.sum(np.abs(np.degrees(derivative(theta)))):.3f}deg"
+        f"Tracking trajectory total distance: {np.sum(np.abs(v)):.3f}cm, total angle: {np.sum(np.abs(np.degrees(derivative(theta)))):.3f}deg"
     )
 
     # adjust speed

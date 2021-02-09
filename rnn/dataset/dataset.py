@@ -272,7 +272,7 @@ if __name__ == "__main__":
         PredictPNNFromRPsyVO,
         PredictTauFromRPsyVO,
         PredictAccelerationsFromRPsyVO,
-        PredictWheelsFromRPsyVO,
+        # PredictWheelsFromRPsyVO,
     )
 
     for dataset in datasets:

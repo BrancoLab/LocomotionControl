@@ -48,10 +48,10 @@ class Model(ModelDynamics):
             trajectory[10, 2],  # theta
             trajectory[10, 3],  # v
             trajectory[10, 4],  # omega
-            # trajectory[0, 5],  # tau_r
-            # trajectory[0, 6],  # tau_l
-            taur,
-            taul,
+            trajectory[0, 5],  # tau_r
+            trajectory[0, 6],  # tau_l
+            # taur,
+            # taul,
         )
 
     def step(self, u, curr_goal):

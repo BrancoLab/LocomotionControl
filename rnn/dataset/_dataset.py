@@ -9,6 +9,7 @@ from torch.nn.utils.rnn import pad_sequence
 import matplotlib.pyplot as plt
 from random import choice
 from scipy.signal import resample
+from loguru import logger
 
 from fcutils.maths.signals import rolling_mean
 from fcutils.path import subdirs
@@ -398,6 +399,7 @@ class Preprocessing(RNNPaths):
         data = {
             **{k: [] for k in self.inputs_names},
             **{k: [] for k in self.outputs_names},
+            **{"xtracking": [], "ytracking": []},
         }
         for fld in track(trials_folders):
             try:
@@ -420,18 +422,33 @@ class Preprocessing(RNNPaths):
             for name, value in zip(self.outputs_names, outputs):
                 data[name].append(value)
 
+            # get XY tracking
+            try:
+                x = history.x.values[: -self.n_frames_ahead]
+                y = history.y.values[: -self.n_frames_ahead]
+            except ValueError:
+                x = history.x.values
+                y = history.y.values
+
+            data["xtracking"].append(x)
+            data["ytracking"].append(y)
+
         # as dataframe
+        logger.info("Done, stacking data")
         data = pd.DataFrame(data)
         data = data.iloc[self.start : -self.end].reset_index()
         del data["index"]
 
         # split and normalize
+        logger.info("Splitting train test and normalizing")
         train, test = self.split_and_normalize(data)
 
         # truncate if necessary
         if self.truncate_at is not None:
+            logger.info("Truncating data")
             train, test = self.truncate(train, test)
 
         # save
+        logger.info("Saving data")
         self.save_dataset(train, test)
         self.describe()
