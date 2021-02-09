@@ -174,6 +174,49 @@ class PredictTauFromRPsyVO(Dataset, Preprocessing):
         )
 
 
+class PredictWheelsFromRPsyVO(Dataset, Preprocessing):
+    description = """
+        Predict the speed of the left and right wheels Point of Contact based on current velocities and 
+        the polar distance to the next goal.
+        The 'next' state is defined as the state in the trajectory 500 ms in
+        the future compared to the current state.
+
+        Data are normalized in range (-1, 1) with a MinMaxScaler for each
+        variable independently.
+    """
+    polar = True
+
+    name = "dataset_predict_wheels_from_RPsyVO"
+    inputs_names = ("r", "psy", "v", "omega")
+    outputs_names = ("phidot_r", "phidot_l")
+
+    def __init__(self, *args, truncate_at=None, **kwargs):
+        Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
+        Dataset.__init__(self, *args, **kwargs)
+
+        self.n_frames_ahead = int(
+            500 / 5
+        )  # 0.005s is the dt of the simulations
+
+    def get_inputs(self, trajectory, history):
+        # Get current states and states 500 ms in the future
+        future_states = history.iloc[self.n_frames_ahead :].reset_index()
+        current_states = history.iloc[: -self.n_frames_ahead].reset_index()
+
+        # take the distance to the future states at each time point
+        dx = future_states.x - current_states.x
+        dy = future_states.y - current_states.y
+
+        # convert to polar coordinates
+        r, psy = cart2pol(dx, dy)
+        psy = unwrap(psy)
+
+        return r, psy, current_states.v.values, current_states.omega.values
+
+    def get_outputs(self, history):
+        return history.phidot_r, history.phidot_l
+
+
 class PredictAccelerationsFromRPsyVO(Dataset, Preprocessing):
     description = """
         Predict the linear and angular accelerations based on current velocities and 
@@ -229,6 +272,7 @@ if __name__ == "__main__":
         PredictPNNFromRPsyVO,
         PredictTauFromRPsyVO,
         PredictAccelerationsFromRPsyVO,
+        PredictWheelsFromRPsyVO,
     )
 
     for dataset in datasets:

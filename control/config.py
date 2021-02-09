@@ -9,7 +9,7 @@ MANAGER_CONFIG = dict(exp_name="TRACKING", live_plot=False,)
 TRAJECTORY_CONFIG = dict(
     traj_type="tracking",  # tracking or simulated # ! CHECK BEFORE REAL
     n_steps=1000,
-    min_dist=3,  # when within this distance from end, stop
+    min_dist=1,  # when within this distance from end, stop
 )
 
 

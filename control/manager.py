@@ -171,7 +171,7 @@ class Manager:
         # step to frames
         # conclude
         n_steps = int(n_secs / config.PARAMS["dt"])
-        print(
+        logger.info(
             f"\n\n[bold  green]Starting simulation with {n_steps} steps [{n_secs}s at {config.PARAMS['dt']} s/step][/bold  green]"
         )
         with GracefulInterruptHandler() as h:
@@ -219,6 +219,9 @@ class Manager:
                     curr_state = np.array(self.model.curr_x)
                     goal_states = self.world.plan(curr_state)
                     if goal_states is None:
+                        logger.info(
+                            "It looks like we are done, world.plan did not return any goal states"
+                        )
                         return self.wrap_up()  # DONE !
 
                     # Solve control
@@ -252,10 +255,16 @@ class Manager:
 
                     # check if we're done
                     if self.world.isdone(self.model.curr_x):
+                        logger.info(
+                            "world says we are done because we are close to the end goal"
+                        )
                         return self.wrap_up()
 
                     if h.interrupted:
+                        logger.info("Manual interruption, exiting")
                         return self.wrap_up()
+
+        logger.info(f"Simulation finished after {itern} frames")
         return self.wrap_up()
 
     # ---------------------------------- Wrap up --------------------------------- #
