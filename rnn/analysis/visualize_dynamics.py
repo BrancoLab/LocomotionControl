@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+from loguru import logger
 
 from fcutils.maths.coordinates import pol2cart
 
 
 sys.path.append("./")
 from rnn.analysis import Pipeline
+from rnn.analysis._visuals import COLORS
 
 
 class DynamicsVis(Pipeline):
@@ -48,12 +50,15 @@ class DynamicsVis(Pipeline):
 
         # plot things
         self.plot_xy()
+        self.plot_inputs()
+        self.plot_outputs()
 
     def unscale_data(self):
         """
             Undoes the scaling of input/output data used for
             training the RNNs
         """
+        logger.debug("Unscaling data")
         # load normalizers
         train_normalizer, test_normalizer = self.dataset.load_normalizers()
 
@@ -71,7 +76,13 @@ class DynamicsVis(Pipeline):
                 data[trial], train_normalizer
             )
 
-        return scaled[::, : self.ninputs], scaled[:, :, self.ninputs :]
+        # unpad
+        X_ = scaled[:, :, : self.ninputs]
+        Y_ = scaled[:, :, self.ninputs :]
+
+        X_[self.X == np.nan] = np.nan
+        Y_[self.Y == np.nan] = np.nan
+        return X_, Y_
 
     def make_figure(self):
         """
@@ -79,9 +90,20 @@ class DynamicsVis(Pipeline):
         """
 
         f = plt.figure(figsize=(10, 10))
-        gs = f.add_gridspec(ncols=4, nrows=6)
-        self.xy_ax = f.add_subplot(gs[:2, :2])  # , aspect='equal')
+        gs = f.add_gridspec(
+            ncols=4, nrows=2 + max(self.ninputs, self.noutputs)
+        )
+        self.xy_ax = f.add_subplot(gs[:2, :2], aspect="equal")
         self.pca_ax = f.add_subplot(gs[:2, 2:], projection="3d")
+
+        self.input_axes = [
+            f.add_subplot(gs[2 + n, :2]) for n in range(self.ninputs)
+        ]
+        self.output_axes = [
+            f.add_subplot(gs[2 + n, 2:]) for n in range(self.noutputs)
+        ]
+
+        self.xy_ax.set(xlabel="cm", ylabel="cm")
 
         f.tight_layout()
 
@@ -107,8 +129,22 @@ class DynamicsVis(Pipeline):
 
             self.xy_ax.plot(x, y, lw=1, color=[0.2, 0.2, 0.2])
 
+    def plot_inputs(self):
+        for n, name in enumerate(self.input_names):
+            self.input_axes[n].plot(
+                self.X_[:, :, n].T, color=COLORS[name], lw=1, alpha=0.6
+            )
+            self.input_axes[n].set(xlabel="frame", ylabel=name)
+
+    def plot_outputs(self):
+        for n, name in enumerate(self.output_names):
+            self.output_axes[n].plot(
+                self.Y_[:, :, n].T, color=COLORS[name], lw=1, alpha=0.6
+            )
+            self.output_axes[n].set(xlabel="frame", ylabel=name)
+
 
 if __name__ == "__main__":
     fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\\210208_133747_RNN__dataset_predict_PNN_from_RPsyVO"
-    DynamicsVis(fld, n_trials_in_h=128, fit_fps=False, interactive=True)
+    DynamicsVis(fld, n_trials_in_h=2, fit_fps=False, interactive=True)
     plt.show()

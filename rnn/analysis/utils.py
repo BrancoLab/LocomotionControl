@@ -5,7 +5,6 @@ from einops import repeat
 import numpy as np
 
 
-from fcutils.maths.signals import derivative
 from fcutils.path import from_json, from_yaml
 
 from pyrnn import CTRNN as RNN, is_win
@@ -41,7 +40,9 @@ def unpad(X, h, O, Y):
 
     for trialn in range(X.shape[0]):
         try:
-            stop = np.where(np.abs(derivative(X[trialn, :, 0])) > 0.1)[0][0]
+            stop = np.where(X[trialn, :, 0] == 0)[0][0]
+            if stop < 100:
+                raise ValueError("Stop to soon while unpadding")
         except IndexError:
             continue
         else:
