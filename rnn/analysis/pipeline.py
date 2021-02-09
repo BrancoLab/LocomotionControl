@@ -75,6 +75,9 @@ class Pipeline:
         self.X_path = self.analysis_folder / "X.npy"  # input data
         self.Y_path = self.analysis_folder / "Y.npy"  # correct output
         self.O_path = self.analysis_folder / "O.npy"  # network output
+        self.tracking_path = (
+            self.analysis_folder / "tracking.npy"
+        )  # network output
 
         self.logger.add(self.analysis_folder / "analysis_log.log")
 
@@ -129,6 +132,7 @@ class Pipeline:
 
         # Get/load hidden states trajectory
         self.X, self.h, self.O, self.Y = self.get_XhO()
+        self.tracking = np.load(self.tracking_path)
 
         # not all trials are to be visualized for clarity, select some
         if select:
@@ -185,14 +189,14 @@ class Pipeline:
 
         """
         if not self.h_path.exists():
-            h, X, O, Y = self.calc_h()
+            h, X, O, Y, tracking = self.calc_h()
         else:
             # load previously saved
             h = np.load(self.h_path)
 
             # check if right shape else calc anew
             if h.shape[0] != self.n_trials_in_h:
-                h, X, O, Y = self.calc_h()
+                h, X, O, Y, tracking = self.calc_h()
             else:
                 self.logger.debug(f"Loaded h from file, shape: {h.shape}")
                 X = np.load(self.X_path)
@@ -214,9 +218,10 @@ class Pipeline:
         self.logger.debug(
             f"Extracting hidden state trace for {self.n_trials_in_h} trials"
         )
-        X, Y = self.dataset.get_one_batch(
-            self.n_trials_in_h, winstor=self.winstor
+        X, Y, tracking = self.dataset.get_one_batch(
+            self.n_trials_in_h, return_tracking=True, winstor=self.winstor
         )  # get trials
+
         if is_win:
             X = X.cpu().to("cuda:0")
 
@@ -232,13 +237,14 @@ class Pipeline:
         np.save(self.Y_path, Y.cpu())
         np.save(self.X_path, X.cpu())
         np.save(self.O_path, O)
+        np.save(self.tracking_path, tracking)
 
         h = np.load(self.h_path)
         X = np.load(self.X_path)
         O = np.load(self.O_path)
         Y = np.load(self.Y_path)
 
-        return h, X, O, Y
+        return h, X, O, Y, tracking
 
     def plot(self):
         # plot predictions

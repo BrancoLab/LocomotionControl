@@ -10,12 +10,13 @@ import matplotlib.pyplot as plt
 from random import choice
 from scipy.signal import resample
 from loguru import logger
+from einops import repeat
 
 from fcutils.maths.signals import rolling_mean
 from fcutils.path import subdirs
 from fcutils.progress import track
 
-from pyrnn._utils import torchify
+from pyrnn._utils import torchify, npify
 from myterial import (
     orange,
     salmon,
@@ -65,6 +66,8 @@ class Dataset(data.Dataset, RNNPaths):
             self.outputs = self.dataset[list(self.outputs_names)]
         except FileNotFoundError:
             print("No data to load")
+
+        self._items = []  # keep track of which items where pulled
 
     def __len__(self):
         return len(self.dataset)
@@ -161,6 +164,8 @@ class Dataset(data.Dataset, RNNPaths):
         """
             Get a single trial
         """
+        self._items.append(item)
+
         X = torchify(np.vstack(self.inputs.iloc[item].values).T)
         Y = torchify(np.vstack(self.outputs.iloc[item].values).T)
 
@@ -217,7 +222,7 @@ class Dataset(data.Dataset, RNNPaths):
         plt.show()
 
     @classmethod
-    def get_one_batch(cls, n_trials, **kwargs):
+    def get_one_batch(cls, n_trials, return_tracking=False, **kwargs):
         """
         Return a single batch of given length    
         """
@@ -231,7 +236,27 @@ class Dataset(data.Dataset, RNNPaths):
             [b[1] for b in batch], batch_first=True, padding_value=0
         )
 
-        return x_padded, y_padded
+        if not return_tracking:
+            return x_padded, y_padded
+        else:
+            x = pad_sequence(
+                [
+                    torchify(repeat(xx, "i -> i n", n=1))
+                    for xx in ds.dataset.xtracking
+                ],
+                batch_first=True,
+                padding_value=np.nan,
+            )
+            y = pad_sequence(
+                [
+                    torchify(repeat(yy, "i -> i n", n=1))
+                    for yy in ds.dataset.ytracking
+                ],
+                batch_first=True,
+                padding_value=np.nan,
+            )
+            tracking = np.stack((npify(x), npify(y)), 2).squeeze()
+            return x_padded, y_padded, tracking
 
 
 # ---------------------------------------------------------------------------- #

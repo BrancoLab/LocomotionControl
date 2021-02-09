@@ -146,5 +146,5 @@ class DynamicsVis(Pipeline):
 
 if __name__ == "__main__":
     fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210209_143926_RNN_short_dataset_predict_PNN_from_deltaXYT"
-    DynamicsVis(fld, n_trials_in_h=1, fit_fps=False, interactive=True)
+    DynamicsVis(fld, n_trials_in_h=2, fit_fps=False, interactive=True)
     plt.show()
