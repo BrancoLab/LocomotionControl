@@ -28,6 +28,7 @@ class PredictTauFromDeltaXYT(Dataset, Preprocessing):
     name = "dataset_predict_tau_from_deltaXYT"
     inputs_names = ("x", "y", "theta")
     outputs_names = ("tau_R", "tau_L")
+    n_frames_ahead = -1
 
     def __init__(self, *args, truncate_at=None, **kwargs):
         Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)
@@ -57,6 +58,7 @@ class PredictPNNFromDeltaXYT(Dataset, Preprocessing):
     name = "dataset_predict_PNN_from_deltaXYT"
     inputs_names = ("x", "y", "theta")
     outputs_names = ("P", "N_R", "N_L")
+    n_frames_ahead = -1
 
     def __init__(self, *args, truncate_at=None, **kwargs):
         Preprocessing.__init__(self, truncate_at=truncate_at, **kwargs)

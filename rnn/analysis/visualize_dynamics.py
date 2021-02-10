@@ -2,8 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 from loguru import logger
+from vedo import show, Spheres
 
-from fcutils.maths.coordinates import pol2cart
+from pyrnn._utils import flatten_h
+from pyrnn.analysis.dimensionality import PCA
 
 
 sys.path.append("./")
@@ -46,12 +48,15 @@ class DynamicsVis(Pipeline):
         self.X_, self.Y_ = self.unscale_data()
 
         # fit PCA on all data
-        # self.pca = PCA(n_components=3).fit(flatten_h(self.h))
+        self.pca = PCA(n_components=3).fit(flatten_h(self.h))
 
-        # plot things
+        # plot tracking inputs and outputs
         self.plot_xy()
         self.plot_inputs()
         self.plot_outputs()
+
+        # plot neural data
+        self.plot_trials_pc()
 
     def unscale_data(self):
         """
@@ -72,13 +77,13 @@ class DynamicsVis(Pipeline):
         )
         data[:, :, : self.ninputs] = self.X.copy()
         data[:, :, self.ninputs : -2] = self.Y.copy()
+        data[:, :, -2:] = self.tracking[:, self.START : self.STOP, :]
 
         # scale
         scaled = np.zeros_like(data)
         for trial in range(data.shape[0]):
             scaled[trial, :, :] = self.dataset.unscale(
-                np.vstack(self.dataset.dataset.iloc[trial].values).T,
-                train_normalizer,
+                data[trial], train_normalizer
             )
 
         # unpad
@@ -87,6 +92,7 @@ class DynamicsVis(Pipeline):
 
         X_[self.X == np.nan] = np.nan
         Y_[self.Y == np.nan] = np.nan
+        self.tracking = scaled[:, :, -2:]
         return X_, Y_
 
     def make_figure(self):
@@ -94,21 +100,29 @@ class DynamicsVis(Pipeline):
             Create a figure to visualize the data in
         """
 
-        f = plt.figure(figsize=(10, 10))
+        f = plt.figure(figsize=(14, 14))
         gs = f.add_gridspec(
-            ncols=4, nrows=2 + max(self.ninputs, self.noutputs)
+            ncols=6, nrows=4 + max(self.ninputs, self.noutputs)
         )
-        self.xy_ax = f.add_subplot(gs[:2, :2], aspect="equal")
-        self.pca_ax = f.add_subplot(gs[:2, 2:], projection="3d")
+        self.xy_ax = f.add_subplot(gs[:4, :3], aspect="equal")
+        self.pca_ax = f.add_subplot(gs[:4, 3:], projection="3d")
 
         self.input_axes = [
-            f.add_subplot(gs[2 + n, :2]) for n in range(self.ninputs)
+            f.add_subplot(gs[4 + n, :3]) for n in range(self.ninputs)
         ]
         self.output_axes = [
-            f.add_subplot(gs[2 + n, 2:]) for n in range(self.noutputs)
+            f.add_subplot(gs[4 + n, 3:]) for n in range(self.noutputs)
         ]
 
         self.xy_ax.set(xlabel="cm", ylabel="cm")
+        self.pca_ax.set(
+            xlabel="PC1",
+            ylabel="PC2",
+            zlabel="PC3",
+            xlim=[-3, 3],
+            ylim=[-3, 3],
+            zlim=[-3, 3],
+        )
 
         f.tight_layout()
 
@@ -117,22 +131,14 @@ class DynamicsVis(Pipeline):
             Plot the XY tracking for the input data, if the dataset uses
             polar inputs , these have to be converted to cartesian coordinates
         """
-        # check arguments names
-        if self.dataset.polar:
-            if self.input_names[0] != "r" or self.input_names[1] != "psy":
-                NotImplementedError("Unrecognized inputs names")
-        else:
-            if self.input_names[0] != "x" or self.input_names[1] != "y":
-                NotImplementedError("Unrecognized inputs names")
-
         # plot each trial
         for trial in range(self.n_trials_in_h):
-            if self.dataset.polar:
-                x, y = pol2cart(self.X_[trial, :, 0], self.X_[trial, :, 1])
-            else:
-                x, y = self.X_[trial, :, 0], self.X_[trial, :, 1]
-
-            self.xy_ax.plot(x, y, lw=1, color=[0.2, 0.2, 0.2])
+            self.xy_ax.plot(
+                self.tracking[trial, :, 0],
+                self.tracking[trial, :, 1],
+                lw=1,
+                color=[0.2, 0.2, 0.2],
+            )
 
     def plot_inputs(self):
         for n, name in enumerate(self.input_names):
@@ -148,8 +154,26 @@ class DynamicsVis(Pipeline):
             )
             self.output_axes[n].set(xlabel="frame", ylabel=name)
 
+    def plot_trials_pc(self, every=10):
+        PC = self.pca.transform(self.h)  # n triials x n frames x n components
+
+        actors = []
+        c = np.arange(len(PC[0, ::every, 2]))
+        for trial in range(PC.shape[0]):
+            self.pca_ax.scatter(
+                PC[trial, ::every, 0],
+                PC[trial, ::every, 1],
+                PC[trial, ::every, 2],
+                c=c,
+            )
+            actors.append(Spheres(PC[trial, ::every, :], r=0.1, c=trial))
+
+        plt.show()
+        plotter = show(actors, size="full", interactive=True, axes=3)
+        plotter.close()
+
 
 if __name__ == "__main__":
     fld = r"Z:\swc\branco\Federico\Locomotion\control\RNN\210209_143926_RNN_short_dataset_predict_PNN_from_deltaXYT"
-    DynamicsVis(fld, n_trials_in_h=2, fit_fps=False, interactive=True)
+    DynamicsVis(fld, n_trials_in_h=60, fit_fps=False, interactive=True)
     plt.show()

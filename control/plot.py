@@ -148,7 +148,7 @@ def _plot_tau(history, ax=None):
     ax.legend()
     ax.set(
         xlabel="# frames",
-        ylabel="Torque\n($\\frac{Kg * m^2}{s^2}$)",
+        ylabel="Torque\n($\\frac{g * cm^2}{s^2}$)",
         title="Wheel torques",
     )
 

@@ -6,7 +6,7 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import sosfiltfilt, butter
+from scipy.signal import butter
 
 
 from myterial import (
@@ -19,7 +19,7 @@ from myterial import (
 )
 
 from fcutils import path
-from fcutils.plot.figure import clean_axes
+from fcutils.plot.figure import clean_axes, save_figure
 from fcutils.progress import track
 from fcutils.maths.array import find_nearest
 from fcutils.maths import rolling_mean
@@ -28,6 +28,7 @@ module_path = Path(os.path.abspath(os.path.join("."))).parent
 sys.path.append(str(module_path))
 sys.path.append("./")
 from experimental_validation.trials import Trials
+from experimental_validation import paths
 from experimental_validation._tracking import unwrap
 from control.utils import get_theta_from_xy
 
@@ -36,6 +37,7 @@ from control.utils import get_theta_from_xy
 simulations_folder = Path(
     "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD\\SIMULATIONS"
 )
+
 simulations_lookup = {}
 for sim in path.subdirs(simulations_folder):
     try:
@@ -52,24 +54,33 @@ trials = Trials(only_tracked=True)
 """
     For each trial, plot the real trial DATA and the results from the simulation
 """
-sos = butter(6, 0.05, output="sos")
+sos_th = 1
+sos = butter(6, sos_th, output="sos", fs=60)
 
 for trialn in track(range(len(trials)), total=len(trials)):
-    if trialn != 65:
-        continue
+    # if trialn != 15:
+    #     continue
 
     # load all data
     trial = trials[trialn]
-    if not trial.good:
+    if not trial.good or len(trial) < 50:
         continue
-    simulated = pd.read_hdf(
-        simulations_lookup[trial.name] / "trial.h5"
-    )  # trial for simulation
+
+    try:
+        simulated = pd.read_hdf(
+            simulations_lookup[trial.name] / "trial.h5"
+        )  # trial for simulation
+    except KeyError:
+        logger.warning(
+            f"Skipping {trial.name} [{trialn}] as no subfolder was found"
+        )
+        continue
+
     simulation = pd.read_hdf(
         simulations_lookup[trial.name] / "history.h5"
     )  # simulation results
-    simulation.dirmvmt = get_theta_from_xy(simulation.x, simulation.y)
-    simulation.dirmvmt[0] = simulation.dirmvmt[1]
+    simulation["dirmvmt"] = get_theta_from_xy(simulation.x, simulation.y)
+    simulation.dirmvmt[0] = simulation.dirmvmt[1].copy()
     simulation.dirmvmt = simulation.dirmvmt
 
     assert trial.name == simulated["name"], "loaded the wrong one mate"
@@ -170,36 +181,36 @@ for trialn in track(range(len(trials)), total=len(trials)):
     axarr[2].legend()
 
     # plot wheel and paw speeds
-    axarr[3].plot(
-        trial_f2t,
-        sosfiltfilt(sos, trial.right_hl.speed),
-        lw=4,
-        color=orange,
-        label="$RH$",
-    )
-    axarr[3].plot(
-        trial_f2t,
-        sosfiltfilt(sos, trial.left_hl.speed),
-        lw=4,
-        color=blue,
-        label="$LH$",
-    )
     # axarr[3].plot(
     #     trial_f2t,
-    #     trial.right_hl.speed,
-    #     lw=1,
-    #     ls='--',
+    #     sosfiltfilt(sos, trial.right_hl.speed),
+    #     lw=4,
     #     color=orange,
-    #     label="$unfilt. RH$",
+    #     label="$RH$",
     # )
     # axarr[3].plot(
     #     trial_f2t,
-    #     trial.left_hl.speed,
-    #     lw=1,
-    #     ls='--',
+    #     sosfiltfilt(sos, trial.left_hl.speed),
+    #     lw=4,
     #     color=blue,
-    #     label="$unfilt. LH$",
+    #     label="$LH$",
     # )
+    axarr[3].plot(
+        trial_f2t,
+        rolling_mean((trial.right_hl.speed + trial.right_fl.speed) / 2, 20),
+        lw=4,
+        # ls='--',
+        color=orange,
+        label="$RIGHT$",
+    )
+    axarr[3].plot(
+        trial_f2t,
+        rolling_mean((trial.left_hl.speed + trial.left_fl.speed) / 2, 20),
+        lw=4,
+        # ls='--',
+        color=blue,
+        label="$LEFT$",
+    )
     axarr[3].plot(
         sim_f2t,
         simulation.phidot_r * speed_ratio,
@@ -221,7 +232,15 @@ for trialn in track(range(len(trials)), total=len(trials)):
 
     clean_axes(f)
 
-    break
+    # save figure
+    save_figure(
+        f,
+        paths.folder_2WDD
+        / "ANALYSIS"
+        / f"sim2real_trial_{trialn}_sos_{sos_th}.png",
+        close=True,
+    )
+    # break
 
 
 # %%
