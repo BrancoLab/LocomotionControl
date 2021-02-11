@@ -178,16 +178,6 @@ def from_tracking(cache_file, trialn=None):
     v *= speedup_factor
     v *= 1 / dt
 
-    # import matplotlib.pyplot as plt
-
-    # x1 = np.linspace(0, 1000, len(trial.v))
-    # x2 = np.linspace(0, 1000, len(v))
-
-    # f, ax = plt.subplots()
-    # ax.plot(x1, np.radians(trial.omega))
-    # ax.plot(x2, omega)
-    # plt.show()
-
     # get 0 vectors for tau
     zeros = np.zeros_like(v) * 0.001  # to avoid 0 in divisions
 
