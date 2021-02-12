@@ -1,12 +1,8 @@
 from loguru import logger
 from pathlib import Path
 import pandas as pd
-import sys
 
 from fcutils.progress import track
-
-sys.path.append("./")
-from data_wrangling import paths
 
 TEST_MODE = True  # only few trials for simplicity
 
@@ -40,7 +36,8 @@ save_fld = Path(
 )
 
 # load trials
-save_path = paths.main_folder / "TRIALS.h5"
+# save_path = paths.main_folder / "TRIALS.h5"
+save_path = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\trials_cache.h5"
 trials = pd.read_hdf(save_path, key="hdf")
 logger.info(f"Loaded {len(trials)} trials")
 

@@ -15,10 +15,10 @@ TRACKING_BASH_TEMPLATE = """#! /bin/bash
 #SBATCH -p gpu # partition (queue)
 #SBATCH -N 1   # number of nodes
 #SBATCH --mem 80G # memory pool for all cores
-#SBATCH --gres=gpu:gtx1080:1
 #SBATCH -n 10
+#SBATCH --gres=gpu:gtx1080:1
 #SBATCH -t 2-0:0 # time
-#SBATCH	-o err.err
+#SBATCH	-o out.out
 #SBATCH -e err.err
 
 echo "loading conda env"
@@ -31,7 +31,7 @@ export CUDA_VISIBLE_DEVICES=1
 
 echo "running tracking"
 python /nfs/winstor/branco/Federico/Locomotion/control/LocomotionControl/experimental_validation/dlc_on_hpc.py \\
-        /nfs/winstor/branco/Federico/Locomotion/control/experimental_validation/2WDD/Kinematics_FC-FC-2021-01-25/config.yaml \\
+        /nfs/winstor/branco/Federico/Locomotion/control/behavioural_data/dlc/alldata-fc-2021-02-11/config.yaml \\
         VIDEO \\
         SAVE
 """
@@ -60,13 +60,19 @@ def make_dlc_bash_scripts():
     """
         Generate bash files for tracking all trials videos
     """
-
+    tracked = [
+        f.stem.split("DLC")[0]
+        for f in fcpath.files(paths.tracking_folder, "*.h5")
+    ]
     for sub in paths.subfolders.values():
-        for video in track(fcpath.files(sub)):
+        for video in track(fcpath.files(sub), description=sub.name):
+            if video.stem in tracked:
+                continue
+
             bash = make_dlc_bash_text(video, paths.tracking_folder)
-            bash_path = (
-                paths.bash_scripts_folder / f"{sub.name}_{video.stem}.sh"
-            )
+            bash_name = f"{sub.name}_{video.stem}.sh".replace(" ", "")
+
+            bash_path = paths.bash_scripts_folder / bash_name
             with open(bash_path, "w") as out:
                 out.write(bash)
 

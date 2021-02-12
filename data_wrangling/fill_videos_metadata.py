@@ -16,14 +16,12 @@ metadata = from_json(paths.metadata_path)
 videos_metadata = from_json(paths.videos_metadata_path)
 
 for folder, info in metadata.items():
-    for video in track(
-        files(paths.main_folder / folder, "*.mp4"), description=folder
-    ):
+    for video in track(files(paths.main_folder / folder), description=folder):
         # delete videos that are too small
         if size(video, fmt=False) < 2000:
             print("removing ", video)
 
-        if f"{folder}_{video.name}" in videos_metadata.keys():
+        if video.stem in videos_metadata.keys():
             continue
 
         # try to open video, delete otherwise
