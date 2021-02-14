@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import os
+
 from pyinspect.utils import timestamp
 from pyrnn import CTRNN as RNN
 from pyrnn.plot import plot_training_loss

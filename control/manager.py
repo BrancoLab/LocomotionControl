@@ -12,6 +12,7 @@ from fcutils.progress import progress
 from fcutils.path import from_json
 
 from pyrnn._utils import GracefulInterruptHandler
+
 from pyinspect.utils import timestamp
 
 from control._io import DropBoxUtils, upload_folder

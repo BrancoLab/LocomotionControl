@@ -7,6 +7,7 @@ from fcutils.video import trim_clip
 from fcutils.path import from_json, to_json
 from fcutils import path
 from fcutils.progress import track
+
 from pyinspect.utils import dir_files
 
 sys.path.append("./")
