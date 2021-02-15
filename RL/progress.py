@@ -18,6 +18,7 @@ from myterial import (
     green_light,
     green,
     salmon,
+    salmon_light,
 )
 
 from fcutils.progress import progess_with_description as progress
@@ -37,19 +38,20 @@ def fmt(obj):
     elif isinstance(obj, dict):
         return {k: round(v, 2) for k, v in obj.items()}
     elif isinstance(obj, float):
-        return str(round(obj, 2))
+        return str(round(obj, 5))
     else:
         return ""
 
 
-class Trajectory:
-    trajectory = None
+class TrajectoryPlot:
+    x = []
+    y = []
 
     def __rich_console__(self, *args):
-        if self.trajectory is not None:
-            yield ""
-        else:
-            yield ""
+        fig = tpl.figure()
+        fig.plot(self.x, self.y, label="r", width=40, height=15)
+        fig.plot([2], [1])
+        yield fig
 
 
 class RewardPlot:
@@ -59,8 +61,8 @@ class RewardPlot:
         x = np.arange(len(self.scores))
 
         fig = tpl.figure()
-        fig.plot(x, self.scores, label="r", width=100, height=15)
-        yield fig.get_string()
+        fig.plot(x, self.scores, label="r", width=60, height=15)
+        yield fig
 
 
 class StackInfo:
@@ -85,11 +87,15 @@ class StackInfo:
         self.prev_scopes = scopes
 
 
-class State:
+class StateInfo:
     tb = ""
     controls = ""
     prev_v = 0
     prev_omega = 0
+
+    def reset(self):
+        self.prev_v = 0
+        self.prev_omega = 0
 
     def update(self, agent, world, controls):
         self.tb = Table(box=None, header_style=f"bold {blue_light}")
@@ -151,6 +157,7 @@ class State:
 
 class Variables:
     max_score = 0
+    memory_len = 0
     traj_len = 0
 
     def __init__(self):
@@ -163,24 +170,30 @@ class Variables:
         self.traj_distance = 0
         self.traj_idx = 0
         self.score = 0
-        self.memory_len = 0
 
     def __rich_console__(self, *args, **kwargs):
         yield f"[white]Iteration number: [b {orange}]{self.itern}"
         yield f"[white]Memory length: [b {orange}]{self.memory_len}"
         yield f"[white]Trajectory idx: [b {orange}]{self.traj_idx}/{self.traj_len}"
-        yield f"[white]Reward: [b {orange}]{self.reward:.3f}"
-        yield f"[white]Score: [b {orange}]{self.score:.3f}"
+        yield f"[white]Reward: [b {orange}]{self.reward:.6f}"
+        yield f"[white]Score: [b {orange}]{self.score:.6f}"
         yield f"[white]MAX score: [b {orange}]{self.max_score:.3f}"
         yield f"[white]Inputs: [b {orange}]{fmt(self.inputs)}"
 
 
 class Progress:
     max_log_rows = 12
+    tasks = {}
 
-    def __init__(self, agent, variables, state, reward_plot):
+    def __init__(self):
         self.progress = progress
-        self.layout = self.make_layout(agent, variables, state, reward_plot)
+        self.reward_plot = RewardPlot()
+        self.stack_info = StackInfo()
+        self.state_info = StateInfo()
+        self.variables = Variables()
+        self.trajectory_plot = TrajectoryPlot()
+
+        self.layout = self.make_layout()
 
     def make_header(self):
         title_panel = Panel(
@@ -194,14 +207,6 @@ class Progress:
             box=box.SIMPLE_HEAD,
         )
         return title_panel, info_panel
-
-    def footer(self):
-        return Layout(
-            Panel(self.progress, border_style=orange),
-            name="footer",
-            size=4,
-            ratio=1,
-        )
 
     def make_logger(self):
         self.logger = Table(
@@ -237,7 +242,41 @@ class Progress:
             self.cut_logger()
         self.logger.add_row(timestamp(just_time=True), info, details)
 
-    def make_layout(self, agent, variables, state, reward_plot):
+    def reset(self):
+        self.state_info.reset()
+        self.variables.reset()
+
+    def update(
+        self,
+        itern,
+        memory_len,
+        inputs,
+        idx,
+        reward,
+        score,
+        scores,
+        agent,
+        world,
+        controls,
+    ):
+        self.reward_plot.scores = scores
+        self.variables.itern = itern
+        self.variables.memory_len = memory_len
+        self.variables.inputs = {
+            k: v for k, v in zip(("r", "psy", "v", "omega"), inputs)
+        }
+        self.variables.traj_idx = idx
+        self.variables.reward = reward
+        self.variables.score = score
+        if score > self.variables.max_score:
+            self.variables.max_score = score
+
+        self.state_info.update(agent, world, controls)
+
+        self.trajectory_plot.x = world.trajectory[:, 0]
+        self.trajectory_plot.y = world.trajectory[:, 1]
+
+    def make_layout(self):
         layout = Layout()
         self.make_logger()
 
@@ -256,17 +295,32 @@ class Progress:
         layout["body"].split(Layout(name="bl"))
         layout["body"].split(Layout(name="br", ratio=2))
 
-        layout["body"]["br"].split(Layout(name="brt"))
+        layout["body"]["br"].split(Layout(name="brt", direction="horizontal"))
         layout["body"]["br"].split(Layout(name="brb", ratio=2))
 
-        layout["body"]["br"]["brt"].update(
-            Panel(
-                reward_plot,
+        layout["body"]["br"]["brt"].split(Layout(name="rewplot", ratio=2))
+        layout["body"]["br"]["brt"].split(Layout(name="trajplot", ratio=1))
+
+        layout["body"]["br"]["brt"]["rewplot"].update(
+            Panel.fit(
+                self.reward_plot,
                 border_style=salmon,
-                box=box.SIMPLE,
                 title="reward history",
+                title_align="left",
+                style=salmon_light,
             )
         )
+
+        layout["body"]["br"]["brt"]["trajplot"].update(
+            Panel.fit(
+                self.trajectory_plot,
+                border_style="white",
+                title="XY traj",
+                title_align="left",
+                style="white",
+            )
+        )
+
         layout["body"]["br"]["brb"].update(
             Panel(self.make_logger(), style=indigo, title="LOG")
         )
@@ -274,27 +328,36 @@ class Progress:
         # make body left
         layout["body"]["bl"].split(Layout(name="blt"))
         layout["body"]["bl"].split(Layout(name="blm", ratio=2))
-        layout["body"]["bl"].split(Layout(name="blb"))
+        layout["body"]["bl"].split(Layout(name="blb", ratio=0.75))
 
         layout["body"]["bl"]["blt"].update(
-            Panel(variables, style=orange, padding=(1, 3), title="Variables")
+            Panel(
+                self.variables, style=orange, padding=(1, 3), title="Variables"
+            )
         )
         layout["body"]["bl"]["blm"].update(
-            Panel(state, style=green, title="Physics")
+            Panel(self.state_info, style=green, title="Physics")
         )
         layout["body"]["bl"]["blb"].update(
-            Panel(StackInfo(), title="Call stack", box=box.SIMPLE_HEAD)
+            Panel(self.stack_info, title="Call stack", box=box.SIMPLE_HEAD)
         )
 
         # make footer
-        layout["foot"].update(self.footer())
+        layout["foot"].update(
+            Layout(
+                Panel(self.progress, border_style=orange),
+                name="footer",
+                size=4,
+                ratio=1,
+            )
+        )
         return layout
 
-    def add_task(self, *args, **kwargs):
-        return progress.add_task(*args, **kwargs)
+    def add_task(self, *args, _name="", **kwargs):
+        self.tasks[_name] = progress.add_task(*args, **kwargs)
 
-    def update_task(self, tid, *args, **kwargs):
-        self.progress.update(tid, *args, **kwargs)
+    def update_task(self, names, *args, **kwargs):
+        self.progress.update(self.tasks[names], *args, **kwargs)
 
-    def remove_task(self, tid):
-        self.progress.remove_task(tid)
+    def remove_task(self, names):
+        self.progress.remove_task(self.tasks[names])

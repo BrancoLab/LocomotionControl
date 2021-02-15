@@ -19,7 +19,7 @@ class RLWorld:
         self.curr_traj_waypoint_idx = 1  #  keep track of traj progression
 
     def reset(self):
-        self.trajectory = trajectories.simulated()[1]
+        # self.trajectory = trajectories.simulated()[1]
         self.curr_traj_waypoint_idx = 1
         self.route_progression = 0
 
@@ -78,24 +78,17 @@ class RLWorld:
 
         return r, psy, dv, domega
 
-    def get_reward(self, agent, state_idx, controls):
+    def get_reward(self):
         """
             Get the reward as the inverse of the state error
         """
-        # get traj idx
-        dx, dy = self.get_delta_position(agent)
 
         progression = self.curr_traj_waypoint_idx / len(self.trajectory)
-        progression_improvement = progression - self.route_progression
+        reward = progression - self.route_progression
         self.route_progression = progression
+        return reward
 
-        # cost = np.linalg.norm(controls) * dt * 0.2
-
-        reward = progression_improvement  # - cost
-
-        return dx, dy, reward
-
-    def isdone(self, agent, min_dist=10):
+    def isdone(self, agent, min_dist=30):
         # check if we are too far off the trajectory
         dx, dy = self.get_delta_position(agent)
         if dx > 5 or dy > 5:

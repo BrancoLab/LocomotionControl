@@ -51,7 +51,7 @@ class RLAgent(model.Model):
         yield "\n"
         yield str(self.critic_local)
 
-    def act(self, state, add_noise=True):
+    def get_controls(self, state, add_noise=True):
         """
             Choose controls
         """
@@ -61,12 +61,13 @@ class RLAgent(model.Model):
         self.actor_local.train()
 
         if add_noise:
-            action += np.random.normal(0, settings.NOISE_SCALE)
+            action += np.random.normal(0, settings.NOISE_SCALE, size=3)
         action = action.T
 
         if np.any(np.isnan(action)):
             return None
 
+        # return action
         return np.clip(action, 0, 1)
 
     def move(self, controls):
@@ -83,7 +84,7 @@ class RLAgent(model.Model):
 
         self.curr_x = model.state(*(np.array(self.curr_x) + dxdt * dt))
 
-    def step(self):
+    def fit(self):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # if have enough samples, do some learnin
         if len(self.memory) > settings.BATCH_SIZE:
@@ -172,11 +173,13 @@ class Memory:
         S = torchify(np.vstack([m.state for m in batch])).float().to(device)
         A = torchify(np.vstack([m.action for m in batch])).float().to(device)
         R = torchify(np.vstack([m.reward for m in batch])).float().to(device)
+
         Sp = (
             torchify(np.vstack([m.next_state for m in batch]))
             .float()
             .to(device)
         )
+
         D = torchify(np.vstack([m.done for m in batch])).float().to(device)
 
         if len(S) != len(A):

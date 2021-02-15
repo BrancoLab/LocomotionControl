@@ -65,7 +65,7 @@ def simulated():
     for n in range(50):
         # draw random angle and distance for next point
         sign = -1 if np.random.random() < 0.5 else 1
-        _phi = np.random.uniform(0, 65) * sign
+        _phi = np.random.uniform(0, 20) * sign
         if n == 0:
             _phi = np.random.uniform(0, 360)
         elif n == 1:  # second segment should be straight
@@ -89,6 +89,8 @@ def simulated():
     original_xy = np.vstack(points)
     xy = calc_bezier_path(np.vstack(points), TRAJECTORY_CONFIG["n_steps"])
     x, y = xy[:, 0], xy[:, 1]
+    x -= x[0]
+    y -= y[0]
 
     # Get theta and omega
     speedup_factor = TRAJECTORY_CONFIG["n_steps"] / n_frames
