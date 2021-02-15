@@ -4,7 +4,6 @@ import torch.optim as optim
 import numpy as np
 from random import choices
 from collections import namedtuple, deque
-import copy
 
 from pyrnn._utils import torchify, npify
 
@@ -15,7 +14,7 @@ from control.utils import merge
 from RL.actors import Actor, Critic
 from RL import settings
 
-memory = namedtuple("memory", "s, a, r, s_prime, done")
+memory = namedtuple("memory", "state, action, reward, next_state, done")
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -42,7 +41,6 @@ class RLAgent(model.Model):
         )
 
         self.memory = Memory()
-        self.noise = OUNoise()
 
         self.loss = nn.MSELoss()
 
@@ -52,9 +50,6 @@ class RLAgent(model.Model):
         yield str(self.actor_local)
         yield "\n"
         yield str(self.critic_local)
-
-    def reset(self):
-        self.noise.reset()
 
     def act(self, state, add_noise=True):
         """
@@ -66,11 +61,13 @@ class RLAgent(model.Model):
         self.actor_local.train()
 
         if add_noise:
-            action += self.noise.sample()
+            action += np.random.normal(0, settings.NOISE_SCALE)
         action = action.T
+
         if np.any(np.isnan(action)):
             return None
-        return np.clip(action, -1, 1)
+
+        return np.clip(action, 0, 1)
 
     def move(self, controls):
         """
@@ -82,13 +79,12 @@ class RLAgent(model.Model):
         variables = merge(u, x, MOUSE)
         inputs = [variables[a] for a in self._M_args]
         dxdt = self.calc_dxdt(*inputs).ravel()
+        self.curr_dxdt = model._dxdt(*dxdt)
 
         self.curr_x = model.state(*(np.array(self.curr_x) + dxdt * dt))
 
-    def step(self, state, controls, reward, next_state, done):
+    def step(self):
         """Save experience in replay memory, and use random sample from buffer to learn."""
-        self.memory.add(state, controls, reward, next_state, done)
-
         # if have enough samples, do some learnin
         if len(self.memory) > settings.BATCH_SIZE:
             experiences = self.memory.sample()
@@ -163,9 +159,6 @@ class Memory:
         return len(self.mem)
 
     def add(self, state, controls, reward, next_state, done):
-        # if len(self) > settings.BUFFER_SIZE:
-        #     self.replay_memory.pop(0)
-
         self.mem.append(
             memory(state, controls.ravel(), reward, next_state, done)
         )
@@ -176,40 +169,16 @@ class Memory:
     def sample(self):
         batch = self.get_batch()
 
-        S = torchify(np.vstack([m.s for m in batch])).float().to(device)
-        A = torchify(np.vstack([m.a for m in batch])).float().to(device)
-        R = torchify(np.vstack([m.r for m in batch])).float().to(device)
-        Sp = torchify(np.vstack([m.s_prime for m in batch])).float().to(device)
+        S = torchify(np.vstack([m.state for m in batch])).float().to(device)
+        A = torchify(np.vstack([m.action for m in batch])).float().to(device)
+        R = torchify(np.vstack([m.reward for m in batch])).float().to(device)
+        Sp = (
+            torchify(np.vstack([m.next_state for m in batch]))
+            .float()
+            .to(device)
+        )
         D = torchify(np.vstack([m.done for m in batch])).float().to(device)
 
         if len(S) != len(A):
             raise ValueError("bad memory")
         return (S, A, R, Sp, D)
-
-
-class OUNoise:
-    """Ornstein-Uhlenbeck process."""
-
-    def __init__(self, size=3, mu=0.0, theta=0.15, sigma=0.2):
-        """Initialize parameters and noise process."""
-        self.mu = mu * np.ones(size)
-        self.theta = theta
-        self.sigma = sigma
-        self.size = size
-        self.reset()
-
-    def reset(self):
-        """Reset the internal state (= noise) to mean (mu)."""
-        self.state = copy.copy(self.mu)
-
-    def sample(self):
-        """Update internal state and return it as a noise sample."""
-        x = self.state
-
-        # Thanks to Hiu C. for this tip, this really helped get the learning up to the desired levels
-        dx = self.theta * (
-            self.mu - x
-        ) + self.sigma * np.random.standard_normal(self.size)
-
-        self.state = x + dx
-        return self.state

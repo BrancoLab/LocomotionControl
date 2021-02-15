@@ -15,7 +15,7 @@ def hidden_init(layer):
 class BaseActor(nn.Module):
     n_actions = 3  # P, N_r, N_l
     n_inputs = 4  # Rho, Phy, V, Omega
-    n_units = (32, 32)  # n units in hidden layer
+    n_units = (64, 128)  # n units in hidden layer
 
     def __init__(self):
         super(BaseActor, self).__init__()
@@ -35,7 +35,7 @@ class Actor(BaseActor):
         self.fc2 = nn.Linear(self.n_units[0], self.n_units[1])
         self.relu2 = nn.ReLU()
         self.fc3 = nn.Linear(self.n_units[1], self.n_actions)
-        self.tanh = nn.Tanh()
+        self.relu3s = nn.ReLU()
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -50,7 +50,7 @@ class Actor(BaseActor):
         x = self.relu1(self.fc1(state))
         x = self.bn1(x)
         x = self.relu2(self.fc2(x))
-        return self.tanh(self.fc3(x))
+        return self.relu3s(self.fc3(x))
 
     def __rich_console__(self, *args, **kwargs):
         yield Panel(

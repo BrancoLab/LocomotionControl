@@ -73,7 +73,6 @@ def simulated():
 
         phi = _phi + prev_phi
         prev_phi += _phi
-        phi = 0
 
         rho = np.random.uniform(10, 25)
         if n < 3:
