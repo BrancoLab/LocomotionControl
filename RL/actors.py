@@ -1,7 +1,13 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.autograd
+import numpy as np
+
+
+def fanin_(size):
+    fan_in = size[0]
+    weight = 1.0 / np.sqrt(fan_in)
+    return torch.Tensor(size).uniform_(-weight, weight)
 
 
 class BaseActor(nn.Module):
@@ -16,22 +22,26 @@ class BaseActor(nn.Module):
 class Critic(BaseActor):
     def __init__(self):
         super(Critic, self).__init__()
-        self.linear1 = nn.Linear(
-            self.n_inputs + self.n_actions, self.n_units[0]
+        self.linear1 = nn.Linear(self.n_inputs, self.n_units[0])
+        self.linear2 = nn.Linear(
+            self.n_units[0] + self.n_actions, self.n_units[1]
         )
-        self.linear2 = nn.Linear(self.n_units[0], self.n_units[1])
         self.linear3 = nn.Linear(self.n_units[1], self.n_actions)
+
+        self.linear1.weight.data = fanin_(self.linear1.weight.data.size())
+        self.linear2.weight.data = fanin_(self.linear2.weight.data.size())
+        self.linear3.weight.data.uniform_(-3e-3, 3e-3)
+
+        self.relu = nn.ReLU()
 
     def forward(self, state, action):
         """
         Params state and actions are torch tensors
         """
-        x = torch.cat([state, action], 1)
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
-        x = self.linear3(x)
-
-        return x
+        x = self.relu(self.linear1(state))
+        x = torch.cat([x, action], 1)
+        x = self.relu(self.linear2(x))
+        return self.linear3(x)
 
 
 class Actor(BaseActor):
@@ -41,12 +51,18 @@ class Actor(BaseActor):
         self.linear2 = nn.Linear(self.n_units[0], self.n_units[1])
         self.linear3 = nn.Linear(self.n_units[1], self.n_actions)
 
+        self.linear1.weight.data = fanin_(self.linear1.weight.data.size())
+        self.linear2.weight.data = fanin_(self.linear2.weight.data.size())
+        self.linear3.weight.data.uniform_(-0.003, 0.003)
+
+        self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
+
     def forward(self, state):
         """
         Param state is a torch tensor
         """
-        x = F.relu(self.linear1(state))
-        x = F.relu(self.linear2(x))
+        x = self.relu(self.linear1(state))
+        x = self.relu(self.linear2(x))
         x = torch.tanh(self.linear3(x))
-
         return x

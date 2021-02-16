@@ -127,7 +127,9 @@ class RLWorld:
 
         # reward by route progression
         # progression = self.curr_traj_waypoint_idx / len(self.trajectory)
-        # reward += (progression - self.route_progression) * 5
+        # progress_improvement = progression - self.route_progression
+        # if progress_improvement:
+        #     reward += (progression - self.route_progression) * 5
         # self.route_progression = progression
         return reward
 

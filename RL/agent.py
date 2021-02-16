@@ -22,6 +22,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class RLAgent(model.Model):
     prev_x = None
+    epsilon = 1
+    espilon_decay = 1.0 / 1000
 
     def __init__(self):
         model.Model.__init__(self)
@@ -58,7 +60,7 @@ class RLAgent(model.Model):
 
         # loss
         self.memory = Memory()
-        self.noise = OUNoise()
+        self.noise = OUNoise(mu=np.zeros(3))
 
     def __rich_console__(self, *args, **kwargs):
         yield "A2A Agent"
@@ -77,9 +79,11 @@ class RLAgent(model.Model):
         self.actor.train()
 
         if add_noise:
-            # if np.random.random() < .4:
-            action += np.random.normal(0, settings.NOISE_SCALE, size=3)
+            #     # if np.random.random() < .4:
+            #     action += np.random.normal(0, settings.NOISE_SCALE, size=3)
             # action += self.noise.sample(frame)
+            action += self.noise() * max(0, self.epsilon)
+            self.epsilon += self.espilon_decay
         action = action.T
 
         if np.any(np.isnan(action)):
@@ -201,38 +205,32 @@ class Memory:
         return (S, A, R, Sp, D)
 
 
-class OUNoise(object):
-    def __init__(
-        self,
-        mu=0.0,
-        theta=0.15,
-        max_sigma=0.3,
-        min_sigma=0.3,
-        decay_period=100000,
-    ):
-        self.mu = mu
+class OUNoise:
+    def __init__(self, mu=0, sigma=0.2, theta=0.15, dt=1e-2, x0=None):
         self.theta = theta
-        self.sigma = max_sigma
-        self.max_sigma = max_sigma
-        self.min_sigma = min_sigma
-        self.decay_period = decay_period
-        self.action_dim = 3
+        self.mu = mu
+        self.sigma = sigma
+        self.dt = dt
+        self.x0 = x0
         self.reset()
 
+    def __call__(self):
+        x = (
+            self.x_prev
+            + self.theta * (self.mu - self.x_prev) * self.dt
+            + self.sigma
+            * np.sqrt(self.dt)
+            * np.random.normal(size=self.mu.shape)
+        )
+        self.x_prev = x
+        return x
+
     def reset(self):
-        self.state = np.ones(self.action_dim) * self.mu
-
-    def evolve_state(self):
-        x = self.state
-        dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(
-            self.action_dim
+        self.x_prev = (
+            self.x0 if self.x0 is not None else np.zeros_like(self.mu)
         )
-        self.state = x + dx
-        return self.state
 
-    def sample(self, t=0):
-        noise = self.evolve_state()
-        self.sigma = self.max_sigma - (self.max_sigma - self.min_sigma) * min(
-            1.0, t / self.decay_period
+    def __repr__(self):
+        return "OrnsteinUhlenbeckActionNoise(mu={}, sigma={})".format(
+            self.mu, self.sigma
         )
-        return noise

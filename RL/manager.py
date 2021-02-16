@@ -15,6 +15,9 @@ from RL.world import RLWorld
 from RL import settings
 from RL.progress import Progress
 
+torch.manual_seed(1)
+np.random.seed(1)
+
 
 class Manager:
     def __init__(self):
