@@ -137,6 +137,11 @@ class StateInfo:
         self.prev_v = agent.curr_x.v
         self.prev_omega = agent.curr_x.omega
 
+        # tau
+        self.controls.add_row("", "")
+        self.controls.add_row("tau_r", fmt(agent.curr_x.tau_r))
+        self.controls.add_row("tau_l", fmt(agent.curr_x.tau_l))
+
         # wheel speeds
         try:
             l, r = agent.get_wheel_velocities()

@@ -47,14 +47,13 @@ class RLWorld:
             scaled[name] = (val - limit.min) / (limit.max - limit.min) * 2 - 1
         return scaled
 
-    def get_delta_position(self, agent, curr_idx=None, complete=False):
+    def get_delta_position(self, agent):
         """
             Get the dx dy of the agents position
             vs the current state in the trajectory
         """
         # get traj idx
-        if curr_idx is None:
-            curr_idx = self.current_trajectory_idx(agent)
+        curr_idx = self.current_trajectory_idx(agent)
 
         # get trajectory at this point
         traj = self.trajectory[curr_idx]
@@ -62,14 +61,7 @@ class RLWorld:
         # convert to polar coordinates
         dx = traj[0] - agent.curr_x.x
         dy = traj[1] - agent.curr_x.y
-
-        if complete:
-            dt = traj[2] - agent.curr_x.theta
-            dv = traj[3] - agent.curr_x.v
-            do = traj[4] - agent.curr_x.omega
-            return dx, dy, dt, dv, do
-        else:
-            return dx, dy
+        return dx, dy
 
     def current_trajectory_idx(self, agent):
         """
@@ -114,30 +106,32 @@ class RLWorld:
             Get the reward as the inverse of the state error
         """
         # reward by diminished state error
-        vnames = ("x", "y", "psy", "v", "omega")
+        traj = self.trajectory[initial_state]
         initial = {
-            n: v
-            for n, v in zip(
-                vnames, self.get_delta_position(agent, curr_idx=initial_state)
-            )
+            "v": traj[3] - agent.prev_x.v,
+            "o": traj[3] - agent.prev_x.omega,
         }
-        final = {n: v for n, v in zip(vnames, self.get_delta_position(agent))}
 
-        initial = np.array(list(self.scale_variables(initial).values()))
-        final = np.array(list(self.scale_variables(final).values()))
+        final = {
+            "v": traj[3] - agent.curr_x.v,
+            "o": traj[3] - agent.curr_x.omega,
+        }
 
+        try:
+            initial = np.array(list(self.scale_variables(initial).values()))
+            final = np.array(list(self.scale_variables(final).values()))
+        except AttributeError:
+            self.progress.log("WORLD", "Bad reward, val out lim")
+            return 0
         reward = np.linalg.norm(initial - final)
-        # if reward < 0:
-        #     reward = 0
 
         # reward by route progression
-        progression = self.curr_traj_waypoint_idx / len(self.trajectory)
-        if progression > self.route_progression:
-            reward += (progression - self.route_progression) * 100
-            self.route_progression = progression
+        # progression = self.curr_traj_waypoint_idx / len(self.trajectory)
+        # reward += (progression - self.route_progression) * 5
+        # self.route_progression = progression
         return reward
 
-    def isdone(self, agent, min_dist=30):
+    def isdone(self, agent, min_dist=300):
         # check if we are too far off the trajectory
         dx, dy = self.get_delta_position(agent)
         if dx > 5 or dy > 5:
