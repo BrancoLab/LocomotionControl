@@ -27,22 +27,35 @@ class RLAgent(model.Model):
         # Actor Network (w/ Target Network)
         self.actor_local = Actor().to(device)
         self.actor_target = Actor().to(device)
-        self.actor_optimizer = optim.Adam(
-            self.actor_local.parameters(), lr=settings.LR_ACTOR
-        )
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic().to(device)
         self.critic_target = Critic().to(device)
+
+        # init networks with same params
+        for target_param, param in zip(
+            self.actor_target.parameters(), self.actor_local.parameters()
+        ):
+            target_param.data.copy_(param.data)
+
+        for target_param, param in zip(
+            self.critic_target.parameters(), self.critic_local.parameters()
+        ):
+            target_param.data.copy_(param.data)
+
+        # optimizers
+        self.loss = nn.MSELoss()
+        self.actor_optimizer = optim.Adam(
+            self.actor_local.parameters(), lr=settings.LR_ACTOR
+        )
         self.critic_optimizer = optim.Adam(
             self.critic_local.parameters(),
             lr=settings.LR_CRITIC,
             weight_decay=settings.WEIGHT_DECAY,
         )
 
+        # loss
         self.memory = Memory()
-
-        self.loss = nn.MSELoss()
 
     def __rich_console__(self, *args, **kwargs):
         yield "A2A Agent"
@@ -68,7 +81,7 @@ class RLAgent(model.Model):
             return None
 
         # return action
-        return np.clip(action, 0, 1)
+        return np.clip(action, -1, 1)
 
     def move(self, controls):
         """

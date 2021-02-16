@@ -37,29 +37,13 @@ class Manager:
 
         # scale values
         # see https://stats.stackexchange.com/questions/281162/scale-a-number-between-a-range/281164
-        to_scale = dict(
-            r=(r, settings.R_MAX),
-            psy=(psy, settings.PSY_MAX),
-            v=(v, settings.V_MAX),
-            omega=(omega, settings.OMEGA_MAX),
-        )
-        scaled = {}
-        for name, (val, limit) in to_scale.items():
-            if val > limit.max:
-                self.progress.log(
-                    "MANAGER",
-                    f"[b{ salmon}]Variable {name} was above limit {round(val, 2)}!!",
-                )
-                return None
-            elif val < limit.min:
-                self.progress.log(
-                    "MANAGER",
-                    f"[b{ salmon}]Variable {name} was below limit {round(val, 2)}!!!",
-                )
-                return None
-            scaled[name] = (val - limit.min) / (limit.max - limit.min) * 2 - 1
-
-        return np.array(list(scaled.values()))
+        to_scale = dict(r=r, psy=psy, v=v, o=omega,)
+        try:
+            scaled = list(self.world.scale_variables(to_scale).values())
+        except AttributeError:
+            # out of bounds
+            return None
+        return np.array(scaled)
 
     def save(self, name=""):
         torch.save(
@@ -96,14 +80,14 @@ class Manager:
         self.setup_training()
         scores = []
         # Handle LIVE during training
-        with Live(self.progress.layout, screen=True, refresh_per_second=20):
+        with Live(self.progress.layout, screen=True, refresh_per_second=50):
             with GracefulInterruptHandler() as h:
 
                 # Loop over EPISODES
                 for n in range(settings.N_EPISODES):
                     self.initialize_episode(n)
                     self.progress.log("NEW TRIAL", "=" * 10)
-                    # live.update(self.progress.layout, refresh=True)
+                    # live.update(self.pro * gress.layout, refresh=True)
                     # time.sleep(3)
 
                     # Loop over FRAMES
@@ -137,7 +121,9 @@ class Manager:
                             done = True
                             break
 
-                        reward = self.world.get_reward()
+                        reward = self.world.get_reward(
+                            self.agent, INITIAL_STATE_INDEX
+                        )
                         score += reward
 
                         # Update variables for live displayu

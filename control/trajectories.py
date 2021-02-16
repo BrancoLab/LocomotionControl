@@ -73,6 +73,7 @@ def simulated():
 
         phi = _phi + prev_phi
         prev_phi += _phi
+        phi = 0
 
         rho = np.random.uniform(10, 25)
         if n < 3:
@@ -114,7 +115,7 @@ def simulated():
 
     # stack
     trajectory = np.vstack([x, y, theta, v, omega, zeros, zeros]).T
-    trajectory = trajectory[200:-200, :]
+    # trajectory = trajectory[200:-200, :]
 
     return (
         original_xy,

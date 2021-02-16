@@ -37,7 +37,7 @@ def fmt(obj):
         return [round(v, 2) for v in obj]
     elif isinstance(obj, dict):
         return {k: round(v, 2) for k, v in obj.items()}
-    elif isinstance(obj, float):
+    elif isinstance(obj, (float, np.float32)):
         return str(round(obj, 5))
     else:
         return ""
@@ -49,7 +49,7 @@ class TrajectoryPlot:
 
     def __rich_console__(self, *args):
         fig = tpl.figure()
-        fig.plot(self.x, self.y, label="r", width=40, height=15)
+        fig.plot(self.x, self.y, width=40, height=15)
         fig.plot([2], [1])
         yield fig
 
@@ -61,7 +61,7 @@ class RewardPlot:
         x = np.arange(len(self.scores))
 
         fig = tpl.figure()
-        fig.plot(x, self.scores, label="r", width=60, height=15)
+        fig.plot(x, self.scores, width=60, height=15)
         yield fig
 
 
