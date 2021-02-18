@@ -166,7 +166,7 @@ def from_tracking(cache_file, trialn=None):
     x, y = xy[:, 0], xy[:, 1]
 
     # Get theta and omega
-    theta, omega = get_theta_omega_from_xy(x, y, dt=dt)
+    theta, omega = get_theta_omega_from_xy(x, y, dt=dt, smooth=True)
     omega *= speedup_factor
 
     # Get speed
@@ -186,7 +186,9 @@ def from_tracking(cache_file, trialn=None):
 
     # stack
     trajectory = np.vstack([x, y, theta, v, omega, zeros, zeros]).T
-    trajectory = trajectory[150:-150, :]  # remove artefacts from bezier
+
+    skip = int(TRAJECTORY_CONFIG["n_steps"] / 10)
+    trajectory = trajectory[skip:-skip, :]  # remove artefacts from bezier
 
     return (
         original_xy,

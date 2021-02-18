@@ -2,13 +2,13 @@ import numpy as np
 from scipy.special import comb
 from scipy import interpolate
 
-from fcutils.maths.signals import derivative
+from fcutils.maths.signals import derivative, rolling_mean
 from fcutils.maths.geometry import (
     calc_angle_between_points_of_vector_2d as get_theta_from_xy,
 )
 
 
-def get_theta_omega_from_xy(x, y, dt=1):
+def get_theta_omega_from_xy(x, y, dt=1, smooth=False):
     """
         Returns the orientation (direction of movement to be exact)
         and angular velocity given an XY trajectory
@@ -17,6 +17,11 @@ def get_theta_omega_from_xy(x, y, dt=1):
             x, y: 1d np.ndarray with coordinates
             dt: float time interval betwen frames
     """
+
+    if smooth:
+        x = rolling_mean(x, 100)
+        y = rolling_mean(y, 100)
+
     # Get theta
     theta = get_theta_from_xy(x, y)
     theta[0] = theta[1]

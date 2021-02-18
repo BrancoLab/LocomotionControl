@@ -143,15 +143,10 @@ class Cost:
 
         magnitude = (U ** 2) * self.R_
         smoothness = (dU ** 2) * self.Z_
-        if len(U.shape) == 3:
-            if U.shape[0] > 1:
-                raise NotImplementedError("Ops")
-            sparsness = self.alpha * np.linalg.norm(U[0, :, :], ord=1, axis=1)
-            sparsness = repeat(
-                sparsness, "k -> i k n", i=U.shape[0], n=U.shape[2]
-            )
-        else:
-            raise NotImplementedError("ops")
+
+        sparsness = self.alpha * np.linalg.norm(U[0, :, :], ord=1, axis=1)
+        sparsness = repeat(sparsness, "k -> i k n", i=U.shape[0], n=U.shape[2])
+
         positive = Uneg * self.W_
         return magnitude + smoothness + sparsness + positive
 

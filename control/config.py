@@ -9,7 +9,7 @@ MANAGER_CONFIG = dict(exp_name="TRACKING", live_plot=False,)
 TRAJECTORY_CONFIG = dict(
     traj_type="tracking",  # tracking or simulated # ! CHECK BEFORE REAL
     n_steps=1000,
-    min_dist=1,  # when within this distance from end, stop
+    min_dist=3,  # when within this distance from end, stop
 )
 
 
@@ -27,13 +27,13 @@ CONTROL_CONFIG = dict(
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
     # control magnitude
-    R=np.diag([1, 10, 10]) * 1e-3,
+    R=np.diag([1, 0.5, 0.5]) * 1e-3,
     # controls sparsity
-    alpha=3e3,
+    alpha=6e3,
     # control smoothness
-    Z=np.diag([1, 10, 10]) * 1e2,
+    Z=np.diag([1, 1, 1]) * 1e2,
     # control positive
-    W=np.diag([-1, -10, -10]) * 1e3,
+    W=np.diag([-1, -3, -3]) * 3e3,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
     Q=np.diag([1000, 1000, 200, 100, 1500, 0, 0]) * 1e4,
@@ -41,7 +41,6 @@ CONTROL_CONFIG = dict(
 
 # params used to compute goal states to be used for control
 PLANNING_CONFIG = dict(
-    prediction_length_start=20,  # prediction length for the first few steps
     prediction_length=60,  # length after that
     n_ahead=15,  # start prediction states from N steps ahead
 )
