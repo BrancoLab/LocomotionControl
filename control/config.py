@@ -36,7 +36,7 @@ CONTROL_CONFIG = dict(
     W=np.diag([-1, -3, -3]) * 3e3,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([1000, 1000, 200, 100, 1500, 0, 0]) * 1e4,
+    Q=np.diag([1000, 1000, 200, 250, 1500, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control

@@ -19,8 +19,8 @@ def get_theta_omega_from_xy(x, y, dt=1, smooth=False):
     """
 
     if smooth:
-        x = rolling_mean(x, 100)
-        y = rolling_mean(y, 100)
+        x = rolling_mean(x, 70)
+        y = rolling_mean(y, 70)
 
     # Get theta
     theta = get_theta_from_xy(x, y)
