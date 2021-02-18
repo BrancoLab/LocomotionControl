@@ -192,7 +192,7 @@ for num, tfile in track(enumerate(tfiles[::-1]), total=len(tfiles)):
     xy -= xy[0, :]
 
     # append original trial
-    append(tfile.stem, xy)
+    append(tfile.stem + f"_orig", xy)
     durations.append(duration)
     distances.append(dist)
     dmovs.append(dmov)

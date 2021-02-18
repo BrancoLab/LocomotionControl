@@ -34,11 +34,13 @@ class Controller(Cost):
         self.R = config.CONTROL_CONFIG["R"]
         self.Z = config.CONTROL_CONFIG["Z"]
         self.alpha = config.CONTROL_CONFIG["alpha"]
+        self.W = config.CONTROL_CONFIG["W"]
 
         # store diags to speed up computations
         self.Q_ = np.diag(self.Q)
         self.R_ = np.diag(self.R)
         self.Z_ = np.diag(self.Z)
+        self.W_ = np.diag(self.W)
 
     def solve(self, X, X_g):
         """ calculate the optimal inputs

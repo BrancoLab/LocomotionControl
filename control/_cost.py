@@ -149,7 +149,8 @@ class Cost:
             )
         else:
             raise NotImplementedError("ops")
-        return magnitude + smoothness + sparsness
+        positive = U * self.W_
+        return magnitude + smoothness + sparsness + positive
 
     def state_cost_fn(self, X, X_g):
         """ state cost function
@@ -197,7 +198,7 @@ class Cost:
             l_u (numpy.ndarray): gradient of cost, shape(pred_len, controls_size)
         """
         dU = U - U_prev
-        return 2.0 * U * self.R_ + 2 * dU * self.Z_ + self.alpha
+        return 2.0 * U * self.R_ + 2 * dU * self.Z_ + self.alpha + self.W_
 
     def hessian_cost_fn_with_state(self, X, X_g):
         """ hessian costs with respect to the state

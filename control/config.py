@@ -30,10 +30,12 @@ CONTROL_CONFIG = dict(
     R_start=np.diag([1, 1, 1]) * 1e-2,
     R_run=np.diag([1, 1, 1]) * 1e-3,
     # controls sparsity
-    alpha=1e-4,
+    alpha=3e3,
     # control smoothness
     Z_start=np.diag([1, 1, 1]) * 4e-1,
     Z_run=np.diag([1, 1, 1]) * 1e2,
+    # control positive
+    W=np.diag([-1, -1, -1]) * 100,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
     Q=np.diag([1000, 1000, 200, 100, 1500, 0, 0]) * 1e4,
