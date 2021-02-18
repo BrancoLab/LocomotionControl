@@ -41,10 +41,10 @@ def fast_dxdt(theta, v, omega, L, R, m, d, m_w, tau_l, tau_r, P, N_r, N_l):
     )
 
     # taurdot
-    res[5] = -N_r + P
+    res[5] = -N_r + 2 * P
 
     # tauldot
-    res[6] = -N_l + P
+    res[6] = -N_l + 2 * P
 
     return res
 
@@ -106,11 +106,11 @@ def fast_model_jacobian_input():
     res = np.zeros((7, 3))
 
     # taurdot_wrt_P
-    res[5, 0] = 1
+    res[5, 0] = 2
     # taurdot_wrt_N_r
     res[5, 1] = -1
     # tauldot_wrt_P
-    res[6, 0] = 1
+    res[6, 0] = 2
     # tauldot_wrt_N_l
     res[6, 2] = -1
 
