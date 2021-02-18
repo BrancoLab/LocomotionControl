@@ -112,7 +112,7 @@ def fast_model_jacobian_input():
     # tauldot_wrt_P
     res[6, 0] = 1
     # tauldot_wrt_N_l
-    res[6, 2] = -12
+    res[6, 2] = -1
 
     return res
 
