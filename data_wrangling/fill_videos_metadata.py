@@ -31,7 +31,10 @@ for folder, info in metadata.items():
             )
         except ValueError:
             print(f"failed to open: {video}")
-            video.unlink()
+            try:
+                video.unlink()
+            except PermissionError:
+                continue
             continue
 
         video_metadata = info.copy()

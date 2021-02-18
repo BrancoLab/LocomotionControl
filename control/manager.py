@@ -187,7 +187,7 @@ class Manager:
                     self.itern = itern
                     progress.advance(task_id, 1)
 
-                    # change params for first few steps
+                    # change params for first few steps (WARMUP)
                     if itern < 5:
                         is_warmup = True
                         logger.debug(f"Step: {itern} | warmup phase")

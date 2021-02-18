@@ -41,6 +41,12 @@ save_path = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\trials_cache.h5"
 trials = pd.read_hdf(save_path, key="hdf")
 logger.info(f"Loaded {len(trials)} trials")
 
+if TEST_MODE:
+    # select a few random trials
+    trials = trials.sample(50)
+    logger.info(f"Test mode, kept 50 trials")
+
+
 for n, (i, t) in track(enumerate(trials.iterrows()), total=len(trials)):
     txt = template.replace("NNN", str(n))
 

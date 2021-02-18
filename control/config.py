@@ -29,14 +29,14 @@ CONTROL_CONFIG = dict(
     # control magnitude
     R_start=np.diag([1, 1, 1]) * 1e-2,
     R_run=np.diag([1, 1, 1]) * 1e-3,
-    # positive controls
-    W=np.diag([-1, -1, -1]) * 100,  # should be < 0
+    # controls sparsity
+    alpha=1e-4,
     # control smoothness
     Z_start=np.diag([1, 1, 1]) * 4e-1,
     Z_run=np.diag([1, 1, 1]) * 1e2,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([500, 500, 200, 100, 1500, 0, 0]) * 1e4,
+    Q=np.diag([1000, 1000, 200, 100, 1500, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control
@@ -62,7 +62,7 @@ all_configs = (
     PLANNING_CONFIG,
     iLQR_CONFIG,
     {
-        k: v if isinstance(v, int) else str(np.diag(v))
+        k: v if isinstance(v, (int, float)) else str(np.diag(v))
         for k, v in CONTROL_CONFIG.items()
     },
     PARAMS,

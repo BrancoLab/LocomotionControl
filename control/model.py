@@ -39,7 +39,9 @@ class Model(ModelDynamics):
         v, omega = trajectory[10, 3], trajectory[10, 4]
         vdot = trajectory[11, 3] - v
         omegadot = trajectory[11, 4] - omega
-        taur, taul = self.get_torques_given_speeds(v, vdot, omega, omegadot)
+        taur, taul = self.get_torques_inverse_dynamics(
+            v, vdot, omega, omegadot
+        )
 
         # start th emodel at the start of the trajectory
         self.curr_x = state(
@@ -48,10 +50,10 @@ class Model(ModelDynamics):
             trajectory[10, 2],  # theta
             trajectory[10, 3],  # v
             trajectory[10, 4],  # omega
-            trajectory[0, 5],  # tau_r
-            trajectory[0, 6],  # tau_l
-            # taur,
-            # taul,
+            # trajectory[0, 5],  # tau_r
+            # trajectory[0, 6],  # tau_l
+            taur,
+            taul,
         )
 
     def step(self, u, curr_goal):

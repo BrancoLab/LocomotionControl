@@ -154,7 +154,7 @@ class ModelDynamics(object):
         self.get_combined_dynamics_kinematics()
         # self.get_jacobians()
 
-    def get_torques_given_speeds(self, v, vdot, omega, omegadot):
+    def get_torques_inverse_dynamics(self, v, vdot, omega, omegadot):
         """ 
             Inverts the model's dynamics to compute what the torques should be 
             given the model's current linear and angular speeds and accelerations.

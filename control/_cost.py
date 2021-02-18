@@ -1,6 +1,7 @@
 import numpy as np
 
 from sympy import MatrixSymbol
+from einops import repeat
 
 from .utils import fit_angle_in_range
 from .config import CONTROL_CONFIG
@@ -42,7 +43,7 @@ class Cost:
         """
             Handles cost computation and its derivatives
         """
-        self.make_equations()
+        # self.make_equations()
 
     def make_equations(self):
         """
@@ -64,6 +65,8 @@ class Cost:
 
         dX = X - X_g
         dU = U - U_prev
+
+        raise NotImplementedError("Dont know how to show l1 norm in sympy")
 
         self.cost_function = (
             dX.T * Q * dX + U.T * R * U + U.T * W + dU.T * Z * dU
@@ -135,7 +138,18 @@ class Cost:
                 shape(pop_size, pred_len, controls_size)
         """
         dU = U - U_prev
-        return (U ** 2) * self.R_ + U * self.W_ + (dU ** 2) * self.Z_
+        magnitude = (U ** 2) * self.R_
+        smoothness = (dU ** 2) * self.Z_
+        if len(U.shape) == 3:
+            if U.shape[0] > 1:
+                raise NotImplementedError("Ops")
+            sparsness = self.alpha * np.linalg.norm(U[0, :, :], ord=1, axis=1)
+            sparsness = repeat(
+                sparsness, "k -> i k n", i=U.shape[0], n=U.shape[2]
+            )
+        else:
+            raise NotImplementedError("ops")
+        return magnitude + smoothness + sparsness
 
     def state_cost_fn(self, X, X_g):
         """ state cost function
@@ -183,7 +197,7 @@ class Cost:
             l_u (numpy.ndarray): gradient of cost, shape(pred_len, controls_size)
         """
         dU = U - U_prev
-        return 2.0 * U * self.R_ + self.W_ + 2 * dU * self.Z_
+        return 2.0 * U * self.R_ + 2 * dU * self.Z_ + self.alpha
 
     def hessian_cost_fn_with_state(self, X, X_g):
         """ hessian costs with respect to the state

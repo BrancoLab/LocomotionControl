@@ -32,13 +32,12 @@ class Controller(Cost):
         # get matrices
         self.Q = config.CONTROL_CONFIG["Q"]
         self.R = config.CONTROL_CONFIG["R"]
-        self.W = config.CONTROL_CONFIG["W"]
         self.Z = config.CONTROL_CONFIG["Z"]
+        self.alpha = config.CONTROL_CONFIG["alpha"]
 
         # store diags to speed up computations
         self.Q_ = np.diag(self.Q)
         self.R_ = np.diag(self.R)
-        self.W_ = np.diag(self.W)
         self.Z_ = np.diag(self.Z)
 
     def solve(self, X, X_g):
