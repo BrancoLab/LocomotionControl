@@ -167,7 +167,7 @@ def from_tracking(cache_file, trialn=None):
 
     # Get theta and omega
     theta, omega = get_theta_omega_from_xy(x, y, dt=dt)
-    omega *= speedup_factor
+    # omega *= speedup_factor
 
     # Get speed
     v = get_speed_from_xy(x, y)
