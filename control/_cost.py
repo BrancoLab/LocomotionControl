@@ -138,6 +138,9 @@ class Cost:
                 shape(pop_size, pred_len, controls_size)
         """
         dU = U - U_prev
+        Uneg = U.copy()
+        Uneg[Uneg > 0] = 0
+
         magnitude = (U ** 2) * self.R_
         smoothness = (dU ** 2) * self.Z_
         if len(U.shape) == 3:
@@ -149,7 +152,7 @@ class Cost:
             )
         else:
             raise NotImplementedError("ops")
-        positive = U * self.W_
+        positive = Uneg * self.W_
         return magnitude + smoothness + sparsness + positive
 
     def state_cost_fn(self, X, X_g):

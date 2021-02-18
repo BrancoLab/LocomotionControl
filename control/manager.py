@@ -188,33 +188,33 @@ class Manager:
                     progress.advance(task_id, 1)
 
                     # change params for first few steps (WARMUP)
-                    if itern < 5:
-                        is_warmup = True
-                        logger.debug(f"Step: {itern} | warmup phase")
-                        config.CONTROL_CONFIG["R"] = config.CONTROL_CONFIG[
-                            "R_start"
-                        ]
-                        config.CONTROL_CONFIG["Z"] = config.CONTROL_CONFIG[
-                            "Z_start"
-                        ]
-                        config.PLANNING_CONFIG[
-                            "prediction_length"
-                        ] = config.PLANNING_CONFIG["prediction_length_start"]
-                    else:
-                        is_warmup = False
-                        config.CONTROL_CONFIG["R"] = config.CONTROL_CONFIG[
-                            "R_run"
-                        ]
+                    # if itern < -1:
+                    is_warmup = True
+                    #     logger.debug(f"Step: {itern} | warmup phase")
+                    #     config.CONTROL_CONFIG["R"] = config.CONTROL_CONFIG[
+                    #         "R_start"
+                    #     ]
+                    #     config.CONTROL_CONFIG["Z"] = config.CONTROL_CONFIG[
+                    #         "Z_start"
+                    #     ]
+                    #     config.PLANNING_CONFIG[
+                    #         "prediction_length"
+                    #     ] = config.PLANNING_CONFIG["prediction_length_start"]
+                    # else:
+                    # is_warmup = False
+                    # config.CONTROL_CONFIG["R"] = config.CONTROL_CONFIG[
+                    #     "R_run"
+                    # ]
 
-                        config.PLANNING_CONFIG[
-                            "prediction_length"
-                        ] = config.PLANNING_CONFIG["prediction_length_run"]
+                    # config.PLANNING_CONFIG[
+                    #     "prediction_length"
+                    # ] = config.PLANNING_CONFIG["prediction_length_run"]
 
-                        # change Z a bit later
-                        if itern > 7:
-                            config.CONTROL_CONFIG["Z"] = config.CONTROL_CONFIG[
-                                "Z_run"
-                            ]
+                    # # change Z a bit later
+                    # if itern > 7:
+                    #     config.CONTROL_CONFIG["Z"] = config.CONTROL_CONFIG[
+                    #         "Z_run"
+                    # ]
 
                     # Plan
                     curr_state = np.array(self.model.curr_x)
