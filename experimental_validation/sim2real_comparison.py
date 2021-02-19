@@ -50,6 +50,15 @@ logger.info(f"Loaded simulations for {len(simulations_lookup)} trials")
 
 trials = Trials(only_tracked=True)
 
+BAD_TRIALS = (  # trials in which the simulation went wrong
+    0,
+    8,
+    22,
+    24,
+    49,
+    51,
+)
+
 # %%
 """
     For each trial, plot the real trial DATA and the results from the simulation
@@ -180,21 +189,6 @@ for trialn in track(range(len(trials)), total=len(trials)):
     axarr[2].set(xlabel="time (s)", ylabel="$v$", xlim=tlim)
     axarr[2].legend()
 
-    # plot wheel and paw speeds
-    # axarr[3].plot(
-    #     trial_f2t,
-    #     sosfiltfilt(sos, trial.right_hl.speed),
-    #     lw=4,
-    #     color=orange,
-    #     label="$RH$",
-    # )
-    # axarr[3].plot(
-    #     trial_f2t,
-    #     sosfiltfilt(sos, trial.left_hl.speed),
-    #     lw=4,
-    #     color=blue,
-    #     label="$LH$",
-    # )
     axarr[3].plot(
         trial_f2t,
         rolling_mean((trial.right_hl.speed + trial.right_fl.speed) / 2, 20),
@@ -237,7 +231,8 @@ for trialn in track(range(len(trials)), total=len(trials)):
         f,
         paths.folder_2WDD
         / "ANALYSIS"
-        / f"sim2real_trial_{trialn}_sos_{sos_th}.png",
+        / "trials"
+        / f"sim2real_trial_{trialn}.png",
         close=True,
     )
     # break
