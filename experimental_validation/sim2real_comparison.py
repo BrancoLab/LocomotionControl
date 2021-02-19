@@ -36,15 +36,15 @@ simulations_folder = Path(
     "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD\\SIMULATIONS"
 )
 
-simulations_lookup = {}
+simulations_lookup2 = {}
 for sim in path.subdirs(simulations_folder):
     try:
         trial = pd.read_hdf(sim / "trial.h5")
     except FileNotFoundError:
         logger.warning(f"Did not find trial file for {sim}")
         continue
-    simulations_lookup[trial["name"]] = sim
-logger.info(f"Loaded simulations for {len(simulations_lookup)} trials")
+    simulations_lookup2[trial["name"]] = sim
+logger.info(f"Loaded simulations for {len(simulations_lookup2)} trials")
 
 trials = Trials(only_tracked=True)
 
@@ -75,7 +75,7 @@ for trialn in track(range(len(trials)), total=len(trials)):
 
     try:
         simulated = pd.read_hdf(
-            simulations_lookup[trial.name] / "trial.h5"
+            simulations_lookup2[trial.name] / "trial.h5"
         )  # trial for simulation
     except KeyError:
         logger.warning(
@@ -84,7 +84,7 @@ for trialn in track(range(len(trials)), total=len(trials)):
         continue
 
     simulation = pd.read_hdf(
-        simulations_lookup[trial.name] / "history.h5"
+        simulations_lookup2[trial.name] / "history.h5"
     )  # simulation results
     simulation["dirmvmt"] = get_theta_from_xy(simulation.x, simulation.y)
     simulation.dirmvmt[0] = simulation.dirmvmt[1].copy()
