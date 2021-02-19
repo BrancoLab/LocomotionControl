@@ -4,7 +4,7 @@ import pandas as pd
 
 from fcutils.progress import track
 
-TEST_MODE = True  # only few trials for simplicity
+TEST_MODE = False  # only few trials for simplicity
 
 template = """#! /bin/bash
 
@@ -37,9 +37,9 @@ save_fld = Path(
 
 # load trials
 # save_path = paths.main_folder / "TRIALS.h5"
-save_path = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\trials_cache.h5"
-trials = pd.read_hdf(save_path, key="hdf")
-logger.info(f"Loaded {len(trials)} trials")
+trials_path = "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD\\trials_cache.h5"
+trials = pd.read_hdf(trials_path, key="hdf")
+logger.info(f"Loaded {len(trials)} trials from : '{trials_path}'")
 
 if TEST_MODE:
     # select a few random trials
@@ -52,3 +52,4 @@ for n, (i, t) in track(enumerate(trials.iterrows()), total=len(trials)):
 
     with open(save_fld / f"trial_{n}.sh", "w") as out:
         out.write(txt)
+logger.info("done")

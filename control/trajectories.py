@@ -139,7 +139,13 @@ def from_tracking(cache_file, trialn=None):
     logger.debug(f"Loading trajectory from tracing. Trial number: {trialn}")
 
     # Get a trial
-    trials = pd.read_hdf(cache_file, key="hdf")
+    try:
+        trials = pd.read_hdf(cache_file, key="hdf")
+    except Exception:
+        logger.warning(f"Failed to load trials cache from {cache_file}")
+        raise FileNotFoundError(
+            f"Failed to load trials cache from {cache_file}"
+        )
     if trialn is None:
         trial = trials.sample().iloc[0]
     else:
