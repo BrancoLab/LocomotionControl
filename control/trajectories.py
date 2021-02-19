@@ -169,6 +169,10 @@ def from_tracking(cache_file, trialn=None):
     theta, omega = get_theta_omega_from_xy(x, y, dt=dt, smooth=True)
     omega *= speedup_factor
 
+    if np.max(np.abs(omega)) > 1000:
+        # bad traj
+        return None, None, None, None
+
     # Get speed
     v = get_speed_from_xy(x, y)
     v[0] = v[1]

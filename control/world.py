@@ -48,6 +48,11 @@ class World:
                 self.trial,
             ) = trajectories.from_file(trajectory)
 
+        if self.xy_original is None:
+            raise ValueError(
+                "Got a bad trajectory, not running simulation on it sorry"
+            )
+
     def plan(self, curr_x):
         """
             Given the current state and the goal trajectory, 
