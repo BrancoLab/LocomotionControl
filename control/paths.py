@@ -18,7 +18,7 @@ if sys.platform == "darwin":
     )
 else:
     trials_cache = Path(
-        "Z:\\swc\\branco\\Federico\\Locomotion\\control\\experimental_validation\\2WDD\\trials_cache.h5"
+        "Z:\\swc\\branco\\Federico\\Locomotion\\control\\behavioural_data\\TRIALS.h5"
     )
 
     main_fld = Path(
@@ -37,6 +37,6 @@ analysis_fld = str(Path(main_fld) / "analysis")
 
 # winstor paths
 winstor_main = Path("/nfs/winstor/branco/Federico/Locomotion/control/data")
-winstor_trial_cache = "/nfs/winstor/branco/Federico/Locomotion/control/experimental_validation/2WDD/trials_cache.h5"
+winstor_trial_cache = "/nfs/winstor/branco/Federico/Locomotion/control/behavioural_data/TRIALS.h5"
 winstor_rnn = "/nfs/winstor/branco/Federico/Locomotion/control/RNN"
 winstor_db_app = ""

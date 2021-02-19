@@ -13,6 +13,7 @@ from fcutils.plot.figure import save_figure
 from myterial import blue_grey_darker
 from fcutils.progress import track
 from fcutils.maths.signals import rolling_mean
+from fcutils.path import files
 
 sys.path.append("./")
 
@@ -65,15 +66,19 @@ def extract_all(save_folder):
 
         # get steps
         steps = Steps(trial)
-        (
-            swing_phases,
-            R_diagonal_steps,
-            L_diagonal_steps,
-            diagonal_steps,
-            diag_data,
-            step_starts_R,
-            step_starts_L,
-        ) = steps.extract_steps(step_speed_th, precise_th=precise_th)
+        try:
+            (
+                swing_phases,
+                R_diagonal_steps,
+                L_diagonal_steps,
+                diagonal_steps,
+                diag_data,
+                step_starts_R,
+                step_starts_L,
+            ) = steps.extract_steps(step_speed_th, precise_th=precise_th)
+        except Exception:
+            logger.warning(f"Failed to extract tep info from trial {trial}")
+            continue
 
         # draw mouse and steps
         if trial.whole_session_tracking is not None:
@@ -325,8 +330,22 @@ def make_figure():
     )
 
 
+def steps_summary(trials_folder):
+    """
+        Loads steps data for each individual trial and makes a summary plot
+    """
+    data = []
+    for fpath in files(trials_folder, "*steps.h5"):
+        data.append(pd.read_hdf(fpath, key="hdf"))
+
+    # steps = pd.concat(data).reset_index()
+    f, ax = plt.subplots(figsize=(10, 10))
+
+
 if __name__ == "__main__":
     save_folder = Path(
-        "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\experimental_validation\\2WDD\\analysis"
+        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\experimental_validation\2WDD\analysis\trials_steps"
     )
-    extract_all(save_folder)
+    # extract_all(save_folder)
+
+    steps_summary(save_folder)

@@ -27,7 +27,7 @@ CONTROL_CONFIG = dict(
     controls_size=3,
     ANGLE_IDX=2,  # state vector index which is angle, used to fit diff in
     # control magnitude
-    R=np.diag([1, 0.5, 0.5]) * 1e-3,
+    R=np.diag([1, 1, 1]) * 1e-3,
     # controls sparsity
     alpha=8e3,
     # control smoothness
@@ -36,7 +36,7 @@ CONTROL_CONFIG = dict(
     W=np.diag([-1, -1, -1]) * 7e3,
     # state error cost
     # state cost | x, y, theta, v, omega, taul, taur
-    Q=np.diag([1000, 1000, 200, 150, 1500, 0, 0]) * 1e4,
+    Q=np.diag([1800, 1800, 250, 180, 2000, 0, 0]) * 1e4,
 )
 
 # params used to compute goal states to be used for control

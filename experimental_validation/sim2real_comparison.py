@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import butter
 
-# from sklearn.metrics import mean_squared_error as MSE
-
 
 from myterial import (
     blue_darker,
     orange_darker,
-    blue,
-    orange,
+    blue_light,
+    orange_light,
+    blue_grey,
 )
 
 from fcutils import path
@@ -29,7 +28,6 @@ module_path = Path(os.path.abspath(os.path.join("."))).parent
 sys.path.append(str(module_path))
 sys.path.append("./")
 from experimental_validation.trials import Trials
-from experimental_validation import paths
 from control.utils import get_theta_from_xy
 
 # %%
@@ -66,8 +64,10 @@ BAD_TRIALS = (  # trials in which the simulation went wrong
 sos_th = 1
 sos = butter(6, sos_th, output="sos", fs=60)
 
-mse_records = []
 for trialn in track(range(len(trials)), total=len(trials)):
+    if trialn in BAD_TRIALS:
+        continue
+
     # load all data
     trial = trials[trialn]
     if not trial.good or len(trial) < 50:
@@ -104,12 +104,7 @@ for trialn in track(range(len(trials)), total=len(trials)):
         trial
     ) + 0.075  # 0.075 from lookahead
     sim_f2t = np.linspace(sim_start, sim_dur + sim_start, len(simulation.x))
-
-    xaxprop = dict(
-        xlim=[0, 50],
-        xticks=[0, 50, 100],
-        xticklabels=[0, round(trial_dur / 2, 3), round(trial_dur, 3)],
-    )
+    tlim = [sim_start, sim_dur + sim_start]
 
     # get ratio between trial and simulation speed
     trial_speed = np.array(
@@ -117,38 +112,8 @@ for trialn in track(range(len(trials)), total=len(trials)):
     )
     speed_ratio = rolling_mean(trial_speed, 60) / simulation.v
 
-    # get avg paw speed on each side
-    RIGHT = (trial.right_hl.speed + trial.right_fl.speed) / 2
-    LEFT = (trial.left_hl.speed + trial.left_fl.speed) / 2
-
-    # interpolate time series to make them have the same length
-    maxl = 50
-    data = dict(
-        left_raw=rolling_mean(trial.left_hl.speed, 5),
-        right_raw=rolling_mean(trial.right_hl.speed, 5),
-        left=rolling_mean(LEFT, 20),
-        right=rolling_mean(RIGHT, 20),
-        phidot_left=rolling_mean(simulation.phidot_l * speed_ratio, 20),
-        phidot_right=rolling_mean(simulation.phidot_r * speed_ratio, 20),
-        trial_speed=rolling_mean(trial.v, 20),
-        simulation_speed=rolling_mean(simulation.v, 20),
-    )
-
-    data = {
-        k: np.interp(np.linspace(0, 1, maxl), np.linspace(0, 1, len(v)), v)
-        for k, v in data.items()
-    }
-
-    # calc MSE
-    # mse_records.append(
-    #     MSE(
-    #         np.vstack([simulation.phidot_l * speed_ratio, simulation.phidot_r * speed_ratio]),
-    #         np.vstack([LEFT, RIGHT]),
-    #     )
-    # )
-
     # plot
-    f, axarr = plt.subplots(figsize=(16, 9), nrows=2, ncols=2)
+    f, axarr = plt.subplots(figsize=(16, 9), nrows=2, ncols=3)
     axarr = axarr.flatten()
 
     # plot XY
@@ -156,21 +121,20 @@ for trialn in track(range(len(trials)), total=len(trials)):
         simulated.x,
         simulated.y,
         lw=8,
-        color="k",
+        color=blue_grey,
         label="trajectory",
-        alpha=0.6,
         zorder=-1,
     )
-    axarr[0].scatter(
+    plot_line_outlined(
+        axarr[0],
         simulation.x[::20],
         simulation.y[::20],
-        s=120,
-        color=[0.2, 0.2, 0.2],
-        zorder=2,
+        color="salmon",
+        lw=8,
+        outline=2,
+        label="simulated",
     )
-    axarr[0].scatter(
-        simulation.x[::20], simulation.y[::20], s=100, color="salmon", zorder=3
-    )
+
     axarr[0].scatter(
         simulation.x[0],
         simulation.y[0],
@@ -179,7 +143,6 @@ for trialn in track(range(len(trials)), total=len(trials)):
         edgecolors=[0.2, 0.2, 0.2],
         color="salmon",
         alpha=1,
-        label="simulated",
         zorder=4,
     )
 
@@ -188,84 +151,131 @@ for trialn in track(range(len(trials)), total=len(trials)):
     axarr[0].legend()
 
     # plot speed
-    axarr[2].plot(
-        data["trial_speed"], lw=8, alpha=0.6, color="k", label="real",
+    axarr[3].plot(
+        trial_f2t,
+        rolling_mean(trial.v, 12),
+        lw=8,
+        color=blue_grey,
+        label="real",
     )
     plot_line_outlined(
-        axarr[2],
-        data["simulation_speed"],
-        lw=6,
+        axarr[3],
+        sim_f2t,
+        simulation.v,
+        lw=8,
         color="salmon",
         label="simulation",
     )
-    axarr[2].set(xlabel="time (s)", ylabel="$v$", **xaxprop)
-    axarr[2].legend()
+    axarr[3].set(xlabel="time (s)", ylabel="$v$", xlim=tlim)
+    axarr[3].legend()
 
     # plot paw speeds raw
-    axarr[1].plot(
-        data["right_raw"], lw=8, zorder=-1, color=orange, label="$RIGHT$",
+    axarr[2].plot(
+        trial_f2t,
+        rolling_mean(trial.right_hl.speed, 5),
+        lw=8,
+        zorder=-1,
+        color=orange_light,
+        label="$right hind limb$",
     )
     axarr[1].plot(
-        data["left_raw"], lw=8, zorder=-1, color=blue, label="$LEFT$",
+        trial_f2t,
+        rolling_mean(trial.left_hl.speed, 5),
+        lw=8,
+        zorder=-1,
+        color=blue_light,
+        label="$left hind limb$",
     )
-
+    axarr[2].plot(
+        trial_f2t,
+        rolling_mean(trial.right_fl.speed, 5),
+        lw=2,
+        ls="--",
+        zorder=-1,
+        color=orange_light,
+    )
+    axarr[1].plot(
+        trial_f2t,
+        rolling_mean(trial.left_fl.speed, 5),
+        lw=2,
+        ls="--",
+        zorder=-1,
+        color=blue_light,
+    )
     plot_line_outlined(
-        axarr[1],
-        data["phidot_right"],
+        axarr[2],
+        sim_f2t,
+        simulation.phidot_r * speed_ratio,
         lw=6,
         color=orange_darker,
-        label="$\phi_R$",
+        label="right wheel",
         outline=2,
     )
     plot_line_outlined(
         axarr[1],
-        data["phidot_left"],
+        sim_f2t,
+        simulation.phidot_l * speed_ratio,
         lw=6,
         color=blue_darker,
-        label="$\phi_L$",
+        label="left wheel",
         outline=2,
     )
+    axarr[2].legend()
+    axarr[2].set(xlabel="time (s)", ylabel="speed (cm/s)$", xlim=tlim)
     axarr[1].legend()
-    axarr[1].set(
-        xlabel="time (s)", ylabel="speed (cm/s)$", **xaxprop, ylim=[0, 60]
-    )
+    axarr[1].set(xlabel="time (s)", ylabel="speed (cm/s)$", xlim=tlim)
 
     # plot paw speeds processed
-    axarr[3].plot(
-        data["right"], lw=8, zorder=-1, color=orange, label="$RIGHT$",
+    axarr[5].plot(
+        trial_f2t,
+        rolling_mean((trial.right_hl.speed + trial.right_fl.speed) / 2, 20),
+        lw=8,
+        zorder=-1,
+        color=orange_light,
+        label="$RIGHT$",
     )
-    axarr[3].plot(
-        data["left"], lw=8, zorder=-1, color=blue, label="$LEFT$",
+    axarr[4].plot(
+        trial_f2t,
+        rolling_mean((trial.left_hl.speed + trial.left_fl.speed) / 2, 20),
+        lw=8,
+        zorder=-1,
+        color=blue_light,
+        label="$LEFT$",
     )
     plot_line_outlined(
-        axarr[3],
-        data["phidot_right"],
+        axarr[5],
+        sim_f2t,
+        rolling_mean(simulation.phidot_r * speed_ratio, 20),
         lw=6,
         color=orange_darker,
-        label="$\phi_R$",
+        label="right wheel",
         outline=2,
     )
     plot_line_outlined(
-        axarr[3],
-        data["phidot_left"],
+        axarr[4],
+        sim_f2t,
+        rolling_mean(simulation.phidot_l * speed_ratio, 20),
         lw=6,
         color=blue_darker,
-        label="$\phi_L$",
+        label="left wheel",
         outline=2,
     )
-    axarr[3].legend()
-    axarr[3].set(
-        xlabel="time (s)", ylabel="speed (cm/s)$", **xaxprop, ylim=[0, 60]
-    )
+    axarr[4].legend()
+    axarr[4].set(xlabel="time (s)", ylabel="speed (cm/s)$", xlim=tlim)
+    axarr[5].legend()
+    axarr[5].set(xlabel="time (s)", ylabel="speed (cm/s)$", xlim=tlim)
 
     clean_axes(f)
 
+    # plt.show()
+    # break
+
     # save figure
-    plt.show()
-    break
     save_figure(
         f,
-        paths.folder_2WDD
+        Path(
+            r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\experimental_validation\2WDD\analysis\trials"
+        )
         / "ANALYSIS"
         / "trials"
         / f"sim2real_trial_{trialn}.png",
@@ -274,26 +284,4 @@ for trialn in track(range(len(trials)), total=len(trials)):
     # break
 
 
-# %%
-# interpolate time series to make them have the same length
-maxl = 100
-data = dict(
-    left_raw=rolling_mean(trial.left_hl.speed, 5),
-    right_raw=rolling_mean(trial.right_hl.speed, 5),
-    left=rolling_mean(LEFT, 20),
-    right=rolling_mean(RIGHT, 20),
-    phidot_left=rolling_mean(simulation.phidot_l * speed_ratio, 20),
-    phidot_right=rolling_mean(simulation.phidot_r * speed_ratio, 20),
-)
-
-iterp_data = {
-    k: np.interp(np.linspace(0, 1, maxl), np.linspace(0, 1, len(v)), v)
-    for k, v in data.items()
-}
-
-f, axarr = plt.subplots(nrows=2)
-for key in data.keys():
-    axarr[0].plot(data[key], label=key)
-    axarr[1].plot(iterp_data[key])
-axarr[0].legend()
 # %%
