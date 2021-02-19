@@ -24,7 +24,7 @@ from experimental_validation._tracking import cm_per_px
 from kinematics.steps import Steps
 from kinematics.plot_utils import draw_mouse, mark_steps, draw_paws_steps_XY
 from kinematics.fixtures import PAWS_COLORS
-from kinematics._steps import print_steps_summary, stride_length
+from kinematics._steps import stride_length
 
 """
     Code to extracts steps data from tracking of mice running
@@ -33,7 +33,16 @@ from kinematics._steps import print_steps_summary, stride_length
 
 fps = 60
 step_speed_th = 25  # cm / s | steps are considered if peak speed > this
-precise_th = 9  # cm / s | to find precise step times
+precise_th = 8  # cm / s | to find precise step times
+SMOOTH_WINDOW = 1
+
+DEBUG = False
+
+BAD_TRIALS = (
+    "FC_210122_BA1099274_trial_3",
+    "FC_210122_BA1099291_trial_0",
+    "FC_210129_BA1099289_trial_6",
+)
 
 
 def extract_all(save_folder):
@@ -47,10 +56,15 @@ def extract_all(save_folder):
             logger.info("Trial doesnt have tracking or is bad.")
             continue
 
+        if trial["name"] in BAD_TRIALS:
+            continue
+
         # smooth things
-        trial.orientation = rolling_mean(trial.orientation, 4)
-        trial.v = rolling_mean(trial.v, 4)
-        trial.speeds = {k: rolling_mean(v, 4) for k, v in trial.speeds.items()}
+        trial.orientation = rolling_mean(trial.orientation, SMOOTH_WINDOW)
+        trial.v = rolling_mean(trial.v, SMOOTH_WINDOW)
+        trial.speeds = {
+            k: rolling_mean(v, SMOOTH_WINDOW) for k, v in trial.speeds.items()
+        }
 
         # make figure
         (
@@ -78,6 +92,9 @@ def extract_all(save_folder):
             ) = steps.extract_steps(step_speed_th, precise_th=precise_th)
         except Exception:
             logger.warning(f"Failed to extract tep info from trial {trial}")
+            continue
+
+        if not len(step_starts_R):
             continue
 
         # draw mouse and steps
@@ -178,51 +195,43 @@ def extract_all(save_folder):
         # ------------------------------ stride vs angle ----------------------------- #
         # get stride length vs turn angle
         summary = dict(
-            number=[],
-            stride_delta=[],
-            angle_delta=[],
-            side=[],
-            start=[],
-            end=[],
+            number=[], stride_delta=[], angle_delta=[], start=[], end=[],
         )
-        for n, step in diag_data.items():
+
+        keys = list(diag_data.keys())
+        pairs = [(k0, k1) for k0, k1 in zip(keys, keys[1:])]
+        for n, (first, second) in enumerate(pairs):
+            if diag_data[first]["side"] == "L":
+                # keep only steps starting with right
+                continue
+
+            start = diag_data[first]["hind_start"]
+            end = diag_data[second]["hind_end"]
+
             # stride delta
-
-            if step["side"] == "L":
-                left, right = step["paws"]
-            else:
-                right, left = step["paws"]
-
-            r_stride = stride_length(
-                trial.right_hl, step["start"], step["end"]
-            )
-            l_stride = stride_length(trial.left_hl, step["start"], step["end"])
+            r_stride = stride_length(trial.right_hl, start, end)
+            l_stride = stride_length(trial.left_hl, start, end)
 
             summary["stride_delta"].append(l_stride - r_stride)
 
             # angle delta
-            turn = (
-                trial.orientation[step["end"]]
-                - trial.orientation[step["start"]]
-            )
+            turn = trial.orientation[end] - trial.orientation[start]
             summary["angle_delta"].append(turn)
 
             # more info
             summary["number"].append(n)
-            summary["side"].append(step["side"])
-            summary["start"].append(step["start"])
-            summary["end"].append(step["end"])
+            summary["start"].append(start)
+            summary["end"].append(end)
 
         # plot stride length vs turn angle
         turn_ax.scatter(
             summary["stride_delta"],
             summary["angle_delta"],
             s=50,
-            c=[1 if s == "R" else 0 for s in summary["side"]],
             zorder=10,
             lw=1,
             edgecolors=[0.2, 0.2, 0.2],
-            cmap="bwr",
+            color=[0.4, 0.4, 0.4],
         )
 
         # plot histograms
@@ -242,17 +251,17 @@ def extract_all(save_folder):
             title=f"Total ammount travelled L:{left_travel:.1f} - R:{right_travel:.1f}"
         )
 
+        if DEBUG:
+            plt.show()
+            break
+
         # print steps data and save
-        print_steps_summary(summary)
         pd.DataFrame(summary).to_hdf(
             save_folder / (trial.name + "_extracted_steps.h5"), key="hdf"
         )
         save_figure(f, save_folder / (trial.name + "_extracted_steps"))
         plt.close(f)
         del f
-
-        # plt.show()
-        # break
 
 
 # ----------------------------- utility functions ---------------------------- #
@@ -334,12 +343,42 @@ def steps_summary(trials_folder):
     """
         Loads steps data for each individual trial and makes a summary plot
     """
+    logger.info("Making steps summary plot")
     data = []
     for fpath in files(trials_folder, "*steps.h5"):
         data.append(pd.read_hdf(fpath, key="hdf"))
 
-    # steps = pd.concat(data).reset_index()
+    steps = pd.concat(data).reset_index()
+
+    logger.info(f"Loaded data for: {len(steps)}")
     f, ax = plt.subplots(figsize=(10, 10))
+    x, y = 4, 25  # axes lims for summary plot
+    ax.set(  # summary ax
+        title="stride difference vs turn angle",
+        xticks=[-x, 0, x],
+        xticklabels=[f"R>L\n{-x}", "R=L", f"R<L\n{x}"],
+        xlabel="(L-R) stride-delta\m(cm)",
+        yticks=[-y, 0, y],
+        yticklabels=[f"turn\nleft\n{-y}", "no\nturn", f"turn\nright\n{y}"],
+        ylabel="(end-start) angle-delta\n(deg)",
+    )
+    ax.axvline(0, ls="--", color=[0.5, 0.5, 0.5])
+    ax.axhline(0, ls="--", color=[0.5, 0.5, 0.5])
+
+    ax.scatter(
+        steps["stride_delta"],
+        steps["angle_delta"],
+        s=250,
+        color="salmon",
+        # c=[blue_light if s == "R" else salmon for s in steps["side"]],
+        zorder=10,
+        lw=1,
+        edgecolors=[0.2, 0.2, 0.2],
+    )
+
+    # plt.show()
+    clean_axes(f)
+    save_figure(f, trials_folder.parent / "steps_kinem_summary", svg=True)
 
 
 if __name__ == "__main__":

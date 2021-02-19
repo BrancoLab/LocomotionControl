@@ -47,7 +47,7 @@ N_AUGMENTED = 20
 videos_matadata = from_json(paths.videos_metadata_path)
 
 save_path = paths.main_folder / "TRIALS.h5"
-trials = dict(id=[], x=[], y=[],)
+trials = dict(id=[], x=[], y=[], fps=[])
 
 f, ax = plt.subplots(figsize=(8, 8))
 ax.set(xlabel="X cm", ylabel="Y cm")
@@ -55,10 +55,11 @@ ax.axis("equal")
 ax.scatter(0, 0, s=100, color="salmon", zorder=-1)
 
 
-def append(name, xy, show=True):
+def append(name, xy, fps, show=True):
     trials["id"].append(name)
     trials["x"].append(xy[:, 0])
     trials["y"].append(xy[:, 1])
+    trials["fps"].append(fps)
 
     if show:
         ax.plot(xy[:, 0], xy[:, 1], color="k", alpha=0.4)
@@ -192,7 +193,7 @@ for num, tfile in track(enumerate(tfiles[::-1]), total=len(tfiles)):
     xy -= xy[0, :]
 
     # append original trial
-    append(tfile.stem + f"_orig", xy)
+    append(tfile.stem + f"_orig", xy, metadata["fps"])
     durations.append(duration)
     distances.append(dist)
     dmovs.append(dmov)
@@ -202,10 +203,11 @@ for num, tfile in track(enumerate(tfiles[::-1]), total=len(tfiles)):
     for i in range(N_AUGMENTED):
         angle = npr.uniform(-360, 360)
         _xy = (R(angle) @ xy.T).T
-        append(tfile.stem + f"_rot_{i}", _xy, show=False)
+        append(tfile.stem + f"_rot_{i}", _xy, metadata["fps"], show=False)
         append(
             tfile.stem + f"_mir_{i}",
             (M(choice(MIRROR_AXES)) @ _xy.T).T,
+            metadata["fps"],
             show=False,
         )
 

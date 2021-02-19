@@ -48,14 +48,7 @@ logger.info(f"Loaded simulations for {len(simulations_lookup2)} trials")
 
 trials = Trials(only_tracked=True)
 
-BAD_TRIALS = (  # trials in which the simulation went wrong
-    0,
-    8,
-    22,
-    24,
-    49,
-    51,
-)
+BAD_TRIALS = ()  # trials in which the simulation went wrong
 
 # %%
 """
@@ -87,13 +80,16 @@ for trialn in track(range(len(trials)), total=len(trials)):
         simulations_lookup2[trial.name] / "history.h5"
     )  # simulation results
     simulation["dirmvmt"] = get_theta_from_xy(simulation.x, simulation.y)
-    simulation.dirmvmt[0] = simulation.dirmvmt[1].copy()
-    simulation.dirmvmt = simulation.dirmvmt
+    # simulation.dirmvmt[0] = simulation.dirmvmt[1].copy()
+    # simulation.dirmvmt = simulation.dirmvmt
 
     assert trial.name == simulated["name"], "loaded the wrong one mate"
 
     # get sim start wrt to trial start
-    sim_start_idx = find_nearest(trial.body.y, simulation.y[0])
+    try:
+        sim_start_idx = find_nearest(trial.body.y, simulation.y[0])
+    except IndexError:
+        continue
 
     # get trial frame -> time and sim frame -> time
     trial_dur = len(trial) / 60  # 60 is the fps of trial recordings
@@ -276,9 +272,7 @@ for trialn in track(range(len(trials)), total=len(trials)):
         Path(
             r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\experimental_validation\2WDD\analysis\trials"
         )
-        / "ANALYSIS"
-        / "trials"
-        / f"sim2real_trial_{trialn}.png",
+        / f"sim2real_trial_{trial['name']}.png",
         close=True,
     )
     # break
