@@ -149,8 +149,13 @@ class Manager:
         else:
             self.datafolder = Path(folder)
 
+        if self.datafolder.exists():
+            self.folder_exists = True
+        else:
+            self.folder_exists = False
+            self.datafolder.mkdir(exist_ok=True)
+
         # make main and frames folder
-        self.datafolder.mkdir(exist_ok=True)
         self.frames_folder = self.datafolder / "frames"
         self.frames_folder.mkdir(exist_ok=True)
 

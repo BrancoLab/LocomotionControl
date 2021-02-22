@@ -13,7 +13,7 @@ def fanin_(size):
 class BaseActor(nn.Module):
     n_actions = 3  # P, N_r, N_l
     n_inputs = 8  # Rho, Phy, dv, do, v, o, taur, tauls
-    n_units = (1024, 1024)  # n units in hidden layer
+    n_units = (512, 512)  # n units in hidden layer
 
     def __init__(self):
         super(BaseActor, self).__init__()
@@ -26,11 +26,15 @@ class Critic(BaseActor):
         self.linear2 = nn.Linear(
             self.n_units[0] + self.n_actions, self.n_units[1]
         )
-        self.linear3 = nn.Linear(self.n_units[1], self.n_actions)
+        self.linear3 = nn.Linear(self.n_units[1], self.n_units[1])
+        self.linear4 = nn.Linear(self.n_units[1], self.n_units[1])
+        self.linear5 = nn.Linear(self.n_units[1], self.n_actions)
 
         self.linear1.weight.data = fanin_(self.linear1.weight.data.size())
         self.linear2.weight.data = fanin_(self.linear2.weight.data.size())
-        self.linear3.weight.data.uniform_(-3e-3, 3e-3)
+        self.linear3.weight.data = fanin_(self.linear3.weight.data.size())
+        self.linear4.weight.data = fanin_(self.linear4.weight.data.size())
+        self.linear5.weight.data.uniform_(-3e-3, 3e-3)
 
         self.relu = nn.ReLU()
 
@@ -41,7 +45,9 @@ class Critic(BaseActor):
         x = self.relu(self.linear1(state))
         x = torch.cat([x, action], 1)
         x = self.relu(self.linear2(x))
-        return self.linear3(x)
+        x = self.relu(self.linear3(x))
+        x = self.relu(self.linear4(x))
+        return self.linear5(x)
 
 
 class Actor(BaseActor):
@@ -49,11 +55,15 @@ class Actor(BaseActor):
         super(Actor, self).__init__()
         self.linear1 = nn.Linear(self.n_inputs, self.n_units[0])
         self.linear2 = nn.Linear(self.n_units[0], self.n_units[1])
-        self.linear3 = nn.Linear(self.n_units[1], self.n_actions)
+        self.linear3 = nn.Linear(self.n_units[1], self.n_units[1])
+        self.linear4 = nn.Linear(self.n_units[1], self.n_units[1])
+        self.linear5 = nn.Linear(self.n_units[1], self.n_actions)
 
         self.linear1.weight.data = fanin_(self.linear1.weight.data.size())
         self.linear2.weight.data = fanin_(self.linear2.weight.data.size())
-        self.linear3.weight.data.uniform_(-0.003, 0.003)
+        self.linear3.weight.data = fanin_(self.linear3.weight.data.size())
+        self.linear4.weight.data = fanin_(self.linear4.weight.data.size())
+        self.linear5.weight.data.uniform_(-0.003, 0.003)
 
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
@@ -64,5 +74,7 @@ class Actor(BaseActor):
         """
         x = self.relu(self.linear1(state))
         x = self.relu(self.linear2(x))
-        x = torch.tanh(self.linear3(x))
+        x = self.relu(self.linear3(x))
+        x = self.relu(self.linear4(x))
+        x = torch.tanh(self.linear5(x))
         return x

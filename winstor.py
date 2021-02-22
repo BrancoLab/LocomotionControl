@@ -20,7 +20,11 @@ def main(trialn, config):
     try:
         manager = Manager(
             winstor=True, trialn=trialn, config_file=config, to_db=False
-        ).run(n_secs=4)
+        )
+        if not manager.folder_exists:
+            manager.run(n_secs=4)
+        else:
+            logger.info("The simulation was ran already, skipping.")
     except Exception as e:
         print(e)
         try:
