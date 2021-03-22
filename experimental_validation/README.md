@@ -1,6 +1,6 @@
 Code to preprocess and analyse data from experiments aimed at validating the modelling work. 
 
-## Tracking - gait analysis
+## 2WDD
 In the first round of experiments we've filed mice from below as they escaped to the shelter in an arena that forced them to take many turns. 
 The goal is to analyse their locomotion kinematics to compare them with the 2WDD robot. 
 
@@ -17,3 +17,8 @@ The analysis steps are:
 After that, to validate the 2WDD model
 1. run the 2WDD on the trajectories from these experiments
 2. compare
+
+
+## hairpin
+Analysis of behavioural and physiological data from the hairpin arena (lots of turns as food deprived mice run to get a food reward, filmed from below at 60pfs).
+The data are organized with a datajoint database

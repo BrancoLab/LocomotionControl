@@ -1,0 +1,4 @@
+- FC_210320_test_analog0:
+  mouse: 'test'
+  name: 'FC_210320_test_analog0'
+  ephys: false

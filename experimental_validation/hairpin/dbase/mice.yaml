@@ -1,0 +1,4 @@
+- test:
+    mouse_id: 'test'
+    strain: 'bl6'
+    dob: 'never'

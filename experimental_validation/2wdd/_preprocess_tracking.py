@@ -140,7 +140,7 @@ def load_bonsai(folder, name, exp_fps):
                 f"Found {len(frame_trigger_times)} triggers and {nframes} frames"
             )
 
-        """ tp plot stuff for inspection
+        """ to plot stuff for inspection
             import matplotlib.pyplot as plt
             tms = frame_trigger_times[frame_trigger_times < 150000]
             plt.plot(analog[:150000, 0])
