@@ -9,7 +9,9 @@ from fcutils.progress import track
 from fcutils.video import get_video_params
 from fcutils.maths.signals import get_onset_offset
 
+import sys
 
+sys.path.append("./")
 from experimental_validation.hairpin import schema
 
 
@@ -22,18 +24,24 @@ datafolder = Path("Z:\\swc\\branco\\Federico\\Locomotion\\raw")
 def sort_files():
     """ sorts raw files into the correct folders """
     logger.info("Sorting raw files")
-    for f in files(datafolder / "to_sort"):
-        src = datafolder / "to_sort" / f.name
+    fls = files(datafolder / "tosort")
 
-        if f.suffix == ".avi":
-            dst = datafolder / "video" / f.name
-        elif f.suffix == ".bin":
-            dst = datafolder / "analog_inputs" / f.name
-        else:
-            raise ValueError(f"File not recognized: {f}")
+    raise NotImplementedError("Bonsai should save .csv files too now")
 
-        logger.info(f"Copying file {src} to {dst}")
-        shutil.copy(src, dst)
+    if isinstance(fls, list):
+        for f in fls:
+            src = datafolder / "tosort" / f.name
+
+            if f.suffix == ".avi":
+                dst = datafolder / "video" / f.name
+            elif f.suffix == ".bin" or f.suffix == ".csv":
+                dst = datafolder / "analog_inputs" / f.name
+            else:
+                logger.info(f"File not recognized: {f}")
+                continue
+
+            logger.info(f"Moving file {src} to {dst}")
+        shutil.move(src, dst)
 
 
 # For manual tables
@@ -83,11 +91,11 @@ class Mouse(dj.Manual):
         """
             fills in the table
         """
-        data = from_yaml("./mice.yaml")
+        data = from_yaml("experimental_validation\hairpin\dbase\mice.yaml")
         logger.info("Filling in mice table")
 
         for mouse in track(data, description="Adding mice", transient=True):
-            # check we have all data
+            mouse = mouse["mouse"]
 
             # add to table
             insert_entry_in_table(mouse["mouse_id"], "mouse_id", mouse, self)
@@ -107,10 +115,11 @@ class Session(dj.Manual):
         ---
         video_file_path: varchar(256)
         ai_file_path: varchar(256)
+        csv_file_path: varchar(256)
     """
 
     def fill(self):
-        data = from_yaml("./sessions.yaml")
+        data = from_yaml("experimental_validation\hairpin\dbase\sessions.yaml")
         logger.info("Filling in session table")
 
         for session in track(
@@ -120,10 +129,16 @@ class Session(dj.Manual):
 
             # get file paths
             key["video_file_path"] = (
-                datafolder / "video" / (session["name"] + ".avi")
+                datafolder / "video" / (session["name"] + "_video.avi")
             )
             key["ai_file_path"] = (
-                datafolder / "analog_inputs" / (session["name"] + ".bin")
+                datafolder
+                / "analog_inputs"
+                / (session["name"] + "_analog.bin")
+            )
+
+            key["csv_file_path"] = (
+                datafolder / "analog_inputs" / (session["name"] + "_data.csv")
             )
 
             if (
@@ -164,12 +179,12 @@ class ValidatedSessions(dj.Imported):
 
         # load analog
         analog = np.fromfile(session["ai_file_path"], dtype=np.double).reshape(
-            -1, 2
+            -1, 4
         )
 
         # check that the number of frames is correct
         frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
-        if frame_trigger_times != nframes:
+        if len(frame_trigger_times) != nframes:
             raise ValueError(
                 f'session: {session["name"]} - found {nframes} video frames and {frame_trigger_times} trigger times in analog input'
             )
@@ -188,8 +203,38 @@ class ValidatedSessions(dj.Imported):
         self.insert1(key)
 
 
+@schema
+class SessionData(dj.Imported):
+    definition = """
+        # stores AI and csv data in a nicely formatted manner
+        -> Session:
+        lick_sensor: longblob
+        speaker_signal: longblob
+        pump: longblob
+        roi_activity: longblob
+        mouse_in_roi: longblob
+        reward_signal: longblob
+    """
+    analog_sampling_rate = 30000
+
+    def make(self, key):
+        session = (Session & key).fetch1()
+        print(session)
+
+        # load analog data
+        # get first and last frame
+
+        # cut analog data between frames
+
+        # load csv data
+        # cut csv data between frames
+
+        # save in table
+
+
 if __name__ == "__main__":
     sort_files()
+
     Mouse().fill()
 
     Session().fill()
