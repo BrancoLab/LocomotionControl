@@ -1,82 +1,18 @@
 import datajoint as dj
-from pathlib import Path
-import shutil
 from loguru import logger
-import numpy as np
 import pandas as pd
 
-from fcutils.path import from_yaml, files
+from fcutils.path import from_yaml
 from fcutils.progress import track
-from fcutils.video import get_video_params
 from fcutils.maths.signals import get_onset_offset
 
 import sys
 
 sys.path.append("./")
-from experimental_validation.hairpin import schema
-
-
-datafolder = Path("Z:\\swc\\branco\\Federico\\Locomotion\\raw")
-
-
-# ----------------------------------- utils ---------------------------------- #
-
-
-def sort_files():
-    """ sorts raw files into the correct folders """
-
-    logger.info("Sorting raw files")
-    fls = files(datafolder / "tosort")
-
-    if isinstance(fls, list):
-        for f in track(fls):
-            src = datafolder / "tosort" / f.name
-
-            if f.suffix == ".avi":
-                dst = datafolder / "video" / f.name
-            elif f.suffix == ".bin" or f.suffix == ".csv":
-                dst = datafolder / "analog_inputs" / f.name
-            else:
-                logger.info(f"File not recognized: {f}")
-                continue
-
-            if not dst.exists():
-                logger.info(f"Moving file {src} to {dst}")
-                shutil.move(src, dst)
-            else:
-                logger.info(
-                    f"Destination file {dst} already exists, not moving"
-                )
-
-    logger.info("All files moved, you can empty the tosort folder")
-
-
-def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
-    """
-        Tries to add an entry to a databse table taking into account entries already in the table
-
-        dataname: value of indentifying key for entry in table
-        checktag: name of the identifying key ['those before the --- in the table declaration']
-        data: entry to be inserted into the table
-        table: database table
-    """
-    if dataname in list(table.fetch(checktag)):
-        return
-
-    try:
-        table.insert1(data)
-        logger.debug("     ... inserted {} in table".format(dataname))
-    except:
-        if dataname in list(table.fetch(checktag)):
-            logger.debug("Entry with id: {} already in table".format(dataname))
-        else:
-            logger.debug(table)
-            raise ValueError(
-                "Failed to add data entry {}-{} to {} table".format(
-                    checktag, dataname, table.full_table_name
-                )
-            )
-
+from data.dbase import schema
+from data.dbase._tables import sort_files, insert_entry_in_table, load_bin
+from data.paths import raw_data_folder
+from data.dbase import quality_control as qc
 
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
@@ -123,9 +59,16 @@ class Session(dj.Manual):
         video_file_path: varchar(256)
         ai_file_path: varchar(256)
         csv_file_path: varchar(256)
+        ephys_ap_data_path: varchar(256)
+        ephys_ap_meta_path: varchar(256)
+        ephys_lfp_data_path: varchar(256)
+        ephys_lfp_meta_path: varchar(256)
     """
 
     def fill(self):
+        raise NotImplementedError(
+            "No need to add metadata manually, just check which files are there"
+        )
         data = from_yaml("experimental_validation\hairpin\dbase\sessions.yaml")
         logger.info("Filling in session table")
 
@@ -136,16 +79,18 @@ class Session(dj.Manual):
 
             # get file paths
             key["video_file_path"] = (
-                datafolder / "video" / (session["name"] + "_video.avi")
+                raw_data_folder / "video" / (session["name"] + "_video.avi")
             )
             key["ai_file_path"] = (
-                datafolder
+                raw_data_folder
                 / "analog_inputs"
                 / (session["name"] + "_analog.bin")
             )
 
             key["csv_file_path"] = (
-                datafolder / "analog_inputs" / (session["name"] + "_data.csv")
+                raw_data_folder
+                / "analog_inputs"
+                / (session["name"] + "_data.csv")
             )
 
             if (
@@ -165,6 +110,22 @@ class Session(dj.Manual):
             if session["ephys"]:
                 raise NotImplementedError
 
+    @staticmethod
+    def has_recording(session_name):
+        """
+            Returns True if the session had neuropixel recordings, else False.
+
+            Arguments:
+                session_name: str. Session name
+        """
+        session = pd.Series(
+            (Session & f'session_name="{session_name}"').fetch1()
+        )
+        if len(session.ephys_ap_data_path):
+            return True
+        else:
+            return False
+
 
 # ---------------------------------------------------------------------------- #
 #                              validated sessions                              #
@@ -174,7 +135,7 @@ class Session(dj.Manual):
 @schema
 class ValidatedSessions(dj.Imported):
     definition = """
-        # checks that the video and AI files for a session are saved correctly
+        # checks that the video and AI files for a session are saved correctly and video/recording are syncd
         -> Session
     """
     analog_sampling_rate = 30000
@@ -183,44 +144,28 @@ class ValidatedSessions(dj.Imported):
         session = (Session & key).fetch1()
         logger.debug(f'Validating session: {session["name"]}')
 
-        # load video and get metadata
-        logger.debug("Loading video")
-        nframes, w, h, fps, _ = get_video_params(session["video_file_path"])
-        if fps != 60:
-            raise ValueError("Expected video FPS: 60")
-
-        # load analog
-        logger.debug("Loading analog")
-        analog = np.fromfile(session["ai_file_path"], dtype=np.double).reshape(
-            -1, 3
+        # check bonsai recording was correct
+        is_ok = qc.validate_bonsai(
+            session["video_file_path"],
+            session["ai_file_path"],
+            self.analog_sampling_rate,
         )
 
-        # check that the number of frames is correct
-        frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
-        if len(frame_trigger_times) != nframes:
-            raise ValueError(
-                f'session: {session["name"]} - found {nframes} video frames and {len(frame_trigger_times)} trigger times in analog input'
+        if Session.has_recording(key["session_name"]):
+            is_ok = qc.validate_recording(
+                session["ai_file_path"], session["ephys_ap_data_path"]
             )
 
-        # check that the number of frames is what you'd expect given the duration of the exp
-        first_frame_s = frame_trigger_times[0] / self.analog_sampling_rate
-        last_frame_s = frame_trigger_times[-1] / self.analog_sampling_rate
-        exp_dur = last_frame_s - first_frame_s  # video duration in seconds
-        expected_n_frames = np.floor(exp_dur * 60).astype(np.int64)
-        if np.abs(expected_n_frames - nframes) > 5:
-            raise ValueError(
-                f"[b yellow]Expected {expected_n_frames} frames but found {nframes} in video"
-            )
-
-        # all OK, add to table to avoid running again in the future
-        self.insert1(key)
+        if is_ok:
+            # all OK, add to table to avoid running again in the future
+            self.insert1(key)
 
 
 @schema
 class SessionData(dj.Imported):
     definition = """
         # stores AI and csv data in a nicely formatted manner
-        -> Session
+        -> ValidatedSessions
         ---
         speaker: longblob
         pump: longblob
@@ -228,18 +173,20 @@ class SessionData(dj.Imported):
         mouse_in_roi: longblob
         reward_signal: longblob
         duration: float  # duration in seconds
+        lick_roi_activity: longblob
+        frame_triggers: longblob
+        probe_sync: longblob
     """
-    analog_sampling_rate = 30000
+    analog_sampling_rate = 30000  # in bonsai
 
     def make(self, key):
         session = (Session & key).fetch1()
+        raise NotImplementedError
         logger.debug(f'Loading SessionData for session: {session["name"]}')
 
         # load analog
         logger.debug("Loading analog")
-        analog = np.fromfile(session["ai_file_path"], dtype=np.double).reshape(
-            -1, 3
-        )
+        analog = load_bin(session["ai_file_path"], nsigs=4)
 
         # get start and end frame times
         frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
