@@ -3,6 +3,7 @@ import shutil
 import numpy as np
 
 from fcutils.path import files, size
+from fcutils.progress import track
 
 from data.paths import raw_data_folder
 
@@ -27,10 +28,10 @@ def sort_files():
     logger.info("Sorting raw files")
     fls = files(raw_data_folder / "tosort")
 
-    raise NotImplementedError("Bonsai should save .csv files too now")
-
     if isinstance(fls, list):
-        for f in fls:
+        logger.debug(f"Sorting {len(fls)} files")
+
+        for f in track(fls, description="sorting", transient=True):
             src = raw_data_folder / "tosort" / f.name
 
             if f.suffix == ".avi":
@@ -38,11 +39,16 @@ def sort_files():
             elif f.suffix == ".bin" or f.suffix == ".csv":
                 dst = raw_data_folder / "analog_inputs" / f.name
             else:
-                logger.info(f"File not recognized: {f}")
+                logger.warning(f"File not recognized: {f}")
                 continue
 
-            logger.info(f"Moving file {src} to {dst}")
-        shutil.move(src, dst)
+            if dst.exists():
+                logger.debug(f"Destinatoin file already exists, skipping")
+            else:
+                logger.info(f"Moving file '{src}' to '{dst}'")
+                shutil.move(src, dst)
+    else:
+        logger.warning(f"Expected files list got: {fls}")
 
 
 # For manual tables
@@ -61,13 +67,13 @@ def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
     try:
         table.insert1(data)
         logger.debug("     ... inserted {} in table".format(dataname))
-    except:
+    except Exception as e:
         if dataname in list(table.fetch(checktag)):
             logger.debug("Entry with id: {} already in table".format(dataname))
         else:
             logger.debug(table)
             raise ValueError(
-                "Failed to add data entry {}-{} to {} table".format(
-                    checktag, dataname, table.full_table_name
+                "Failed to add data entry {}-{} to {} table with error\n{}".format(
+                    checktag, dataname, table.full_table_name, e
                 )
             )

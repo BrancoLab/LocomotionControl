@@ -23,6 +23,15 @@ def validate_bonsai(video_file_path, ai_file_path, analog_sampling_rate):
             ai_file_pat: str. Path to .bin analog inputs file
             analog_sampling_rate: int. Sampling rate in bonsai
     """
+
+    def _get_triggers(nsigs=4):
+        # load analog
+        analog = load_bin(ai_file_path, nsigs=nsigs)
+
+        # check that the number of frames is correct
+        frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
+        return frame_trigger_times
+
     name = Path(video_file_path).name
     logger.debug(f"Running validate bonsai on {name}")
 
@@ -31,17 +40,18 @@ def validate_bonsai(video_file_path, ai_file_path, analog_sampling_rate):
     if fps != 60:
         raise ValueError("Expected video FPS: 60")
 
-    # load analog
-    analog = load_bin(ai_file_path, nsigs=4)
-
-    # check that the number of frames is correct
-    frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
+    frame_trigger_times = _get_triggers()
     if len(frame_trigger_times) != nframes:
-        raise ValueError(
-            f"session: {name} - found {nframes} video frames and {len(frame_trigger_times)} trigger times in analog input"
-        )
+        try:
+            frame_trigger_times = _get_triggers(nsigs=3)
+            if len(frame_trigger_times) != nframes:
+                raise ValueError
+        except ValueError:
+            raise ValueError(
+                f"session: {name} - found {nframes} video frames and {len(frame_trigger_times)} trigger times in analog input"
+            )
     logger.debug(
-        f"{name} has {nframes} frames and {frame_trigger_times} trigger times were found"
+        f"{name} has {nframes} frames and {len(frame_trigger_times)} trigger times were found"
     )
 
     # check that the number of frames is what you'd expect given the duration of the exp

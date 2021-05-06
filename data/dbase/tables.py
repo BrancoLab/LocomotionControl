@@ -2,7 +2,7 @@ import datajoint as dj
 from loguru import logger
 import pandas as pd
 
-from fcutils.path import from_yaml
+from fcutils.path import from_yaml, files
 from fcutils.progress import track
 from fcutils.maths.signals import get_onset_offset
 
@@ -33,7 +33,7 @@ class Mouse(dj.Manual):
         """
             fills in the table
         """
-        data = from_yaml("experimental_validation\hairpin\dbase\mice.yaml")
+        data = from_yaml("data\dbase\mice.yaml")
         logger.info("Filling in mice table")
 
         for mouse in track(data, description="Adding mice", transient=True):
@@ -66,31 +66,54 @@ class Session(dj.Manual):
     """
 
     def fill(self):
-        raise NotImplementedError(
-            "No need to add metadata manually, just check which files are there"
-        )
-        data = from_yaml("experimental_validation\hairpin\dbase\sessions.yaml")
         logger.info("Filling in session table")
+        in_table = Session.fetch("name")
 
-        for session in track(
-            data, description="Adding sessions", transient=True
+        # Get the videos of all sessions
+        vids = [
+            f for f in files(raw_data_folder / "video") if ".avi" in f.name
+        ]
+
+        # Get all ephys sessions names
+        rec_files = files(raw_data_folder / "recordings")
+        if rec_files is not None:
+            ephys_files = [f for f in rec_files if ".ap.bin" in f]
+            ephys_sessions = [f.name.split("_g0")[0] for f in ephys_files]
+            raise NotImplementedError("Need to debug this part")
+        else:
+            ephys_sessions = []
+
+        for video in track(
+            vids, description="Adding sessions", transient=True
         ):
-            key = dict(mouse_id=session["mouse"], name=session["name"])
+            # Get session data
+            name = video.name.split("_video")[0]
+            if name in in_table:
+                continue
+
+            if "test" in name.lower():
+                continue
+
+            try:
+                _, date, mouse, day = name.split("_")
+            except ValueError:
+                logger.warning(
+                    f"Skipping session {name} - likely a test recording"
+                )
+                continue
+
+            key = dict(mouse_id=mouse, name=name, training_day=int(day[1:]))
 
             # get file paths
             key["video_file_path"] = (
-                raw_data_folder / "video" / (session["name"] + "_video.avi")
+                raw_data_folder / "video" / (name + "_video.avi")
             )
             key["ai_file_path"] = (
-                raw_data_folder
-                / "analog_inputs"
-                / (session["name"] + "_analog.bin")
+                raw_data_folder / "analog_inputs" / (name + "_analog.bin")
             )
 
             key["csv_file_path"] = (
-                raw_data_folder
-                / "analog_inputs"
-                / (session["name"] + "_data.csv")
+                raw_data_folder / "analog_inputs" / (name + "_data.csv")
             )
 
             if (
@@ -98,17 +121,46 @@ class Session(dj.Manual):
                 or not key["ai_file_path"].exists()
             ):
                 raise FileNotFoundError(
-                    f"Either video or AI files not found for session: {session}"
+                    f"Either video or AI files not found for session: {name} with data:\n{key}"
                 )
 
-            # get training day
-            key["training_day"] = session["training_day"]
+            # Get ephys files
+            if name in ephys_sessions:
+                logger.debug(f"Session {name} has ephys recordings")
+                key["ephys_ap_data_path"] = (
+                    raw_data_folder
+                    / "recordings"
+                    / f"{name}_g0_t0.imec0.ap.bin"
+                )
+
+                key["ephys_ap_meta_path"] = (
+                    raw_data_folder
+                    / "recordings"
+                    / f"{name}_g0_t0.imec0.ap.meta"
+                )
+
+                key["ephys_lfp_data_path"] = (
+                    raw_data_folder
+                    / "recordings"
+                    / f"{name}_g0_t0.imec0.lf.bin"
+                )
+
+                key["ephys_lfp_meta_path"] = (
+                    raw_data_folder
+                    / "recordings"
+                    / f"{name}_g0_t0.imec0.lf.meta"
+                )
+
+            else:
+                key["ephys_ap_data_path"] = ""
+                key["ephys_ap_meta_path"] = ""
+                key["ephys_lfp_data_path"] = ""
+                key["ephys_lfp_meta_path"] = ""
 
             # add to table
             insert_entry_in_table(key["name"], "name", key, self)
 
-            if session["ephys"]:
-                raise NotImplementedError
+        print(Session())
 
     @staticmethod
     def has_recording(session_name):
@@ -118,9 +170,7 @@ class Session(dj.Manual):
             Arguments:
                 session_name: str. Session name
         """
-        session = pd.Series(
-            (Session & f'session_name="{session_name}"').fetch1()
-        )
+        session = pd.Series((Session & f'name="{session_name}"').fetch1())
         if len(session.ephys_ap_data_path):
             return True
         else:
@@ -151,13 +201,13 @@ class ValidatedSessions(dj.Imported):
             self.analog_sampling_rate,
         )
 
-        if Session.has_recording(key["session_name"]):
+        if Session.has_recording(key["name"]):
             is_ok = qc.validate_recording(
                 session["ai_file_path"], session["ephys_ap_data_path"]
             )
 
         if is_ok:
-            # all OK, add to table to avoid running again in the future
+            # all OK, add to table
             self.insert1(key)
 
 
@@ -167,25 +217,32 @@ class SessionData(dj.Imported):
         # stores AI and csv data in a nicely formatted manner
         -> ValidatedSessions
         ---
-        speaker: longblob
-        pump: longblob
-        roi_activity: longblob
-        mouse_in_roi: longblob
-        reward_signal: longblob
-        duration: float  # duration in seconds
-        lick_roi_activity: longblob
-        frame_triggers: longblob
-        probe_sync: longblob
+        speaker:                    longblob  # signal sent to speakers
+        pump:                       longblob  # signal sent to pump
+        reward_signal:              longblob  # 0 -> 1 when reward is delivered
+        trigger_roi:                longblob  # 1 when mouse in trigger ROI
+        reward_roi:                 longblob  # 1 when mouse in reward ROI
+        duration:                   float     # session duration in seconds
+        frame_trigger_times:        longblob  # when frame triggers are sent, in samples
+        probe_sync_trigger_times:   longblob  # when probe sync triggers are sent, in samples
     """
     analog_sampling_rate = 30000  # in bonsai
 
     def make(self, key):
-        session = (Session & key).fetch1()
+        """
+            loads data from .bin and .csv data saved by bonsai.
+
+            1. get session
+            2. load/cut .bin file from bonsai
+            3. load/cut .csv file from bonsai
+
+            # TODO deal with sessoins without probe sync trigger times
+        """
         raise NotImplementedError
+        session = (Session & key).fetch1()
         logger.debug(f'Loading SessionData for session: {session["name"]}')
 
         # load analog
-        logger.debug("Loading analog")
         analog = load_bin(session["ai_file_path"], nsigs=4)
 
         # get start and end frame times
@@ -194,13 +251,11 @@ class SessionData(dj.Imported):
             frame_trigger_times[-1] - frame_trigger_times[0]
         ) / self.analog_sampling_rate
 
-        # get cut analog inputs
-        key["speaker"] = (
-            analog[frame_trigger_times[0] : frame_trigger_times[-1], 2]
-        ) / 5
-        key["pump"] = (
-            5 - analog[frame_trigger_times[0] : frame_trigger_times[-1], 1]
-        ) / 5  # 5 -  to invert signal
+        # get analog inputs between frames start/end times
+        _analog = analog[frame_trigger_times[0] : frame_trigger_times[-1]] / 5
+        key["frames_triggers"]
+        key["pump"] = 5 - _analog[:, 1]  # 5 -  to invert signal
+        key["speaker"] = _analog[:, 2]
 
         # load csv data
         logger.debug("Loading CSV")
@@ -221,18 +276,16 @@ class SessionData(dj.Imported):
 if __name__ == "__main__":
     sort_files()
 
-    # # mouse
+    # mouse
     # logger.info('#####    Filling mouse data')
     # Mouse().fill()
 
-    # # Session
-    # # Session.drop()
-
+    # Session
     # logger.info('#####    Filling Session')
     # Session().fill()
 
     # logger.info('#####    Validating sesions data')
-    # ValidatedSessions.populate(display_progress=True)
+    ValidatedSessions.populate(display_progress=True)
 
     # logger.info('#####    Filling SessionData')
     # SessionData().populate(display_progress=True)
