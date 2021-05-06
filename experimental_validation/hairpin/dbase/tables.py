@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 from loguru import logger
 import numpy as np
+import pandas as pd
 
 from fcutils.path import from_yaml, files
 from fcutils.progress import track
@@ -23,13 +24,12 @@ datafolder = Path("Z:\\swc\\branco\\Federico\\Locomotion\\raw")
 
 def sort_files():
     """ sorts raw files into the correct folders """
+
     logger.info("Sorting raw files")
     fls = files(datafolder / "tosort")
 
-    raise NotImplementedError("Bonsai should save .csv files too now")
-
     if isinstance(fls, list):
-        for f in fls:
+        for f in track(fls):
             src = datafolder / "tosort" / f.name
 
             if f.suffix == ".avi":
@@ -40,11 +40,17 @@ def sort_files():
                 logger.info(f"File not recognized: {f}")
                 continue
 
-            logger.info(f"Moving file {src} to {dst}")
-        shutil.move(src, dst)
+            if not dst.exists():
+                logger.info(f"Moving file {src} to {dst}")
+                shutil.move(src, dst)
+            else:
+                logger.info(
+                    f"Destination file {dst} already exists, not moving"
+                )
+
+    logger.info("All files moved, you can empty the tosort folder")
 
 
-# For manual tables
 def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
     """
         Tries to add an entry to a databse table taking into account entries already in the table
@@ -113,6 +119,7 @@ class Session(dj.Manual):
         -> Mouse
         name: varchar(128)
         ---
+        training_day: int
         video_file_path: varchar(256)
         ai_file_path: varchar(256)
         csv_file_path: varchar(256)
@@ -149,6 +156,9 @@ class Session(dj.Manual):
                     f"Either video or AI files not found for session: {session}"
                 )
 
+            # get training day
+            key["training_day"] = session["training_day"]
+
             # add to table
             insert_entry_in_table(key["name"], "name", key, self)
 
@@ -171,22 +181,25 @@ class ValidatedSessions(dj.Imported):
 
     def make(self, key):
         session = (Session & key).fetch1()
+        logger.debug(f'Validating session: {session["name"]}')
 
         # load video and get metadata
+        logger.debug("Loading video")
         nframes, w, h, fps, _ = get_video_params(session["video_file_path"])
         if fps != 60:
             raise ValueError("Expected video FPS: 60")
 
         # load analog
+        logger.debug("Loading analog")
         analog = np.fromfile(session["ai_file_path"], dtype=np.double).reshape(
-            -1, 4
+            -1, 3
         )
 
         # check that the number of frames is correct
         frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
         if len(frame_trigger_times) != nframes:
             raise ValueError(
-                f'session: {session["name"]} - found {nframes} video frames and {frame_trigger_times} trigger times in analog input'
+                f'session: {session["name"]} - found {nframes} video frames and {len(frame_trigger_times)} trigger times in analog input'
             )
 
         # check that the number of frames is what you'd expect given the duration of the exp
@@ -207,27 +220,53 @@ class ValidatedSessions(dj.Imported):
 class SessionData(dj.Imported):
     definition = """
         # stores AI and csv data in a nicely formatted manner
-        -> Session:
-        lick_sensor: longblob
-        speaker_signal: longblob
+        -> Session
+        ---
+        speaker: longblob
         pump: longblob
         roi_activity: longblob
         mouse_in_roi: longblob
         reward_signal: longblob
+        duration: float  # duration in seconds
     """
     analog_sampling_rate = 30000
 
     def make(self, key):
         session = (Session & key).fetch1()
-        print(session)
+        logger.debug(f'Loading SessionData for session: {session["name"]}')
 
-        # load analog data
-        # get first and last frame
+        # load analog
+        logger.debug("Loading analog")
+        analog = np.fromfile(session["ai_file_path"], dtype=np.double).reshape(
+            -1, 3
+        )
 
-        # cut analog data between frames
+        # get start and end frame times
+        frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
+        key["duration"] = (
+            frame_trigger_times[-1] - frame_trigger_times[0]
+        ) / self.analog_sampling_rate
+
+        # get cut analog inputs
+        key["speaker"] = (
+            analog[frame_trigger_times[0] : frame_trigger_times[-1], 2]
+        ) / 5
+        key["pump"] = (
+            5 - analog[frame_trigger_times[0] : frame_trigger_times[-1], 1]
+        ) / 5  # 5 -  to invert signal
 
         # load csv data
-        # cut csv data between frames
+        logger.debug("Loading CSV")
+        data = pd.read_csv(session["csv_file_path"])
+        data.columns = [
+            "ROI activity",
+            "lick ROI activity",
+            "mouse in ROI",
+            "mouse in lick ROI",
+            "deliver reward signal",
+            "reward available signal",
+        ]
+        # cut csv data between frames -- CSV is already saved only when a frame is acquired
 
         # save in table
 
@@ -235,7 +274,18 @@ class SessionData(dj.Imported):
 if __name__ == "__main__":
     sort_files()
 
-    Mouse().fill()
+    # # mouse
+    # logger.info('#####    Filling mouse data')
+    # Mouse().fill()
 
-    Session().fill()
-    ValidatedSessions.populate(display_progress=True)
+    # # Session
+    # # Session.drop()
+
+    # logger.info('#####    Filling Session')
+    # Session().fill()
+
+    # logger.info('#####    Validating sesions data')
+    # ValidatedSessions.populate(display_progress=True)
+
+    # logger.info('#####    Filling SessionData')
+    # SessionData().populate(display_progress=True)

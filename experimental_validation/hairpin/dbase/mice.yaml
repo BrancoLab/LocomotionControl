@@ -1,4 +1,15 @@
 - mouse:
-    mouse_id: 'test'
+    mouse_id: AAA1110750
     strain: 'bl6'
-    dob: 'never'
+    dob: '210112'
+
+
+- mouse:
+    mouse_id: AAA1110751
+    strain: 'bl6'
+    dob: '210112'
+
+- mouse:
+    mouse_id: AAA1110752
+    strain: 'bl6'
+    dob: '210112'
