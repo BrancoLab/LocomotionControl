@@ -40,19 +40,29 @@ def validate_bonsai(video_file_path, ai_file_path, analog_sampling_rate):
     if fps != 60:
         raise ValueError("Expected video FPS: 60")
 
-    frame_trigger_times = _get_triggers()
+    try:
+        frame_trigger_times = _get_triggers()
+    except ValueError:
+        logger.warning(
+            f"While validating bonsay for {name} could not open binary file {ai_file_path}"
+        )
+        return False, 0
+
     if len(frame_trigger_times) != nframes:
         try:
-            frame_trigger_times = _get_triggers(nsigs=3)
+            nsigs = 3
+            frame_trigger_times = _get_triggers(nsigs=nsigs)
             if len(frame_trigger_times) != nframes:
                 raise ValueError
         except ValueError:
-            raise ValueError(
+            logger.warning(
                 f"session: {name} - found {nframes} video frames and {len(frame_trigger_times)} trigger times in analog input"
             )
-    logger.debug(
-        f"{name} has {nframes} frames and {len(frame_trigger_times)} trigger times were found"
-    )
+            return False, nsigs
+    else:
+        logger.debug(
+            f"{name} has {nframes} frames and {len(frame_trigger_times)} trigger times were found"
+        )
 
     # check that the number of frames is what you'd expect given the duration of the exp
     first_frame_s = frame_trigger_times[0] / analog_sampling_rate
@@ -66,10 +76,12 @@ def validate_bonsai(video_file_path, ai_file_path, analog_sampling_rate):
         )
     logger.debug(f"{name} video duration is correct")
 
-    return True
+    return True, nsigs
 
 
-def validate_recording(ai_file_path, ephys_ap_data_path, debug=False):
+def validate_recording(
+    ai_file_path, ephys_ap_data_path, debug=False, sampling_rate=30000
+):
     """
         Checks that an ephys recording and bonsai behavior recording
         are correctly syncd. To do this:
@@ -107,16 +119,75 @@ def validate_recording(ai_file_path, ephys_ap_data_path, debug=False):
             f"[green]Both bonsai and spikeGLX have {len(ephys_sync_onsets)} sync pulses"
         )
 
+    if ephys_sync_onsets[0] <= bonsai_sync_onsets[0]:
+        raise ValueError("Bonsai should start first!")
+
+    # check the interval between syn signals in bonsai
+    onsets_delta = set(np.diff(bonsai_sync_onsets))
+    if len(onsets_delta) > 1:
+        raise ValueError(
+            f"Bonsai sync triggers have variable delay: {onsets_delta}"
+        )
+    elif list(onsets_delta)[0] != sampling_rate:
+        raise ValueError(
+            f"Bonsai sync triggers are not 1s apart (got {list(onsets_delta)[0]} instead of {sampling_rate})"
+        )
+
     # debugging plots
     if debug:
-        f, ax = plt.subplots()
-        ax.plot(analog[:200000, 0] * 0.5, color="k", label="bonsai frames")
-        ax.plot(bonsai_probe_sync[:200000], color="k", label="bonsai")
-        ax.plot(ephys_probe_sync[:200000] / 10, color="g", label="ephys")
-        ax.legend()
+        frames_cut = analog[
+            bonsai_sync_onsets[0] : bonsai_sync_onsets[-1] + sampling_rate + 1,
+            0,
+        ]
+        bonsai_cut = bonsai_probe_sync[
+            bonsai_sync_onsets[0]
+            - 1 : bonsai_sync_onsets[-1]
+            + sampling_rate
+            + 1
+        ]
+        ephys_cut = ephys_probe_sync[
+            ephys_sync_onsets[0]
+            - 1 : ephys_sync_onsets[-1]
+            + sampling_rate
+            + 1
+        ]
+
+        f, axes = plt.subplots(ncols=2)
+        axes[0].plot(
+            frames_cut[: 20 * sampling_rate] * 0.5,
+            color="b",
+            label="bonsai frames",
+        )
+        axes[0].plot(
+            bonsai_cut[: 20 * sampling_rate], color="k", label="bonsai"
+        )
+        axes[0].plot(
+            ephys_cut[: 20 * sampling_rate] / 10, color="g", label="ephys"
+        )
+        axes[0].legend()
+
+        axes[1].plot(
+            frames_cut[-40 * sampling_rate :] * 0.5,
+            color="b",
+            label="bonsai frames",
+        )
+        axes[1].plot(
+            bonsai_cut[-40 * sampling_rate :], color="k", label="bonsai"
+        )
+        axes[1].plot(
+            ephys_cut[-40 * sampling_rate :] / 10, color="g", label="ephys"
+        )
+        axes[1].legend()
 
         logger.debug("Showing plot")
         plt.show()
+
+    return (
+        bonsai_sync_onsets[0],
+        bonsai_sync_onsets[-1] + sampling_rate,
+        ephys_sync_onsets[-1],
+        ephys_sync_onsets[-1] + sampling_rate,
+    )
 
 
 if __name__ == "__main__":

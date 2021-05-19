@@ -1,6 +1,7 @@
 import datajoint as dj
 from loguru import logger
 import pandas as pd
+import numpy as np
 
 from fcutils.path import from_yaml, files
 from fcutils.progress import track
@@ -91,7 +92,10 @@ class Session(dj.Manual):
             if name in in_table:
                 continue
 
-            if "test" in name.lower():
+            if "test" in name.lower() or "_t" in name.lower():
+                logger.warning(
+                    f"Skipping session {name} as it is a test recording"
+                )
                 continue
 
             try:
@@ -187,6 +191,12 @@ class ValidatedSessions(dj.Imported):
     definition = """
         # checks that the video and AI files for a session are saved correctly and video/recording are syncd
         -> Session
+        ---
+        n_analog_channels: int  # number of AI channels recorded in bonsai
+        bonsai_cut_start: int  # where to start/end cutting bonsai signals to align to ephys
+        bonsai_cut_end: int
+        ephys_cut_start: int
+        ephys_cut_end: int
     """
     analog_sampling_rate = 30000
 
@@ -195,24 +205,38 @@ class ValidatedSessions(dj.Imported):
         logger.debug(f'Validating session: {session["name"]}')
 
         # check bonsai recording was correct
-        is_ok = qc.validate_bonsai(
+        is_ok, analog_nsigs = qc.validate_bonsai(
             session["video_file_path"],
             session["ai_file_path"],
             self.analog_sampling_rate,
         )
 
         if Session.has_recording(key["name"]):
-            is_ok = qc.validate_recording(
-                session["ai_file_path"], session["ephys_ap_data_path"]
+            (
+                b_cut_start,
+                b_cut_end,
+                e_cut_start,
+                e_cut_end,
+            ) = qc.validate_recording(
+                session["ai_file_path"],
+                session["ephys_ap_data_path"],
+                sampling_rate=self.analog_sampling_rate,
             )
+        else:
+            b_cut_start, b_cut_end, e_cut_start, e_cut_end = -1, -1, -1, -1
+
+        key["bonsai_cut_start"] = b_cut_start
+        key["bonsai_cut_end"] = b_cut_end
+        key["ephys_cut_start"] = e_cut_start
+        key["ephys_cut_end"] = e_cut_end
 
         if is_ok:
             # all OK, add to table
+            key["n_analog_channels"] = analog_nsigs
             self.insert1(key)
 
 
-@schema
-class SessionData(dj.Imported):
+class SessionData:
     definition = """
         # stores AI and csv data in a nicely formatted manner
         -> ValidatedSessions
@@ -220,6 +244,7 @@ class SessionData(dj.Imported):
         speaker:                    longblob  # signal sent to speakers
         pump:                       longblob  # signal sent to pump
         reward_signal:              longblob  # 0 -> 1 when reward is delivered
+        reward_available_signal:    longblob  # 1 when the reward becomes available
         trigger_roi:                longblob  # 1 when mouse in trigger ROI
         reward_roi:                 longblob  # 1 when mouse in reward ROI
         duration:                   float     # session duration in seconds
@@ -228,38 +253,56 @@ class SessionData(dj.Imported):
     """
     analog_sampling_rate = 30000  # in bonsai
 
-    def make(self, key):
+    def get(self, session_name):
         """
             loads data from .bin and .csv data saved by bonsai.
 
             1. get session
             2. load/cut .bin file from bonsai
             3. load/cut .csv file from bonsai
-
-            # TODO deal with sessoins without probe sync trigger times
         """
-        raise NotImplementedError
-        session = (Session & key).fetch1()
-        logger.debug(f'Loading SessionData for session: {session["name"]}')
+
+        session = (
+            Session * ValidatedSessions & f'name="{session_name}"'
+        ).fetch1()
+        n_ai_sigs = (ValidatedSessions & f'name="{session_name}"').fetch1(
+            "n_analog_channels"
+        )
+        logger.debug(f'Making SessionData for session: {session["name"]}')
 
         # load analog
-        analog = load_bin(session["ai_file_path"], nsigs=4)
+        analog = load_bin(session["ai_file_path"], nsigs=n_ai_sigs)
 
         # get start and end frame times
         frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
-        key["duration"] = (
+        session["duration"] = (
             frame_trigger_times[-1] - frame_trigger_times[0]
         ) / self.analog_sampling_rate
 
         # get analog inputs between frames start/end times
         _analog = analog[frame_trigger_times[0] : frame_trigger_times[-1]] / 5
-        key["frames_triggers"]
-        key["pump"] = 5 - _analog[:, 1]  # 5 -  to invert signal
-        key["speaker"] = _analog[:, 2]
+        session["pump"] = 5 - _analog[:, 1]  # 5 -  to invert signal
+        session["speaker"] = _analog[:, 2]
+
+        # get camera frame and probe syn times
+        session["frame_trigger_times"] = (
+            get_onset_offset(analog[:, 0], 2.5)[0] - frame_trigger_times[0]
+        )
+
+        if Session.has_recording(session["name"]):
+            session["probe_sync_trigger_times"] = (
+                get_onset_offset(analog[:, 3], 2.5)[0] - frame_trigger_times[0]
+            )
+        else:
+            session["probe_sync_trigger_times"] = -1
 
         # load csv data
         logger.debug("Loading CSV")
         data = pd.read_csv(session["csv_file_path"])
+        if len(data.columns) < 5:
+            logger.warning("Skipping because of incomplete CSV")
+            return None  # first couple recordings didn't save all data
+
         data.columns = [
             "ROI activity",
             "lick ROI activity",
@@ -268,13 +311,38 @@ class SessionData(dj.Imported):
             "deliver reward signal",
             "reward available signal",
         ]
-        # cut csv data between frames -- CSV is already saved only when a frame is acquired
 
-        # save in table
+        # make sure csv data has same length as the number of frames (off by max 2)
+        delta = len(frame_trigger_times) - len(data)
+        if delta > 2:
+            raise ValueError(
+                f"We got {len(frame_trigger_times)} frames but CSV data has {len(data)} rows"
+            )
+        if not delta:
+            raise NotImplementedError("This case is not covered")
+        pad = np.zeros(delta)
+
+        # add key entries
+        session["reward_signal"] = np.concatenate(
+            [data["deliver reward signal"].values, pad]
+        )
+        session["trigger_roi"] = np.concatenate(
+            [data["mouse in ROI"].values, pad]
+        )
+        session["reward_roi"] = np.concatenate(
+            [data["mouse in lick ROI"].values, pad]
+        )
+        session["reward_available_signal"] = np.concatenate(
+            [data["reward available signal"].values, pad]
+        )
+
+        return session
 
 
 if __name__ == "__main__":
     sort_files()
+
+    # SessionData.drop()
 
     # mouse
     # logger.info('#####    Filling mouse data')
@@ -285,7 +353,9 @@ if __name__ == "__main__":
     # Session().fill()
 
     # logger.info('#####    Validating sesions data')
-    ValidatedSessions.populate(display_progress=True)
+    # ValidatedSessions.populate(display_progress=True)
+    # print(ValidatedSessions())
 
     # logger.info('#####    Filling SessionData')
-    # SessionData().populate(display_progress=True)
+    SessionData().populate(display_progress=True)
+    print(SessionData())
