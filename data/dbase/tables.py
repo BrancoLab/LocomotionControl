@@ -15,6 +15,7 @@ from data.dbase._tables import sort_files, insert_entry_in_table, load_bin
 from data.paths import raw_data_folder
 from data.dbase import quality_control as qc
 
+
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
 # ---------------------------------------------------------------------------- #
