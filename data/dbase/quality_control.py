@@ -11,7 +11,7 @@ from myterial import blue_dark, salmon_dark, indigo
 from fcutils.video import get_video_params
 from fcutils.maths.signals import get_onset_offset
 
-from data.dbase._tables import load_bin
+from data.dbase.io import load_bin
 
 
 def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):

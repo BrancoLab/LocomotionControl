@@ -16,7 +16,7 @@ def start_connection():
     D:\Dropbox (UCL - SWC)\Rotation_vte\mysql-server\data\Database
 
     """
-    dbname = "DatabaseV4"  # Name of the database subfolder with data
+    dbname = "LOCOMOTION"  # Name of the database subfolder with data
     if dj.config["database.user"] != "root":
 
         dj.config["database.host"] = ip

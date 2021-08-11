@@ -1,57 +1,7 @@
 from loguru import logger
-import shutil
-import numpy as np
+import pandas as pd
 
 from tpd import recorder
-
-from fcutils.path import files, size
-from fcutils.progress import track
-
-from data.paths import raw_data_folder
-
-
-def load_bin(filepath, nsigs=4, dtype=None, order=None):
-    """
-        loads and reshape a bonsai .bin file
-    """
-    logger.debug(f'Opening BIN file: "{filepath}" ({size(filepath)})')
-
-    dtype = dtype or np.float64
-    order = order or "C"
-
-    with open(filepath, "r") as fin:
-        data = np.memmap(fin, dtype=dtype, order=order, mode="r")
-
-    return data.reshape(-1, nsigs)
-
-
-def sort_files():
-    """ sorts raw files into the correct folders """
-    raise NotImplementedError("Sort recording files?")
-    logger.info("Sorting raw files")
-    fls = files(raw_data_folder / "tosort")
-
-    if isinstance(fls, list):
-        logger.debug(f"Sorting {len(fls)} files")
-
-        for f in track(fls, description="sorting", transient=True):
-            src = raw_data_folder / "tosort" / f.name
-
-            if f.suffix == ".avi":
-                dst = raw_data_folder / "video" / f.name
-            elif f.suffix == ".bin" or f.suffix == ".csv":
-                dst = raw_data_folder / "analog_inputs" / f.name
-            else:
-                logger.warning(f"File not recognized: {f}")
-                continue
-
-            if dst.exists():
-                logger.debug(f"Destinatoin file already exists, skipping")
-            else:
-                logger.info(f"Moving file '{src}' to '{dst}'")
-                shutil.move(src, dst)
-    else:
-        logger.warning(f"Expected files list got: {fls}")
 
 
 # For manual tables
@@ -83,6 +33,5 @@ def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
 
 
 def print_table_content_to_file(table, name):
-    raise NotImplementedError("Need to get the tables content as a string")
-    content = "2"
+    content = pd.DataFrame(table()).to_string()
     recorder.add_text(content, name)

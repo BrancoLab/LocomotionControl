@@ -12,11 +12,10 @@ import sys
 sys.path.append("./")
 from data.dbase import schema
 from data.dbase._tables import (
-    sort_files,
     insert_entry_in_table,
-    load_bin,
     print_table_content_to_file,
 )
+from data.dbase.io import load_bin
 from data.paths import raw_data_folder
 from data.dbase import quality_control as qc
 
@@ -252,7 +251,8 @@ class ValidatedSession(dj.Imported):
 # ---------------------------------------------------------------------------- #
 #                                 behavior data                                #
 # ---------------------------------------------------------------------------- #
-class Behavior:
+@schema
+class Behavior(dj.Imported):
     definition = """
         # stores AI and csv data in a nicely formatted manner
         -> Session
@@ -360,7 +360,7 @@ class Behavior:
 class Recording(dj.Imported):
     definition = """
         # stores metadata about the recording
-        -> Sessions
+        -> Session
         ---
         probe_file_path:                    varchar(256)
         spike_sorting_params_file_path:     varchar(256)
@@ -377,18 +377,19 @@ class Probe(dj.Imported):
         ---
         skull_coordinates:                              longblob  # AP, ML from bregma in mm
         implanted_depth:                                longblob  # Z axis of stereotax in mm
-        ML_angle:                                       float
-        AP_angle:                                       float
         reconstructed_track_file_path_atlas_space:      varchar(256)
         reconstructed_track_file_path_sample_space:     varchar(256)
+        angle_ml:                                        longblob
+        angle_ap:                                        longblob
     """
 
 
+@schema
 class RecordingSite(dj.Imported):
     definition = """
         # metadata about recording sites locations
         -> Probe
-        id:                             int
+        site_id:                             int
         ---
         probe_coords:                   blob
         brain_coordinates:              blob  # in sample space
@@ -402,20 +403,20 @@ class RecordingSite(dj.Imported):
 class Unit(dj.Imported):
     definition = """
         # a single unit's spike sorted data
-        -> recording
-        id: int
+        -> Recording
+        unit_id: int
         ---
-        -> Probe
         -> RecordingSite
+        site_id: int
         spike_times: longblob  # spike times registered to the behavior
     """
 
 
 if __name__ == "__main__":
     # sort files
-    sort_files()
+    # sort_files()
 
-    # SessionData.drop()
+    # Mouse().drop()
 
     # mouse
     # logger.info('#####    Filling mouse data')
@@ -430,8 +431,8 @@ if __name__ == "__main__":
     # print(ValidatedSessions())
 
     # logger.info('#####    Filling Behavior')
-    Behavior().populate(display_progress=True)
-    print(Behavior())
+    # Behavior().populate(display_progress=True)
+    # print(Behavior())
 
     # print tables contents
     TABLES = [
@@ -454,5 +455,5 @@ if __name__ == "__main__":
         "RecordingSite",
         "Unit",
     ]
-    for tb, name in TABLES, NAMES:
+    for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)
