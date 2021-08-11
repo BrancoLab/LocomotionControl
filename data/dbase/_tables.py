@@ -2,6 +2,8 @@ from loguru import logger
 import shutil
 import numpy as np
 
+from tpd import recorder
+
 from fcutils.path import files, size
 from fcutils.progress import track
 
@@ -25,6 +27,7 @@ def load_bin(filepath, nsigs=4, dtype=None, order=None):
 
 def sort_files():
     """ sorts raw files into the correct folders """
+    raise NotImplementedError('Sort recording files?')
     logger.info("Sorting raw files")
     fls = files(raw_data_folder / "tosort")
 
@@ -77,3 +80,9 @@ def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
                     checktag, dataname, table.full_table_name, e
                 )
             )
+
+
+def print_table_content_to_file(table, name):
+    raise NotImplementedError('Need to get the tables content as a string')
+    content = '2'
+    recorder.add_text(content, name)

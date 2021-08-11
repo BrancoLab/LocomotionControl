@@ -11,7 +11,7 @@ import sys
 
 sys.path.append("./")
 from data.dbase import schema
-from data.dbase._tables import sort_files, insert_entry_in_table, load_bin
+from data.dbase._tables import sort_files, insert_entry_in_table, load_bin, print_table_content_to_file
 from data.paths import raw_data_folder
 from data.dbase import quality_control as qc
 
@@ -53,11 +53,10 @@ class Mouse(dj.Manual):
 @schema
 class Session(dj.Manual):
     definition = """
-        # a session is one experiment on one day on one mouse
+        # a session is one experiment on one day on one mouse | this keeps track of the paths
         -> Mouse
         name: varchar(128)
         ---
-        training_day: int
         video_file_path: varchar(256)
         ai_file_path: varchar(256)
         csv_file_path: varchar(256)
@@ -68,6 +67,7 @@ class Session(dj.Manual):
     """
 
     def fill(self):
+        raise NotImplementedError('This should also add recording sessions from excel file')
         logger.info("Filling in session table")
         in_table = Session.fetch("name")
 
@@ -181,6 +181,10 @@ class Session(dj.Manual):
         else:
             return False
 
+    @staticmethod
+    def is_validated(session_name):
+        raise NotImplementedError
+
 
 # ---------------------------------------------------------------------------- #
 #                              validated sessions                              #
@@ -188,7 +192,7 @@ class Session(dj.Manual):
 
 
 @schema
-class ValidatedSessions(dj.Imported):
+class ValidatedSession(dj.Imported):
     definition = """
         # checks that the video and AI files for a session are saved correctly and video/recording are syncd
         -> Session
@@ -198,6 +202,7 @@ class ValidatedSessions(dj.Imported):
         bonsai_cut_end: int
         ephys_cut_start: int
         ephys_cut_end: int
+        ephys_time_scaling_factor: float  # scales ephys spikes in time to align to bonsai
     """
     analog_sampling_rate = 30000
 
@@ -237,10 +242,13 @@ class ValidatedSessions(dj.Imported):
             self.insert1(key)
 
 
-class SessionData:
+# ---------------------------------------------------------------------------- #
+#                                 behavior data                                #
+# ---------------------------------------------------------------------------- #
+class Behavior:
     definition = """
         # stores AI and csv data in a nicely formatted manner
-        -> ValidatedSessions
+        -> Session
         ---
         speaker:                    longblob  # signal sent to speakers
         pump:                       longblob  # signal sent to pump
@@ -249,8 +257,6 @@ class SessionData:
         trigger_roi:                longblob  # 1 when mouse in trigger ROI
         reward_roi:                 longblob  # 1 when mouse in reward ROI
         duration:                   float     # session duration in seconds
-        frame_trigger_times:        longblob  # when frame triggers are sent, in samples
-        probe_sync_trigger_times:   longblob  # when probe sync triggers are sent, in samples
     """
     analog_sampling_rate = 30000  # in bonsai
 
@@ -339,8 +345,63 @@ class SessionData:
 
         return session
 
+# ---------------------------------------------------------------------------- #
+#                                  ephys dataÛ                                 #
+# ---------------------------------------------------------------------------- #
+@schema
+class Recording(dj.Imported):
+    definition = """
+        # stores metadata about the recording
+        -> Sessions
+        ---
+        probe_file_path:                    varchar(256)
+        spike_sorting_params_file_path:     varchar(256)
+        spike_sorting_spikes_file_path:     varchar(256)
+        spike_sorting_clusters_file_path:   varchar(256)
+    """
+
+@schema
+class Probe(dj.Imported):
+    definition = """
+        # relevant probe information
+        -> Recording
+        ---
+        skull_coordinates:                              longblob  # AP, ML from bregma in mm
+        implanted_depth:                                longblob  # Z axis of stereotax in mm
+        ML_angle:                                       float
+        AP_angle:                                       float
+        reconstructed_track_file_path_atlas_space:      varchar(256)
+        reconstructed_track_file_path_sample_space:     varchar(256)
+    """
+
+class RecordingSite(dj.Imported):
+    definition = """
+        # metadata about recording sites locations
+        -> Probe
+        id:                             int
+        ---
+        probe_coords:                   blob
+        brain_coordinates:              blob  # in sample space
+        registered_brain_coordinates:   blob  # in atlas space
+        brain_region:                   blob
+
+    """
+
+
+@schema
+class Unit(dj.Imported):
+    definition = """
+        # a single unit's spike sorted data
+        -> recording
+        id: int
+        ---
+        -> Probe
+        -> RecordingSite
+        spike_times: longblob  # spike times registered to the behavior
+    """
 
 if __name__ == "__main__":
+    # sort files
     sort_files()
 
     # SessionData.drop()
@@ -360,3 +421,10 @@ if __name__ == "__main__":
     # logger.info('#####    Filling SessionData')
     SessionData().populate(display_progress=True)
     print(SessionData())
+
+
+    # print tables contents
+    TABLES = [Mouse, Session, ValidatedSession, Behavior, Recording, Probe, RecordingSite, Unit]
+    NAMES = ['Mouse', 'Session', 'ValidatedSession', 'Behavior', 'Recording', 'Probe', 'RecordingSite', 'Unit']
+    for tb, name in TABLES, NAMES:
+        print_table_content_to_file(tb, name)
