@@ -11,7 +11,12 @@ import sys
 
 sys.path.append("./")
 from data.dbase import schema
-from data.dbase._tables import sort_files, insert_entry_in_table, load_bin, print_table_content_to_file
+from data.dbase._tables import (
+    sort_files,
+    insert_entry_in_table,
+    load_bin,
+    print_table_content_to_file,
+)
 from data.paths import raw_data_folder
 from data.dbase import quality_control as qc
 
@@ -67,7 +72,9 @@ class Session(dj.Manual):
     """
 
     def fill(self):
-        raise NotImplementedError('This should also add recording sessions from excel file')
+        raise NotImplementedError(
+            "This should also add recording sessions from excel file"
+        )
         logger.info("Filling in session table")
         in_table = Session.fetch("name")
 
@@ -270,9 +277,9 @@ class Behavior:
         """
 
         session = (
-            Session * ValidatedSessions & f'name="{session_name}"'
+            Session * ValidatedSession & f'name="{session_name}"'
         ).fetch1()
-        n_ai_sigs = (ValidatedSessions & f'name="{session_name}"').fetch1(
+        n_ai_sigs = (ValidatedSession & f'name="{session_name}"').fetch1(
             "n_analog_channels"
         )
         logger.debug(f'Making SessionData for session: {session["name"]}')
@@ -345,6 +352,7 @@ class Behavior:
 
         return session
 
+
 # ---------------------------------------------------------------------------- #
 #                                  ephys dataÛ                                 #
 # ---------------------------------------------------------------------------- #
@@ -360,6 +368,7 @@ class Recording(dj.Imported):
         spike_sorting_clusters_file_path:   varchar(256)
     """
 
+
 @schema
 class Probe(dj.Imported):
     definition = """
@@ -373,6 +382,7 @@ class Probe(dj.Imported):
         reconstructed_track_file_path_atlas_space:      varchar(256)
         reconstructed_track_file_path_sample_space:     varchar(256)
     """
+
 
 class RecordingSite(dj.Imported):
     definition = """
@@ -400,6 +410,7 @@ class Unit(dj.Imported):
         spike_times: longblob  # spike times registered to the behavior
     """
 
+
 if __name__ == "__main__":
     # sort files
     sort_files()
@@ -418,13 +429,30 @@ if __name__ == "__main__":
     # ValidatedSessions.populate(display_progress=True)
     # print(ValidatedSessions())
 
-    # logger.info('#####    Filling SessionData')
-    SessionData().populate(display_progress=True)
-    print(SessionData())
-
+    # logger.info('#####    Filling Behavior')
+    Behavior().populate(display_progress=True)
+    print(Behavior())
 
     # print tables contents
-    TABLES = [Mouse, Session, ValidatedSession, Behavior, Recording, Probe, RecordingSite, Unit]
-    NAMES = ['Mouse', 'Session', 'ValidatedSession', 'Behavior', 'Recording', 'Probe', 'RecordingSite', 'Unit']
+    TABLES = [
+        Mouse,
+        Session,
+        ValidatedSession,
+        Behavior,
+        Recording,
+        Probe,
+        RecordingSite,
+        Unit,
+    ]
+    NAMES = [
+        "Mouse",
+        "Session",
+        "ValidatedSession",
+        "Behavior",
+        "Recording",
+        "Probe",
+        "RecordingSite",
+        "Unit",
+    ]
     for tb, name in TABLES, NAMES:
         print_table_content_to_file(tb, name)

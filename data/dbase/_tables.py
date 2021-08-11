@@ -27,7 +27,7 @@ def load_bin(filepath, nsigs=4, dtype=None, order=None):
 
 def sort_files():
     """ sorts raw files into the correct folders """
-    raise NotImplementedError('Sort recording files?')
+    raise NotImplementedError("Sort recording files?")
     logger.info("Sorting raw files")
     fls = files(raw_data_folder / "tosort")
 
@@ -83,6 +83,6 @@ def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
 
 
 def print_table_content_to_file(table, name):
-    raise NotImplementedError('Need to get the tables content as a string')
-    content = '2'
+    raise NotImplementedError("Need to get the tables content as a string")
+    content = "2"
     recorder.add_text(content, name)
