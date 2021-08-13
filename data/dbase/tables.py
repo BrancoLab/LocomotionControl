@@ -2,6 +2,7 @@ import datajoint as dj
 from loguru import logger
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from fcutils.path import from_yaml, files
 from fcutils.progress import track
@@ -15,7 +16,7 @@ from data.dbase._tables import (
     insert_entry_in_table,
     print_table_content_to_file,
 )
-from data.dbase.io import load_bin
+from data.dbase.io import load_bin, sort_files
 from data.paths import raw_data_folder
 from data.dbase import quality_control as qc
 
@@ -61,35 +62,37 @@ class Session(dj.Manual):
         -> Mouse
         name: varchar(128)
         ---
+        date: varchar(256)
+        is_recording: int   # 1 for recordings and 0 else
+        arena: varchar(64)
         video_file_path: varchar(256)
         ai_file_path: varchar(256)
         csv_file_path: varchar(256)
         ephys_ap_data_path: varchar(256)
         ephys_ap_meta_path: varchar(256)
-        ephys_lfp_data_path: varchar(256)
-        ephys_lfp_meta_path: varchar(256)
     """
 
+    recordings_metadata_path = Path(
+        r"W:\swc\branco\Federico\Locomotion\raw\recordings_metadata.ods"
+    )
+    recordings_raw_data_path = Path(
+        r"W:\swc\branco\Federico\Locomotion\raw\recordings"
+    )
+
     def fill(self):
-        raise NotImplementedError(
-            "This should also add recording sessions from excel file"
-        )
         logger.info("Filling in session table")
         in_table = Session.fetch("name")
+        mice = from_yaml("data\dbase\mice.yaml")
+
+        # Load recordings sessoins metadata
+        recorded_sessions = pd.read_excel(
+            self.recordings_metadata_path, engine="odf"
+        )
 
         # Get the videos of all sessions
         vids = [
             f for f in files(raw_data_folder / "video") if ".avi" in f.name
         ]
-
-        # Get all ephys sessions names
-        rec_files = files(raw_data_folder / "recordings")
-        if rec_files is not None:
-            ephys_files = [f for f in rec_files if ".ap.bin" in f]
-            ephys_sessions = [f.name.split("_g0")[0] for f in ephys_files]
-            raise NotImplementedError("Need to debug this part")
-        else:
-            ephys_sessions = []
 
         for video in track(
             vids, description="Adding sessions", transient=True
@@ -99,21 +102,24 @@ class Session(dj.Manual):
             if name in in_table:
                 continue
 
-            if "test" in name.lower() or "_t" in name.lower():
-                logger.warning(
-                    f"Skipping session {name} as it is a test recording"
-                )
+            if "test" in name.lower() in name.lower():
+                logger.warning(f"Skipping session {name} as it is a test")
                 continue
 
+            # get date and mouse
             try:
-                _, date, mouse, day = name.split("_")
-            except ValueError:
+                date = name.split("_")[1]
+                mouse = [
+                    m["mouse"]["mouse_id"]
+                    for m in mice
+                    if m["mouse"]["mouse_id"] in name
+                ][0]
+            except IndexError:
                 logger.warning(
-                    f"Skipping session {name} - likely a test recording"
+                    f"Skipping session {name} because couldnt figure out the mouse or date it was done on"
                 )
                 continue
-
-            key = dict(mouse_id=mouse, name=name, training_day=int(day[1:]))
+            key = dict(mouse_id=mouse, name=name, date=date)
 
             # get file paths
             key["video_file_path"] = (
@@ -135,43 +141,51 @@ class Session(dj.Manual):
                     f"Either video or AI files not found for session: {name} with data:\n{key}"
                 )
 
-            # Get ephys files
-            if name in ephys_sessions:
-                logger.debug(f"Session {name} has ephys recordings")
-                key["ephys_ap_data_path"] = (
-                    raw_data_folder
-                    / "recordings"
-                    / f"{name}_g0_t0.imec0.ap.bin"
+            # get ephys files & arena type
+            if name in recorded_sessions["bonsai filename"].values:
+                rec = recorded_sessions.loc[
+                    recorded_sessions["bonsai filename"] == name
+                ].iloc[0]
+                base_path = (
+                    self.recordings_raw_data_path
+                    / rec["recording folder"]
+                    / (rec["recording folder"] + "_imec0")
+                    / (rec["recording folder"] + "_t0.imec0")
                 )
+                key["ephys_ap_data_path"] = str(base_path) + ".ap.bin"
+                key["ephys_ap_meta_path"] = str(base_path) + ".ap.meta"
 
-                key["ephys_ap_meta_path"] = (
-                    raw_data_folder
-                    / "recordings"
-                    / f"{name}_g0_t0.imec0.ap.meta"
-                )
-
-                key["ephys_lfp_data_path"] = (
-                    raw_data_folder
-                    / "recordings"
-                    / f"{name}_g0_t0.imec0.lf.bin"
-                )
-
-                key["ephys_lfp_meta_path"] = (
-                    raw_data_folder
-                    / "recordings"
-                    / f"{name}_g0_t0.imec0.lf.meta"
-                )
-
+                key["arena"] = rec.arena
+                key["is_recording"] = 1
+                key["date"] = rec.date
             else:
                 key["ephys_ap_data_path"] = ""
                 key["ephys_ap_meta_path"] = ""
-                key["ephys_lfp_data_path"] = ""
-                key["ephys_lfp_meta_path"] = ""
+                key["arena"] = "hairpin"
+                key["is_recording"] = 0
 
             # add to table
             insert_entry_in_table(key["name"], "name", key, self)
 
-        print(Session())
+        # check everything went okay
+        self.check_recordings_complete()
+
+    def check_recordings_complete(self):
+        """
+            Checks that all recording sessions are in the table
+        """
+        in_table = Session.fetch("name")
+        recorded_sessions = pd.read_excel(
+            self.recordings_metadata_path, engine="odf"
+        )
+        for i, session in recorded_sessions.iterrows():
+            if session["bonsai filename"] not in in_table:
+                raise ValueError(f"Recording session not in table:\n{session}")
+
+        if len((Session & "is_recording=1").fetch()) != len(recorded_sessions):
+            raise ValueError(
+                "Not enough recorded sessions in table, but not sure which one is missing"
+            )
 
     @staticmethod
     def has_recording(session_name):
@@ -182,14 +196,7 @@ class Session(dj.Manual):
                 session_name: str. Session name
         """
         session = pd.Series((Session & f'name="{session_name}"').fetch1())
-        if len(session.ephys_ap_data_path):
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def is_validated(session_name):
-        raise NotImplementedError
+        return session.is_recording
 
 
 # ---------------------------------------------------------------------------- #
@@ -354,7 +361,7 @@ class Behavior(dj.Imported):
 
 
 # ---------------------------------------------------------------------------- #
-#                                  ephys dataÛ                                 #
+#                                  ephys data                                  #
 # ---------------------------------------------------------------------------- #
 @schema
 class Recording(dj.Imported):
@@ -413,18 +420,21 @@ class Unit(dj.Imported):
 
 
 if __name__ == "__main__":
-    # sort files
-    # sort_files()
+    # ! careful: this is to delete stuff
+    # Session().drop()
+    # sys.exit()
 
-    # Mouse().drop()
+    # -------------------------------- fill dbase -------------------------------- #
+    # sort files
+    sort_files()
 
     # mouse
-    # logger.info('#####    Filling mouse data')
-    # Mouse().fill()
+    logger.info("#####    Filling mouse data")
+    Mouse().fill()
 
     # Session
-    # logger.info('#####    Filling Session')
-    # Session().fill()
+    logger.info("#####    Filling Session")
+    Session().fill()
 
     # logger.info('#####    Validating sesions data')
     # ValidatedSessions.populate(display_progress=True)
@@ -434,10 +444,12 @@ if __name__ == "__main__":
     # Behavior().populate(display_progress=True)
     # print(Behavior())
 
+    # -------------------------------- print stuff ------------------------------- #
     # print tables contents
     TABLES = [
         Mouse,
         Session,
+        pd.DataFrame((Session & "is_recording=1").fetch()),
         ValidatedSession,
         Behavior,
         Recording,
@@ -448,6 +460,7 @@ if __name__ == "__main__":
     NAMES = [
         "Mouse",
         "Session",
+        "Recordings",
         "ValidatedSession",
         "Behavior",
         "Recording",

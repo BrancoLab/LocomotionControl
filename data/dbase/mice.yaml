@@ -19,3 +19,24 @@
     mouse_id: AAA1110757
     strain: 'bl6'
     dob: '210112'
+
+# --------------------------------- cohort 2 --------------------------------- #
+- mouse:
+    mouse_id: BAA1110279
+    strain: 'bl6'
+    dob: '210504'
+
+- mouse:
+    mouse_id: BAA1110280
+    strain: 'bl6'
+    dob: '210504'
+    
+- mouse:
+    mouse_id: BAA1110281
+    strain: 'bl6'
+    dob: '210504'    
+
+- mouse:
+    mouse_id: BAA1110282
+    strain: 'bl6'
+    dob: '210504'

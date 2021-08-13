@@ -1,4 +1,4 @@
 from pathlib import Path
 
 
-raw_data_folder = Path("Z:\\swc\\branco\\Federico\\Locomotion\\raw")
+raw_data_folder = Path("W:\\swc\\branco\\Federico\\Locomotion\\raw")

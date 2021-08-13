@@ -23,6 +23,7 @@ requirements = [
     "vedo",
     "fcutils",
     "celluloid",
+    "odfpy",
 ]
 
 setup(

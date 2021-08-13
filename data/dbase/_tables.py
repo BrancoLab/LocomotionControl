@@ -33,5 +33,7 @@ def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
 
 
 def print_table_content_to_file(table, name):
-    content = pd.DataFrame(table()).to_string()
+    if not isinstance(table, pd.DataFrame):
+        table = pd.DataFrame(table())
+    content = table.to_string()
     recorder.add_text(content, name)
