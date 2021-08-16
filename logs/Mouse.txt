@@ -1,9 +1,3 @@
-     mouse_id strain     dob
-0  AAA1110750    bl6  210112
-1  AAA1110751    bl6  210112
-2  AAA1110752    bl6  210112
-3  AAA1110757    bl6  210112
-4  BAA1110279    bl6  210504
-5  BAA1110280    bl6  210504
-6  BAA1110281    bl6  210504
-7  BAA1110282    bl6  210504
+Empty DataFrame
+Columns: []
+Index: []

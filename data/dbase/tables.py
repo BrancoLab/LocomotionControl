@@ -1,12 +1,11 @@
 import datajoint as dj
 from loguru import logger
 import pandas as pd
-import numpy as np
 from pathlib import Path
+import cv2
 
-from fcutils.path import from_yaml, files
+from fcutils.path import from_yaml
 from fcutils.progress import track
-from fcutils.maths.signals import get_onset_offset
 
 import sys
 
@@ -16,10 +15,12 @@ from data.dbase._tables import (
     insert_entry_in_table,
     print_table_content_to_file,
 )
-from data.dbase.io import load_bin, sort_files
-from data.paths import raw_data_folder
-from data.dbase import quality_control as qc
 
+# from data.dbase.io import sort_files
+from data.dbase import quality_control as qc
+from data.dbase import _session, _ccm, _behavior
+
+DO_RECORDINGS_ONLY = True
 
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
@@ -80,92 +81,8 @@ class Session(dj.Manual):
     )
 
     def fill(self):
-        logger.info("Filling in session table")
-        in_table = Session.fetch("name")
-        mice = from_yaml("data\dbase\mice.yaml")
-
-        # Load recordings sessoins metadata
-        recorded_sessions = pd.read_excel(
-            self.recordings_metadata_path, engine="odf"
-        )
-
-        # Get the videos of all sessions
-        vids = [
-            f for f in files(raw_data_folder / "video") if ".avi" in f.name
-        ]
-
-        for video in track(
-            vids, description="Adding sessions", transient=True
-        ):
-            # Get session data
-            name = video.name.split("_video")[0]
-            if name in in_table:
-                continue
-
-            if "test" in name.lower() in name.lower():
-                logger.warning(f"Skipping session {name} as it is a test")
-                continue
-
-            # get date and mouse
-            try:
-                date = name.split("_")[1]
-                mouse = [
-                    m["mouse"]["mouse_id"]
-                    for m in mice
-                    if m["mouse"]["mouse_id"] in name
-                ][0]
-            except IndexError:
-                logger.warning(
-                    f"Skipping session {name} because couldnt figure out the mouse or date it was done on"
-                )
-                continue
-            key = dict(mouse_id=mouse, name=name, date=date)
-
-            # get file paths
-            key["video_file_path"] = (
-                raw_data_folder / "video" / (name + "_video.avi")
-            )
-            key["ai_file_path"] = (
-                raw_data_folder / "analog_inputs" / (name + "_analog.bin")
-            )
-
-            key["csv_file_path"] = (
-                raw_data_folder / "analog_inputs" / (name + "_data.csv")
-            )
-
-            if (
-                not key["video_file_path"].exists()
-                or not key["ai_file_path"].exists()
-            ):
-                raise FileNotFoundError(
-                    f"Either video or AI files not found for session: {name} with data:\n{key}"
-                )
-
-            # get ephys files & arena type
-            if name in recorded_sessions["bonsai filename"].values:
-                rec = recorded_sessions.loc[
-                    recorded_sessions["bonsai filename"] == name
-                ].iloc[0]
-                base_path = (
-                    self.recordings_raw_data_path
-                    / rec["recording folder"]
-                    / (rec["recording folder"] + "_imec0")
-                    / (rec["recording folder"] + "_t0.imec0")
-                )
-                key["ephys_ap_data_path"] = str(base_path) + ".ap.bin"
-                key["ephys_ap_meta_path"] = str(base_path) + ".ap.meta"
-
-                key["arena"] = rec.arena
-                key["is_recording"] = 1
-                key["date"] = rec.date
-            else:
-                key["ephys_ap_data_path"] = ""
-                key["ephys_ap_meta_path"] = ""
-                key["arena"] = "hairpin"
-                key["is_recording"] = 0
-
-            # add to table
-            insert_entry_in_table(key["name"], "name", key, self)
+        # fill
+        _session.fill_session_table(self)
 
         # check everything went okay
         self.check_recordings_complete()
@@ -210,12 +127,13 @@ class ValidatedSession(dj.Imported):
         # checks that the video and AI files for a session are saved correctly and video/recording are syncd
         -> Session
         ---
-        n_analog_channels: int  # number of AI channels recorded in bonsai
-        bonsai_cut_start: int  # where to start/end cutting bonsai signals to align to ephys
-        bonsai_cut_end: int
-        ephys_cut_start: int
-        ephys_cut_end: int
-        ephys_time_scaling_factor: float  # scales ephys spikes in time to align to bonsai
+        n_frames:                   int  # number of video frames in session
+        duration:                   int  # experiment duration ins econds
+        n_analog_channels:          int  # number of AI channels recorded in bonsai
+        bonsai_cut_start:           int  # where to start/end cutting bonsai signals to align to ephys
+        bonsai_cut_end:             int
+        ephys_cut_start:            int  # where to start/end cutting bonsai signals to align to bonsai
+        ephys_time_scaling_factor:  float  # scales ephys spikes in time to align to bonsai
     """
     analog_sampling_rate = 30000
 
@@ -223,36 +141,49 @@ class ValidatedSession(dj.Imported):
         session = (Session & key).fetch1()
         logger.debug(f'Validating session: {session["name"]}')
 
+        if not Session.has_recording(key["name"]) and DO_RECORDINGS_ONLY:
+            logger.info(
+                f'Skipping {session["name"]} because we are doing recording sessions ONLY'
+            )
+            return
+
         # check bonsai recording was correct
-        is_ok, analog_nsigs = qc.validate_bonsai(
+        (
+            is_ok,
+            analog_nsigs,
+            duration_seconds,
+            n_frames,
+            bonsai_cut_start,
+            bonsai_cut_end,
+        ) = qc.validate_behavior(
             session["video_file_path"],
             session["ai_file_path"],
             self.analog_sampling_rate,
         )
+        if not is_ok:
+            logger.warning(f"Session failed to pass validation: {key}")
 
+        # check ephys data OK and get time scaling factor to align to bonsai
         if Session.has_recording(key["name"]):
-            (
-                b_cut_start,
-                b_cut_end,
-                e_cut_start,
-                e_cut_end,
-            ) = qc.validate_recording(
+            logger.warning("Skipping validatoin of recording sessions")
+            ephys_cut_start, time_scaling_factor = qc.validate_recording(
                 session["ai_file_path"],
                 session["ephys_ap_data_path"],
                 sampling_rate=self.analog_sampling_rate,
             )
         else:
-            b_cut_start, b_cut_end, e_cut_start, e_cut_end = -1, -1, -1, -1
+            time_scaling_factor, ephys_cut_start = -1, -1
 
-        key["bonsai_cut_start"] = b_cut_start
-        key["bonsai_cut_end"] = b_cut_end
-        key["ephys_cut_start"] = e_cut_start
-        key["ephys_cut_end"] = e_cut_end
+        # fill in table
+        key["n_frames"] = n_frames
+        key["duration"] = duration_seconds
+        key["bonsai_cut_start"] = bonsai_cut_start
+        key["bonsai_cut_end"] = bonsai_cut_end
+        key["ephys_cut_start"] = ephys_cut_start
+        key["ephys_time_scaling_factor"] = time_scaling_factor
+        key["n_analog_channels"] = analog_nsigs
 
-        if is_ok:
-            # all OK, add to table
-            key["n_analog_channels"] = analog_nsigs
-            self.insert1(key)
+        self.insert1(key)
 
 
 # ---------------------------------------------------------------------------- #
@@ -261,8 +192,8 @@ class ValidatedSession(dj.Imported):
 @schema
 class Behavior(dj.Imported):
     definition = """
-        # stores AI and csv data in a nicely formatted manner
-        -> Session
+        # stores AI and csv data from Bonsai in a nicely formatted manner
+        -> ValidatedSession
         ---
         speaker:                    longblob  # signal sent to speakers
         pump:                       longblob  # signal sent to pump
@@ -270,11 +201,10 @@ class Behavior(dj.Imported):
         reward_available_signal:    longblob  # 1 when the reward becomes available
         trigger_roi:                longblob  # 1 when mouse in trigger ROI
         reward_roi:                 longblob  # 1 when mouse in reward ROI
-        duration:                   float     # session duration in seconds
     """
     analog_sampling_rate = 30000  # in bonsai
 
-    def get(self, session_name):
+    def make(self, key):
         """
             loads data from .bin and .csv data saved by bonsai.
 
@@ -282,82 +212,78 @@ class Behavior(dj.Imported):
             2. load/cut .bin file from bonsai
             3. load/cut .csv file from bonsai
         """
+        # fetch metadata
+        name = key["name"]
+        session = (Session * ValidatedSession & f'name="{name}"').fetch1()
 
-        session = (
-            Session * ValidatedSession & f'name="{session_name}"'
-        ).fetch1()
-        n_ai_sigs = (ValidatedSession & f'name="{session_name}"').fetch1(
-            "n_analog_channels"
-        )
-        logger.debug(f'Making SessionData for session: {session["name"]}')
+        # load, format & insert data
+        key = _behavior.load_session_data(self, session)
+        self.insert1(key)
 
-        # load analog
-        analog = load_bin(session["ai_file_path"], nsigs=n_ai_sigs)
 
-        # get start and end frame times
-        frame_trigger_times = get_onset_offset(analog[:, 0], 2.5)[0]
-        session["duration"] = (
-            frame_trigger_times[-1] - frame_trigger_times[0]
-        ) / self.analog_sampling_rate
+# ---------------------------------------------------------------------------- #
+#                           COMMON COORDINATES MATRIX                          #
+# ---------------------------------------------------------------------------- #
+@schema
+class CCM(dj.Imported):
+    definition = """
+    # stores common coordinates matrix for a session
+    -> ValidatedSession
+    ---
+    correction_matrix:      longblob        # 2x3 Matrix used for correction
+    """
 
-        # get analog inputs between frames start/end times
-        _analog = analog[frame_trigger_times[0] : frame_trigger_times[-1]] / 5
-        session["pump"] = 5 - _analog[:, 1]  # 5 -  to invert signal
-        session["speaker"] = _analog[:, 2]
+    def make(self, key):
+        # Get the maze model template
+        arena = cv2.imread("data\dbase\ccm_template.png")
+        arena = cv2.cvtColor(arena, cv2.COLOR_RGB2GRAY)
 
-        # get camera frame and probe syn times
-        session["frame_trigger_times"] = (
-            get_onset_offset(analog[:, 0], 2.5)[0] - frame_trigger_times[0]
-        )
+        # Get path to video
+        videopath = (Session & key).fetch1("video_file_path")
 
-        if Session.has_recording(session["name"]):
-            session["probe_sync_trigger_times"] = (
-                get_onset_offset(analog[:, 3], 2.5)[0] - frame_trigger_times[0]
-            )
-        else:
-            session["probe_sync_trigger_times"] = -1
+        # get matrix
+        key["correction_matrix"] = _ccm.get_matrix(videopath, arena)
+        self.insert1(key)
 
-        # load csv data
-        logger.debug("Loading CSV")
-        data = pd.read_csv(session["csv_file_path"])
-        if len(data.columns) < 5:
-            logger.warning("Skipping because of incomplete CSV")
-            return None  # first couple recordings didn't save all data
 
-        data.columns = [
-            "ROI activity",
-            "lick ROI activity",
-            "mouse in ROI",
-            "mouse in lick ROI",
-            "deliver reward signal",
-            "reward available signal",
-        ]
+# ---------------------------------------------------------------------------- #
+#                                 tracking data                                #
+# ---------------------------------------------------------------------------- #
+@schema
+class Tracking(dj.Imported):
+    """
+        tracking data from DLC. The
+        entries in the main table reflext the mouse's body\body axis
+        and a sub table is used for each body part.
+    
+    """
 
-        # make sure csv data has same length as the number of frames (off by max 2)
-        delta = len(frame_trigger_times) - len(data)
-        if delta > 2:
-            raise ValueError(
-                f"We got {len(frame_trigger_times)} frames but CSV data has {len(data)} rows"
-            )
-        if not delta:
-            raise NotImplementedError("This case is not covered")
-        pad = np.zeros(delta)
+    definition = """
+        -> ValidatedSession
+        ---
+        x:                      longblob  # body position in cm
+        y:                      longblob  # body position in cm
+        speed:                  longblob  # body speed in cm/s
+        orientation:            longblob  # orientation in deg
+        angular_velocity:       longblob  # angular velocityi in deg/sec
+        direction_of_movement:  longblob  # angle towards where the mouse is moving next
+        ---
+    """
 
-        # add key entries
-        session["reward_signal"] = np.concatenate(
-            [data["deliver reward signal"].values, pad]
-        )
-        session["trigger_roi"] = np.concatenate(
-            [data["mouse in ROI"].values, pad]
-        )
-        session["reward_roi"] = np.concatenate(
-            [data["mouse in lick ROI"].values, pad]
-        )
-        session["reward_available_signal"] = np.concatenate(
-            [data["reward available signal"].values, pad]
-        )
+    class BodyPart(dj.Part):
+        definition = """
+            -> Tracking
+            bpname:  varchar(64)
+            ---
+            x:                      longblob  # body position in cm
+            y:                      longblob  # body position in cm
+            speed:                  longblob  # body speed in cm/s
+            direction_of_movement:  longblob  # angle towards where the mouse is moving next
+        """
 
-        return session
+    def make(self, key):
+        # TODO fill in main and part tables
+        raise NotImplementedError
 
 
 # ---------------------------------------------------------------------------- #
@@ -366,8 +292,8 @@ class Behavior(dj.Imported):
 @schema
 class Recording(dj.Imported):
     definition = """
-        # stores metadata about the recording
-        -> Session
+        # stores metadata about the ephys recording
+        -> ValidatedSession
         ---
         probe_file_path:                    varchar(256)
         spike_sorting_params_file_path:     varchar(256)
@@ -421,28 +347,32 @@ class Unit(dj.Imported):
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # Session().drop()
+    # ValidatedSession().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
     # sort files
-    sort_files()
+    # sort_files()
 
     # mouse
-    logger.info("#####    Filling mouse data")
-    Mouse().fill()
+    # logger.info("#####    Filling mouse data")
+    # Mouse().fill()
 
     # Session
-    logger.info("#####    Filling Session")
+    # logger.info("#####    Filling Session")
     Session().fill()
 
     # logger.info('#####    Validating sesions data')
-    # ValidatedSessions.populate(display_progress=True)
-    # print(ValidatedSessions())
+    ValidatedSession().populate(display_progress=True)
+
+    # logger.info('####     filling CCM')
+    # CCM().populate(display_progress=True)
 
     # logger.info('#####    Filling Behavior')
     # Behavior().populate(display_progress=True)
-    # print(Behavior())
+
+    # logger.info('#####    Filling Tracking')
+    # Tracking().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

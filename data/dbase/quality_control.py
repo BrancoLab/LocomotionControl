@@ -59,7 +59,7 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
             logger.warning(
                 f"session: {name} - found {nframes} video frames and {len(frame_trigger_times)} trigger times in analog input"
             )
-            return False, nsigs
+            return False, nsigs, 0, 0, 0, 0
     else:
         nsigs = 4
         logger.debug(
@@ -78,7 +78,14 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         )
     logger.debug(f"{name} video duration is correct")
 
-    return True, nsigs
+    return (
+        True,
+        nsigs,
+        exp_dur,
+        nframes,
+        frame_trigger_times[0],
+        frame_trigger_times[1],
+    )
 
 
 # ---------------------------------------------------------------------------- #
@@ -300,6 +307,8 @@ def validate_recording(
             sampling_rate,
             time_scaling_factor,
         )
+
+    return ephys_sync_onsets[0], time_scaling_factor
 
 
 if __name__ == "__main__":
