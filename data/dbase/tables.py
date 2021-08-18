@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import cv2
 
-from fcutils.path import from_yaml
+from fcutils.path import from_yaml, to_yaml
 from fcutils.progress import track
 
 import sys
@@ -136,53 +136,102 @@ class ValidatedSession(dj.Imported):
         ephys_time_scaling_factor:  float  # scales ephys spikes in time to align to bonsai
     """
     analog_sampling_rate = 30000
+    excluded_sessions = [
+        "FC_210713_AAA1110750_r3_hairpin",  # skipping because cable borke mid recording
+    ]
 
     def make(self, key):
+        # fetch data
         session = (Session & key).fetch1()
-        logger.debug(f'Validating session: {session["name"]}')
+        has_rec = Session.has_recording(key["name"])
+        if has_rec:
+            previously_validated_path = "data/dbase/validated_recordings.yaml"
+        else:
+            previously_validated_path = "data/dbase/validated_sessions.yaml"
 
-        if not Session.has_recording(key["name"]) and DO_RECORDINGS_ONLY:
+        # load previously validated sessions to speed things up
+        previously_validated = from_yaml(previously_validated_path)
+
+        # check if session has known problems and should be excluded
+        if session["name"] in self.excluded_sessions:
             logger.info(
-                f'Skipping {session["name"]} because we are doing recording sessions ONLY'
+                f'Skipping session "{session["name"]}" because its in the excluded sessions list'
             )
             return
 
-        # check bonsai recording was correct
-        (
-            is_ok,
-            analog_nsigs,
-            duration_seconds,
-            n_frames,
-            bonsai_cut_start,
-            bonsai_cut_end,
-        ) = qc.validate_behavior(
-            session["video_file_path"],
-            session["ai_file_path"],
-            self.analog_sampling_rate,
-        )
-        if not is_ok:
-            logger.warning(f"Session failed to pass validation: {key}")
-
-        # check ephys data OK and get time scaling factor to align to bonsai
-        if Session.has_recording(key["name"]):
-            logger.warning("Skipping validatoin of recording sessions")
-            ephys_cut_start, time_scaling_factor = qc.validate_recording(
-                session["ai_file_path"],
-                session["ephys_ap_data_path"],
-                sampling_rate=self.analog_sampling_rate,
+        # check if validation was already executed on this session
+        if session["name"] in previously_validated.keys():
+            logger.debug(
+                f'Session {session["name"]} was previously validated, loading results'
             )
+            key = previously_validated[session["name"]]
         else:
-            time_scaling_factor, ephys_cut_start = -1, -1
+            logger.debug(f'Validating session: {session["name"]}')
+
+            if not has_rec and DO_RECORDINGS_ONLY:
+                logger.info(
+                    f'Skipping {session["name"]} because we are doing recording sessions ONLY'
+                )
+                return
+
+            # check bonsai recording was correct
+            (
+                is_ok,
+                analog_nsigs,
+                duration_seconds,
+                n_frames,
+                bonsai_cut_start,
+                bonsai_cut_end,
+            ) = qc.validate_behavior(
+                session["video_file_path"],
+                session["ai_file_path"],
+                self.analog_sampling_rate,
+            )
+            if not is_ok:
+                logger.warning(f"Session failed to pass validation: {key}")
+                return
+            else:
+                logger.info(f"Session passed BEHAVIOR validation")
+
+            # check ephys data OK and get time scaling factor to align to bonsai
+            if has_rec:
+                (
+                    is_ok,
+                    ephys_cut_start,
+                    time_scaling_factor,
+                ) = qc.validate_recording(
+                    session["ai_file_path"],
+                    session["ephys_ap_data_path"],
+                    sampling_rate=self.analog_sampling_rate,
+                )
+            else:
+                time_scaling_factor, ephys_cut_start = -1, -1
+
+            if not is_ok:
+                logger.warning(
+                    f"Session failed to pass RECORDING validation: {key}"
+                )
+                return
+            else:
+                logger.info(f"Session passed RECORDING validation")
+
+            # prepare data
+            key["n_frames"] = int(n_frames)
+            key["duration"] = float(duration_seconds)
+            key["bonsai_cut_start"] = float(bonsai_cut_start)
+            key["bonsai_cut_end"] = float(bonsai_cut_end)
+            key["ephys_cut_start"] = float(ephys_cut_start)
+            key["ephys_time_scaling_factor"] = float(time_scaling_factor)
+            key["n_analog_channels"] = int(analog_nsigs)
+
+            # save results to file
+            # if has_rec:
+            logger.debug(f"Saving key entries to yaml: {key}")
+            previously_validated[session["name"]] = key
+            to_yaml(previously_validated_path, previously_validated)
 
         # fill in table
-        key["n_frames"] = n_frames
-        key["duration"] = duration_seconds
-        key["bonsai_cut_start"] = bonsai_cut_start
-        key["bonsai_cut_end"] = bonsai_cut_end
-        key["ephys_cut_start"] = ephys_cut_start
-        key["ephys_time_scaling_factor"] = time_scaling_factor
-        key["n_analog_channels"] = analog_nsigs
-
+        logger.info(f'Inserting session data in table: {key["name"]}')
         self.insert1(key)
 
 
@@ -235,7 +284,8 @@ class CCM(dj.Imported):
 
     def make(self, key):
         # Get the maze model template
-        arena = cv2.imread("data\dbase\ccm_template.png")
+
+        arena = cv2.imread("data/dbase/arena_template.png")
         arena = cv2.cvtColor(arena, cv2.COLOR_RGB2GRAY)
 
         # Get path to video
@@ -351,22 +401,19 @@ if __name__ == "__main__":
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
-    # sort files
     # sort_files()
 
-    # mouse
-    # logger.info("#####    Filling mouse data")
+    logger.info("#####    Filling mouse data")
     # Mouse().fill()
 
-    # Session
-    # logger.info("#####    Filling Session")
-    Session().fill()
+    logger.info("#####    Filling Session")
+    # Session().fill()
 
-    # logger.info('#####    Validating sesions data')
-    ValidatedSession().populate(display_progress=True)
+    logger.info("#####    Validating sessions data")
+    # ValidatedSession().populate(display_progress=True)
 
-    # logger.info('####     filling CCM')
-    # CCM().populate(display_progress=True)
+    logger.info("####     filling CCM")
+    CCM().populate(display_progress=True)
 
     # logger.info('#####    Filling Behavior')
     # Behavior().populate(display_progress=True)

@@ -8,7 +8,9 @@ import fcutils.video as video_utils
 
 from data import paths
 
-TEMPLATE_POINTS = np.array([0])  # TO DEFINE
+TEMPLATE_POINTS = np.array(
+    [[40, 58], [645, 58], [645, 930], [40, 930]]
+)  # TO DEFINE
 
 
 def get_matrix(videopath, template):
@@ -34,12 +36,11 @@ def get_matrix(videopath, template):
     if cap is None:
         raise FileNotFoundError(f"Failed to open video at: {videopath}")
 
-    frame = video_utils.get_cap_selected_frame(0)
-    height, width = frame.shape[:-1]
+    frame = video_utils.get_cap_selected_frame(cap, 0)
 
     # manually create registration matrix
     M = create_matrix(frame, template, TEMPLATE_POINTS, save_path)
-    np.save(M, save_path)
+    np.save(save_path, M)
     return M
 
 
@@ -51,8 +52,35 @@ def create_matrix(background, arena, arena_points, save_path):
         Manual GUI for creating a registratoin matrix. 
         Credit to Philip Shamash (Branco Lab) -  https://github.com/BrancoLab/Common-Coordinate-Behaviour
     """
+    background = cv2.copyMakeBorder(
+        background, 0, 0, 0, 0, cv2.BORDER_CONSTANT, value=[0, 0, 0]
+    )
+
+    if np.any(np.array(background.shape) > 1000):
+        background = cv2.resize(
+            background,
+            (int(background.shape[1] / 2), int(background.shape[0] / 2)),
+            interpolation=cv2.INTER_AREA,
+        )
+    else:
+        background = cv2.resize(
+            background,
+            (background.shape[1], background.shape[0]),
+            interpolation=cv2.INTER_AREA,
+        )
+    background = cv2.cvtColor(background, cv2.COLOR_RGB2GRAY)
+
     # initialize clicked points
     blank_arena = arena.copy()
+    blank_arena = cv2.resize(
+        blank_arena, background.T.shape, interpolation=cv2.INTER_AREA
+    )
+    print(
+        "\nBackground and blank arena shape:",
+        background.shape,
+        blank_arena.shape,
+    )
+
     background_data = [background, np.array(([], [])).T]
     arena_data = [[], np.array(([], [])).T]
     cv2.namedWindow("registered background")
@@ -73,7 +101,13 @@ def create_matrix(background, arena, arena_points, save_path):
         arena = cv2.circle(arena, (point[0], point[1]), 3, [0, 0, 255], -1)
         arena = cv2.circle(arena, (point[0], point[1]), 4, [0, 255, 255], 1)
         cv2.putText(
-            arena, str(i + 1), tuple(point), 0, 0.55, [0, 0, 255], thickness=2
+            arena,
+            str(i + 1),
+            tuple(point),
+            0,
+            0.55,
+            [0, 255, 255],
+            thickness=2,
         )
 
         point = np.reshape(point, (1, 2))
@@ -104,14 +138,17 @@ def create_matrix(background, arena, arena_points, save_path):
     M = cv2.estimateAffine2D(background_data[1], arena_data[1], False)[0]
     if not M.any():
         raise ValueError("Could not calculate Rigid Transform")
-    registered_background = cv2.warpAffine(background, M, background.shape[:2])
+    registered_background = cv2.warpAffine(
+        background, M, (background.shape[1], background.shape[0])
+    )
+    print(f"Registered background shape: {registered_background.shape}")
 
     # --------------------------------------------------
     # overlay images
     # --------------------------------------------------
     alpha = 0.7
     colors = [[150, 0, 150], [0, 255, 0]]
-    color_array = make_color_array(colors, background.T.shape)
+    color_array = make_color_array(colors, blank_arena.shape)
 
     registered_background_color = (
         cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)
@@ -279,7 +316,7 @@ def create_matrix(background, arena, arena_points, save_path):
             update_transform_data[3] = M
             # registered_background = cv2.warpPerspective(background, M, background.shape)
             registered_background = cv2.warpAffine(
-                background, M, background.shape
+                background, M, (background.shape[1], background.shape[0])
             )
             registered_background_color = (
                 cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)

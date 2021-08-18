@@ -11,7 +11,7 @@ from myterial import blue_dark, salmon_dark, indigo
 from fcutils.video import get_video_params
 from fcutils.maths.signals import get_onset_offset
 
-from data.dbase.io import load_bin
+from data.dbase.io import load_bin, get_recording_local_copy
 
 
 def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
@@ -43,11 +43,11 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
 
     try:
         frame_trigger_times = _get_triggers()
-    except ValueError:
+    except ValueError as e:
         logger.warning(
-            f"While validating bonsay for {name} could not open binary file {ai_file_path}"
+            f"While validating bonsai for {name} could not open binary file {ai_file_path}:\n''{e}''"
         )
-        return False, 0
+        return False, 0, 0, 0, 0, 0
 
     if len(frame_trigger_times) != nframes:
         try:
@@ -175,6 +175,7 @@ def plot_recording_triggers(
 
 def get_onsets_offsets(bonsai_probe_sync, ephys_probe_sync, sampling_rate):
     logger.debug("extracting sync signal pulses")
+    is_ok = True  # until proven otherwise
     bonsai_sync_onsets, bonsai_sync_offsets = get_onset_offset(
         bonsai_probe_sync, 2.5
     )
@@ -189,11 +190,13 @@ def get_onsets_offsets(bonsai_probe_sync, ephys_probe_sync, sampling_rate):
 
     # check if numbers make sense
     if len(bonsai_sync_onsets) != len(bonsai_sync_offsets):
-        raise ValueError(
+        is_ok = False
+        logger.warning(
             f"BONSAI - Unequal number of onsets/offsets ({len(bonsai_sync_offsets)}/{len(bonsai_sync_onsets)})"
         )
     if len(ephys_sync_onsets) != len(ephys_sync_offsets):
-        raise ValueError(
+        is_ok = False
+        logger.warning(
             f"EPHYS - Unequal number of onsets/offsets ({len(ephys_sync_offsets)}/{len(ephys_sync_onsets)})"
         )
 
@@ -202,7 +205,8 @@ def get_onsets_offsets(bonsai_probe_sync, ephys_probe_sync, sampling_rate):
         logger.error(
             f"Incosistent number of triggers! Bonsai {len(bonsai_sync_onsets)} and SpikeGLX {len(ephys_sync_onsets)}"
         )
-        raise ValueError(
+        is_ok = False
+        logger.warning(
             "When inspecting probe sync signal found different number of pulses for bonsai "
             f"{len(bonsai_sync_onsets)} and SpikeGLX {len(ephys_sync_onsets)}"
         )
@@ -212,7 +216,8 @@ def get_onsets_offsets(bonsai_probe_sync, ephys_probe_sync, sampling_rate):
         )
 
     if ephys_sync_onsets[0] <= bonsai_sync_onsets[0]:
-        raise ValueError("Bonsai should start first!")
+        is_ok = False
+        logger.warning("Bonsai should start first!")
 
     # check the interval between sync signals in bonsai
     onsets_delta = np.diff(bonsai_sync_onsets)
@@ -223,11 +228,13 @@ def get_onsets_offsets(bonsai_probe_sync, ephys_probe_sync, sampling_rate):
         logger.warning(f"Bonsai sync triggers have variable delay: {counts}")
     elif list(onsets_delta)[0] != sampling_rate:
         # check that it lasts as long as it should
-        raise ValueError(
+        is_ok = False
+        logger.warning(
             f"Bonsai sync triggers are not 1s apart (got {list(onsets_delta)[0]} instead of {sampling_rate})"
         )
 
     return (
+        is_ok,
         bonsai_sync_onsets,
         bonsai_sync_offsets,
         ephys_sync_onsets,
@@ -254,8 +261,9 @@ def validate_recording(
     analog = load_bin(ai_file_path, nsigs=4)
     bonsai_probe_sync = analog[:, 3].copy()
 
-    # load data from ephys
-    ephys = load_bin(ephys_ap_data_path, nsigs=385, order="F", dtype="int16")
+    # load data from ephys (from local file if possible)
+    ephys_ap_data_path = get_recording_local_copy(ephys_ap_data_path)
+    ephys = load_bin(ephys_ap_data_path, order="F", dtype="int16", nsigs=385)
     ephys_probe_sync = ephys[:, -1].copy()
 
     # check for aberrant signals in bonsai
@@ -283,6 +291,7 @@ def validate_recording(
 
     # find probe sync pulses in both
     (
+        is_ok,
         bonsai_sync_onsets,
         bonsai_sync_offsets,
         ephys_sync_onsets,
@@ -296,7 +305,7 @@ def validate_recording(
     )
 
     # debugging plots
-    if debug:
+    if debug or not is_ok:
         plot_recording_triggers(
             bonsai_probe_sync,
             ephys_probe_sync,
@@ -307,8 +316,9 @@ def validate_recording(
             sampling_rate,
             time_scaling_factor,
         )
+        # plt.show()
 
-    return ephys_sync_onsets[0], time_scaling_factor
+    return is_ok, ephys_sync_onsets[0], time_scaling_factor
 
 
 if __name__ == "__main__":

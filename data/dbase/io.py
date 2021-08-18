@@ -1,13 +1,28 @@
 from loguru import logger
 import shutil
 import numpy as np
+from pathlib import Path
 
 from tpd import recorder
 
 from fcutils.path import files, size
 from fcutils.progress import track
 
-from data.paths import raw_data_folder
+from data.paths import raw_data_folder, local_raw_recordings_folder
+
+
+def get_recording_local_copy(remote_path):
+    # trying to find a local copy of the file first
+    remote = Path(remote_path)
+    local_path = local_raw_recordings_folder / remote.parent / remote.name
+    if local_path.exists():
+        logger.debug(f"Using local copy of file: {local_path.name}")
+        return local_path
+    else:
+        logger.warning(
+            f"Could not find local copy of recording file: {local_path.name}"
+        )
+        return remote_path
 
 
 def load_bin(filepath, nsigs=4, dtype=None, order=None):
