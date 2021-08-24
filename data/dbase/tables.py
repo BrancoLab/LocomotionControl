@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 import cv2
 
-from fcutils.path import from_yaml, to_yaml
+from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
 
 import sys
@@ -18,6 +18,7 @@ from data.dbase._tables import (
 
 # from data.dbase.io import sort_files
 from data.dbase import quality_control as qc
+from data.paths import raw_data_folder
 from data.dbase import _session, _ccm, _behavior
 
 DO_RECORDINGS_ONLY = True
@@ -114,6 +115,38 @@ class Session(dj.Manual):
         """
         session = pd.Series((Session & f'name="{session_name}"').fetch1())
         return session.is_recording
+
+    @staticmethod
+    def get_session_tracking_file(session_name):
+        tracking_files_folder = raw_data_folder / "tracking"
+        video_name = Path(
+            (Session & f'name="{session_name}"').fetch1("video_file_path")
+        ).stem
+        tracking_files = files(
+            tracking_files_folder, pattern=f"{video_name}*.h5"
+        )
+
+        if not tracking_files:
+            logger.warning(f"No tracking data found for {session_name}")
+        return tracking_files
+
+    @staticmethod
+    def was_tracked(session_name):
+        """
+            Checks if DLC was ran on the session by looking for a correctly
+            named file.
+        """
+        tracking_files = Session.get_session_tracking_file(session_name)
+
+        if not tracking_files:
+            return None
+        elif isinstance(tracking_files, Path):
+            return True
+        else:
+            logger.warning(
+                f"While looking for tracking data for {session_name} found {len(tracking_files)} tracking files:\n{tracking_files}"
+            )
+            return True
 
 
 # ---------------------------------------------------------------------------- #
@@ -263,11 +296,16 @@ class Behavior(dj.Imported):
         """
         # fetch metadata
         name = key["name"]
-        session = (Session * ValidatedSession & f'name="{name}"').fetch1()
+        try:
+            session = (Session * ValidatedSession & f'name="{name}"').fetch1()
+        except Exception:
+            logger.warning(f"Failed to fetch data for {name} - not validated?")
+            return
 
         # load, format & insert data
-        key = _behavior.load_session_data(self, session)
-        self.insert1(key)
+        key = _behavior.load_session_data(session, key)
+        if key is not None:
+            self.insert1(key)
 
 
 # ---------------------------------------------------------------------------- #
@@ -397,7 +435,7 @@ class Unit(dj.Imported):
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # ValidatedSession().drop()
+    # Behavior().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
@@ -413,10 +451,10 @@ if __name__ == "__main__":
     # ValidatedSession().populate(display_progress=True)
 
     logger.info("####     filling CCM")
-    CCM().populate(display_progress=True)
+    # CCM().populate(display_progress=True)
 
-    # logger.info('#####    Filling Behavior')
-    # Behavior().populate(display_progress=True)
+    logger.info("#####    Filling Behavior")
+    Behavior().populate(display_progress=True)
 
     # logger.info('#####    Filling Tracking')
     # Tracking().populate(display_progress=True)

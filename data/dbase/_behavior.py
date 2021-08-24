@@ -5,7 +5,7 @@ import pandas as pd
 from data.dbase.io import load_bin
 
 
-def load_session_data(table, session):
+def load_session_data(session, key):
     """
         loads and cleans up the bonsai data for one session
     """
@@ -22,12 +22,18 @@ def load_session_data(table, session):
     _analog = (
         analog[session["bonsai_cut_start"] : session["bonsai_cut_end"]] / 5
     )
-    session["pump"] = 5 - _analog[:, 1]  # 5 -  to invert signal
-    session["speaker"] = _analog[:, 2]
+
+    key["pump"] = 5 - _analog[:, 1]  # 5 -  to invert signal
+    key["speaker"] = _analog[:, 2]
 
     # load csv data
     logger.debug("Loading CSV")
-    data = pd.read_csv(session["csv_file_path"])
+    try:
+        data = pd.read_csv(session["csv_file_path"])
+    except Exception:
+        logger.warning(f'Failed to open csv for {session["name"]}')
+        return None
+
     if len(data.columns) < 5:
         logger.warning("Skipping because of incomplete CSV")
         return None  # first couple recordings didn't save all data
@@ -52,14 +58,12 @@ def load_session_data(table, session):
     pad = np.zeros(delta)
 
     # add key entries
-    session["reward_signal"] = np.concatenate(
+    key["reward_signal"] = np.concatenate(
         [data["deliver reward signal"].values, pad]
     )
-    session["trigger_roi"] = np.concatenate([data["mouse in ROI"].values, pad])
-    session["reward_roi"] = np.concatenate(
-        [data["mouse in lick ROI"].values, pad]
-    )
-    session["reward_available_signal"] = np.concatenate(
+    key["trigger_roi"] = np.concatenate([data["mouse in ROI"].values, pad])
+    key["reward_roi"] = np.concatenate([data["mouse in lick ROI"].values, pad])
+    key["reward_available_signal"] = np.concatenate(
         [data["reward available signal"].values, pad]
     )
-    return session
+    return key

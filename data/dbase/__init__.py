@@ -8,3 +8,5 @@ except Exception as e:
     logger.warning(f"Failed to connect to datajoint database:\n{e}")
 else:
     logger.debug(f"Connected to database: {dbname}")
+
+from data.dbase import tables
