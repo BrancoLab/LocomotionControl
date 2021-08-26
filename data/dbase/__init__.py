@@ -9,4 +9,4 @@ except Exception as e:
 else:
     logger.debug(f"Connected to database: {dbname}")
 
-from data.dbase import tables
+from data.dbase import db_tables

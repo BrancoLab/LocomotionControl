@@ -2,8 +2,7 @@ from loguru import logger
 import shutil
 import numpy as np
 from pathlib import Path
-
-from tpd import recorder
+import pandas as pd
 
 from fcutils.path import files, size
 from fcutils.progress import track
@@ -96,7 +95,35 @@ def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
             )
 
 
-def print_table_content_to_file(table, name):
-    raise NotImplementedError("Need to get the tables content as a string")
-    content = "2"
-    recorder.add_text(content, name)
+
+
+def get_scorer_bodyparts(tracking):
+    """
+        Given the tracking data hierarchical df from DLC, return
+        the scorer and bodyparts names
+    """
+    first_frame = tracking.iloc[0]
+    try:
+        bodyparts = first_frame.index.levels[1]
+        scorer = first_frame.index.levels[0]
+    except:
+        raise NotImplementedError("Make this return something helpful when not DLC df")
+
+    return scorer, bodyparts
+
+
+def load_dlc_tracking(tracking_file: str):
+    """
+        load and unstack tracking data from a DLC file
+    """
+    tracking = pd.read_hdf(tracking_file)
+
+    bodyparts = tracking.iloc[0].index.levels[1]
+    scorer = tracking.iloc[0].index.levels[0]
+
+    tracking = tracking.unstack()
+
+    trackings = {}
+    for bp in bodyparts:
+        trackings[bp] = {c:tracking.loc[scorer, bp, c].values for c in ['x', 'y', 'likelihood']}
+    return trackings

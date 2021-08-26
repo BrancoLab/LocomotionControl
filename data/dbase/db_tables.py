@@ -19,7 +19,8 @@ from data.dbase._tables import (
 # from data.dbase.io import sort_files
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
-from data.dbase import _session, _ccm, _behavior
+from data.dbase import _session, _ccm, _behavior, _tracking
+from data.dbase.hairpin_trace import HairpinTrace
 
 DO_RECORDINGS_ONLY = True
 
@@ -104,6 +105,11 @@ class Session(dj.Manual):
             raise ValueError(
                 "Not enough recorded sessions in table, but not sure which one is missing"
             )
+
+    @staticmethod
+    def on_hairpin(session_name):
+        session = pd.Series((Session & f'name="{session_name}"').fetch1())
+        return session.arena == 'hairpin'
 
     @staticmethod
     def has_recording(session_name):
@@ -345,16 +351,15 @@ class Tracking(dj.Imported):
         and a sub table is used for each body part.
     
     """
+    likelihood_threshold = 0.99
+    cm_per_px = 60 / 830
+    bparts = ('snout', 'body', 'tail_base', 'left_fl', 'left_hl', 'right_fl', 'right_hl')
 
     definition = """
         -> ValidatedSession
         ---
-        x:                      longblob  # body position in cm
-        y:                      longblob  # body position in cm
-        speed:                  longblob  # body speed in cm/s
         orientation:            longblob  # orientation in deg
         angular_velocity:       longblob  # angular velocityi in deg/sec
-        direction_of_movement:  longblob  # angle towards where the mouse is moving next
         ---
     """
 
@@ -369,10 +374,50 @@ class Tracking(dj.Imported):
             direction_of_movement:  longblob  # angle towards where the mouse is moving next
         """
 
-    def make(self, key):
-        # TODO fill in main and part tables
-        raise NotImplementedError
+    class Linearized(dj.Part):
+        definition = """
+            -> Tracking
+            ---
+            segment:        longblob  # index of hairpin arena segment
+            global_coord:   longblob # values in range 0-1 with position along the arena
+        """
 
+    def make(self, key):
+        # get tracking data file
+        tracking_file = Session.get_session_tracking_file(key['name'])
+        if tracking_file is None:
+            return
+
+        # get CCM registration matrix
+        M = (CCM & key).fetch1('correction_matrix')
+
+        # process data
+        key, bparts_keys = _tracking.process_tracking_data(key, tracking_file, M, likelihood_th=self.likelihood_threshold, cm_per_px=self.cm_per_px)
+
+        self.insert1(key)
+        for bpkey in bparts_keys.values():
+            self.BodyPart.insert1(bpkey)
+
+
+        # Get linearized position
+        if Session.on_hairpin(key['name']):
+            hp = HairpinTrace()
+            key['segment'], key['global_coord'] = hp.assign_tracking(bparts_keys['body']['x'], bparts_keys['body']['y'])
+            del key['orientation']; del key['angular_velocity']
+            self.Linearized.insert1(key)
+
+    @staticmethod
+    def get_session_tracking(session_name, body_only=True):
+        query = (Tracking * Tracking.BodyPart & f'name="{session_name}"')
+
+        if body_only:
+            query = query & f"bpname='body'"
+
+        if Session.on_hairpin(session_name):
+            query = query * Tracking.Linearized
+
+        return pd.DataFrame(query)
+        
 
 # ---------------------------------------------------------------------------- #
 #                                  ephys data                                  #
@@ -394,7 +439,7 @@ class Recording(dj.Imported):
 class Probe(dj.Imported):
     definition = """
         # relevant probe information
-        -> Recording
+        -> Mouse
         ---
         skull_coordinates:                              longblob  # AP, ML from bregma in mm
         implanted_depth:                                longblob  # Z axis of stereotax in mm
@@ -435,7 +480,7 @@ class Unit(dj.Imported):
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # Behavior().drop()
+    # Tracking().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
@@ -454,10 +499,10 @@ if __name__ == "__main__":
     # CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
-    Behavior().populate(display_progress=True)
+    # Behavior().populate(display_progress=True)
 
-    # logger.info('#####    Filling Tracking')
-    # Tracking().populate(display_progress=True)
+    logger.info('#####    Filling Tracking')
+    Tracking().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
@@ -471,6 +516,8 @@ if __name__ == "__main__":
         Probe,
         RecordingSite,
         Unit,
+        Tracking,
+        Tracking.BodyPart
     ]
     NAMES = [
         "Mouse",
@@ -482,6 +529,8 @@ if __name__ == "__main__":
         "Probe",
         "RecordingSite",
         "Unit",
+        "Tracking",
+        "Body Part"
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)

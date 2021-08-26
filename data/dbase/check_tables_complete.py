@@ -12,11 +12,11 @@ def get_sessions_to_track():
         It gets a list of sessions left to track
     """
     logger.info("Getting sessions that need to be tracked with DLC still")
-    sessions_in_table = dbase.tables.Session.fetch("name")
+    sessions_in_table = dbase.db_tables.Session.fetch("name")
 
     need_tracking = []
     for session in sessions_in_table:
-        if not dbase.tables.Session.was_tracked(session):
+        if not dbase.db_tables.Session.was_tracked(session):
             need_tracking.append(session)
 
     logger.info(

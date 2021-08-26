@@ -8,7 +8,7 @@ br.settings.SHOW_AXES = False
 # br.set_logging('DEBUG')
 
 probes_folder = Path(
-    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\experimental_validation\reconstructed_probe_location"
+    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
 )
 
 colors = ["k", "b"]
@@ -41,4 +41,4 @@ cam = {
     "focalPoint": (7718, 4290, -3507),
     "distance": 35331,
 }
-scene.render(camera=cam, zoom=8)
+scene.render(camera=cam, zoom=2)
