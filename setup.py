@@ -24,7 +24,7 @@ requirements = [
     "fcutils",
     "celluloid",
     "odfpy",
-    "datajoint==0.12.6"
+    "datajoint==0.12.6",
 ]
 
 setup(

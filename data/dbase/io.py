@@ -95,8 +95,6 @@ def insert_entry_in_table(dataname, checktag, data, table, overwrite=False):
             )
 
 
-
-
 def get_scorer_bodyparts(tracking):
     """
         Given the tracking data hierarchical df from DLC, return
@@ -107,7 +105,9 @@ def get_scorer_bodyparts(tracking):
         bodyparts = first_frame.index.levels[1]
         scorer = first_frame.index.levels[0]
     except:
-        raise NotImplementedError("Make this return something helpful when not DLC df")
+        raise NotImplementedError(
+            "Make this return something helpful when not DLC df"
+        )
 
     return scorer, bodyparts
 
@@ -125,5 +125,8 @@ def load_dlc_tracking(tracking_file: str):
 
     trackings = {}
     for bp in bodyparts:
-        trackings[bp] = {c:tracking.loc[scorer, bp, c].values for c in ['x', 'y', 'likelihood']}
+        trackings[bp] = {
+            c: tracking.loc[scorer, bp, c].values
+            for c in ["x", "y", "likelihood"]
+        }
     return trackings

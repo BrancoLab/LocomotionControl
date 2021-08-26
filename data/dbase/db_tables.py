@@ -109,7 +109,7 @@ class Session(dj.Manual):
     @staticmethod
     def on_hairpin(session_name):
         session = pd.Series((Session & f'name="{session_name}"').fetch1())
-        return session.arena == 'hairpin'
+        return session.arena == "hairpin"
 
     @staticmethod
     def has_recording(session_name):
@@ -351,9 +351,18 @@ class Tracking(dj.Imported):
         and a sub table is used for each body part.
     
     """
+
     likelihood_threshold = 0.99
     cm_per_px = 60 / 830
-    bparts = ('snout', 'body', 'tail_base', 'left_fl', 'left_hl', 'right_fl', 'right_hl')
+    bparts = (
+        "snout",
+        "body",
+        "tail_base",
+        "left_fl",
+        "left_hl",
+        "right_fl",
+        "right_hl",
+    )
 
     definition = """
         -> ValidatedSession
@@ -384,31 +393,39 @@ class Tracking(dj.Imported):
 
     def make(self, key):
         # get tracking data file
-        tracking_file = Session.get_session_tracking_file(key['name'])
+        tracking_file = Session.get_session_tracking_file(key["name"])
         if tracking_file is None:
             return
 
         # get CCM registration matrix
-        M = (CCM & key).fetch1('correction_matrix')
+        M = (CCM & key).fetch1("correction_matrix")
 
         # process data
-        key, bparts_keys = _tracking.process_tracking_data(key, tracking_file, M, likelihood_th=self.likelihood_threshold, cm_per_px=self.cm_per_px)
+        key, bparts_keys = _tracking.process_tracking_data(
+            key,
+            tracking_file,
+            M,
+            likelihood_th=self.likelihood_threshold,
+            cm_per_px=self.cm_per_px,
+        )
 
         self.insert1(key)
         for bpkey in bparts_keys.values():
             self.BodyPart.insert1(bpkey)
 
-
         # Get linearized position
-        if Session.on_hairpin(key['name']):
+        if Session.on_hairpin(key["name"]):
             hp = HairpinTrace()
-            key['segment'], key['global_coord'] = hp.assign_tracking(bparts_keys['body']['x'], bparts_keys['body']['y'])
-            del key['orientation']; del key['angular_velocity']
+            key["segment"], key["global_coord"] = hp.assign_tracking(
+                bparts_keys["body"]["x"], bparts_keys["body"]["y"]
+            )
+            del key["orientation"]
+            del key["angular_velocity"]
             self.Linearized.insert1(key)
 
     @staticmethod
     def get_session_tracking(session_name, body_only=True):
-        query = (Tracking * Tracking.BodyPart & f'name="{session_name}"')
+        query = Tracking * Tracking.BodyPart & f'name="{session_name}"'
 
         if body_only:
             query = query & f"bpname='body'"
@@ -417,7 +434,7 @@ class Tracking(dj.Imported):
             query = query * Tracking.Linearized
 
         return pd.DataFrame(query)
-        
+
 
 # ---------------------------------------------------------------------------- #
 #                                  ephys data                                  #
@@ -501,7 +518,7 @@ if __name__ == "__main__":
     logger.info("#####    Filling Behavior")
     # Behavior().populate(display_progress=True)
 
-    logger.info('#####    Filling Tracking')
+    logger.info("#####    Filling Tracking")
     Tracking().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
@@ -517,7 +534,7 @@ if __name__ == "__main__":
         RecordingSite,
         Unit,
         Tracking,
-        Tracking.BodyPart
+        Tracking.BodyPart,
     ]
     NAMES = [
         "Mouse",
@@ -530,7 +547,7 @@ if __name__ == "__main__":
         "RecordingSite",
         "Unit",
         "Tracking",
-        "Body Part"
+        "Body Part",
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)
