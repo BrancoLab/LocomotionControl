@@ -1,3 +1,2 @@
-Empty DataFrame
-Columns: []
-Index: []
+     mouse_id skull_coordinates  implanted_depth                                                       reconstructed_track_filepath  angle_ml  angle_ap
+0  AAA1110750  [[4.76], [2.22]]            5.606  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1110750.npy        13        12

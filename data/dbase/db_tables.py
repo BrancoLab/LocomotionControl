@@ -19,8 +19,9 @@ from data.dbase._tables import (
 # from data.dbase.io import sort_files
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
-from data.dbase import _session, _ccm, _behavior, _tracking
+from data.dbase import _session, _ccm, _behavior, _tracking, _probe
 from data.dbase.hairpin_trace import HairpinTrace
+from data.dbase.io import get_probe_metadata
 
 DO_RECORDINGS_ONLY = True
 
@@ -439,17 +440,6 @@ class Tracking(dj.Imported):
 # ---------------------------------------------------------------------------- #
 #                                  ephys data                                  #
 # ---------------------------------------------------------------------------- #
-@schema
-class Recording(dj.Imported):
-    definition = """
-        # stores metadata about the ephys recording
-        -> ValidatedSession
-        ---
-        probe_file_path:                    varchar(256)
-        spike_sorting_params_file_path:     varchar(256)
-        spike_sorting_spikes_file_path:     varchar(256)
-        spike_sorting_clusters_file_path:   varchar(256)
-    """
 
 
 @schema
@@ -459,45 +449,68 @@ class Probe(dj.Imported):
         -> Mouse
         ---
         skull_coordinates:                              longblob  # AP, ML from bregma in mm
-        implanted_depth:                                longblob  # Z axis of stereotax in mm
-        reconstructed_track_file_path_atlas_space:      varchar(256)
-        reconstructed_track_file_path_sample_space:     varchar(256)
-        angle_ml:                                        longblob
-        angle_ap:                                        longblob
+        implanted_depth:                                longblob  # Z axis of stereotax in mm from brain surface
+        reconstructed_track_filepath:                   varchar(256)
+        angle_ml:                                       longblob
+        angle_ap:                                       longblob
     """
 
+    class RecordingSite(dj.Part):
+        definition = """
+            # metadata about recording sites locations
+            -> Probe
+            site_id:                        int
+            ---
+            registered_brain_coordinates:   blob  # in um, in atlas space
+            probe_coordinates:              int   # position in um along probe
+            brain_region:                   varchar(128)  # acronym
+            brain_region_id:                int
+            color:                          varchar(128)  # brain region color
+        """
+
+    def make(self, key):
+        metadata = get_probe_metadata(key['mouse_id'])
+        if metadata is None:
+            return
+        probe_key = {**key, **metadata}
+
+        recording_sites = _probe.place_probe_recording_sites(metadata)
+        if recording_sites is None:
+            return
+
+        # insert into main table
+        self.insert1(probe_key)
+        for rsite in recording_sites:
+            rsite_key = {**key, **rsite}
+            self.RecordingSite.insert1(rsite_key)
 
 @schema
-class RecordingSite(dj.Imported):
+class Recording(dj.Imported):
     definition = """
-        # metadata about recording sites locations
-        -> Probe
-        site_id:                             int
+        # stores metadata about the ephys recording
+        -> ValidatedSession
         ---
-        probe_coords:                   blob
-        brain_coordinates:              blob  # in sample space
-        registered_brain_coordinates:   blob  # in atlas space
-        brain_region:                   blob
-
+        -> Probe
+        spike_sorting_params_file_path:     varchar(256)
+        spike_sorting_spikes_file_path:     varchar(256)
+        spike_sorting_clusters_file_path:   varchar(256)
     """
-
 
 @schema
 class Unit(dj.Imported):
     definition = """
         # a single unit's spike sorted data
         -> Recording
-        unit_id: int
+        unit_id:        int
         ---
-        -> RecordingSite
-        site_id: int
-        spike_times: longblob  # spike times registered to the behavior
+        -> Probe.RecordingSite
+        spike_times:    longblob  # spike times registered to the behavior
     """
 
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # Tracking().drop()
+    # Probe().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
@@ -519,7 +532,11 @@ if __name__ == "__main__":
     # Behavior().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
-    Tracking().populate(display_progress=True)
+    # Tracking().populate(display_progress=True)
+
+    logger.info("#####    Filling Probe")
+    Probe().populate(display_progress=True)
+
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
@@ -531,7 +548,7 @@ if __name__ == "__main__":
         Behavior,
         Recording,
         Probe,
-        RecordingSite,
+        Probe.RecordingSite,
         Unit,
         Tracking,
         Tracking.BodyPart,
