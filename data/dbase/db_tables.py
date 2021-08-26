@@ -469,7 +469,7 @@ class Probe(dj.Imported):
         """
 
     def make(self, key):
-        metadata = get_probe_metadata(key['mouse_id'])
+        metadata = get_probe_metadata(key["mouse_id"])
         if metadata is None:
             return
         probe_key = {**key, **metadata}
@@ -484,6 +484,7 @@ class Probe(dj.Imported):
             rsite_key = {**key, **rsite}
             self.RecordingSite.insert1(rsite_key)
 
+
 @schema
 class Recording(dj.Imported):
     definition = """
@@ -495,6 +496,7 @@ class Recording(dj.Imported):
         spike_sorting_spikes_file_path:     varchar(256)
         spike_sorting_clusters_file_path:   varchar(256)
     """
+
 
 @schema
 class Unit(dj.Imported):
@@ -536,7 +538,6 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Probe")
     Probe().populate(display_progress=True)
-
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

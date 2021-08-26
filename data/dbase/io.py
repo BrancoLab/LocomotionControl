@@ -7,31 +7,41 @@ import pandas as pd
 from fcutils.path import files, size
 from fcutils.progress import track
 
-from data.paths import raw_data_folder, local_raw_recordings_folder, probes_surgeries_metadata
+from data.paths import (
+    raw_data_folder,
+    local_raw_recordings_folder,
+    probes_surgeries_metadata,
+)
+
 
 def get_probe_metadata(mouse: str):
-    metadata = pd.read_excel(
-        probes_surgeries_metadata, engine="odf"
-    )
+    metadata = pd.read_excel(probes_surgeries_metadata, engine="odf")
 
     mouse_id = int(mouse[-3:])
-    metadata = metadata.loc[metadata['Unnamed: 1'] == mouse_id]
+    metadata = metadata.loc[metadata["Unnamed: 1"] == mouse_id]
     if metadata.empty:
-        logger.debug(f'No probe implant metadata found for mouse: {mouse_id}')
+        logger.debug(f"No probe implant metadata found for mouse: {mouse_id}")
         return None
-    
+
     try:
         cleaned_data = dict(
-            skull_coordinates = np.array([metadata['ADJUSTED coordinates'], metadata['Unnamed: 7']]),
-            angle_ap = metadata['angles'].iloc[0],
-            angle_ml = metadata['Unnamed: 10'].iloc[0],
-            implanted_depth = metadata['inserted probe'].iloc[0]/1000,
-            reconstructed_track_filepath = metadata['reconstructed probe file path'].iloc[0],
+            skull_coordinates=np.array(
+                [metadata["ADJUSTED coordinates"], metadata["Unnamed: 7"]]
+            ),
+            angle_ap=metadata["angles"].iloc[0],
+            angle_ml=metadata["Unnamed: 10"].iloc[0],
+            implanted_depth=metadata["inserted probe"].iloc[0] / 1000,
+            reconstructed_track_filepath=metadata[
+                "reconstructed probe file path"
+            ].iloc[0],
         )
     except TypeError:
-        logger.debug(f'Incomplete probe implant metadata found for mouse: {mouse_id}')
+        logger.debug(
+            f"Incomplete probe implant metadata found for mouse: {mouse_id}"
+        )
         return None
     return cleaned_data
+
 
 def get_recording_local_copy(remote_path):
     # trying to find a local copy of the file first

@@ -31,11 +31,11 @@ for probe in probes:
         x,
         rsites.probe_coordinates,
         s=50,
-        lw=.5,
-        ec=[.3, .3, .3],
-        marker='s',
+        lw=0.5,
+        ec=[0.3, 0.3, 0.3],
+        marker="s",
         c=rsites.color,
     )
-    
-    ax.set(ylabel='Probe position (um)', xticks=[], xlim=[.5, 1.5])
+
+    ax.set(ylabel="Probe position (um)", xticks=[], xlim=[0.5, 1.5])
     plt.show()
