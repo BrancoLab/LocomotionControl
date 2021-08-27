@@ -3,6 +3,7 @@ from loguru import logger
 import pandas as pd
 from pathlib import Path
 import cv2
+import time
 
 from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
@@ -19,7 +20,7 @@ from data.dbase._tables import (
 # from data.dbase.io import sort_files
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
-from data.dbase import _session, _ccm, _behavior, _tracking, _probe, _triggers
+from data.dbase import _session, _ccm, _behavior, _tracking, _probe, _triggers, _recording
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata
 
@@ -509,16 +510,46 @@ class Recording(dj.Imported):
         # stores metadata about the ephys recording
         -> ValidatedSession
         ---
-        -> Probe
+        concatenated:                       int           # 1 if spike sorting was done on concatenated data
         spike_sorting_params_file_path:     varchar(256)  # PRM file with spike sorting paramters
         spike_sorting_spikes_file_path:     varchar(256)  # CSV files with spikes times
         spike_sorting_clusters_file_path:   varchar(256)  # MAT file with clusters IDs
     """
+    recordings_folder = Path(r'W:\swc\branco\Federico\Locomotion\raw\recordings')
     
     def make(self, key):
-        # TODO get the paths to file, but account for concatenated sessions
+        # check if the session has a recording
+        if not Session.has_recording(key['name']):
+            return
+
         # load recordings metadata
         rec_metadata = pd.read_excel(Session.recordings_metadata_path, engine='odf')
+
+        # Check if it's a concatenated recording
+        rec_folder = Path((Session & key).fetch1('ephys_ap_data_path')).parent.parent.name
+
+        concat_filepath = rec_metadata.loc[rec_metadata['recording folder'] == rec_folder]['concatenated recording file'].iloc[0]
+        if isinstance(concat_filepath, str):
+            # it was concatenated
+            rec_name = concat_filepath
+            rec_path = self.recordings_folder / Path(rec_name)
+            key['concatenated'] = 1
+            raise NotImplementedError('Check this')
+        else:
+            rec_name = rec_metadata.loc[rec_metadata['recording folder'] == rec_folder]['recording folder'].iloc[0]
+            rec_path = self.recordings_folder / Path(rec_name) / Path(rec_name+'_imec0') 
+            key['concatenated'] = -1
+        
+        # complete the paths to all relevant files
+        key['spike_sorting_params_file_path'] = str(rec_path / (rec_name + '_t0.imec0.ap.prm'))
+        key['spike_sorting_spikes_file_path'] = str(rec_path / (rec_name + '_t0.imec0.ap.csv'))
+        key['spike_sorting_clusters_file_path'] = str(rec_path / (rec_name + '_t0.imec0.ap_res.mat'))
+
+        for name in ('spike_sorting_params_file_path', 'spike_sorting_spikes_file_path', 'spike_sorting_clusters_file_path'):
+            if not Path(key[name]).exists():
+                logger.warning(f'Cant file for "{name}"')
+                return
+        self.insert1(key)
 
 
 @schema
@@ -529,13 +560,77 @@ class Unit(dj.Imported):
         unit_id:        int
         ---
         -> Probe.RecordingSite
-        spike_times:    longblob  # spike times registered to the behavior
     """
+
+    class Spikes(dj.Part):
+        definition = '''
+            # spike times in milliseconds and video frame number
+            -> Unit
+            ---
+            spikes_ms:              longblob
+            spikes:                 longblob  # in video frames number
+        '''
+
+    class SpikeRate(dj.Part):
+        window_width = 33  # milliseconds | STD of gaussian filter
+        definition = '''
+            #   spike rate at each milliseconds and video frame number
+            -> Unit
+            ---
+            spikerate_ms:              longblob
+            spikerate:                 longblob  # in video frames number
+        '''
+
+    def make_spikes_raster(unit:dict):
+        '''
+            Given a unit's details it makes an array with 0 for every millisecond
+            but 1 when the unit spikes
+        '''
+        raise NotImplementedError('Make this happen')
+
+    def make(self, key):
+        recording = (Recording & key).fetch1()
+        if recording['concatenated'] == 1:
+            raise NotImplementedError('Need the adjustment of spike times work for concatenated data')
+
+        # load units data
+        units = _recording.load_cluster_curation_results(recording['spike_sorting_clusters_file_path'], recording['spike_sorting_spikes_file_path'])
+
+        # load behavior camera triggers
+        triggers = (BonsaiTriggers & key).fetch1()
+        validated = (ValidatedSession & key).fetch1()
+        triggers = {**triggers, **validated}
+
+        # fill in units
+        for nu, unit in enumerate(units):
+            logger.debug(f'     processing unit {nu+1}/{len(units)}')
+            # enter info in main table
+            unit_key = key.copy()      
+            unit_key['unit_id'] = unit['unit_id']
+            unit_key['site_id'] = unit['recording_site_id']
+
+            # get adjusted spike times
+            unit_spikes = _recording.get_unit_spike_times(unit, triggers, ValidatedSession.analog_sampling_rate)
+            spikes_key = {**key.copy(), **unit_spikes}
+            spikes_key['unit_id'] = unit['unit_id']
+
+            # Get firing rate
+            unit_firingrate = _recording.get_unit_firing_rate(unit_spikes, triggers, self.SpikeRate.window_width, ValidatedSession.analog_sampling_rate)
+            unit_frate_key = {**key.copy(), **unit_firingrate}
+            unit_frate_key['unit_id'] = unit['unit_id']
+
+            # insert into table
+            self.insert1(unit_key)
+            self.Spikes.insert1(spikes_key)
+            self.SpikeRate.insert1(unit_frate_key)
+
+            logger.debug('Inserted unit in table, taking a pause')
+            time.sleep(10)
 
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # BonsaiTriggers().drop()
+    # Unit().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
@@ -547,11 +642,11 @@ if __name__ == "__main__":
     logger.info("#####    Filling Session")
     # Session().fill()
 
-    logger.info("#####    Validating sessions data")
+    logger.info("#####    Filling Validated Session")
     # ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().gipopulate(display_progress=True)
 
-    logger.info("####     filling CCM")
+    logger.info("#####    Filling CCM")
     # CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
@@ -562,6 +657,12 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
+
+    logger.info("#####    Filling Recording")
+    # Recording().populate(display_progress=True)
+
+    logger.info("#####    Filling Unit")
+    Unit().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
