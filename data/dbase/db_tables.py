@@ -19,7 +19,7 @@ from data.dbase._tables import (
 # from data.dbase.io import sort_files
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
-from data.dbase import _session, _ccm, _behavior, _tracking, _probe
+from data.dbase import _session, _ccm, _behavior, _tracking, _probe, _triggers
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata
 
@@ -168,7 +168,7 @@ class ValidatedSession(dj.Imported):
         -> Session
         ---
         n_frames:                   int  # number of video frames in session
-        duration:                   int  # experiment duration ins econds
+        duration:                   int  # experiment duration in seconds
         n_analog_channels:          int  # number of AI channels recorded in bonsai
         bonsai_cut_start:           int  # where to start/end cutting bonsai signals to align to ephys
         bonsai_cut_end:             int
@@ -274,6 +274,24 @@ class ValidatedSession(dj.Imported):
         logger.info(f'Inserting session data in table: {key["name"]}')
         self.insert1(key)
 
+@schema
+class BonsaiTriggers(dj.Imported):
+    definition = """
+        # stores the time (in samples) of camera triggers in bonsai. To registere spikes to them
+        -> ValidatedSession
+        ---
+        trigger_times:   longblob
+        n_samples:      int         # tot number of samples in recording
+        n_ms:           int         # duration in milliseconds
+    """
+
+
+    def make(self, key):
+        session = (Session * ValidatedSession & key).fetch1()
+        triggers = _triggers.get_triggers(session)
+
+        key = {**key, **triggers}
+        self.insert1(key)
 
 # ---------------------------------------------------------------------------- #
 #                                 behavior data                                #
@@ -517,7 +535,7 @@ class Unit(dj.Imported):
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # Probe().drop()
+    # BonsaiTriggers().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
@@ -531,6 +549,7 @@ if __name__ == "__main__":
 
     logger.info("#####    Validating sessions data")
     # ValidatedSession().populate(display_progress=True)
+    # BonsaiTriggers().gipopulate(display_progress=True)
 
     logger.info("####     filling CCM")
     # CCM().populate(display_progress=True)
@@ -542,7 +561,7 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
+    # Probe().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
