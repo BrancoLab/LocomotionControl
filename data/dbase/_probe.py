@@ -48,7 +48,7 @@ def place_probe_recording_sites(
 
     # get the correct ID for each electrode (like in JRCLUS)
     _ids = np.arange(n_sites + 1)
-    ids = np.hstack([_ids[1::2], _ids[2::2]])
+    ids = np.hstack([_ids[2::2], _ids[1::2]])
 
     # get the brain region of every electrode
     regions_metadata = pd.read_csv(

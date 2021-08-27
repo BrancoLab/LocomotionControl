@@ -173,9 +173,8 @@ for session in sessions:
 
     for ax in "ABFD":
         axes_dict[ax].axis("equal")
-    axes_dict["H"].axis("off")
 
-    plt.show()
+    # plt.show()
     # break
 
     recorder.add_figures(svg=False)

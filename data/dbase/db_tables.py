@@ -453,7 +453,7 @@ class Tracking(dj.Imported):
         if Session.on_hairpin(session_name):
             query = query * Tracking.Linearized
 
-        return pd.DataFrame(query)
+        return pd.DataFrame(query.fetch1())
 
 
 # ---------------------------------------------------------------------------- #
@@ -571,15 +571,6 @@ class Unit(dj.Imported):
             spikes:                 longblob  # in video frames number
         '''
 
-    class SpikeRate(dj.Part):
-        window_width = 33  # milliseconds | STD of gaussian filter
-        definition = '''
-            #   spike rate at each milliseconds and video frame number
-            -> Unit
-            ---
-            spikerate_ms:              longblob
-            spikerate:                 longblob  # in video frames number
-        '''
 
     def make_spikes_raster(unit:dict):
         '''
@@ -614,23 +605,17 @@ class Unit(dj.Imported):
             spikes_key = {**key.copy(), **unit_spikes}
             spikes_key['unit_id'] = unit['unit_id']
 
-            # Get firing rate
-            unit_firingrate = _recording.get_unit_firing_rate(unit_spikes, triggers, self.SpikeRate.window_width, ValidatedSession.analog_sampling_rate)
-            unit_frate_key = {**key.copy(), **unit_firingrate}
-            unit_frate_key['unit_id'] = unit['unit_id']
-
             # insert into table
             self.insert1(unit_key)
             self.Spikes.insert1(spikes_key)
-            self.SpikeRate.insert1(unit_frate_key)
 
             logger.debug('Inserted unit in table, taking a pause')
-            time.sleep(10)
+            time.sleep(3)
 
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # Unit().drop()
+    # Probe().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
@@ -663,6 +648,10 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Unit")
     Unit().populate(display_progress=True)
+
+    # TODO add checks to make sure stuff is loaded correctly
+    # TODO check tracking has the right number of sampels/frames
+    # TODO check the unit stuff
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

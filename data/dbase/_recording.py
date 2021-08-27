@@ -66,7 +66,7 @@ def get_unit_spike_times(unit:dict, triggers:dict, sampling_rate:int)->dict:
     samples_per_frame = 1 / 60 * sampling_rate
     spikes_frames = np.floor(spikes_samples / samples_per_frame).astype(np.int64)
 
-    if np.any(spikes_frames < 0) or np.any(spikes_frames > triggers['trigger_times'].max()):
+    if np.any(spikes_frames < 0) or np.any(spikes_frames > triggers['trigger_times'].max()) or spikes_frames.max() > triggers['n_frames']:
         raise ValueError('Error while assigning frame number to spike times')
 
     # return data

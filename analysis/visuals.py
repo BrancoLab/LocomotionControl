@@ -30,7 +30,7 @@ def plot_tracking_xy(
 
         if "orientation" in key or "angle" in key:
             # draw arrows to mark the angles/colors mapping
-            angles = np.linspace(0, 2 * np.pi, 60)
+            angles = np.linspace(0, 2 * np.pi, 16)
             x = 2 * np.cos(angles[::-1] + np.pi / 2) + 25
             y = 2 * np.sin(angles + np.pi / 2) + 2
             ax.scatter(
