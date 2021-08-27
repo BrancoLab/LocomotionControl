@@ -25,6 +25,7 @@ for probe in probes:
 
     x = np.ones(len(rsites))
     x[::3] = 1.2
+    x[::2] = x[::2] - .4
 
     f, ax = plt.subplots(figsize=(8, 12))
     ax.scatter(
@@ -36,6 +37,9 @@ for probe in probes:
         marker="s",
         c=rsites.color,
     )
+
+    for i in range(len(x)):
+        ax.annotate(f'{i} - {rsites.brain_region.iloc[i]}', (x[i]+.05, rsites.probe_coordinates.iloc[i]))
 
     ax.set(ylabel="Probe position (um)", xticks=[], xlim=[0.5, 1.5])
     plt.show()

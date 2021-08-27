@@ -492,10 +492,15 @@ class Recording(dj.Imported):
         -> ValidatedSession
         ---
         -> Probe
-        spike_sorting_params_file_path:     varchar(256)
-        spike_sorting_spikes_file_path:     varchar(256)
-        spike_sorting_clusters_file_path:   varchar(256)
+        spike_sorting_params_file_path:     varchar(256)  # PRM file with spike sorting paramters
+        spike_sorting_spikes_file_path:     varchar(256)  # CSV files with spikes times
+        spike_sorting_clusters_file_path:   varchar(256)  # MAT file with clusters IDs
     """
+    
+    def make(self, key):
+        # TODO get the paths to file, but account for concatenated sessions
+        # load recordings metadata
+        rec_metadata = pd.read_excel(Session.recordings_metadata_path, engine='odf')
 
 
 @schema
