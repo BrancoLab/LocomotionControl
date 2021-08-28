@@ -10,7 +10,7 @@ from myterial.utils import rgb2hex
 
 def select_rows(
     data: Union[pd.DataFrame, np.array],
-    skip: int = 200,
+    skip: int = 175,
     pitch: int = 20,
     N: int = 384,
 ):

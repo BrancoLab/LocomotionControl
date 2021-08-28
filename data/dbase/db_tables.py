@@ -3,6 +3,7 @@ from loguru import logger
 import pandas as pd
 from pathlib import Path
 import cv2
+from typing import List, Tuple
 import time
 
 from fcutils.path import from_yaml, to_yaml, files
@@ -593,6 +594,7 @@ class Unit(dj.Imported):
         unit_id:        int
         ---
         -> Probe.RecordingSite
+        secondary_sites_ids:    longblob  # site_id of each cluster recording site
     """
 
     class Spikes(dj.Part):
@@ -603,6 +605,31 @@ class Unit(dj.Imported):
             spikes_ms:              longblob
             spikes:                 longblob  # in video frames number
         """
+
+    def is_in_target_region(
+        unit: dict, targets: List[str]
+    ) -> Tuple[bool, bool, str]:
+        """
+            Checks if any of the unit's recording sites lays into
+            target region. Returns True/False based on that, 
+            True/False based on if the unit's main site is a target
+            and the name of the target region.
+        """
+
+        # check if the main unit's site is a target
+        main_site = (Probe * Probe.RecordingSite & unit).fetch1()
+        if main_site["brain_region"] in targets:
+            return True, True, main_site["brain_region"]
+
+        # check secondary sites
+        for site_number in unit["secondary_sites_ids"]:
+            site = (
+                Probe * Probe.RecordingSite & f"site_id={site_number}"
+            ).fetch1()
+            if site["brain_region"] in targets:
+                return True, False, site["brain_region"]
+
+        return False, None, None
 
     def make_spikes_raster(unit: dict):
         """
@@ -688,9 +715,16 @@ if __name__ == "__main__":
     logger.info("#####    Filling Unit")
     Unit().populate(display_progress=True)
 
-    # TODO add checks to make sure stuff is loaded correctly
+    # ? check probe reconstruction
+    # TODO misura l'inserted probe 5 volte e prendi la media
+    # TODO crea 5 splines e prendi la media
+
+    # ? unit table
+    # TODO: add secondary sites for each unit
+    # TODO: check if unit in target regions
+
+    # ? OTHER CHECKS
     # TODO check tracking has the right number of sampels/frames
-    # TODO check the unit stuff
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
