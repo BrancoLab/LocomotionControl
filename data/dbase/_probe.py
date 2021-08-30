@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Union
 from loguru import logger
 
+from fcutils.path import files
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 from myterial.utils import rgb2hex
 
@@ -22,43 +23,61 @@ def select_rows(
     return data
 
 
+
+
 def place_probe_recording_sites(
     probe_metadata: dict, n_sites: int = 384
 ) -> list:
     # get brainglobe atlas
     atlas = BrainGlobeAtlas("allen_mouse_25um")
 
-    # load points (1 every um of inserted probe)
-    try:
-        points = np.load(probe_metadata["reconstructed_track_filepath"])
-    except TypeError:
-        logger.warning("Could not load reconstructed track file")
+    # find multiple reconstructions files paths
+    rec_path = Path(probe_metadata['reconstructed_track_filepath'])
+    fld, name = rec_path.parent, rec_path.stem
+    reconstruction_files = files(fld, pattern=f'{name}_*.npy')
+
+    if reconstruction_files is None:
+        logger.warning('Did not find any reconstruction files!')
         return
 
-    if not probe_metadata["implanted_depth"] * 1000 == len(points):
-        logger.warning(
-            "The reconstructed probe should have one point for every um of inserted probe"
-        )
-        return
-
-    # discard first 200um because there's no electrodes threshold
-    # one electrode every 20um
-    # keep 384 electrodes
-    electrodes = select_rows(points, N=n_sites)
-
+    logger.debug(f'Identified {len(reconstruction_files)} reconstruction files')
+    
     # get the correct ID for each electrode (like in JRCLUS)
     _ids = np.arange(n_sites + 1)
-    ids = np.hstack([_ids[2::2], _ids[1::2]])
+    ids = np.hstack([_ids[1::2], _ids[2::2]])
+    electrodes_coordinates = {id:[] for id in ids}
 
-    # get the brain region of every electrode
-    regions_metadata = pd.read_csv(
-        Path(probe_metadata["reconstructed_track_filepath"]).with_suffix(
-            ".csv"
-        )
-    ).iloc[::-1]
-    regions_metadata = select_rows(regions_metadata, N=n_sites)
 
-    # put everything together
+    # reconstruct electrodes positions for each file
+    for rec_file in reconstruction_files:
+        # load points (1 every um of inserted probe)
+        try:
+            points = np.load(rec_file)
+        except TypeError:
+            logger.warning("Could not load reconstructed track file")
+            return
+
+        if abs(probe_metadata["implanted_depth"] * 1000 - len(points)) > 100:
+            logger.warning(
+                "The reconstructed probe should have one point for every um of inserted probe - too large delta"
+            )
+            return
+
+        # discard first 200um because there's no electrodes threshold
+        # one electrode every 20um
+        # keep 384 electrodes
+        electrodes = select_rows(points, N=n_sites)
+        for id, electrode in zip(ids, electrodes):
+            electrodes_coordinates[id].append(electrode)
+
+    # Get the average position
+    average_coordinates = {}
+    for eid, epoints in electrodes_coordinates.items():
+        if not len(epoints):continue
+        average_coordinates[eid] = np.vstack(epoints).mean(axis=0)
+    electrode_coordinates = np.vstack(average_coordinates.values())[::-1]
+
+    # reconstruct brain region and color for each electrode
     recording_sites = []
     for n in range(n_sites):
         if n >= len(electrodes):
@@ -76,29 +95,30 @@ def place_probe_recording_sites(
                 }
             )
         else:
-            try:
-                rid = int(regions_metadata["Region ID"].iloc[n])
-                acro = regions_metadata["Region acronym"].iloc[n]
+            coords = electrode_coordinates[n]
+            rid = atlas.structure_from_coords(coords, microns=True)
+
+            if rid == 0:
+                acro = 'unknown'
+                color = rgb2hex([.1, .1, .1])
+            else:
+                acro = atlas.structure_from_coords(coords, microns=True, as_acronym=True)
                 color_rgb = [
                     c / 255
                     for c in atlas._get_from_structure(acro, "rgb_triplet")
                 ]
                 color = rgb2hex(color_rgb)
-            except ValueError:
-                # not found in brain
-                rid = -1
-                acro = "OUT"
-                color = "k"
 
             recording_sites.append(
                 {
                     "site_id": ids[n],
-                    "registered_brain_coordinates": electrodes[n],
+                    "registered_brain_coordinates": coords,
                     "brain_region": acro,
                     "brain_region_id": rid,
                     "probe_coordinates": int(n * 20),
                     "color": color,
                 }
             )
+
 
     return recording_sites

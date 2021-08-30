@@ -127,4 +127,9 @@ def process_tracking_data(
     key["orientation"] = orientation
     key["angular_velocity"] = angular_velocity
 
-    return key, body_parts_tracking
+
+    # do a few checks
+    if len(orientation) != len(body_parts_tracking["body"]['x']):
+        raise ValueError('Incoherent number of frames between data suorces')
+
+    return key, body_parts_tracking, len(orientation)

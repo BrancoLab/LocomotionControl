@@ -427,11 +427,14 @@ class Tracking(dj.Imported):
         if tracking_file is None:
             return
 
+        # get number of frames in session
+        n_frames = (ValidatedSession & key).fetch1('n_frames')
+
         # get CCM registration matrix
         M = (CCM & key).fetch1("correction_matrix")
 
         # process data
-        key, bparts_keys = _tracking.process_tracking_data(
+        key, bparts_keys, tracking_n_frames = _tracking.process_tracking_data(
             key,
             tracking_file,
             M,
@@ -439,6 +442,11 @@ class Tracking(dj.Imported):
             cm_per_px=self.cm_per_px,
         )
 
+        # check number of frames
+        if n_frames != tracking_n_frames:
+            raise ValueError('Number of frames in video and tracking dont match!!')
+
+        # insert into table
         self.insert1(key)
         for bpkey in bparts_keys.values():
             self.BodyPart.insert1(bpkey)
@@ -707,24 +715,16 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
+    Probe().populate(display_progress=True)
 
     logger.info("#####    Filling Recording")
     # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
-    Unit().populate(display_progress=True)
+    # Unit().populate(display_progress=True)
 
     # ? check probe reconstruction
-    # TODO misura l'inserted probe 5 volte e prendi la media
     # TODO crea 5 splines e prendi la media
-
-    # ? unit table
-    # TODO: add secondary sites for each unit
-    # TODO: check if unit in target regions
-
-    # ? OTHER CHECKS
-    # TODO check tracking has the right number of sampels/frames
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

@@ -12,7 +12,7 @@ from tpd import recorder
 from myterial import blue_grey
 
 from data.dbase.db_tables import Probe, Unit, Recording
-
+from analysis.visuals import plot_probe_electrodes
 
 base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 
@@ -61,29 +61,7 @@ for i, recording in recordings.iterrows():
     )
 
     # draw probe
-    x = np.ones(len(rsites))
-    colors = [
-        rs.color
-        if rs.brain_region in TARGETS
-        else ("k" if rs.color == "k" else blue_grey)
-        for i, rs in rsites.iterrows()
-    ]
-    axes_dict["A"].scatter(
-        x,
-        rsites.probe_coordinates,
-        s=50,
-        lw=0.5,
-        ec=[0.3, 0.3, 0.3],
-        marker="s",
-        c=colors,
-    )
-
-    for i in range(len(x)):
-        if i % 5 == 0:
-            axes_dict["A"].annotate(
-                f"{i} - {rsites.brain_region.iloc[i]}",
-                (x[i] - 0.3, rsites.probe_coordinates.iloc[i]),
-            )
+    plot_probe_electrodes(rsites, axes_dict['A'], TARGETS)
 
     # draw barplot of # units per channel
     counts = units.groupby("site_id").count()["name"]
