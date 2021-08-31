@@ -39,10 +39,9 @@ for session in sessions:
     )
 
     # load tracking data
-    tracking = db_tables.Tracking.get_session_tracking(
-        session["name"], body_only=False
+    body_tracking = db_tables.Tracking.get_session_tracking(
+        session["name"], body_only=True
     )
-    body_tracking = tracking.loc[tracking.bpname == "body"].iloc[0]
     data_utils.downsample_tracking_data(body_tracking, factor=10)
 
     # bin tracking data by arena segment
@@ -174,8 +173,8 @@ for session in sessions:
     for ax in "ABFD":
         axes_dict[ax].axis("equal")
 
-    # plt.show()
-    # break
+    plt.show()
+    break
 
     recorder.add_figures(svg=False)
     plt.close("all")

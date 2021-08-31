@@ -13,8 +13,10 @@ from fcutils.maths.geometry import (
     calc_angle_between_vectors_of_points_2d as get_orientation,
 )
 from fcutils.maths.geometry import calc_ang_velocity
+from fcutils.path import size
 
 from data.dbase.io import load_dlc_tracking
+from data import data_utils
 
 
 def register(x: np.ndarray, y: np.ndarray, M: np.ndarray):
@@ -34,9 +36,9 @@ def register(x: np.ndarray, y: np.ndarray, M: np.ndarray):
 def process_body_part(
     bp_data: dict,
     M: np.ndarray,
-    likelihood_th: float = 0.9999,
+    likelihood_th: float = 0.95,
     cm_per_px: float = 1,
-):
+) -> dict :
     # register to CMM
     x, y = register(bp_data["x"], bp_data["y"], M)
 
@@ -53,13 +55,22 @@ def process_body_part(
     x[like < likelihood_th] = np.nan
     y[like < likelihood_th] = np.nan
 
+    # interpolate nans
+    xy = data_utils.interpolate_nans(x=x, y=y)
+    x, y = np.array(list(xy['x'].values())), np.array(list(xy['y'].values()))
+
     # compute speed and direction of movement
     dir_of_mvmt = get_dir_of_mvmt_from_xy(x, y)
     speed = (
-        medfilt(get_speed_from_xy(x, y), kernel_size=7) * 60
+        medfilt(get_speed_from_xy(x, y), kernel_size=15) * 60
     )  # speed in cm / s
 
-    return dict(x=x, y=y, speed=speed, direction_of_movement=dir_of_mvmt)
+    # makre sure there are no nans
+    results = dict(x=x, y=y, speed=speed, direction_of_movement=dir_of_mvmt)
+    for k, var in results.items():
+        if np.any(np.isnan(var)):
+            raise ValueError(f'Found NANs in {k}')
+    return results
 
 
 def compute_body_orientation(body_parts_tracking: dict):
@@ -84,16 +95,16 @@ def process_tracking_data(
     key: dict,
     tracking_file: str,
     M: np.ndarray,
-    likelihood_th: float = 0.9999,
+    likelihood_th: float = 0.95,
     cm_per_px: float = 1,
 ):
-    def merge_two_dicts(x, y):
+    def merge_two_dicts(x: dict, y:dict) -> dict:
         z = x.copy()  # start with keys and values of x
         z.update(y)  # modifies z with keys and values of y
         return z
 
     # load data
-    logger.debug(f"Loading tracking data: {tracking_file.name}")
+    logger.debug(f"Loading tracking data: {tracking_file.name} ({size(tracking_file)})")
     body_parts_tracking: dict = load_dlc_tracking(tracking_file)
 
     # process each body part
@@ -110,6 +121,7 @@ def process_tracking_data(
     y0 = np.nanmin(body_parts_tracking["body"]["y"])
 
     # compute orientation
+    logger.debug("      computing body orientation")
     orientation, angular_velocity = compute_body_orientation(
         body_parts_tracking
     )

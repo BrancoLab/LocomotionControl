@@ -11,8 +11,14 @@ KEYS = (
     "direction_of_movement",
 )
 
+def interpolate_nans(**entries) -> dict:
+    return  pd.DataFrame(entries).interpolate(in_place=True, axis=0, limit_direction='both').to_dict()
+
 
 def select_by_indices(tracking: dict, selected_indices: np.ndarray) -> dict:
+    '''
+        Given a dictionary of tracking data it select data at given timestamps/indices
+    '''
     tracking = tracking.copy()
     for key in KEYS:
         if key in tracking.keys():

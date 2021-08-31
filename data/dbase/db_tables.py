@@ -5,6 +5,7 @@ from pathlib import Path
 import cv2
 from typing import List, Tuple
 import time
+import numpy as np
 
 from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
@@ -29,6 +30,7 @@ from data.dbase import (
     _probe,
     _triggers,
     _recording,
+    _locomotion_bouts,
 )
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata
@@ -372,7 +374,7 @@ class CCM(dj.Imported):
 
 # ---------------------------------------------------------------------------- #
 #                                 tracking data                                #
-# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- 
 @schema
 class Tracking(dj.Imported):
     """
@@ -382,7 +384,7 @@ class Tracking(dj.Imported):
     
     """
 
-    likelihood_threshold = 0.99
+    likelihood_threshold = 0.9
     cm_per_px = 60 / 830
     bparts = (
         "snout",
@@ -471,8 +473,73 @@ class Tracking(dj.Imported):
         if Session.on_hairpin(session_name):
             query = query * Tracking.Linearized
 
-        return pd.DataFrame(query.fetch1())
+        if len(query) == 1:
+            return pd.DataFrame(query.fetch()).iloc[0]
+        else:
+            return pd.DataFrame(query.fetch())
 
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                  locomotion bouts                            #
+# ---------------------------------------------------------------------------- #
+@schema
+class LocomotionBouts(dj.Imported):
+    definition = """
+        # identified bouts of continous locomotion
+        -> ValidatedSession
+        start_frame:        int
+        end_frame:          int  # last frame of locomotion bout
+        ---
+        duration:           float  # duration in seconds
+        direction:          varchar(64)   # 'outbound' or 'inbound' or 'none'
+        color:              varchar(64)
+        complete:           varchar(32)    # True if its form reward to trigger ROIs
+        start_roi:          int
+        end_roi:            int
+    """
+
+    speed_th:float = 2  # cm/s
+    min_peak_speed = 10 # cm/s - each bout must reach this speed at some point
+    max_pause:float = 1  # (s) if paused for < than this its one contiuous locomotion bout
+    min_duration:float = 2 # (s) keep only outs that last at least this long
+
+    min_gcoord_delta:float = .1  # the global coordinates must change of at least this during bout
+
+    @staticmethod
+    def is_locomoting(session_name:str) -> np.ndarray:
+        '''
+            Returns an array of 1 and 0 with 1 for every frame in which the mouse
+            is walking
+        '''
+        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1('n_frames')
+        locomoting = np.zeros(n_frames)
+
+        bouts = pd.DataFrame((LocomotionBouts & f'name="{session_name}"').fetch())
+        for i, bout in bouts.iterrows():
+            locomoting[bout.start_frame:bout.end_frame] = 1
+        return locomoting
+
+    def make(self, key):
+        if DO_RECORDINGS_ONLY and not Session.has_recording(key['name']):
+            logger.debug(f'Skipping {key["name"]} because it doesnt have a recording')
+            return
+
+        # get tracking data
+        tracking = Tracking.get_session_tracking(key['name'], body_only=False)
+        if tracking.empty:
+            logger.warning(f'Failed to get tracking data for session {key["name"]}')
+            return
+        else:
+            logger.info(f'Getting locomotion bouts for session {key["name"]}')
+
+        # get bouts
+        bouts = _locomotion_bouts.get_session_bouts(key, tracking, Session.on_hairpin(key['name']), speed_th=self.speed_th, max_pause=self.max_pause, min_duration=self.min_duration, min_peak_speed=self.min_peak_speed, min_gcoord_delta=self.min_gcoord_delta)
+
+        # insert in table
+        for bout in bouts:
+            self.insert1(bout)
 
 # ---------------------------------------------------------------------------- #
 #                                  ephys data                                  #
@@ -689,7 +756,7 @@ class Unit(dj.Imported):
 
 if __name__ == "__main__":
     # ! careful: this is to delete stuff
-    # Probe().drop()
+    # LocomotionBouts().drop()
     # sys.exit()
 
     # -------------------------------- fill dbase -------------------------------- #
@@ -703,7 +770,7 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Validated Session")
     # ValidatedSession().populate(display_progress=True)
-    # BonsaiTriggers().gipopulate(display_progress=True)
+    # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
     # CCM().populate(display_progress=True)
@@ -714,17 +781,17 @@ if __name__ == "__main__":
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
 
+    logger.info("#####    Filling LocomotionBouts")
+    LocomotionBouts().populate(display_progress=True)
+
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
+    # Probe().populate(display_progress=True)
 
     logger.info("#####    Filling Recording")
     # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
     # Unit().populate(display_progress=True)
-
-    # ? check probe reconstruction
-    # TODO crea 5 splines e prendi la media
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
@@ -738,8 +805,7 @@ if __name__ == "__main__":
         Probe,
         Probe.RecordingSite,
         Unit,
-        Tracking,
-        Tracking.BodyPart,
+        LocomotionBouts
     ]
     NAMES = [
         "Mouse",
@@ -751,8 +817,7 @@ if __name__ == "__main__":
         "Probe",
         "RecordingSite",
         "Unit",
-        "Tracking",
-        "Body Part",
+        "LocomotionBouts"
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)
