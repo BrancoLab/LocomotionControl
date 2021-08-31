@@ -1,6 +1,5 @@
 import sys
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from pathlib import Path
 from loguru import logger
@@ -61,7 +60,7 @@ for i, recording in recordings.iterrows():
     )
 
     # draw probe
-    plot_probe_electrodes(rsites, axes_dict['A'], TARGETS)
+    plot_probe_electrodes(rsites, axes_dict["A"], TARGETS)
 
     # draw barplot of # units per channel
     counts = units.groupby("site_id").count()["name"]

@@ -23,8 +23,6 @@ def select_rows(
     return data
 
 
-
-
 def place_probe_recording_sites(
     probe_metadata: dict, n_sites: int = 384
 ) -> list:
@@ -32,21 +30,22 @@ def place_probe_recording_sites(
     atlas = BrainGlobeAtlas("allen_mouse_25um")
 
     # find multiple reconstructions files paths
-    rec_path = Path(probe_metadata['reconstructed_track_filepath'])
+    rec_path = Path(probe_metadata["reconstructed_track_filepath"])
     fld, name = rec_path.parent, rec_path.stem
-    reconstruction_files = files(fld, pattern=f'{name}_*.npy')
+    reconstruction_files = files(fld, pattern=f"{name}_*.npy")
 
     if reconstruction_files is None:
-        logger.warning('Did not find any reconstruction files!')
+        logger.warning("Did not find any reconstruction files!")
         return
 
-    logger.debug(f'Identified {len(reconstruction_files)} reconstruction files')
-    
+    logger.debug(
+        f"Identified {len(reconstruction_files)} reconstruction files"
+    )
+
     # get the correct ID for each electrode (like in JRCLUS)
     _ids = np.arange(n_sites + 1)
     ids = np.hstack([_ids[1::2], _ids[2::2]])
-    electrodes_coordinates = {id:[] for id in ids}
-
+    electrodes_coordinates = {id: [] for id in ids}
 
     # reconstruct electrodes positions for each file
     for rec_file in reconstruction_files:
@@ -73,7 +72,8 @@ def place_probe_recording_sites(
     # Get the average position
     average_coordinates = {}
     for eid, epoints in electrodes_coordinates.items():
-        if not len(epoints):continue
+        if not len(epoints):
+            continue
         average_coordinates[eid] = np.vstack(epoints).mean(axis=0)
     electrode_coordinates = np.vstack(average_coordinates.values())[::-1]
 
@@ -99,10 +99,12 @@ def place_probe_recording_sites(
             rid = atlas.structure_from_coords(coords, microns=True)
 
             if rid == 0:
-                acro = 'unknown'
-                color = rgb2hex([.1, .1, .1])
+                acro = "unknown"
+                color = rgb2hex([0.1, 0.1, 0.1])
             else:
-                acro = atlas.structure_from_coords(coords, microns=True, as_acronym=True)
+                acro = atlas.structure_from_coords(
+                    coords, microns=True, as_acronym=True
+                )
                 color_rgb = [
                     c / 255
                     for c in atlas._get_from_structure(acro, "rgb_triplet")
@@ -119,6 +121,5 @@ def place_probe_recording_sites(
                     "color": color,
                 }
             )
-
 
     return recording_sites

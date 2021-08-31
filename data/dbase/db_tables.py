@@ -374,7 +374,7 @@ class CCM(dj.Imported):
 
 # ---------------------------------------------------------------------------- #
 #                                 tracking data                                #
-# ---------------------------------------------------------------------------- 
+# ----------------------------------------------------------------------------
 @schema
 class Tracking(dj.Imported):
     """
@@ -430,7 +430,7 @@ class Tracking(dj.Imported):
             return
 
         # get number of frames in session
-        n_frames = (ValidatedSession & key).fetch1('n_frames')
+        n_frames = (ValidatedSession & key).fetch1("n_frames")
 
         # get CCM registration matrix
         M = (CCM & key).fetch1("correction_matrix")
@@ -446,7 +446,9 @@ class Tracking(dj.Imported):
 
         # check number of frames
         if n_frames != tracking_n_frames:
-            raise ValueError('Number of frames in video and tracking dont match!!')
+            raise ValueError(
+                "Number of frames in video and tracking dont match!!"
+            )
 
         # insert into table
         self.insert1(key)
@@ -479,8 +481,6 @@ class Tracking(dj.Imported):
             return pd.DataFrame(query.fetch())
 
 
-
-
 # ---------------------------------------------------------------------------- #
 #                                  locomotion bouts                            #
 # ---------------------------------------------------------------------------- #
@@ -500,46 +500,64 @@ class LocomotionBouts(dj.Imported):
         end_roi:            int
     """
 
-    speed_th:float = 2  # cm/s
-    min_peak_speed = 10 # cm/s - each bout must reach this speed at some point
-    max_pause:float = 1  # (s) if paused for < than this its one contiuous locomotion bout
-    min_duration:float = 2 # (s) keep only outs that last at least this long
+    speed_th: float = 2  # cm/s
+    min_peak_speed = 10  # cm/s - each bout must reach this speed at some point
+    max_pause: float = 1  # (s) if paused for < than this its one contiuous locomotion bout
+    min_duration: float = 2  # (s) keep only outs that last at least this long
 
-    min_gcoord_delta:float = .1  # the global coordinates must change of at least this during bout
+    min_gcoord_delta: float = 0.1  # the global coordinates must change of at least this during bout
 
     @staticmethod
-    def is_locomoting(session_name:str) -> np.ndarray:
-        '''
+    def is_locomoting(session_name: str) -> np.ndarray:
+        """
             Returns an array of 1 and 0 with 1 for every frame in which the mouse
             is walking
-        '''
-        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1('n_frames')
+        """
+        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1(
+            "n_frames"
+        )
         locomoting = np.zeros(n_frames)
 
-        bouts = pd.DataFrame((LocomotionBouts & f'name="{session_name}"').fetch())
+        bouts = pd.DataFrame(
+            (LocomotionBouts & f'name="{session_name}"').fetch()
+        )
         for i, bout in bouts.iterrows():
-            locomoting[bout.start_frame:bout.end_frame] = 1
+            locomoting[bout.start_frame : bout.end_frame] = 1
         return locomoting
 
     def make(self, key):
-        if DO_RECORDINGS_ONLY and not Session.has_recording(key['name']):
-            logger.debug(f'Skipping {key["name"]} because it doesnt have a recording')
+        if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+            logger.debug(
+                f'Skipping {key["name"]} because it doesnt have a recording'
+            )
             return
 
         # get tracking data
-        tracking = Tracking.get_session_tracking(key['name'], body_only=False)
+        tracking = Tracking.get_session_tracking(key["name"], body_only=False)
         if tracking.empty:
-            logger.warning(f'Failed to get tracking data for session {key["name"]}')
+            logger.warning(
+                f'Failed to get tracking data for session {key["name"]}'
+            )
             return
         else:
             logger.info(f'Getting locomotion bouts for session {key["name"]}')
 
         # get bouts
-        bouts = _locomotion_bouts.get_session_bouts(key, tracking, Session.on_hairpin(key['name']), speed_th=self.speed_th, max_pause=self.max_pause, min_duration=self.min_duration, min_peak_speed=self.min_peak_speed, min_gcoord_delta=self.min_gcoord_delta)
+        bouts = _locomotion_bouts.get_session_bouts(
+            key,
+            tracking,
+            Session.on_hairpin(key["name"]),
+            speed_th=self.speed_th,
+            max_pause=self.max_pause,
+            min_duration=self.min_duration,
+            min_peak_speed=self.min_peak_speed,
+            min_gcoord_delta=self.min_gcoord_delta,
+        )
 
         # insert in table
         for bout in bouts:
             self.insert1(bout)
+
 
 # ---------------------------------------------------------------------------- #
 #                                  ephys data                                  #
@@ -805,7 +823,7 @@ if __name__ == "__main__":
         Probe,
         Probe.RecordingSite,
         Unit,
-        LocomotionBouts
+        LocomotionBouts,
     ]
     NAMES = [
         "Mouse",
@@ -817,7 +835,7 @@ if __name__ == "__main__":
         "Probe",
         "RecordingSite",
         "Unit",
-        "LocomotionBouts"
+        "LocomotionBouts",
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)

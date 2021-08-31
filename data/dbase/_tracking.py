@@ -38,7 +38,7 @@ def process_body_part(
     M: np.ndarray,
     likelihood_th: float = 0.95,
     cm_per_px: float = 1,
-) -> dict :
+) -> dict:
     # register to CMM
     x, y = register(bp_data["x"], bp_data["y"], M)
 
@@ -57,7 +57,7 @@ def process_body_part(
 
     # interpolate nans
     xy = data_utils.interpolate_nans(x=x, y=y)
-    x, y = np.array(list(xy['x'].values())), np.array(list(xy['y'].values()))
+    x, y = np.array(list(xy["x"].values())), np.array(list(xy["y"].values()))
 
     # compute speed and direction of movement
     dir_of_mvmt = get_dir_of_mvmt_from_xy(x, y)
@@ -69,7 +69,7 @@ def process_body_part(
     results = dict(x=x, y=y, speed=speed, direction_of_movement=dir_of_mvmt)
     for k, var in results.items():
         if np.any(np.isnan(var)):
-            raise ValueError(f'Found NANs in {k}')
+            raise ValueError(f"Found NANs in {k}")
     return results
 
 
@@ -98,13 +98,15 @@ def process_tracking_data(
     likelihood_th: float = 0.95,
     cm_per_px: float = 1,
 ):
-    def merge_two_dicts(x: dict, y:dict) -> dict:
+    def merge_two_dicts(x: dict, y: dict) -> dict:
         z = x.copy()  # start with keys and values of x
         z.update(y)  # modifies z with keys and values of y
         return z
 
     # load data
-    logger.debug(f"Loading tracking data: {tracking_file.name} ({size(tracking_file)})")
+    logger.debug(
+        f"Loading tracking data: {tracking_file.name} ({size(tracking_file)})"
+    )
     body_parts_tracking: dict = load_dlc_tracking(tracking_file)
 
     # process each body part
@@ -139,9 +141,8 @@ def process_tracking_data(
     key["orientation"] = orientation
     key["angular_velocity"] = angular_velocity
 
-
     # do a few checks
-    if len(orientation) != len(body_parts_tracking["body"]['x']):
-        raise ValueError('Incoherent number of frames between data suorces')
+    if len(orientation) != len(body_parts_tracking["body"]["x"]):
+        raise ValueError("Incoherent number of frames between data suorces")
 
     return key, body_parts_tracking, len(orientation)

@@ -13,7 +13,9 @@ from data.dbase.db_tables import Probe
 from analysis.visuals import plot_probe_electrodes
 
 base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
-recorder.start(base_folder=base_folder, name='probes_reconstructions', timestamp=False)
+recorder.start(
+    base_folder=base_folder, name="probes_reconstructions", timestamp=False
+)
 
 
 TARGETS = (
