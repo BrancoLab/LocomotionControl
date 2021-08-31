@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from typing import Union
 
 KEYS = (
     "x",
@@ -9,8 +10,23 @@ KEYS = (
     "speed",
     "orientation",
     "direction_of_movement",
+    "angular_velocity",
 )
 
+
+def bin_x_by_y(data:pd.DataFrame, x:str, y:str, bins:Union[int, np.ndarray]=10):
+    '''
+        Bins the values in a column X of a dataframe by bins
+        specified based on the values of another column Y
+    '''
+    data['bins'], bins = pd.cut(data[y], bins=bins, retbins=True)
+    data = data.loc[data.bins != np.nan]
+
+    bins_centers = np.cumsum(np.diff(bins)) - np.diff(bins)[0]/2
+
+    mu = data.groupby('bins')[x].mean()
+    sigma = data.groupby('bins')[x].std()
+    return bins_centers, mu, sigma
 
 def interpolate_nans(**entries) -> dict:
     return (

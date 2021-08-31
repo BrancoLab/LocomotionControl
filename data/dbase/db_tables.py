@@ -525,6 +525,10 @@ class LocomotionBouts(dj.Imported):
             locomoting[bout.start_frame : bout.end_frame] = 1
         return locomoting
 
+    @staticmethod
+    def get_session_bouts(session_name: str) -> pd.DataFrame:
+        return pd.DataFrame((LocomotionBouts & f'name="{session_name}"').fetch())
+
     def make(self, key):
         if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
             logger.debug(
@@ -810,6 +814,8 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Unit")
     # Unit().populate(display_progress=True)
+
+    
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

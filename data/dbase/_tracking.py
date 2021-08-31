@@ -88,7 +88,9 @@ def compute_body_orientation(body_parts_tracking: dict):
     orientation = np.mean(
         np.vstack([orientation_snout, orientation_tail]), axis=0
     )
-    return orientation, calc_ang_velocity(orientation)
+
+    raise NotImplementedError('Fix angular velocity computation')
+    return orientation, calc_ang_velocity(orientation) * 60
 
 
 def process_tracking_data(
