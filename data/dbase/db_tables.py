@@ -19,7 +19,7 @@ from data.dbase._tables import (
     print_table_content_to_file,
 )
 
-# from data.dbase.io import sort_files
+
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
 from data.dbase import (
@@ -424,6 +424,10 @@ class Tracking(dj.Imported):
         """
 
     def make(self, key):
+        if DO_RECORDINGS_ONLY and not Session.has_recording(key['name']):
+            logger.info(f'Skipping {key["name"]} because its not a recording')
+            return
+        
         # get tracking data file
         tracking_file = Session.get_session_tracking_file(key["name"])
         if tracking_file is None:
@@ -777,12 +781,18 @@ class Unit(dj.Imported):
 
 
 if __name__ == "__main__":
+    # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # LocomotionBouts().drop()
+    # Tracking().drop()
     # sys.exit()
 
-    # -------------------------------- fill dbase -------------------------------- #
+    # -------------------------------- sorti filex ------------------------------- #
+    
+    # logger.info('#####    Sorting FILES')
+    # from data.dbase.io import sort_files
     # sort_files()
+
+    # -------------------------------- fill dbase -------------------------------- #
 
     logger.info("#####    Filling mouse data")
     # Mouse().fill()
@@ -801,10 +811,10 @@ if __name__ == "__main__":
     # Behavior().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
-    # Tracking().populate(display_progress=True)
+    Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
-    LocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
@@ -815,7 +825,10 @@ if __name__ == "__main__":
     logger.info("#####    Filling Unit")
     # Unit().populate(display_progress=True)
 
-    
+    # TODO fix unit ms -> frame conversion
+    # TODO implement unit data extraction for concatenated sessions
+    # TODO implement matching units across concatenated sessions
+    # TODO code to facilitate DLC tracking
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

@@ -11,4 +11,4 @@ logger.configure(
 
 from tpd import recorder
 
-recorder.start(base_folder=".", name="logs", timestamp=False)
+recorder.start(base_folder=".", name="logs", timestamp=True)

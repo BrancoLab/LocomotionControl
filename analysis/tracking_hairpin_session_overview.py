@@ -98,7 +98,8 @@ for session in sessions:
     axes['E'].hist(in_bouts.duration, color=colors.inbound, label='in', bins=15, alpha=.7, ec=[.2, .2, .2], histtype='stepfilled', lw=2)
 
     # plot speed vs angular velocity
-    axes['R'].scatter(downsampled_tracking.speed, downsampled_tracking.angular_velocity, color=grey_dark, alpha=.3)
+    is_locomoting = np.where(db_tables.LocomotionBouts.is_locomoting(session['name']))[0]
+    axes['R'].scatter(body_tracking.speed[is_locomoting], body_tracking.angular_velocity[is_locomoting], color=grey_dark, alpha=.1)
 
     # draw speed and orientation heatmaps during bouts
     visuals.plot_heatmap_2d(in_bouts_stacked, 'speed', ax=axes['F'], alpha=1, vmax=30, cmap='inferno')
@@ -138,8 +139,9 @@ for session in sessions:
     axes['R'].set(xlabel='speed (cm/s)', ylabel='ang vel (deg/s)')
     axes['S'].axis('off')   
 
-    for ax in "AFGLM":
+    for ax in "AFGLMPQ":
         axes[ax].axis('equal')
+        axes[ax].set(xlim=[-5, 45], ylim=[-5, 65], xticks=[0, 40], yticks=[0, 60])
 
     plt.show()
     break

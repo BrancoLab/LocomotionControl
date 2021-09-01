@@ -74,23 +74,35 @@ def process_body_part(
 
 
 def compute_body_orientation(body_parts_tracking: dict):
+    # get data
     body = pd.DataFrame(body_parts_tracking["body"]).interpolate(azis=0)
     snout = pd.DataFrame(body_parts_tracking["snout"]).interpolate(azis=0)
     tail_base = pd.DataFrame(body_parts_tracking["tail_base"]).interpolate(
         azis=0
     )
-
+     
+    # compute orientation
+    orientation_body = get_orientation(tail_base.x, tail_base.y, snout.x, snout.y)
     orientation_snout = get_orientation(body.x, body.y, snout.x, snout.y)
     orientation_tail = get_orientation(
         tail_base.x, tail_base.y, body.x, body.y
     )
 
-    orientation = np.mean(
-        np.vstack([orientation_snout, orientation_tail]), axis=0
+    orientation =np.mean(
+        np.vstack([orientation_body, orientation_snout, orientation_tail]), axis=0
     )
 
-    raise NotImplementedError('Fix angular velocity computation')
-    return orientation, calc_ang_velocity(orientation) * 60
+
+    # compute angular velocity
+    avel = medfilt(np.mean(
+        np.vstack([
+            calc_ang_velocity(orientation_body),
+            calc_ang_velocity(orientation_snout),
+            calc_ang_velocity(orientation_tail),
+        ]), axis=0
+    ), kernel_size=15) * 60
+
+    return orientation, avel
 
 
 def process_tracking_data(
