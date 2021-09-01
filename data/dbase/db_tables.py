@@ -640,51 +640,15 @@ class Recording(dj.Imported):
             Session.recordings_metadata_path, engine="odf"
         )
 
-        # Check if it's a concatenated recording
+        # get recording folder
         rec_folder = Path(
             (Session & key).fetch1("ephys_ap_data_path")
         ).parent.parent.name
 
-        concat_filepath = rec_metadata.loc[
-            rec_metadata["recording folder"] == rec_folder
-        ]["concatenated recording file"].iloc[0]
-        if isinstance(concat_filepath, str):
-            # it was concatenated
-            rec_name = concat_filepath
-            rec_path = self.recordings_folder / Path(rec_name)
-            key["concatenated"] = 1
-            raise NotImplementedError("Check this")
-        else:
-            rec_name = rec_metadata.loc[
-                rec_metadata["recording folder"] == rec_folder
-            ]["recording folder"].iloc[0]
-            rec_path = (
-                self.recordings_folder
-                / Path(rec_name)
-                / Path(rec_name + "_imec0")
-            )
-            key["concatenated"] = -1
-
-        # complete the paths to all relevant files
-        key["spike_sorting_params_file_path"] = str(
-            rec_path / (rec_name + "_t0.imec0.ap.prm")
-        )
-        key["spike_sorting_spikes_file_path"] = str(
-            rec_path / (rec_name + "_t0.imec0.ap.csv")
-        )
-        key["spike_sorting_clusters_file_path"] = str(
-            rec_path / (rec_name + "_t0.imec0.ap_res.mat")
-        )
-
-        for name in (
-            "spike_sorting_params_file_path",
-            "spike_sorting_spikes_file_path",
-            "spike_sorting_clusters_file_path",
-        ):
-            if not Path(key[name]).exists():
-                logger.warning(f'Cant file for "{name}"')
-                return
-        self.insert1(key)
+        # get paths
+        key = _recording.get_recording_filepaths(key, rec_metadata, self.recordings_folder, rec_folder)
+        if key is not None:
+            self.insert1(key)
 
 
 @schema
@@ -814,13 +778,13 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
-    LocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
 
     logger.info("#####    Filling Recording")
-    # Recording().populate(display_progress=True)
+    Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
     # Unit().populate(display_progress=True)
@@ -847,7 +811,7 @@ if __name__ == "__main__":
     NAMES = [
         "Mouse",
         "Session",
-        "Recordings",
+        "RecordingsSessions",
         "ValidatedSession",
         "Behavior",
         "Recording",

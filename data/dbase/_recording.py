@@ -9,6 +9,57 @@ from scipy.ndimage.filters import gaussian_filter1d
 
 sys.path.append("./")
 
+from fcutils.path import files
+
+def get_recording_filepaths(key:dict, rec_metadata:pd.DataFrame, recordings_folder:Path, rec_folder:str) -> dict:
+
+    # Check if it's a concatenated recording
+    concat_filepath = rec_metadata.loc[
+        rec_metadata["recording folder"] == rec_folder
+    ]["concatenated recording file"].iloc[0]
+    if isinstance(concat_filepath, str):
+        # it was concatenated
+        rec_name = concat_filepath
+        rec_path = recordings_folder / Path(rec_name)
+        key["concatenated"] = 1
+        
+        if not rec_path.is_dir() or not files(rec_path):
+            logger.warning(f'Invalid rec path: {rec_path} for session {key["name"]}')
+            return None
+            
+        rec_name = rec_name + '_g0'
+    else:
+        rec_name = rec_metadata.loc[
+            rec_metadata["recording folder"] == rec_folder
+        ]["recording folder"].iloc[0]
+        rec_path = (
+            recordings_folder
+            / Path(rec_name)
+            / Path(rec_name + "_imec0")
+        )
+        key["concatenated"] = -1
+
+    # complete the paths to all relevant files
+    key["spike_sorting_params_file_path"] = str(
+        rec_path / (rec_name + "_t0.imec0.ap.prm")
+    )
+    key["spike_sorting_spikes_file_path"] = str(
+        rec_path / (rec_name + "_t0.imec0.ap.csv")
+    )
+    key["spike_sorting_clusters_file_path"] = str(
+        rec_path / (rec_name + "_t0.imec0.ap_res.mat")
+    )
+
+    for name in (
+        "spike_sorting_params_file_path",
+        "spike_sorting_spikes_file_path",
+        "spike_sorting_clusters_file_path",
+    ):
+        if not Path(key[name]).exists():
+            logger.warning(f'Cant file for "{name}" in session {key["name"]}')
+            return None
+
+    return key
 
 def load_cluster_curation_results(
     results_filepath: Union[Path, str], results_csv_path: Union[Path, str]
