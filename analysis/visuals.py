@@ -123,7 +123,7 @@ def plot_bouts_x(
 #                                     EPHSY                                    #
 # ---------------------------------------------------------------------------- #
 def plot_probe_electrodes(
-    rsites: pd.DataFrame, ax: plt.axis, TARGETS: list = []
+    rsites: pd.DataFrame, ax: plt.axis, TARGETS: list = [], annotate_every: int=5
 ):
     x = np.ones(len(rsites)) * 1.025
     x[::2] = 0.925
@@ -147,7 +147,7 @@ def plot_probe_electrodes(
     )
 
     for i in range(len(x)):
-        if i % 5 == 0:
+        if i % annotate_every == 0:
             ax.annotate(
                 f"{rsites.site_id.iloc[i]} - {rsites.brain_region.iloc[i]}",
                 (0.6, rsites.probe_coordinates.iloc[i]),

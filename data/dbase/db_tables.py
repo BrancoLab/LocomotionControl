@@ -744,7 +744,7 @@ class Unit(dj.Imported):
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # LocomotionBouts().drop()
+    # Unit().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -775,7 +775,7 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
-    LocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
@@ -784,7 +784,7 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
-    # Unit().populate(display_progress=True)
+    Unit().populate(display_progress=True)
 
     # TODO fix unit ms -> frame conversion
     # TODO implement unit data extraction for concatenated sessions

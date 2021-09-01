@@ -22,6 +22,7 @@ TARGETS = (
     "GRN",
     "MB",
     "PPN",
+    "RSPagl1",
     "RSPagl2/3",
     "RSPagl5",
     "RSPagl6",
@@ -48,46 +49,42 @@ for i, recording in recordings.iterrows():
     rsites = pd.DataFrame((Probe.RecordingSite & dict(recording)).fetch())
 
     # -------------------------------- draw probe -------------------------------- #
-    f = plt.figure(figsize=(12, 12))
+    f, axes = plt.subplots(figsize=(12, 12), ncols=2, sharey=True)
     f.suptitle(rname)
     f._save_name = f"{rname}_activity_preview"
 
-    axes_dict = f.subplot_mosaic(
-        """
-            AB
-            AB
-        """
-    )
-
     # draw probe
-    plot_probe_electrodes(rsites, axes_dict["A"], TARGETS)
+    plot_probe_electrodes(rsites, axes[0], TARGETS)
 
     # draw barplot of # units per channel
     counts = units.groupby("site_id").count()["name"]
-    _colors = rsites.color.iloc[counts.index].values
-    _regions = rsites.brain_region.iloc[counts.index].values
+    _colors = [rsites.loc[rsites.site_id == n]['color'].iloc[0] for n in counts.index]
+    _regions = [rsites.loc[rsites.site_id == n]['brain_region'].iloc[0] for n in counts.index]
     colors = [
         c if r in TARGETS else (c if c == "k" else blue_grey)
         for c, r in zip(_colors, _regions)
     ]
-    axes_dict["B"].barh(
-        rsites.probe_coordinates.iloc[counts.index].values,
+    probe_coords = [rsites.loc[rsites.site_id == n]['probe_coordinates'].iloc[0] for n in counts.index]
+    axes[1].barh(
+        probe_coords,
         counts.values,
         color=colors,
-        height=40,
+        height=10,
+        lw=1,
+        ec='k'
     )
 
     # cleanup and save
-    axes_dict["A"].set(
+    axes[0].set(
         ylabel="Probe position (um)",
         xticks=[],
         xlim=[0.5, 1.5],
         ylim=[0, 8000],
     )
-    axes_dict["B"].set(xlabel="# units per channel", ylim=[0, 8000])
+    axes[1].set(xlabel="# units per channel", ylim=[0, 8000])
 
     clean_axes(f)
-    # plt.show()
+    plt.show()
 
     recorder.add_figures(svg=False)
     plt.close("all")
