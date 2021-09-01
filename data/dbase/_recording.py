@@ -100,6 +100,7 @@ def load_cluster_curation_results(
                 raw_spikes_s=unit["spikeTimes"].values,
                 unit_id=cluster,
                 recording_site_id=unit.spikeSites.mode().iloc[0],
+                secondary_sites_ids =np.sort(unit.spikeSites.unique())
             )
         )
 
@@ -114,13 +115,21 @@ def get_unit_spike_times(
         in both milliseconds from the recording start and in frame numbers
     """
     logger.debug(f"         getting spikes times")
+
+    # check that the last spike didn't occur too late
+    # if unit["raw_spikes_s"][-1] - 2 > triggers['duration']:  # -2 to account for tails of recording
+    #     raise ValueError('The last spike cannot be after after the end of the video')
+
+
     # get spike times in sample number
     spikes_samples = unit["raw_spikes_s"] * sampling_rate
 
+    # cut frames spikes in the 1s before/after the recording
+    spikes_samples = spikes_samples[(spikes_samples > triggers["ephys_cut_start"]) & (spikes_samples < triggers["n_samples"])]
+
     # cut and scale to match bonsai data
     spikes_samples = spikes_samples - triggers["ephys_cut_start"]
-    spikes_samples = spikes_samples[spikes_samples > 0]
-    spikes_samples = spikes_samples * triggers["ephys_time_scaling_factor"]
+    spikes_samples *= triggers["ephys_time_scaling_factor"]
 
     # get the closest frame trigger to each spike sample
     samples_per_frame = 1 / 60 * sampling_rate
@@ -136,7 +145,7 @@ def get_unit_spike_times(
         raise ValueError("Error while assigning frame number to spike times")
 
     # return data
-    return dict(spikes_ms=unit["raw_spikes_s"] * 1000, spikes=spikes_frames)
+    return dict(spikes_ms=spikes_samples / sampling_rate * 1000, spikes=spikes_frames)
 
 
 def get_unit_firing_rate(

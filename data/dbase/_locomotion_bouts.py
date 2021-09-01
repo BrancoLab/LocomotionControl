@@ -284,6 +284,10 @@ def get_session_bouts(
         elif bend == len(tracking.body.x):
             bend -= 1
 
+        # remove bouts too close to start and end of recording
+        if bstart < 60 or bend > (len(tracking.body.speed) - 60):
+            continue
+
         if is_hairpin:
             # check there's enough change in global coordinate
             if not check_gcoord_delta(

@@ -4,7 +4,6 @@ import pandas as pd
 from pathlib import Path
 import cv2
 from typing import List, Tuple
-import time
 import numpy as np
 
 from fcutils.path import from_yaml, to_yaml, files
@@ -728,6 +727,7 @@ class Unit(dj.Imported):
             unit_key = key.copy()
             unit_key["unit_id"] = unit["unit_id"]
             unit_key["site_id"] = unit["recording_site_id"]
+            unit_key["secondary_sites_ids"] = unit["secondary_sites_ids"]
 
             # get adjusted spike times
             unit_spikes = _recording.get_unit_spike_times(
@@ -739,9 +739,6 @@ class Unit(dj.Imported):
             # insert into table
             self.insert1(unit_key)
             self.Spikes.insert1(spikes_key)
-
-            logger.debug("Inserted unit in table, taking a pause")
-            time.sleep(3)
 
 
 if __name__ == "__main__":
@@ -778,13 +775,13 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
-    # LocomotionBouts().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
 
     logger.info("#####    Filling Recording")
-    Recording().populate(display_progress=True)
+    # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
     # Unit().populate(display_progress=True)
