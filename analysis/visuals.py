@@ -5,6 +5,7 @@ import numpy as np
 from loguru import logger
 
 from myterial import blue_grey, blue_grey_dark
+from fcutils.maths import coordinates
 
 from data import colors, data_utils
 
@@ -106,17 +107,6 @@ def plot_heatmap_2d(
     # bin data in 2d
     ax.hexbin(data.x, data.y, data[key], cmap=cmap, gridsize=gridsize, vmin=vmin, vmax=vmax, mincnt=mincnt, **kwargs)
 
-
-def plot_bouts_x(
-    tracking_data:pd.DataFrame,
-    bouts:pd.DataFrame,
-    ax:plt.axis,
-    variable:str,
-    color:str=blue_grey,
-    **kwargs
-):
-    for i, bout in bouts.iterrows():
-        ax.plot(tracking_data[variable][bout.start_frame:bout.end_frame], color=color, **kwargs)
 
 
 # ---------------------------------------------------------------------------- #
@@ -246,6 +236,10 @@ def plot_tracking_xy(
             )
 
 
+# ---------------------------------------------------------------------------- #
+#                                     BOUTS                                    #
+# ---------------------------------------------------------------------------- #
+
 def plot_bouts_2d(
     tracking: Union[dict, pd.DataFrame],
     bouts: pd.DataFrame,
@@ -272,3 +266,63 @@ def plot_bouts_2d(
         ax.plot(x, y, color=color, zorder=zorder, lw=lw, **kwargs)
         ax.scatter(x[0], y[0], color='white', lw=1, ec=color, s=25, zorder=101, **kwargs)
         ax.scatter(x[-1], y[-1], color=[.2, .2, .2], lw=1, ec=color, s=25, zorder=101, **kwargs)
+
+
+def plot_bouts_aligned(
+    tracking: Union[dict, pd.DataFrame],
+    bouts: pd.DataFrame,
+    ax:plt.axis,
+    color:str=blue_grey,
+    **kwargs,
+):
+    '''
+        Aligns bouts such that they start from the same position and with the same
+        orientation.
+    '''
+    raise NotImplementedError('this doesnt work')
+    keys = ['x', 'y', 'speed', 'orientation', 'angular_velocity']
+
+    for i, bout in bouts.iterrows():
+        xy = np.vstack(tracking[['x', 'y']].values).T[bout.start_frame:bout.end_frame]
+
+        # center
+        xy -= xy[0]
+
+        # rotate
+        # R = coordinates.R(tracking['orientation'][bout.start_frame])
+        # xy = (R.T @ xy.T).T
+        # xy = xy[:20]
+
+        ax.plot(xy[:, 0], xy[:, 1], color=color, **kwargs)
+
+
+def plot_bouts_x(
+    tracking_data:pd.DataFrame,
+    bouts:pd.DataFrame,
+    ax:plt.axis,
+    variable:str,
+    color:str=blue_grey,
+    **kwargs
+):
+    '''
+        Plots a variable from the tracking data for each bout
+    '''
+    for i, bout in bouts.iterrows():
+        ax.plot(tracking_data[variable][bout.start_frame:bout.end_frame], color=color, **kwargs)
+
+def plot_bouts_x_by_y(
+    tracking_data:pd.DataFrame,
+    bouts:pd.DataFrame,
+    ax:plt.axis,
+    x:str,
+    y:str,
+    color:str=blue_grey,
+    **kwargs
+):
+    '''
+        Plots two tracking variables one against the other for each bout
+    '''
+    for i, bout in bouts.iterrows():
+        ax.plot(tracking_data[x][bout.start_frame:bout.end_frame], tracking_data[y][bout.start_frame:bout.end_frame], color=color, **kwargs)
+
+
