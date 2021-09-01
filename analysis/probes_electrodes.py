@@ -54,5 +54,5 @@ for probe_n in range(n_probes):
     axes[probe_n].set(title=mouse)
 
 clean_axes(f)
-# plt.show()
+plt.show()
 recorder.add_figures(svg=False)

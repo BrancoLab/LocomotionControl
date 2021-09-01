@@ -15,7 +15,7 @@ def get_sessions_to_track(recordings_only:bool=True):
     sessions_in_table = dbase.db_tables.Session.fetch("name")
 
     if recordings_only:
-        sessions_in_table = sessions_in_table.loc[sessions_in_table.is_recording == True]
+        sessions_in_table = [s for s in sessions_in_table if dbase.db_tables.Session.has_recording(s)]
 
     need_tracking = []
     for session in sessions_in_table:

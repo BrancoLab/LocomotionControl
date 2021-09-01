@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 from typing import Union
 import pandas as pd
 import numpy as np
+from loguru import logger
 
-from myterial import blue_grey, blue_grey_dark, grey_dark
+from myterial import blue_grey, blue_grey_dark
 
 from data import colors, data_utils
 
@@ -83,6 +84,10 @@ def plot_aligned(
         x_pre = x[idx-pre:idx]
         x_aft = x[idx-1:idx+aft]
 
+        if len(x_pre) != pre or len(x_aft) != aft+1:
+            logger.warning(f'Could not plot data aligned to index: {idx}')
+            continue
+
         ax.plot(x_pre, color=pre_c, lw=pre_lw, **kwargs)
         ax.plot(np.arange(aft+1) + aft, x_aft, color=aft_c, lw=aft_lw, **kwargs)
     ax.axvline(pre, lw=2, color=blue_grey_dark, zorder=-1)
@@ -100,6 +105,18 @@ def plot_heatmap_2d(
 ):
     # bin data in 2d
     ax.hexbin(data.x, data.y, data[key], cmap=cmap, gridsize=gridsize, vmin=vmin, vmax=vmax, mincnt=mincnt, **kwargs)
+
+
+def plot_bouts_x(
+    tracking_data:pd.DataFrame,
+    bouts:pd.DataFrame,
+    ax:plt.axis,
+    variable:str,
+    color:str=blue_grey,
+    **kwargs
+):
+    for i, bout in bouts.iterrows():
+        ax.plot(tracking_data[variable][bout.start_frame:bout.end_frame], color=color, **kwargs)
 
 
 # ---------------------------------------------------------------------------- #
@@ -236,6 +253,7 @@ def plot_bouts_2d(
     direction:bool = None,
     zorder:int=100,
     lw:float=2,
+    c:str=None,
     **kwargs,
 ):
     # select bouts by direction
@@ -247,6 +265,10 @@ def plot_bouts_2d(
         x = tracking['x'][bout.start_frame:bout.end_frame]
         y = tracking['y'][bout.start_frame:bout.end_frame]
 
-        ax.plot(x, y, color=colors.bout_direction_colors[bout.direction], zorder=zorder, lw=lw, **kwargs)
-        ax.scatter(x[0], y[0], color='white', lw=1, ec=colors.bout_direction_colors[bout.direction], s=25, zorder=101, **kwargs)
-        ax.scatter(x[-1], y[-1], color=[.2, .2, .2], lw=1, ec=colors.bout_direction_colors[bout.direction], s=25, zorder=101, **kwargs)
+        if c is None:
+            color = colors.bout_direction_colors[bout.direction]
+        else:
+            color = c
+        ax.plot(x, y, color=color, zorder=zorder, lw=lw, **kwargs)
+        ax.scatter(x[0], y[0], color='white', lw=1, ec=color, s=25, zorder=101, **kwargs)
+        ax.scatter(x[-1], y[-1], color=[.2, .2, .2], lw=1, ec=color, s=25, zorder=101, **kwargs)

@@ -504,7 +504,7 @@ class LocomotionBouts(dj.Imported):
         end_roi:            int
     """
 
-    speed_th: float = 2  # cm/s
+    speed_th: float = 5  # cm/s
     min_peak_speed = 10  # cm/s - each bout must reach this speed at some point
     max_pause: float = 1  # (s) if paused for < than this its one contiuous locomotion bout
     min_duration: float = 2  # (s) keep only outs that last at least this long
@@ -783,7 +783,7 @@ class Unit(dj.Imported):
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Tracking().drop()
+    # LocomotionBouts().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -811,10 +811,10 @@ if __name__ == "__main__":
     # Behavior().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
-    Tracking().populate(display_progress=True)
+    # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
-    # LocomotionBouts().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)

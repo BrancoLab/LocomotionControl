@@ -12,6 +12,7 @@ from myterial.utils import make_palette
 from myterial import grey_dark, grey_light
 
 from analysis import visuals
+from analysis._visuals import move_figure
 
 from data.dbase import db_tables
 from data import data_utils, colors
@@ -99,26 +100,31 @@ for session in sessions:
 
     # plot speed vs angular velocity
     is_locomoting = np.where(db_tables.LocomotionBouts.is_locomoting(session['name']))[0]
-    axes['R'].scatter(body_tracking.speed[is_locomoting], body_tracking.angular_velocity[is_locomoting], color=grey_dark, alpha=.1)
+    trk = pd.DataFrame(dict(speed=body_tracking.speed[is_locomoting], angular_velocity=np.abs(body_tracking.angular_velocity[is_locomoting])))
+    visuals.plot_bin_x_by_y(trk, 'angular_velocity', 'speed', axes['R'], bins=np.linspace(0, trk.speed.max(), 11), colors=grey_dark)
 
     # draw speed and orientation heatmaps during bouts
     visuals.plot_heatmap_2d(in_bouts_stacked, 'speed', ax=axes['F'], alpha=1, vmax=30, cmap='inferno')
     visuals.plot_heatmap_2d(out_bouts_stacked, 'speed', ax=axes['L'], alpha=1, vmax=30, cmap='inferno')
     visuals.plot_heatmap_2d(in_bouts_stacked, 'orientation', ax=axes['G'], alpha=1, vmin=0, vmax=360, edgecolors=grey_dark)
     visuals.plot_heatmap_2d(out_bouts_stacked, 'orientation', ax=axes['M'], alpha=1, vmin=0, vmax=360, edgecolors=grey_dark)
-    visuals.plot_heatmap_2d(in_bouts_stacked, 'angular_velocity', ax=axes['P'], alpha=1, vmin=-15, vmax=15, edgecolors=grey_dark)
-    visuals.plot_heatmap_2d(out_bouts_stacked, 'angular_velocity', ax=axes['Q'], alpha=1, vmin=-15, vmax=15, edgecolors=grey_dark)
+    visuals.plot_heatmap_2d(in_bouts_stacked, 'angular_velocity', ax=axes['P'], alpha=1, vmin=-45, vmax=45, edgecolors=grey_dark)
+    visuals.plot_heatmap_2d(out_bouts_stacked, 'angular_velocity', ax=axes['Q'], alpha=1, vmin=-45, vmax=45, edgecolors=grey_dark)
 
     # plot speeds binned by global coords for in/out bouts
     nbins=25
-    colors=make_palette(grey_light, grey_dark, nbins-1)
-    visuals.plot_bin_x_by_y(in_bouts_stacked, 'speed', 'global_coord', axes['H'], bins=np.linspace(0, 1, nbins), colors=colors)
-    visuals.plot_bin_x_by_y(in_bouts_stacked, 'angular_velocity', 'global_coord', axes['I'], bins=np.linspace(0, 1, nbins), colors=colors)
-    visuals.plot_bin_x_by_y(out_bouts_stacked, 'speed', 'global_coord', axes['N'], bins=np.linspace(0, 1, nbins), colors=colors)
-    visuals.plot_bin_x_by_y(out_bouts_stacked, 'angular_velocity', 'global_coord', axes['O'], bins=np.linspace(0, 1, nbins), colors=colors)
+    clrs=make_palette(grey_light, grey_dark, nbins-1)
+    visuals.plot_bin_x_by_y(in_bouts_stacked, 'speed', 'global_coord', axes['H'], bins=np.linspace(0, 1, nbins), colors=clrs)
+    visuals.plot_bin_x_by_y(in_bouts_stacked, 'angular_velocity', 'global_coord', axes['I'], bins=np.linspace(0, 1, nbins), colors=clrs)
+    visuals.plot_bin_x_by_y(out_bouts_stacked, 'speed', 'global_coord', axes['N'], bins=np.linspace(0, 1, nbins), colors=clrs)
+    visuals.plot_bin_x_by_y(out_bouts_stacked, 'angular_velocity', 'global_coord', axes['O'], bins=np.linspace(0, 1, nbins), colors=clrs)
+
+    for ax in 'IO':
+        axes[ax].axhline(0, lw=1, color=[.6, .6, .6], zorder=-1)
 
     # cleanup and save
     clean_axes(f)
+    move_figure(f, 50, 50)
     f.tight_layout()
 
     axes["A"].set(xlabel="xpos (cm)", ylabel="ypos (cm)", title=f'{len(in_bouts)} IN - {len(out_bouts)} OUT')
@@ -136,7 +142,7 @@ for session in sessions:
     axes['O'].set(ylabel='ang vel (deg/s)', xticks=np.linspace(0, 1, 11))
     axes['P'].set( xticks=[], yticks=[])
     axes['Q'].set( xticks=[], yticks=[], xlabel='ang vel (deg/s)')
-    axes['R'].set(xlabel='speed (cm/s)', ylabel='ang vel (deg/s)')
+    axes['R'].set(xlabel='speed (cm/s)', ylabel='abs(ang vel) (deg/s)')
     axes['S'].axis('off')   
 
     for ax in "AFGLMPQ":
@@ -144,7 +150,7 @@ for session in sessions:
         axes[ax].set(xlim=[-5, 45], ylim=[-5, 65], xticks=[0, 40], yticks=[0, 60])
 
     plt.show()
-    break
+    # break
 
     recorder.add_figures(svg=False)
     plt.close("all")

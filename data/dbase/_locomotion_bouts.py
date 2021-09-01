@@ -183,15 +183,15 @@ def get_threshold_crossing(
 
 
 def get_bout_start_end_times(
-    tracking: tuple, bstart: int, bend: int, speed_th: float
+    tracking: tuple, bstart: int, bend: int
 ) -> Tuple[int, int]:
     """
         Look at the movement of the paws to decide exactly when the bout starts
     """
 
     # get exactly when the bout starts and ends
-    precise_start = get_threshold_crossing(tracking, bstart, "up", speed_th)
-    precise_end = get_threshold_crossing(tracking, bend, "down", speed_th)
+    precise_start = get_threshold_crossing(tracking, bstart, "up", 2)
+    precise_end = get_threshold_crossing(tracking, bend, "down", 2)
 
     # plot_bout_start_end(tracking.body.speed,
     #     rfl=tracking.right_fl.speed,
@@ -277,7 +277,7 @@ def get_session_bouts(
 
         # get precise bout start and end times based on paw speeds
         bstart, bend = get_bout_start_end_times(
-            tracking, bstart, bend, speed_th
+            tracking, bstart, bend
         )
         if bstart is None or bend is None:
             continue
