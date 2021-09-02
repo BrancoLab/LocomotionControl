@@ -2,10 +2,12 @@ import numpy as np
 from loguru import logger
 import pandas as pd
 
+from fcutils.path import size
+
 from data.dbase.io import load_bin
 
 
-def load_session_data(session, key):
+def load_session_data(session:dict, key:dict, sampling_rate:int):
     """
         loads and cleans up the bonsai data for one session
     """
@@ -19,15 +21,28 @@ def load_session_data(session, key):
     )
 
     # get analog inputs between frames start/end times
+    end_cut = session['trigger_times'][-1]+session["bonsai_cut_start"]
     _analog = (
-        analog[session["bonsai_cut_start"] : session["bonsai_cut_end"]] / 5
+        analog[session["bonsai_cut_start"] : end_cut] / 5
     )
 
-    key["pump"] = 5 - _analog[:, 1]  # 5 -  to invert signal
-    key["speaker"] = _analog[:, 2]
+    # get signals in high sampling rate
+    analog_data = dict(pump=5 - _analog[:, 1],  # 5 -  to invert signal
+                    speaker = _analog[:, 2])
 
+    # go from samples to frame times
+    sample_every = int(sampling_rate / 60)
+    for name, sample_values in analog_data.items():
+        frames_values = sample_values[::sample_every]
+
+        if not len(frames_values) != session['n_frames']:
+            raise ValueError('Wrong number of frames')
+        
+        # add to key
+        key[name] = frames_values
+        
     # load csv data
-    logger.debug("Loading CSV")
+    logger.debug(f"Loading CSV file ({size(session['csv_file_path'])})")
     try:
         data = pd.read_csv(session["csv_file_path"])
     except Exception:
@@ -38,6 +53,7 @@ def load_session_data(session, key):
         logger.warning("Skipping because of incomplete CSV")
         return None  # first couple recordings didn't save all data
 
+    logger.debug('Data loaded, cleaning it up')
     data.columns = [
         "ROI activity",
         "lick ROI activity",
@@ -67,3 +83,4 @@ def load_session_data(session, key):
         [data["reward available signal"].values, pad]
     )
     return key
+

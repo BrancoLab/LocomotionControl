@@ -33,6 +33,7 @@ from data.dbase import (
 )
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata
+from data import data_utils
 
 DO_RECORDINGS_ONLY = True
 
@@ -314,7 +315,7 @@ class Behavior(dj.Imported):
         # stores AI and csv data from Bonsai in a nicely formatted manner
         -> ValidatedSession
         ---
-        speaker:                    longblob  # signal sent to speakers
+        speaker:                    longblob  # signal sent to speakers (signals in frame times)
         pump:                       longblob  # signal sent to pump
         reward_signal:              longblob  # 0 -> 1 when reward is delivered
         reward_available_signal:    longblob  # 1 when the reward becomes available
@@ -322,6 +323,19 @@ class Behavior(dj.Imported):
         reward_roi:                 longblob  # 1 when mouse in reward ROI
     """
     analog_sampling_rate = 30000  # in bonsai
+
+
+    @staticmethod
+    def get_session_onsets(session_name:str, variable:str, min_pause:int=25*60, th:float=.1):
+        '''
+            Gets all the onsets times for a variable in a sessions
+        '''
+        if variable != 'speaker':
+            raise NotImplementedError('Only tested for speaker')
+
+        data = (Behavior & f'name="{session_name}"').fetch1(variable)
+
+        return data_utils.get_event_times(data, min_pause, th, debug=False)
 
     def make(self, key):
         """
@@ -331,16 +345,20 @@ class Behavior(dj.Imported):
             2. load/cut .bin file from bonsai
             3. load/cut .csv file from bonsai
         """
+        if DO_RECORDINGS_ONLY and not Session.has_recording(key['name']):
+            logger.debug(f'Skipping {key["name"]} because it is not a recording')
+            return
+
         # fetch metadata
         name = key["name"]
         try:
-            session = (Session * ValidatedSession & f'name="{name}"').fetch1()
+            session = (Session * ValidatedSession * BonsaiTriggers & f'name="{name}"').fetch1()
         except Exception:
             logger.warning(f"Failed to fetch data for {name} - not validated?")
             return
 
         # load, format & insert data
-        key = _behavior.load_session_data(session, key)
+        key = _behavior.load_session_data(session, key, ValidatedSession.analog_sampling_rate)
         if key is not None:
             self.insert1(key)
 
@@ -670,6 +688,15 @@ class Unit(dj.Imported):
             spikes:                 longblob  # in video frames number
         """
 
+    @staticmethod
+    def get_session_units(session_name:str, spikes:bool=False):
+        query = (Unit * Probe.RecordingSite & f"name='{session_name}'")
+
+        if spikes:
+            query = query * Unit.Spikes
+
+        return pd.DataFrame(query)
+
     def is_in_target_region(
         unit: dict, targets: List[str]
     ) -> Tuple[bool, bool, str]:
@@ -703,11 +730,7 @@ class Unit(dj.Imported):
         raise NotImplementedError("Make this happen")
 
     def make(self, key):
-        recording = (Recording & key).fetch1()
-        if recording["concatenated"] == 1:
-            raise NotImplementedError(
-                "Need the adjustment of spike times work for concatenated data"
-            )
+        recording = (Session * Recording & key).fetch1()
 
         # load units data
         units = _recording.load_cluster_curation_results(
@@ -719,6 +742,16 @@ class Unit(dj.Imported):
         triggers = (BonsaiTriggers & key).fetch1()
         validated = (ValidatedSession & key).fetch1()
         triggers = {**triggers, **validated}
+
+        # deal with concatenated recordinds
+        if Session.has_recording(key['name']):
+            # load recordings metadata
+            rec_metadata = pd.read_excel(
+                Session.recordings_metadata_path, engine="odf"
+            )
+                
+            # cut unit spikes
+            pre_cut, post_cut = _recording.cut_concatenated_units(recording, triggers, rec_metadata)
 
         # fill in units
         for nu, unit in enumerate(units):
@@ -744,7 +777,7 @@ class Unit(dj.Imported):
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Unit().drop()
+    # Behavior().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -769,7 +802,7 @@ if __name__ == "__main__":
     # CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
-    # Behavior().populate(display_progress=True)
+    Behavior().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)

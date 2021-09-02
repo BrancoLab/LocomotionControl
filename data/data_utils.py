@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 from typing import Union
+from loguru import logger
+
+from fcutils.maths.signals import get_onset_offset
+
+from data.debug_utils import plot_signal_and_events 
 
 KEYS = (
     "x",
@@ -13,6 +18,26 @@ KEYS = (
     "angular_velocity",
 )
 
+
+
+def get_event_times(data:np.ndarray, min_pause:int, th:float = .1, debug:bool=False):
+    '''
+        Given a 1D time serires it gets all the times there's a new 'stimulus' (signal going > threshold).
+        It only keeps events that are at least 'min_pause' frames apart
+    '''    
+    onsets = get_onset_offset(data, th=th)[0]
+
+    clean_onsets = [onsets[0]]
+    for n, onset in enumerate(onsets[1:]):
+        delta = onset - onsets[n]
+        if onset - clean_onsets[-1] > min_pause and delta > min_pause/3:
+            clean_onsets.append(onset)
+
+    if debug:
+        logger.debug(f'Found {len(onsets)} event times prior to cleaning, kept {len(clean_onsets)}')
+        # visualize event times
+        plot_signal_and_events(data, clean_onsets, show=True)
+    return clean_onsets
 
 def bin_x_by_y(data:pd.DataFrame, x:str, y:str, bins:Union[int, np.ndarray]=10):
     '''

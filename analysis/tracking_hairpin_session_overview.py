@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fcutils.plot.figure import clean_axes
 from myterial.utils import make_palette
-from myterial import grey_darker, grey_light,amber_light, amber_darker
+from myterial import grey_darker, grey_light,amber_light, amber_darker, grey_dark
 
 from analysis import visuals
 from analysis._visuals import move_figure

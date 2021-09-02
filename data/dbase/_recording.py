@@ -1,7 +1,7 @@
 import pandas as pd
 import sys
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 from loguru import logger
 import h5py
 import numpy as np
@@ -90,6 +90,7 @@ def load_cluster_curation_results(
     # load spikes data from the .csv file
     logger.debug("Loading spikes data from CSV")
     spikes = pd.read_csv(results_csv_path)
+    logger.debug(f"     loaded data about {len(spikes)} spikes ({spikes.iloc[-1].spikeTimes}s)")
 
     # get units data
     units = []
@@ -108,7 +109,7 @@ def load_cluster_curation_results(
 
 
 def get_unit_spike_times(
-    unit: dict, triggers: dict, sampling_rate: int
+    unit: dict, triggers: dict, sampling_rate: int, pre_cut:int=None, post_cut:int=None
 ) -> dict:
     """
         Gets a unit's spikes times aligned to bonsai's video frames
@@ -123,6 +124,11 @@ def get_unit_spike_times(
 
     # get spike times in sample number
     spikes_samples = unit["raw_spikes_s"] * sampling_rate
+
+    # cut to deal with concatenated recordings
+    if pre_cut is not None:
+        spikes_samples = spikes_samples[(spikes_samples > pre_cut) & (spikes_samples < post_cut)]
+        spikes_samples -= pre_cut
 
     # cut frames spikes in the 1s before/after the recording
     spikes_samples = spikes_samples[(spikes_samples > triggers["ephys_cut_start"]) & (spikes_samples < triggers["n_samples"])]
@@ -148,6 +154,33 @@ def get_unit_spike_times(
     return dict(spikes_ms=spikes_samples / sampling_rate * 1000, spikes=spikes_frames)
 
 
+def cut_concatenated_units(recording:dict, triggers:dict, rec_metadata:pd.DataFrame) -> Tuple[int, int]:
+    '''
+        Split units spiking data from concatenated recordings. Return min and max values (in samples)
+        for spikes to keep. The keeping of the spikes is actually done in 'get_unit_spike_times'
+    '''
+    # get if first or second in concatenated data
+    concat_filename = Path(recording['spike_sorting_spikes_file_path']).stem[:-15]
+    concat_metadata = rec_metadata.loc[rec_metadata['concatenated recording file']==concat_filename]
+
+    if len(concat_metadata) != 2:
+        raise ValueError('Expected to find two metadata entries')
+
+    rec_filename = Path(recording['ephys_ap_data_path']).stem[:-12]
+    idx = np.where(concat_metadata['recording folder'] == rec_filename)[0][0]
+    is_first = idx == 0
+
+    # deal with things separately based on if its first or second recording
+    if is_first:
+        pre_cut = 0
+        post_cut = triggers['n_samples']
+    else:
+        # Get the number of samples of the previous recording and set that as pre_cut
+        raise NotImplementedError('need to deal with second of two concatenated recordings')
+
+    return pre_cut, post_cut
+
+
 def get_unit_firing_rate(
     unit_spikes: dict, triggers: dict, filter_width: int, sampling_rate: int
 ) -> dict:
@@ -170,6 +203,8 @@ def get_unit_firing_rate(
     spike_rate_frames = spike_rate[video_triggers]
 
     return dict(spikerate_ms=spike_rate[:-1000], spikerate=spike_rate_frames)
+
+
 
 
 if __name__ == "__main__":

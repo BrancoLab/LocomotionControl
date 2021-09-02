@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 from loguru import logger
 
-from myterial import blue_grey, blue_grey_dark
-from fcutils.maths import coordinates
+from fcutils.plot.distributions import plot_kde
+from myterial import blue_grey, blue_grey_dark, grey_darker
 
 from data import colors, data_utils
 
@@ -144,6 +144,31 @@ def plot_probe_electrodes(
                 color=colors[i],
             )
     ax.set(xlim=[0.5, 1.25], ylabel="probe coordinates (um)")
+
+
+def plot_raster(spikes:np.ndarray, events:Union[np.ndarray, list], ax:plt.axis, window:int=120, s=5, color=grey_darker, kde:bool=True, **kwargs):
+    '''
+        Plots a raster plot of spikes aligned to timestamps events
+
+        It assumes that all event and spike times are in frames and framerate is 60
+    '''
+    half_window, quarter_window = window/2, window/5
+    X = []
+    for n, event in enumerate(events):
+        event_spikes = spikes[(spikes >= event - half_window) & (spikes <= event + half_window)] - event
+        X.extend(list(event_spikes))
+        y = np.ones_like(event_spikes) * n
+        ax.scatter(event_spikes, y, s=5, color=color, **kwargs)
+    ax.axvline(0, ls=':', color='k', lw=.75)
+
+    # plot KDE
+    if kde:
+        plot_kde(ax=ax, z=-2, data=X, normto=len(events)/5, color=blue_grey_dark, kde_kwargs=dict(bw=1), alpha=.6, invert=True)
+
+    # set x axis properties
+    xticks = [-half_window, -quarter_window, 0, quarter_window, half_window]
+    ax.set(xlabel='time(s)', yticks=np.arange(0, len(events), 4), xticks=xticks, xticklabels=[round(t/60, 3) for t in xticks], ylabel='event number')
+
 
 # ---------------------------------------------------------------------------- #
 #                                   TRACKING                                   #
