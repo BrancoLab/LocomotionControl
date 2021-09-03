@@ -5,6 +5,7 @@ from pathlib import Path
 import cv2
 from typing import List, Tuple
 import numpy as np
+import time
 
 from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
@@ -615,6 +616,11 @@ class Probe(dj.Imported):
             color:                          varchar(128)  # brain region color
         """
 
+    @staticmethod
+    def get_session_sites(mouse:str) -> pd.DataFrame:
+        return pd.DataFrame((Probe * Probe.RecordingSite & f'mouse_id="{mouse}"').fetch())
+
+
     def make(self, key):
         metadata = get_probe_metadata(key["mouse_id"])
         if metadata is None:
@@ -670,6 +676,8 @@ class Recording(dj.Imported):
 
 @schema
 class Unit(dj.Imported):
+    precomputed_firing_rate_windows = [5, 10, 33, 100, 150, 250, 500]
+
     definition = """
         # a single unit's spike sorted data
         -> Recording
@@ -689,13 +697,25 @@ class Unit(dj.Imported):
         """
 
     @staticmethod
-    def get_session_units(session_name:str, spikes:bool=False):
+    def get_session_units(session_name:str, spikes:bool=False, firing_rate:bool=False, frate_window:int=50) -> pd.DataFrame:
+        # query
         query = (Unit * Probe.RecordingSite & f"name='{session_name}'")
-
         if spikes:
             query = query * Unit.Spikes
 
-        return pd.DataFrame(query)
+        # fetch
+        units = pd.DataFrame(query)
+
+        # augment
+        if firing_rate:
+            if frate_window not in Unit.precomputed_firing_rate_windows:
+                triggers = (Session * ValidatedSession * BonsaiTriggers & f'name="{session_name}"').fetch1()
+                units = _recording.get_units_firing_rate(units, frate_window, triggers, ValidatedSession.analog_sampling_rate)
+            else:
+                # load pre-computed firing rates
+                frates = pd.DataFrame((Unit * FiringRate & f"name='{session_name}'" & f'firing_rate_std={frate_window}').fetch('firing_rate'))
+                units['firing_rate'] = [frates[0].values[n][0] for n in range(len(units))]
+        return units
 
     def is_in_target_region(
         unit: dict, targets: List[str]
@@ -722,12 +742,13 @@ class Unit(dj.Imported):
 
         return False, None, None
 
-    def make_spikes_raster(unit: dict):
-        """
-            Given a unit's details it makes an array with 0 for every millisecond
-            but 1 when the unit spikes
-        """
-        raise NotImplementedError("Make this happen")
+    @staticmethod
+    def get_unit_sites(mouse:str, session_name:str, unit_id:int) -> pd.DataFrame:
+        rsites = Probe.get_session_sites(mouse)
+        unit_sites = (Unit & f'name="{session_name}"' & f'unit_id={unit_id}').fetch1('secondary_sites_ids')
+
+        rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
+        return rsites
 
     def make(self, key):
         recording = (Session * Recording & key).fetch1()
@@ -739,12 +760,10 @@ class Unit(dj.Imported):
         )
 
         # load behavior camera triggers
-        triggers = (BonsaiTriggers & key).fetch1()
-        validated = (ValidatedSession & key).fetch1()
-        triggers = {**triggers, **validated}
+        triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
 
         # deal with concatenated recordinds
-        if Session.has_recording(key['name']):
+        if recording['concatenated'] == 1:
             # load recordings metadata
             rec_metadata = pd.read_excel(
                 Session.recordings_metadata_path, engine="odf"
@@ -752,10 +771,11 @@ class Unit(dj.Imported):
                 
             # cut unit spikes
             pre_cut, post_cut = _recording.cut_concatenated_units(recording, triggers, rec_metadata)
-
+        else:
+            pre_cut, post_cut = None, None
         # fill in units
         for nu, unit in enumerate(units):
-            logger.debug(f"     processing unit {nu+1}/{len(units)}")
+            logger.debug(f"processing unit {nu+1}/{len(units)}")
             # enter info in main table
             unit_key = key.copy()
             unit_key["unit_id"] = unit["unit_id"]
@@ -764,7 +784,7 @@ class Unit(dj.Imported):
 
             # get adjusted spike times
             unit_spikes = _recording.get_unit_spike_times(
-                unit, triggers, ValidatedSession.analog_sampling_rate
+                unit, triggers, ValidatedSession.analog_sampling_rate, pre_cut=pre_cut, post_cut=post_cut
             )
             spikes_key = {**key.copy(), **unit_spikes}
             spikes_key["unit_id"] = unit["unit_id"]
@@ -774,10 +794,48 @@ class Unit(dj.Imported):
             self.Spikes.insert1(spikes_key)
 
 
+@schema
+class FiringRate(dj.Imported):
+    definition = """
+        # spike times in milliseconds and video frame number
+        -> Unit
+        firing_rate_std:             float  # std of gaussian kernel in ms  
+        ---
+        firing_rate_ms:              longblob
+        firing_rate:                 longblob  # in video frames number
+    """
+
+    def make(self, key):
+        unit = (Unit * Unit.Spikes & key).fetch1()
+        triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
+
+        # get firing rates
+        for frate_window in Unit.precomputed_firing_rate_windows:
+            unit_frate = _recording.get_units_firing_rate(unit, frate_window, triggers, ValidatedSession.analog_sampling_rate)
+            frate_key = {**key.copy(), **unit_frate}
+            frate_key["unit_id"] = unit["unit_id"]
+            frate_key['firing_rate_std'] = frate_window
+            del frate_key['site_id']; del frate_key['secondary_sites_ids']; del frate_key['spikes_ms']
+            del frate_key['spikes']
+
+            self.insert1(frate_key)
+            # time.sleep(5)
+
+    def check_complete(self):
+        # checks that all units have all firing rates
+        n_per_unit = len(Unit.precomputed_firing_rate_windows)
+        n_units = len(Unit())
+        expected = n_per_unit * n_units
+
+        if len(FiringRate()) != expected:
+            raise ValueError('Not all units have all firing rates  :(')
+        else:
+            logger.info('Firing rate has everything')
+
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Behavior().drop()
+    # FiringRate().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -802,7 +860,7 @@ if __name__ == "__main__":
     # CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
-    Behavior().populate(display_progress=True)
+    # Behavior().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
@@ -818,9 +876,9 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Unit")
     Unit().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
+    FiringRate().check_complete()
 
-    # TODO fix unit ms -> frame conversion
-    # TODO implement unit data extraction for concatenated sessions
     # TODO implement matching units across concatenated sessions
     # TODO code to facilitate DLC tracking
 

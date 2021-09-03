@@ -1,8 +1,9 @@
-from myterial import pink_light, blue_light, blue_grey_dark, amber, indigo_light
+from myterial import pink_light, blue_light, blue_grey_dark, amber, indigo_light, green
 
 # variables
 speed = amber
 angular_velocity = indigo_light
+global_coord = green
 
 # body parts colors
 

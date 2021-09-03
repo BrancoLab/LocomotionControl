@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from typing import Union
+from typing import Union, Tuple
 from loguru import logger
 
 from fcutils.maths.signals import get_onset_offset
@@ -16,9 +16,32 @@ KEYS = (
     "orientation",
     "direction_of_movement",
     "angular_velocity",
+    "spikes",
+    "firing_rate",
 )
 
 
+def get_bouts_tracking_stacked(tracking:Union[pd.Series, pd.DataFrame], bouts:pd.DataFrame) -> pd.DataFrame:
+    '''
+        Creates a dataframe with the tracking data of each bout stacked
+    '''
+    columns = tracking.columns if isinstance(tracking, pd.DataFrame) else tracking.index
+    results = {k:[] for k in KEYS if k in columns}
+
+    for i, bout in bouts.iterrows():
+        for key in results.keys():
+            results[key].extend(list(tracking[key][bout.start_frame:bout.end_frame]))
+    return pd.DataFrame(results)
+
+
+def pd_series_to_df(series:pd.Series) -> pd.DataFrame:
+    '''
+        Converts a series to a dataframe
+    '''
+    keys = [k for k in KEYS if k in list(series.index)]
+    return pd.DataFrame(
+        {k:series[k] for k in keys}
+    )
 
 def get_event_times(data:np.ndarray, min_pause:int, th:float = .1, debug:bool=False):
     '''
@@ -39,19 +62,29 @@ def get_event_times(data:np.ndarray, min_pause:int, th:float = .1, debug:bool=Fa
         plot_signal_and_events(data, clean_onsets, show=True)
     return clean_onsets
 
-def bin_x_by_y(data:pd.DataFrame, x:str, y:str, bins:Union[int, np.ndarray]=10):
+def bin_x_by_y(data:Union[pd.DataFrame, pd.Series], x:str, y:str, bins:Union[int, np.ndarray]=10, min_count:int=0) -> Tuple[np.ndarray, float, float, int]:
     '''
         Bins the values in a column X of a dataframe by bins
         specified based on the values of another column Y
     '''
+    if isinstance(data, pd.Series):
+        data = pd_series_to_df(data)
+
+    # get bins
     data['bins'], bins = pd.cut(data[y], bins=bins, retbins=True)
     data = data.loc[data.bins != np.nan]
+    bins_centers = bins[0] + np.cumsum(np.diff(bins)) - abs(np.diff(bins)[0]/2)
 
-    bins_centers = np.cumsum(np.diff(bins)) - np.diff(bins)[0]/2
-
+    # get values
     mu = data.groupby('bins')[x].mean()
     sigma = data.groupby('bins')[x].std()
-    return bins_centers, mu, sigma
+    counts = data.groupby('bins')[x].count()
+
+    # remove bins with values too low
+    mu[counts < min_count] = np.nan
+    sigma[counts < min_count] = np.nan
+    counts[counts < min_count] = np.nan
+    return bins_centers, mu, sigma, counts
 
 def interpolate_nans(**entries) -> dict:
     return (

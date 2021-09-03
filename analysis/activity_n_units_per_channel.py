@@ -84,7 +84,7 @@ for i, recording in recordings.iterrows():
     axes[1].set(xlabel="# units per channel", ylim=[0, 8000])
 
     clean_axes(f)
-    plt.show()
+    # plt.show()
 
     recorder.add_figures(svg=False)
     plt.close("all")

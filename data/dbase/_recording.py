@@ -5,11 +5,11 @@ from typing import Union, Tuple
 from loguru import logger
 import h5py
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter1d
 
 sys.path.append("./")
 
-from fcutils.path import files
+from fcutils.maths.signals import rolling_mean
+from fcutils.path import files, size
 
 def get_recording_filepaths(key:dict, rec_metadata:pd.DataFrame, recordings_folder:Path, rec_folder:str) -> dict:
 
@@ -88,7 +88,7 @@ def load_cluster_curation_results(
     logger.debug(f"Found {len(clusters_annotations)} single units")
 
     # load spikes data from the .csv file
-    logger.debug("Loading spikes data from CSV")
+    logger.debug(f"Loading spikes data from CSV ({size(results_csv_path)})")
     spikes = pd.read_csv(results_csv_path)
     logger.debug(f"     loaded data about {len(spikes)} spikes ({spikes.iloc[-1].spikeTimes}s)")
 
@@ -181,28 +181,63 @@ def cut_concatenated_units(recording:dict, triggers:dict, rec_metadata:pd.DataFr
     return pre_cut, post_cut
 
 
-def get_unit_firing_rate(
-    unit_spikes: dict, triggers: dict, filter_width: int, sampling_rate: int
-) -> dict:
-    """
-        Given the times at which a unit spikes, get the firing rate.
-    """
-    logger.debug(f"         getting spikerate")
-    # get raster
-    last_spike = int(unit_spikes["spikes_ms"][-1])
-    time_array = np.zeros(last_spike + 1000)
-    time_array[unit_spikes["spikes_ms"].astype(np.int64)] = 1
+# -------------------------------- firing rate ------------------------------- #
 
-    # get spike rate
-    spike_rate = gaussian_filter1d(time_array, filter_width)
 
-    # get spike rate at frame times
-    video_triggers = (triggers["trigger_times"] / sampling_rate).astype(
-        np.int64
-    )
-    spike_rate_frames = spike_rate[video_triggers]
+def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, triggers:dict, sampling_rate:int) -> Union[pd.DataFrame, dict]:
+    '''
+        Computs the firing rate of a unit by binnig spikes with bins
+        of width = frate_window milliseconds. It also samples the resulting firing rate array
+        to the firing rate at frame times
+    '''
+    # prepare arrays
+    logger.debug(f'Getting firing rate with window width {frate_window}ms')
+    trigger_times_ms = np.int32(triggers['trigger_times'] / sampling_rate * 1000)
+    trigger_times_ms[-1] = trigger_times_ms[-1] - 1
+    n_ms = int(triggers['trigger_times'][-1] / sampling_rate * 1000)
+    time_array = np.zeros(n_ms)
 
-    return dict(spikerate_ms=spike_rate[:-1000], spikerate=spike_rate_frames)
+    # check if we are dealing with a single unit
+    if isinstance(units, dict):
+        units_list = [pd.Series(units)]
+    else:
+        units_list = [unit for i,unit in units.iterrows()]
+
+    # get the expected number of bins
+    n_bins = int(np.ceil(n_ms/frate_window))
+
+    # iterate over units
+    rates, rates_frames = [], []
+    for i, unit in enumerate(units_list):
+        spikes_ms = unit.spikes_ms.astype(np.int32)
+        if spikes_ms.max() > n_ms: 
+            raise ValueError('spikes times after max duration')
+
+        # get an array with number of spikes per ms
+        spikes_ms_counts = pd.Series(spikes_ms).value_counts()
+        spikes_counts = time_array.copy()
+        spikes_counts[spikes_ms_counts.index] = spikes_ms_counts.values
+
+        # convolve with gaussian
+        spike_rate = rolling_mean(spikes_counts, frate_window)
+        if not len(spike_rate) == n_ms:
+            raise ValueError('Should be of length n milliseconds')
+
+        # get spike rate at frame times
+        spike_rate_frames = spike_rate[trigger_times_ms]
+        if len(spike_rate_frames) != len(triggers['trigger_times']):
+            raise ValueError('Mismatched array length')
+
+        rates.append(spike_rate)
+        rates_frames.append(spike_rate_frames)
+
+    units['firing_rate'] = rates_frames
+    units['firing_rate_ms'] = rates
+
+    return units
+
+    
+
 
 
 

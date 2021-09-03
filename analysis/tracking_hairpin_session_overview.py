@@ -33,16 +33,6 @@ sessions = (
     & 'arena="hairpin"'
 )
 
-def get_bouts_tracking_stacked(tracking:pd.DataFrame, bouts:pd.DataFrame) -> pd.DataFrame:
-    '''
-        Creates a dataframe with the tracking data of each bout stacked
-    '''
-    results = dict(x=[], y=[], speed=[], angular_velocity=[], orientation=[], global_coord=[])
-
-    for i, bout in bouts.iterrows():
-        for key in results.keys():
-            results[key].extend(list(tracking[key][bout.start_frame:bout.end_frame]))
-    return pd.DataFrame(results)
 
 
 for session in sessions:
@@ -64,8 +54,8 @@ for session in sessions:
     bouts = db_tables.LocomotionBouts.get_session_bouts(session['name'])
     out_bouts = bouts.loc[bouts.direction=='outbound']
     in_bouts = bouts.loc[bouts.direction=='inbound']
-    out_bouts_stacked = get_bouts_tracking_stacked(body_tracking, out_bouts)
-    in_bouts_stacked = get_bouts_tracking_stacked(body_tracking, in_bouts)
+    out_bouts_stacked = data_utils.get_bouts_tracking_stacked(body_tracking, out_bouts)
+    in_bouts_stacked = data_utils.get_bouts_tracking_stacked(body_tracking, in_bouts)
 
     # crate figure
     f = plt.figure(figsize=(24, 12))
@@ -74,9 +64,9 @@ for session in sessions:
         ABCDER
         ABCDER
         FGPHHS
-        FGPIIS
-        LMQNNT
-        LMQOOT
+        FGPIIT
+        LMQNNU
+        LMQOOV
     """
     )
     f.suptitle(session["name"])
@@ -84,7 +74,7 @@ for session in sessions:
 
     # draw tracking 2D
     visuals.plot_tracking_xy(downsampled_tracking, ax=axes['A'], plot=True, color=[.6, .6, .6], alpha=.5)
-    visuals.plot_bouts_2d(body_tracking, bouts, axes['A'], lw=q2, zorder=100)
+    visuals.plot_bouts_2d(body_tracking, bouts, axes['A'], lw=2, zorder=100)
 
     # draw tracking 1D
     visuals.plot_tracking_linearized(downsampled_tracking, ax=axes['B'], plot=True, color=[.6, .6, .6])
@@ -111,6 +101,7 @@ for session in sessions:
     visuals.plot_heatmap_2d(in_bouts_stacked, 'angular_velocity', ax=axes['P'], alpha=1, vmin=-45, vmax=45, edgecolors=grey_darker)
     visuals.plot_heatmap_2d(out_bouts_stacked, 'angular_velocity', ax=axes['Q'], alpha=1, vmin=-45, vmax=45, edgecolors=grey_darker)
 
+
     # plot speeds binned by global coords for in/out bouts
     nbins=25
     clrs=make_palette(grey_light, grey_dark, nbins-1)
@@ -120,6 +111,12 @@ for session in sessions:
     visuals.plot_bin_x_by_y(in_bouts_stacked, 'angular_velocity', 'global_coord', axes['I'], bins=np.linspace(0, 1, nbins), colors=clrs2)
     visuals.plot_bin_x_by_y(out_bouts_stacked, 'speed', 'global_coord', axes['N'], bins=np.linspace(0, 1, nbins), colors=clrs)
     visuals.plot_bin_x_by_y(out_bouts_stacked, 'angular_velocity', 'global_coord', axes['O'], bins=np.linspace(0, 1, nbins), colors=clrs2)
+
+    # plot histograms with speed and angular velocity
+    axes['S'].hist(in_bouts_stacked.speed, bins=20, color=colors.speed)
+    axes['T'].hist(in_bouts_stacked.angular_velocity, bins=20, color=colors.angular_velocity)
+    axes['U'].hist(out_bouts_stacked.speed, bins=20, color=colors.speed)
+    axes['V'].hist(out_bouts_stacked.angular_velocity, bins=20, color=colors.angular_velocity)
 
     for ax in 'IO':
         axes[ax].axhline(0, lw=1, color=[.6, .6, .6], zorder=-1)
@@ -149,15 +146,17 @@ for session in sessions:
     axes['Q'].set( xticks=[], yticks=[], xlabel='ang vel (deg/s)')
     axes['R'].set(xlabel='speed (cm/s)', ylabel='abs(ang vel) (deg/s)')
 
-    axes['S'].axis('off')
-    axes['T'].axis('off')
+    axes['S'].set(xlabel='speed (cm/s)')
+    axes['T'].set(xlabel='angular velocity (deg/s)')
+    axes['U'].set(xlabel='speed (cm/s)')
+    axes['V'].set(xlabel='angular velocity (deg/s)')
 
     for ax in "AFGLMPQ":
         axes[ax].axis('equal')
         axes[ax].set(xlim=[-5, 45], ylim=[-5, 65], xticks=[0, 40], yticks=[0, 60])
 
-    plt.show()
-    break
+    # plt.show()
+    # break
 
     recorder.add_figures(svg=False)
     plt.close("all")
