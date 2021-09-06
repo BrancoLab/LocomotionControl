@@ -78,9 +78,12 @@ class Inspector:
         # get units and recording sites
         recording = (Recording & f'name="{self.session_name}"').fetch()
         logger.info('Fetching ephys data')
-        self.units = pd.DataFrame((Unit * Unit.Spikes * FiringRate & recording & f'firing_rate_std={self.firing_rate_window}').fetch())
+        self.units = Unit.get_session_units(self.session_name, spikes=True, firing_rate=True, frate_window = self.firing_rate_window)
         self.rsites = pd.DataFrame((Probe.RecordingSite & recording).fetch())
         logger.debug(f'Found {len(self.units)} units')
+
+        ids = '\n'.join([f'unit: {unit.unit_id} in "{unit.brain_region}"' for i, unit in self.units.iterrows()])
+        logger.debug(f'Available units: \n{ids}')
 
         # get tone onsets
         self.tone_onsets = (Behavior * Behavior.Tones & f'name="{self.session_name}"').fetch1('tone_onsets')
@@ -91,8 +94,8 @@ class Inspector:
         unit:Union[bool, str, int] = None,  # False, ID of unit to show or 'all'
         firing_rate:bool=False,
         show:bool=True,
-    ):
-
+    ):  
+        # tracking
         if tracking:
             logger.info('Plotting TRACKING')
             if self.hairpin:
@@ -109,13 +112,16 @@ class Inspector:
             else:
                 raise NotImplementedError('Adjust open arena plotting code')
 
+        # probe
         if probe:
             logger.info('Plotting PROBE')
             plot_n_units_per_channel(self.session_name, self.units, self.rsites, TARGETS)
 
+        # unit ephys
         if unit is not None:
             logger.info(f'Plotting UNIT {unit}')
             plot_unit(
+                self.tracking.mouse_id,
                 self.session_name,
                 self.tracking,
                 self.bouts,
@@ -127,12 +133,15 @@ class Inspector:
                 WINDOW = self.events_window
             )
 
-            if plot_unit_firing_rate:
+             # firing rate
+            if firing_rate:
+                logger.info('Plotting firing rate')
                 if not isinstance(unit, int):
                     raise ValueError(f'Plotting firing rate only works for a single unit, cant plot it for: {unit}')
-                plot_unit_firing_rate(self.units.loc[self.units.unit_id == unit])
+                plot_unit_firing_rate(self.units.loc[self.units.unit_id == unit].iloc[0])
 
         if show:
+            logger.debug('Showing plot')
             plt.show()
 
         recorder.add_figures(svg=False)
@@ -140,10 +149,11 @@ class Inspector:
 
 
 if __name__ == '__main__':
-    insp = Inspector('FC_210714_AAA1110750_r4_hairpin')
+    insp = Inspector('FC_210714_AAA1110750_r4_hairpin',firing_rate_window=31)
     insp.plot(
         tracking = False,
         probe = False,
-        unit = 1237,
+        unit = 9,
+        firing_rate = False,
         show=True
     )

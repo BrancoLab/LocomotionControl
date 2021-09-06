@@ -27,6 +27,7 @@ base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 
 
 def plot_unit(
+            mouse_id: str,
             session_name:str,
             tracking:pd.DataFrame,
             bouts:pd.DataFrame,
@@ -51,7 +52,7 @@ def plot_unit(
         if isinstance(unit_id, int):
             if unit.unit_id != unit_id:
                 continue
-        logger.info(f'Showing unit {i+1}/{len(units)}')
+        logger.info(f'Showing activity summary for unit unit {i+1}/{len(units)} (id: {unit.unit_id} - in: "{unit.brain_region}")')
 
         # get tracking data at each spike
         tracking['firing_rate'] = unit.firing_rate
@@ -59,7 +60,6 @@ def plot_unit(
         unit_tracking['spikes'] = unit.spikes
 
         unit_vmax_frate = np.percentile(unit.firing_rate, 98)
-        logger.info(f'Firing rate 98th percentile: {unit_vmax_frate:.3f}')
 
         out_bouts_stacked = data_utils.get_bouts_tracking_stacked(tracking, out_bouts)
         in_bouts_stacked = data_utils.get_bouts_tracking_stacked(tracking, in_bouts)
@@ -113,7 +113,7 @@ def plot_unit(
         axes['H'].axvline(0, ls=':', lw=2, color=[.2, .2, .2], zorder=101)
 
         # plot probe electrodes in which there is the unit
-        visuals.plot_probe_electrodes(db_tables.Unit.get_unit_sites(session['mouse_id'], session_name, unit['unit_id']), axes['Z'], annotate_every=1, TARGETS=None, x_shift=False, s=100, lw=2)
+        visuals.plot_probe_electrodes(db_tables.Unit.get_unit_sites(mouse_id, session_name, unit['unit_id']), axes['Z'], annotate_every=1, TARGETS=None, x_shift=False, s=100, lw=2)
 
         # --------------------------------- in bouts --------------------------------- #
         # plot bouts 2d

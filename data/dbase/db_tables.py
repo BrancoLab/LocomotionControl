@@ -680,7 +680,7 @@ class Recording(dj.Imported):
 
 @schema
 class Unit(dj.Imported):
-    precomputed_firing_rate_windows = [10, 33, 100, 250, 300]
+    precomputed_firing_rate_windows = [10, 33, 100, 250, 500]
 
     definition = """
         # a single unit's spike sorted data
@@ -717,8 +717,7 @@ class Unit(dj.Imported):
                 units = _recording.get_units_firing_rate(units, frate_window, triggers, ValidatedSession.analog_sampling_rate)
             else:
                 # load pre-computed firing rates
-                frates = pd.DataFrame((Unit * FiringRate & f"name='{session_name}'" & f'firing_rate_std={frate_window}').fetch('firing_rate'))
-                units['firing_rate'] = [frates[0].values[n][0] for n in range(len(units))]
+                units['firing_rate'] = list((Unit * FiringRate & f"name='{session_name}'" & f'firing_rate_std={frate_window}').fetch('firing_rate'))
         return units
 
     def is_in_target_region(
@@ -803,13 +802,13 @@ class FiringRate(dj.Imported):
     definition = """
         # spike times in milliseconds and video frame number
         -> Unit
-        firing_rate_std:             float  # std of gaussian kernel in ms  
+        bin_width:                   float  # bin width in milliseconds
         ---
-        firing_rate_ms:              longblob
         firing_rate:                 longblob  # in video frames number
     """
 
     def make(self, key):
+        logger.info(f'Processing: {key}')
         unit = (Unit * Unit.Spikes & key).fetch1()
         triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
 
@@ -818,7 +817,7 @@ class FiringRate(dj.Imported):
             unit_frate = _recording.get_units_firing_rate(unit, frate_window, triggers, ValidatedSession.analog_sampling_rate)
             frate_key = {**key.copy(), **unit_frate}
             frate_key["unit_id"] = unit["unit_id"]
-            frate_key['firing_rate_std'] = frate_window
+            frate_key['bin_width'] = frate_window
             del frate_key['site_id']; del frate_key['secondary_sites_ids']
             del frate_key['spikes']; del frate_key['spikes_ms']
 
@@ -881,13 +880,7 @@ if __name__ == "__main__":
     logger.info("#####    Filling Unit")
     # Unit().populate(display_progress=True)
     FiringRate().populate(display_progress=True)
-    # FiringRate().check_complete()
-
-
-    # TODO behavior table add tone osnets
-    # TODO firing rate re populate
-
-    # TODO figure showing spikes raster and firing rates for different windows for each unit
+    FiringRate().check_complete()
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

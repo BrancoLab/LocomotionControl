@@ -205,12 +205,15 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
         units_list = [unit for i,unit in units.iterrows()]
 
     # define gaussian kernel
-    norm = stats.norm(0, frate_window)
-    X = np.linspace(norm.ppf(0.0001),
-                    norm.ppf(0.9999), 
-                    frate_window)
-    kernel = norm.pdf(X)
-    kernel /= np.sum(kernel)  # normalize area under the curve to 1
+    # norm = stats.norm(0, frate_window)
+    # X = np.linspace(norm.ppf(0.0001),
+    #                 norm.ppf(0.9999), 
+    #                 frate_window)
+    # kernel = norm.pdf(X)
+    # kernel /= np.sum(kernel)  # normalize area under the curve to 1
+
+    # define number of bins
+    n_bins = int(n_ms / frate_window)
 
     # iterate over units
     rates, rates_frames = [], []
@@ -219,13 +222,17 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
         if spikes_ms.max() > n_ms: 
             raise ValueError('spikes times after max duration')
 
-        # get an array with number of spikes per ms
-        spikes_ms_counts = pd.Series(spikes_ms).value_counts()
-        spikes_counts = time_array.copy()
-        spikes_counts[spikes_ms_counts.index] = spikes_ms_counts.values
 
         # convolve with gaussian
-        spike_rate = np.convolve(spikes_counts, kernel, mode='same')
+        # spike_rate = np.convolve(spikes_counts, kernel, mode='same')
+        
+        # get density with histogram
+        spikes_density, bin_edges = np.histogram(spikes_ms, n_bins, density=True)
+
+        spike_rate = time_array.copy()
+        for rate, start, end in zip(spikes_density, bin_edges, bin_edges[1:]):
+            spike_rate[int(start):int(end)] = rate
+            
         if not len(spike_rate) == n_ms:
             raise ValueError('Should be of length n milliseconds')
 
