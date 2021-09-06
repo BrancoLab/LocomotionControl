@@ -5,6 +5,7 @@ from typing import Union, Tuple
 from loguru import logger
 import h5py
 import numpy as np
+from scipy import stats
 
 sys.path.append("./")
 
@@ -203,8 +204,13 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
     else:
         units_list = [unit for i,unit in units.iterrows()]
 
-    # get the expected number of bins
-    n_bins = int(np.ceil(n_ms/frate_window))
+    # define gaussian kernel
+    norm = stats.norm(0, frate_window)
+    X = np.linspace(norm.ppf(0.0001),
+                    norm.ppf(0.9999), 
+                    frate_window)
+    kernel = norm.pdf(X)
+    kernel /= np.sum(kernel)  # normalize area under the curve to 1
 
     # iterate over units
     rates, rates_frames = [], []
@@ -219,7 +225,7 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
         spikes_counts[spikes_ms_counts.index] = spikes_ms_counts.values
 
         # convolve with gaussian
-        spike_rate = rolling_mean(spikes_counts, frate_window)
+        spike_rate = np.convolve(spikes_counts, kernel, mode='same')
         if not len(spike_rate) == n_ms:
             raise ValueError('Should be of length n milliseconds')
 
@@ -231,8 +237,12 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
         rates.append(spike_rate)
         rates_frames.append(spike_rate_frames)
 
-    units['firing_rate'] = rates_frames
-    units['firing_rate_ms'] = rates
+    if isinstance(units, dict):
+        units['firing_rate'] = rates_frames[0]
+        units['firing_rate_ms'] = rates[0]
+    else:
+        units['firing_rate'] = rates_frames
+        units['firing_rate_ms'] = rates
 
     return units
 

@@ -43,17 +43,23 @@ def pd_series_to_df(series:pd.Series) -> pd.DataFrame:
         {k:series[k] for k in keys}
     )
 
-def get_event_times(data:np.ndarray, min_pause:int, th:float = .1, debug:bool=False):
+def get_event_times(data:np.ndarray, skip_first:int=20*60, min_pause:int=5*60, th:float = .1, abs_val:bool=False, debug:bool=False):
     '''
         Given a 1D time serires it gets all the times there's a new 'stimulus' (signal going > threshold).
         It only keeps events that are at least 'min_pause' frames apart
     '''    
+    if abs_val:
+        data = np.abs(data)
     onsets = get_onset_offset(data, th=th)[0]
 
+    # skip onsets that occurred soon after the session start
+    onsets = [on for on in onsets if on > skip_first]
+
+    # keep only onsets that have a quiet time before
     clean_onsets = [onsets[0]]
     for n, onset in enumerate(onsets[1:]):
-        delta = onset - onsets[n]
-        if onset - clean_onsets[-1] > min_pause and delta > min_pause/3:
+        leading = data[onset-min_pause:onset]
+        if np.max(leading) < th/2:
             clean_onsets.append(onset)
 
     if debug:

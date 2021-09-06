@@ -30,13 +30,20 @@ def place_probe_recording_sites(
     atlas = BrainGlobeAtlas("allen_mouse_25um")
 
     # find multiple reconstructions files paths
-    rec_path = Path(probe_metadata["reconstructed_track_filepath"])
+    try:
+        rec_path = Path(probe_metadata["reconstructed_track_filepath"])
+    except  TypeError:
+        logger.warning(f'Did not find reconstructed track filepath')
+        return
+
     fld, name = rec_path.parent, rec_path.stem
     reconstruction_files = files(fld, pattern=f"{name}_*.npy")
 
     if reconstruction_files is None:
         logger.warning("Did not find any reconstruction files!")
         return
+    elif not isinstance(reconstruction_files, list):
+        reconstruction_files = [reconstruction_files]
 
     logger.debug(
         f"Identified {len(reconstruction_files)} reconstruction files"

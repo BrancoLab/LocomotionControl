@@ -26,37 +26,18 @@ base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 """
 
 
+def plot_hairpin_tracking(
+            session_name:str,
+            tracking:pd.DataFrame,
+            downsampled_tracking:pd.DataFrame,
+            bouts:pd.DataFrame,
+            out_bouts:pd.DataFrame,
+            in_bouts:pd.DataFrame,
+            out_bouts_stacked:pd.DataFrame,
+            in_bouts_stacked:pd.DataFrame,
+    ):
 
-sessions = (
-    db_tables.ValidatedSession * db_tables.Session
-    & "is_recording=1"
-    & 'arena="hairpin"'
-)
-
-
-
-for session in sessions:
-    # start a new recorder sesssion
-    recorder.start(
-        base_folder=base_folder, name=session["name"], timestamp=False
-    )
-
-    # load tracking data
-    body_tracking = db_tables.Tracking.get_session_tracking(
-        session["name"], body_only=True
-    )
-    downsampled_tracking = db_tables.Tracking.get_session_tracking(
-        session["name"], body_only=True
-    )
-    data_utils.downsample_tracking_data(downsampled_tracking, factor=10)
-
-    # get locomotion bouts
-    bouts = db_tables.LocomotionBouts.get_session_bouts(session['name'])
-    out_bouts = bouts.loc[bouts.direction=='outbound']
-    in_bouts = bouts.loc[bouts.direction=='inbound']
-    out_bouts_stacked = data_utils.get_bouts_tracking_stacked(body_tracking, out_bouts)
-    in_bouts_stacked = data_utils.get_bouts_tracking_stacked(body_tracking, in_bouts)
-
+    
     # crate figure
     f = plt.figure(figsize=(24, 12))
     axes = f.subplot_mosaic(
@@ -69,28 +50,28 @@ for session in sessions:
         LMQOOV
     """
     )
-    f.suptitle(session["name"])
+    f.suptitle(session_name)
     f._save_name = "tracking_data_2d"
 
     # draw tracking 2D
     visuals.plot_tracking_xy(downsampled_tracking, ax=axes['A'], plot=True, color=[.6, .6, .6], alpha=.5)
-    visuals.plot_bouts_2d(body_tracking, bouts, axes['A'], lw=2, zorder=100)
+    visuals.plot_bouts_2d(tracking, bouts, axes['A'], lw=2, zorder=100)
 
     # draw tracking 1D
     visuals.plot_tracking_linearized(downsampled_tracking, ax=axes['B'], plot=True, color=[.6, .6, .6])
-    visuals.plot_bouts_1d(body_tracking, bouts, axes['B'], lw=3, zorder=100)
+    visuals.plot_bouts_1d(tracking, bouts, axes['B'], lw=3, zorder=100)
 
     # plot speed aligned to bouts starts and ends
-    visuals.plot_aligned(body_tracking.speed, bouts.start_frame, axes['C'], 'after', alpha=.5)
-    visuals.plot_aligned(body_tracking.speed, bouts.end_frame, axes['D'], 'pre', alpha=.5)
+    visuals.plot_aligned(tracking.speed, bouts.start_frame, axes['C'], 'after', alpha=.5)
+    visuals.plot_aligned(tracking.speed, bouts.end_frame, axes['D'], 'pre', alpha=.5)
 
     # plot histograms of bouts durations
     axes['E'].hist(out_bouts.duration, color=colors.outbound, label='out', bins=15, alpha=.7, ec=[.2, .2, .2], histtype='stepfilled', lw=2)
     axes['E'].hist(in_bouts.duration, color=colors.inbound, label='in', bins=15, alpha=.7, ec=[.2, .2, .2], histtype='stepfilled', lw=2)
 
     # plot speed vs angular velocity
-    is_locomoting = np.where(db_tables.LocomotionBouts.is_locomoting(session['name']))[0]
-    trk = pd.DataFrame(dict(speed=body_tracking.speed[is_locomoting], angular_velocity=np.abs(body_tracking.angular_velocity[is_locomoting])))
+    is_locomoting = np.where(db_tables.LocomotionBouts.is_locomoting(session_name))[0]
+    trk = pd.DataFrame(dict(speed=tracking.speed[is_locomoting], angular_velocity=np.abs(tracking.angular_velocity[is_locomoting])))
     visuals.plot_bin_x_by_y(trk, 'angular_velocity', 'speed', axes['R'], bins=np.linspace(0, trk.speed.max(), 11), colors=grey_darker)
 
     # draw speed and orientation heatmaps during bouts
@@ -122,7 +103,7 @@ for session in sessions:
         axes[ax].axhline(0, lw=1, color=[.6, .6, .6], zorder=-1)
 
     # plot bouts centered
-    # visuals.plot_bouts_x_by_y(body_tracking, in_bouts, axes['S'], 'speed', 'global_coord')
+    # visuals.plot_bouts_x_by_y(tracking, in_bouts, axes['S'], 'speed', 'global_coord')
 
     # cleanup and save
     clean_axes(f)
@@ -154,9 +135,3 @@ for session in sessions:
     for ax in "AFGLMPQ":
         axes[ax].axis('equal')
         axes[ax].set(xlim=[-5, 45], ylim=[-5, 65], xticks=[0, 40], yticks=[0, 60])
-
-    # plt.show()
-    # break
-
-    recorder.add_figures(svg=False)
-    plt.close("all")

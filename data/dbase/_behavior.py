@@ -5,7 +5,7 @@ import pandas as pd
 from fcutils.path import size
 
 from data.dbase.io import load_bin
-
+from data import data_utils
 
 def load_session_data(session:dict, key:dict, sampling_rate:int):
     """
@@ -21,7 +21,8 @@ def load_session_data(session:dict, key:dict, sampling_rate:int):
     )
 
     # get analog inputs between frames start/end times
-    end_cut = session['trigger_times'][-1]+session["bonsai_cut_start"]
+    n_samples_per_frame= int(sampling_rate / 60)
+    end_cut = session['trigger_times'][-1]+session["bonsai_cut_start"]+n_samples_per_frame
     _analog = (
         analog[session["bonsai_cut_start"] : end_cut] / 5
     )
@@ -31,11 +32,10 @@ def load_session_data(session:dict, key:dict, sampling_rate:int):
                     speaker = _analog[:, 2])
 
     # go from samples to frame times
-    sample_every = int(sampling_rate / 60)
     for name, sample_values in analog_data.items():
-        frames_values = sample_values[::sample_every]
+        frames_values = sample_values[::n_samples_per_frame]
 
-        if not len(frames_values) != session['n_frames']:
+        if len(frames_values) != session['n_frames']:
             raise ValueError('Wrong number of frames')
         
         # add to key
@@ -84,3 +84,9 @@ def load_session_data(session:dict, key:dict, sampling_rate:int):
     )
     return key
 
+
+
+def get_tone_onsetes(key:dict, speaker_signal: np.ndarray):
+    key['tone_onsets'] = data_utils.get_event_times(speaker_signal, min_pause=5*60, th=.025, abs_val=True, debug=False)
+    return key
+    

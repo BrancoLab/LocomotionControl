@@ -13,7 +13,8 @@ from fcutils.progress import track
 import sys
 
 sys.path.append("./")
-from data.dbase import schema
+
+from data.dbase import schema, connected
 from data.dbase._tables import (
     insert_entry_in_table,
     print_table_content_to_file,
@@ -35,6 +36,8 @@ from data.dbase import (
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata
 from data import data_utils
+
+
 
 DO_RECORDINGS_ONLY = True
 
@@ -325,18 +328,12 @@ class Behavior(dj.Imported):
     """
     analog_sampling_rate = 30000  # in bonsai
 
-
-    @staticmethod
-    def get_session_onsets(session_name:str, variable:str, min_pause:int=25*60, th:float=.1):
-        '''
-            Gets all the onsets times for a variable in a sessions
-        '''
-        if variable != 'speaker':
-            raise NotImplementedError('Only tested for speaker')
-
-        data = (Behavior & f'name="{session_name}"').fetch1(variable)
-
-        return data_utils.get_event_times(data, min_pause, th, debug=False)
+    class Tones(dj.Part):
+        definition = """
+            -> Behavior
+            ---
+            tone_onsets:                 longblob  # tone onset times in frame number
+        """
 
     def make(self, key):
         """
@@ -357,11 +354,17 @@ class Behavior(dj.Imported):
         except Exception:
             logger.warning(f"Failed to fetch data for {name} - not validated?")
             return
+        else:
+            tone_key = key.copy()
 
         # load, format & insert data
         key = _behavior.load_session_data(session, key, ValidatedSession.analog_sampling_rate)
         if key is not None:
             self.insert1(key)
+
+            # get tone onsets times
+            tones_key = _behavior.get_tone_onsetes(tone_key, key['speaker'])
+            self.Tones.insert1(tones_key)
 
 
 # ---------------------------------------------------------------------------- #
@@ -622,6 +625,7 @@ class Probe(dj.Imported):
 
 
     def make(self, key):
+        logger.info(f'Getting reconstructed probe position for mouse {key["mouse_id"]}')
         metadata = get_probe_metadata(key["mouse_id"])
         if metadata is None:
             return
@@ -676,7 +680,7 @@ class Recording(dj.Imported):
 
 @schema
 class Unit(dj.Imported):
-    precomputed_firing_rate_windows = [5, 10, 33, 100, 150, 250, 500]
+    precomputed_firing_rate_windows = [10, 33, 100, 250, 300]
 
     definition = """
         # a single unit's spike sorted data
@@ -815,8 +819,8 @@ class FiringRate(dj.Imported):
             frate_key = {**key.copy(), **unit_frate}
             frate_key["unit_id"] = unit["unit_id"]
             frate_key['firing_rate_std'] = frate_window
-            del frate_key['site_id']; del frate_key['secondary_sites_ids']; del frate_key['spikes_ms']
-            del frate_key['spikes']
+            del frate_key['site_id']; del frate_key['secondary_sites_ids']
+            del frate_key['spikes']; del frate_key['spikes_ms']
 
             self.insert1(frate_key)
             # time.sleep(5)
@@ -875,12 +879,15 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
-    Unit().populate(display_progress=True)
+    # Unit().populate(display_progress=True)
     FiringRate().populate(display_progress=True)
-    FiringRate().check_complete()
+    # FiringRate().check_complete()
 
-    # TODO implement matching units across concatenated sessions
-    # TODO code to facilitate DLC tracking
+
+    # TODO behavior table add tone osnets
+    # TODO firing rate re populate
+
+    # TODO figure showing spikes raster and firing rates for different windows for each unit
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

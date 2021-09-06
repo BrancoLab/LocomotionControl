@@ -11,15 +11,14 @@ from myterial import blue_grey, blue_grey_dark, grey_darker, pink_dark, blue
 
 from data import colors, data_utils
 from analysis._visuals import get_window_ticks
-from analysis.decorators import log_function_call
 
 
 # ----------------------------------- misc ----------------------------------- #
-@log_function_call
+
 def regplot(data:Union[pd.DataFrame, pd.Series, dict], x:str, y:str, ax:plt.axis, scatter_sample:int=10, **kwargs):
     ax.scatter(data[x][::scatter_sample], data[y][::scatter_sample], **kwargs)
 
-@log_function_call
+
 def plot_balls_errors(
     x: np.ndarray, y: np.ndarray, yerr: np.ndarray, ax: plt.axis,s:int=150, colors: Union[list, str]=None
 ):
@@ -54,7 +53,7 @@ def plot_balls_errors(
                 solid_capstyle="round",
             )
 
-@log_function_call
+
 def plot_bin_x_by_y(
                 data:pd.DataFrame,
                 x:str,
@@ -82,7 +81,7 @@ def plot_bin_x_by_y(
         plot_balls_errors(
             bins, counts, None, ax, **kwargs
         )
-@log_function_call
+
 def plot_aligned(
     x: np.ndarray,
     indices:Union[np.ndarray, list],
@@ -130,7 +129,7 @@ def plot_aligned(
     ax.axvline(pre, lw=2, color=blue_grey_dark, zorder=-1)
 
     ax.set(**get_window_ticks(window, shifted=False))
-@log_function_call
+
 def plot_heatmap_2d(
     data:pd.DataFrame,
     key:str=None,
@@ -151,7 +150,7 @@ def plot_heatmap_2d(
 
 # ---------------------------------------------------------------------------- #
 #                                     EPHSY                                    #
-@log_function_call# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
 def plot_probe_electrodes(
     rsites: pd.DataFrame, ax: plt.axis, TARGETS: list = [], annotate_every: int=5, x_shift:bool=True, s:int=25, lw:float=0.25,
 ):
@@ -189,7 +188,7 @@ def plot_probe_electrodes(
                 color=colors[i],
             )
     ax.set(xlim=[0.5, 1.25], ylabel="probe coordinates (um)")
-@log_function_call
+
 def plot_raster(spikes:np.ndarray, events:Union[np.ndarray, list], ax:plt.axis, window:int=120, s=5, color=grey_darker, kde:bool=True, bw:int=6, **kwargs):
     '''
         Plots a raster plot of spikes aligned to timestamps events
@@ -217,7 +216,7 @@ def plot_raster(spikes:np.ndarray, events:Union[np.ndarray, list], ax:plt.axis, 
 # ---------------------------------------------------------------------------- #
 #                                   TRACKING                                   #
 # ---------------------------------------------------------------------------- #
-@log_function_call# -------------------------------- linearized -------------------------------- #
+# -------------------------------- linearized -------------------------------- #
 def plot_tracking_linearized(
     tracking: Union[dict, pd.DataFrame],
     ax: plt.axis = None,
@@ -234,7 +233,7 @@ def plot_tracking_linearized(
     else:
         ax.plot(x,y, **kwargs)
 
-@log_function_call
+
 def plot_bouts_1d(
     tracking: Union[dict, pd.DataFrame],
     bouts: pd.DataFrame,
@@ -262,7 +261,7 @@ def plot_bouts_1d(
         ax.scatter(_x[0], _y[0], color='white', lw=1, ec=colors.bout_direction_colors[bout.direction], s=30, zorder=101, alpha=.85, **kwargs)
         ax.scatter(_x[-1], _y[-1], color=[.2, .2, .2], lw=1, ec=colors.bout_direction_colors[bout.direction], s=30, zorder=101, alpha=.85, **kwargs)
 
-@log_function_call# ------------------------------------ 2D ------------------------------------ #
+# ------------------------------------ 2D ------------------------------------ #
 def plot_tracking_xy(
     tracking: Union[dict, pd.DataFrame],
     key: str = None,
@@ -308,7 +307,7 @@ def plot_tracking_xy(
 # ---------------------------------------------------------------------------- #
 #                                     BOUTS                                    #
 # ---------------------------------------------------------------------------- #
-@log_function_call
+
 def plot_bouts_2d(
     tracking: Union[dict, pd.DataFrame],
     bouts: pd.DataFrame,
@@ -351,7 +350,7 @@ def plot_bouts_2d(
                 s=15, zorder=101, color=unit.color
             )
 
-@log_function_call
+
 def plot_bouts_aligned(
     tracking: Union[dict, pd.DataFrame],
     bouts: pd.DataFrame,
@@ -379,7 +378,7 @@ def plot_bouts_aligned(
 
         ax.plot(xy[:, 0], xy[:, 1], color=color, **kwargs)
 
-@log_function_call
+
 def plot_bouts_x(
     tracking_data:pd.DataFrame,
     bouts:pd.DataFrame,
@@ -393,7 +392,7 @@ def plot_bouts_x(
     '''
     for i, bout in bouts.iterrows():
         ax.plot(tracking_data[variable][bout.start_frame:bout.end_frame], color=color, **kwargs)
-@log_function_call
+
 def plot_bouts_x_by_y(
     tracking_data:pd.DataFrame,
     bouts:pd.DataFrame,
@@ -410,7 +409,7 @@ def plot_bouts_x_by_y(
         ax.plot(tracking_data[x][bout.start_frame:bout.end_frame], tracking_data[y][bout.start_frame:bout.end_frame], color=color, **kwargs)
 
 
-@log_function_call
+
 def plot_bouts_heatmap_2d(
     tracking_data:pd.DataFrame,
     bouts:pd.DataFrame,

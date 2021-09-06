@@ -2,6 +2,7 @@ import sys
 from tpd import recorder
 import matplotlib.pyplot as plt
 import pandas as pd
+from typing import Union
 import numpy as np
 from loguru import logger
 
@@ -22,59 +23,46 @@ base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 
 
 
-WINDOW: int = int(3 * 60)  # window in seconds around events (e.g. for raster plots)
+  # window in seconds around events (e.g. for raster plots)
 
 
-sessions = (
-    db_tables.ValidatedSession * db_tables.Session
-    & "is_recording=1"
-    & 'arena="hairpin"'
-)
+def plot_unit(
+            session_name:str,
+            tracking:pd.DataFrame,
+            bouts:pd.DataFrame,
+            out_bouts:pd.DataFrame,
+            in_bouts:pd.DataFrame,
+            units:pd.DataFrame,
+            unit_id:Union[int, str],
+            tone_onsets:np.ndarray,
+            WINDOW: int
+    ):
 
 
-for session in sessions:
-    # start a new recorder sesssion
-    recorder.start(
-        base_folder=base_folder, name=session["name"], timestamp=False
-    )
-
-    # load tracking data
-    body_tracking = db_tables.Tracking.get_session_tracking(
-        session["name"], body_only=True
-    )
-    frames =np.arange(0, len(body_tracking.x), 60*60*5)
+    
+    frames = np.arange(0, len(tracking.x), 60*60*5)
     time = (frames / 60 / 60).astype(np.int32)
-
-    downsampled_tracking = db_tables.Tracking.get_session_tracking(
-        session["name"], body_only=True
-    )
-    data_utils.downsample_tracking_data(downsampled_tracking, factor=10)
-
-    # get locomotion bouts
-    bouts = db_tables.LocomotionBouts.get_session_bouts(session['name'])
-    out_bouts = bouts.loc[bouts.direction=='outbound']
-    in_bouts = bouts.loc[bouts.direction=='inbound']
-
-    # get spikes data
-    units = db_tables.Unit.get_session_units(session['name'], spikes=True, firing_rate=True, frate_window=500)
-
-    # get tone onset times
-    tone_onsets = db_tables.Behavior.get_session_onsets(session['name'], 'speaker')
-    logger.debug(f'Found {len(tone_onsets)} tones in session')
+    
+    if isinstance(unit_id, int):
+        if unit_id not in units.unit_id.values:
+            raise ValueError(f'Unit id {unit_id} not in units list:\n{units}')
 
     for i, unit in units.iterrows():
+        if isinstance(unit_id, int):
+            if unit.unit_id != unit_id:
+                continue
         logger.info(f'Showing unit {i+1}/{len(units)}')
 
         # get tracking data at each spike
-        body_tracking['firing_rate'] = unit.firing_rate
-        unit_tracking = data_utils.select_by_indices(body_tracking, unit.spikes)
+        tracking['firing_rate'] = unit.firing_rate
+        unit_tracking = data_utils.select_by_indices(tracking, unit.spikes)
         unit_tracking['spikes'] = unit.spikes
 
         unit_vmax_frate = np.percentile(unit.firing_rate, 98)
         logger.info(f'Firing rate 98th percentile: {unit_vmax_frate:.3f}')
 
-        out_bouts_stacked = data_utils.get_bouts_tracking_stacked(body_tracking, out_bouts)
-        in_bouts_stacked = data_utils.get_bouts_tracking_stacked(body_tracking, in_bouts)
+        out_bouts_stacked = data_utils.get_bouts_tracking_stacked(tracking, out_bouts)
+        in_bouts_stacked = data_utils.get_bouts_tracking_stacked(tracking, in_bouts)
 
         # crate figure
         f = plt.figure(figsize=(24, 12))
@@ -88,17 +76,17 @@ for session in sessions:
             MTNOQZ
         """
         )
-        f.suptitle(session["name"]+f"unit {unit.unit_id} {unit.brain_region}")
+        f.suptitle(session_name+f"unit {unit.unit_id} {unit.brain_region}")
         f._save_name = f"unit_{unit.unit_id}_{unit.brain_region}"
 
 
         # plot spikes against tracking, speed and angular velocity
         visuals.plot_heatmap_2d(unit_tracking, 'spikes', axes['A'], cmap='inferno', vmax=None)
         
-        axes['B'].plot(body_tracking.speed, color=blue_grey, lw=2)
+        axes['B'].plot(tracking.speed, color=blue_grey, lw=2)
         axes['B'].scatter(unit.spikes, unit_tracking.speed, color=colors.speed, s=5, zorder=11)
 
-        axes['C'].plot(body_tracking.angular_velocity, color=blue_grey, lw=2)
+        axes['C'].plot(tracking.angular_velocity, color=blue_grey, lw=2)
         axes['C'].scatter(unit.spikes, unit_tracking.angular_velocity, color=colors.angular_velocity, s=5, zorder=11)
 
         # plot spikes heatmap
@@ -106,30 +94,30 @@ for session in sessions:
 
         # plot spikes raster around tone onsets
         visuals.plot_raster(unit.spikes, tone_onsets, axes['D'], window=WINDOW)
-        visuals.plot_aligned(body_tracking.firing_rate, tone_onsets, axes['E'], 'aft', color = blue_grey, lw=1, alpha=.85, window=WINDOW)
+        visuals.plot_aligned(tracking.firing_rate, tone_onsets, axes['E'], 'aft', color = blue_grey, lw=1, alpha=.85, window=WINDOW)
 
         # plot spike rasters at bouts onsets and offsets
         visuals.plot_raster(unit.spikes, bouts.start_frame, axes['I'], window=WINDOW)
-        visuals.plot_aligned(body_tracking.firing_rate, bouts.start_frame, axes['L'], 'aft', color = blue_grey, lw=1, alpha=.85, window=WINDOW)
+        visuals.plot_aligned(tracking.firing_rate, bouts.start_frame, axes['L'], 'aft', color = blue_grey, lw=1, alpha=.85, window=WINDOW)
 
         visuals.plot_raster(unit.spikes, bouts.end_frame, axes['P'], window=WINDOW)
-        visuals.plot_aligned(body_tracking.firing_rate, bouts.end_frame, axes['Q'], 'pre', color = blue_grey, lw=1, alpha=.85, window=WINDOW)
+        visuals.plot_aligned(tracking.firing_rate, bouts.end_frame, axes['Q'], 'pre', color = blue_grey, lw=1, alpha=.85, window=WINDOW)
 
         # plot firing rate by speed and angular velocity
         # plot firing rate binned by speed and angular velocity
-        visuals.plot_bin_x_by_y(body_tracking, 'firing_rate', 'speed', axes['U'], colors=colors.speed, bins=10, min_count=10, s=50)
-        visuals.plot_heatmap_2d(body_tracking, x_key='speed', y_key='firing_rate', ax=axes['U'], vmax=None, zorder=-10, alpha=.5, cmap='inferno', linewidths=0, gridsize=20)
+        visuals.plot_bin_x_by_y(tracking, 'firing_rate', 'speed', axes['U'], colors=colors.speed, bins=10, min_count=10, s=50)
+        visuals.plot_heatmap_2d(tracking, x_key='speed', y_key='firing_rate', ax=axes['U'], vmax=None, zorder=-10, alpha=.5, cmap='inferno', linewidths=0, gridsize=20)
 
-        visuals.plot_bin_x_by_y(body_tracking, 'firing_rate', 'angular_velocity', axes['V'], colors=colors.angular_velocity, bins=10, min_count=10, s=50)
-        visuals.plot_heatmap_2d(body_tracking, x_key='angular_velocity', y_key='firing_rate', ax=axes['V'], vmax=None, zorder=-10, alpha=.5, cmap='inferno', linewidths=0, gridsize=20)
+        visuals.plot_bin_x_by_y(tracking, 'firing_rate', 'angular_velocity', axes['V'], colors=colors.angular_velocity, bins=10, min_count=10, s=50)
+        visuals.plot_heatmap_2d(tracking, x_key='angular_velocity', y_key='firing_rate', ax=axes['V'], vmax=None, zorder=-10, alpha=.5, cmap='inferno', linewidths=0, gridsize=20)
         axes['H'].axvline(0, ls=':', lw=2, color=[.2, .2, .2], zorder=101)
 
         # plot probe electrodes in which there is the unit
-        visuals.plot_probe_electrodes(db_tables.Unit.get_unit_sites(session['mouse_id'], session["name"], unit['unit_id']), axes['Z'], annotate_every=1, TARGETS=None, x_shift=False, s=100, lw=2)
+        visuals.plot_probe_electrodes(db_tables.Unit.get_unit_sites(session['mouse_id'], session_name, unit['unit_id']), axes['Z'], annotate_every=1, TARGETS=None, x_shift=False, s=100, lw=2)
 
         # --------------------------------- in bouts --------------------------------- #
         # plot bouts 2d
-        visuals.plot_bouts_heatmap_2d(body_tracking, in_bouts, 'firing_rate', axes['F'], vmax=unit_vmax_frate)
+        visuals.plot_bouts_heatmap_2d(tracking, in_bouts, 'firing_rate', axes['F'], vmax=unit_vmax_frate)
 
         # plot firing rate binned by global coordinates
         visuals.plot_bin_x_by_y(in_bouts_stacked, 'firing_rate', 'global_coord', axes['S'], colors=colors.global_coord, bins=10, min_count=10, s=50)
@@ -144,7 +132,7 @@ for session in sessions:
         axes['H'].axvline(0, ls=':', lw=2, color=[.2, .2, .2], zorder=101)
 
         # --------------------------------- out bouts -------------------------------- #
-        visuals.plot_bouts_heatmap_2d(body_tracking, out_bouts, 'firing_rate', axes['M'],vmax=unit_vmax_frate)
+        visuals.plot_bouts_heatmap_2d(tracking, out_bouts, 'firing_rate', axes['M'],vmax=unit_vmax_frate)
 
         # plot firing rate binned by global coordinates
         visuals.plot_bin_x_by_y(out_bouts_stacked, 'firing_rate', 'global_coord', axes['T'], colors=colors.global_coord, bins=10, min_count=10, s=50)
@@ -189,11 +177,3 @@ for session in sessions:
         for ax in 'ARFM':
             axes[ax].axis('equal')
             axes[ax].set(xlim=[-5, 45], xticks=[0, 40], ylim=[-5, 65], yticks=[0, 60])
-
-        plt.show()
-        # break
-
-        # recorder.add_figures(svg=False)
-        # plt.close("all")
-
-    break
