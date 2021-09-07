@@ -11,9 +11,9 @@ sys.path.append("./")
 from tpd import recorder
 
 
-from data.dbase.db_tables import Probe, Unit, Recording, Tracking, LocomotionBouts, Session, Behavior, Tones
+from data.dbase.db_tables import Probe, Unit, Recording, Tracking, LocomotionBouts, Session, Probe, Tones
 from data import data_utils
-from analysis.exploratory_plots import plot_n_units_per_channel, plot_hairpin_tracking,  plot_unit, plot_unit_firing_rate
+from analysis.exploratory_plots import plot_n_units_per_channel, plot_hairpin_tracking,  plot_unit, plot_unit_firing_rate, render_probe_3d
 '''
     Inspects the data from one recording session. Can plot:
         - tracking data
@@ -80,7 +80,6 @@ class Inspector:
         self.out_bouts_stacked = data_utils.get_bouts_tracking_stacked(self.tracking, self.out_bouts)
         self.in_bouts_stacked = data_utils.get_bouts_tracking_stacked(self.tracking, self.in_bouts)
 
-
         # get units and recording sites
         recording = (Recording & f'name="{self.session_name}"').fetch()
         logger.info('Fetching ephys data')
@@ -123,6 +122,7 @@ class Inspector:
         if probe:
             logger.info('Plotting PROBE')
             plot_n_units_per_channel(self.session_name, self.units, self.rsites, TARGETS)
+            render_probe_3d(self.rsites, self.base_folder / self.session_name)
 
         # unit ephys
         if unit is not None:
@@ -163,8 +163,8 @@ if __name__ == '__main__':
     insp = Inspector('FC_210714_AAA1110750_r4_hairpin', firing_rate_window=250, events_window_s=5)
     insp.plot(
         tracking = False,
-        probe = False,
-        unit = 'all',
+        probe = True,
+        unit = None,
         firing_rate = False,
         show=False
     )
