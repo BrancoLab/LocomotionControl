@@ -1,4 +1,4 @@
-from myterial import pink_light, blue_light, blue_grey_dark, amber, indigo_light, green, orange, salmon, indigo_dark, blue_dark
+from myterial import pink_light, blue_light, blue_grey_dark, amber, indigo_light, green, orange, salmon, indigo_dark, blue_dark, purple
 
 # variables
 
@@ -11,11 +11,14 @@ moving = orange
 walking = salmon
 turning_left = indigo_dark
 turning_right = blue_dark
+tone_on = purple
+
 movements = dict(
     moving = moving,
     walking = walking,
     turning_left = turning_left,
     turning_right = turning_right,
+    tone_on = tone_on,
 )
 
 # body parts colors

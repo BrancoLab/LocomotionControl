@@ -11,7 +11,7 @@ sys.path.append("./")
 from tpd import recorder
 
 
-from data.dbase.db_tables import Probe, Unit, Recording, Tracking, LocomotionBouts, Session, Behavior
+from data.dbase.db_tables import Probe, Unit, Recording, Tracking, LocomotionBouts, Session, Behavior, Tones
 from data import data_utils
 from analysis.exploratory_plots import plot_n_units_per_channel, plot_hairpin_tracking,  plot_unit, plot_unit_firing_rate
 '''
@@ -67,6 +67,9 @@ class Inspector:
         )
         data_utils.downsample_tracking_data(self.downsampled_tracking, factor=10)
 
+        # get when the tone is one
+        self.tracking['tone_on'] = Tones.get_session_tone_on(self.session_name)
+
         # get locomotion bouts
         logger.info('Fetching locomotion bouts')
         self.bouts = LocomotionBouts.get_session_bouts(self.session_name)
@@ -89,7 +92,7 @@ class Inspector:
         logger.debug(f'Available units: \n{ids}')
 
         # get tone onsets
-        self.tone_onsets = (Behavior * Behavior.Tones & f'name="{self.session_name}"').fetch1('tone_onsets')
+        self.tone_onsets = (Tones & f'name="{self.session_name}"').fetch1('tone_onsets')
 
     def plot(self,
         tracking:bool = False,
@@ -157,11 +160,11 @@ class Inspector:
 
 
 if __name__ == '__main__':
-    insp = Inspector('FC_210714_AAA1110750_r4_hairpin', firing_rate_window=500, events_window_s=5)
+    insp = Inspector('FC_210714_AAA1110750_r4_hairpin', firing_rate_window=250, events_window_s=5)
     insp.plot(
         tracking = False,
         probe = False,
-        unit = 28,
+        unit = 'all',
         firing_rate = False,
-        show=True
+        show=False
     )

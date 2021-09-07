@@ -360,8 +360,15 @@ class Tones(dj.Computed):
         tone_onsets:                 longblob  # tone onset times in frame number
         tone_offsets:                longblob
     """
-    # @staticmethod
-    # def get_session_tone_on(session_name:str) -> np.ndarray:
+    @staticmethod
+    def get_session_tone_on(session_name:str) -> np.ndarray:
+        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1('n_frames')
+        tone_on = np.zeros(n_frames)
+
+        session_tone = (Tones & f'name="{session_name}"').fetch1()
+        for on, off in zip(session_tone['tone_onsets'], session_tone['tone_offsets']):
+            tone_on[on:off] = 1
+        return tone_on
 
     def make(self, key):
         speaker = (Behavior & key).fetch1('speaker')
@@ -369,15 +376,13 @@ class Tones(dj.Computed):
         # get tone onsets/offsets times
         key['tone_onsets'], key['tone_offsets'] = data_utils.get_event_times(
                         speaker, 
-                        min_pause=3*60,
-                        min_duration = 4*60,
-                        max_duration=20*60,
-                        th=.025,
+                        kernel_size=211,
+                        th=.005,
                         abs_val=True,
-                        debug=True,
+                        debug=False,
                         shift=1)
 
-        # self.insert1(key)
+        self.insert1(key)
 
 
 # ---------------------------------------------------------------------------- #
@@ -884,7 +889,7 @@ class FiringRate(dj.Imported):
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Behavior().drop()
+    # Tones().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #

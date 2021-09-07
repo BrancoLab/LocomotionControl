@@ -3,11 +3,12 @@ from typing import Union
 import pandas as pd
 import numpy as np
 from loguru import logger
+from scipy.stats import sem
 
 
 from fcutils.plot.distributions import plot_kde
 from fcutils.plot.elements import plot_mean_and_error
-from myterial import blue_grey, blue_grey_dark, grey_darker, pink_dark, blue, grey_dark
+from myterial import blue_grey, blue_grey_dark, grey_darker, pink_dark, blue
 
 from data import colors, data_utils
 from analysis._visuals import get_window_ticks
@@ -216,12 +217,12 @@ def plot_avg_firing_rate_based_on_movement(tracking:pd.DataFrame, unit:pd.Series
     '''
         Plots a units average firing rate during different kinds of movements
     '''
-    movements = ('moving', 'walking', 'turning_left', 'turning_right')
+    movements = ('moving', 'walking', 'turning_left', 'turning_right', 'tone_on')
     for n, movement in enumerate(movements):
         left = unit.firing_rate[tracking[movement] == 0].mean()
-        left_std = unit.firing_rate[tracking[movement] == 0].std()
+        left_std = sem(unit.firing_rate[tracking[movement] == 0])
         right = unit.firing_rate[tracking[movement] == 1].mean()
-        right_std = unit.firing_rate[tracking[movement] == 1].std()
+        right_std = sem(unit.firing_rate[tracking[movement] == 1])
 
         plot_balls_errors(
             [n-.25, n+.25], [left, right], [left_std, right_std], ax, s=150, colors=colors.movements[movement]
