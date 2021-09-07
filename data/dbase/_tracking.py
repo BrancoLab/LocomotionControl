@@ -160,3 +160,24 @@ def process_tracking_data(
         raise ValueError("Incoherent number of frames between data suorces")
 
     return key, body_parts_tracking, len(orientation)
+
+
+def get_movements(key:dict, tracking:pd.DataFrame, moving_threshold:float, turning_threshold:float) -> dict:
+    '''
+        Creates array indicating when the mouse is doing different kinds of movements
+    '''
+    base_array = np.zeros_like(tracking.x)
+
+    # get when moving
+    key['moving'] = base_array.copy()
+    key['moving'][np.where(tracking.speed > moving_threshold)[0]] = 1
+
+    # get when turning left
+    key['turning_left'] = base_array.copy()
+    key['turning_left'][np.where(tracking.angular_velocity > turning_threshold)[0]] = 1
+
+    # get when turning right
+    key['turning_right'] = base_array.copy()
+    key['turning_right'][np.where(tracking.angular_velocity < -turning_threshold)[0]] = 1
+
+    return key

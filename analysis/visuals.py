@@ -7,7 +7,7 @@ from loguru import logger
 
 from fcutils.plot.distributions import plot_kde
 from fcutils.plot.elements import plot_mean_and_error
-from myterial import blue_grey, blue_grey_dark, grey_darker, pink_dark, blue
+from myterial import blue_grey, blue_grey_dark, grey_darker, pink_dark, blue, grey_dark
 
 from data import colors, data_utils
 from analysis._visuals import get_window_ticks
@@ -102,11 +102,11 @@ def plot_aligned(
     if mode == 'pre':
         pre_c, pre_lw = kwargs.pop('color', 'salmon'), kwargs.pop('lw', 2)
         aft_c, aft_lw = blue_grey, 1
-        ax.axvspan(0, pre, fc=blue, alpha=.1, zorder=-20)
+        ax.axvspan(0, pre, fc=blue, alpha=.25, zorder=-20)
     else:
         aft_c, aft_lw = kwargs.pop('color', 'salmon'), kwargs.pop('lw', 2)
         pre_c, pre_lw = blue_grey, 1
-        ax.axvspan(aft, window, fc=blue, alpha=.1, zorder=-20)
+        ax.axvspan(aft, window, fc=blue, alpha=.25, zorder=-20)
 
 
     # plot each trace 
@@ -131,14 +131,14 @@ def plot_aligned(
     ax.set(**get_window_ticks(window, shifted=False))
 
 def plot_heatmap_2d(
-    data:pd.DataFrame,
+    data:Union[dict, pd.DataFrame],
     key:str=None,
     ax:plt.axis=None,
     x_key:str='x',
     y_key:str='y',
     cmap:str='inferno',
     vmin:int=0,
-    vmax:int=100,
+    vmax:int=None,
     gridsize:int=30,
     mincnt:int = 1,
     **kwargs,
@@ -195,7 +195,7 @@ def plot_raster(spikes:np.ndarray, events:Union[np.ndarray, list], ax:plt.axis, 
 
         It assumes that all event and spike times are in frames and framerate is 60
     '''
-    half_window, quarter_window = window/2, window/4
+    half_window = window/2
     yticks_step = int(len(events) / 8)
     X = []
     for n, event in enumerate(events):
@@ -211,6 +211,23 @@ def plot_raster(spikes:np.ndarray, events:Union[np.ndarray, list], ax:plt.axis, 
 
     # set x axis properties
     ax.set(yticks=np.arange(0, len(events), yticks_step), ylabel='event number', **get_window_ticks(window))
+
+def plot_avg_firing_rate_based_on_movement(tracking:pd.DataFrame, unit:pd.Series, ax:plt.axis):
+    '''
+        Plots a units average firing rate during different kinds of movements
+    '''
+    movements = ('moving', 'walking', 'turning_left', 'turning_right')
+    for n, movement in enumerate(movements):
+        left = unit.firing_rate[tracking[movement] == 0].mean()
+        left_std = unit.firing_rate[tracking[movement] == 0].std()
+        right = unit.firing_rate[tracking[movement] == 1].mean()
+        right_std = unit.firing_rate[tracking[movement] == 1].std()
+
+        plot_balls_errors(
+            [n-.25, n+.25], [left, right], [left_std, right_std], ax, s=150, colors=colors.movements[movement]
+        )
+    ax.set(xticks=np.arange(len(movements)), xticklabels=movements, ylabel='avg firing rate')
+
 
 
 # ---------------------------------------------------------------------------- #

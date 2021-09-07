@@ -492,7 +492,7 @@ class Tracking(dj.Imported):
 
     @staticmethod
     def get_session_tracking(session_name, body_only=True):
-        query = Tracking * Tracking.BodyPart & f'name="{session_name}"'
+        query = Tracking * Tracking.BodyPart * Movement & f'name="{session_name}"'
 
         if body_only:
             query = query & f"bpname='body'"
@@ -586,6 +586,39 @@ class LocomotionBouts(dj.Imported):
         # insert in table
         for bout in bouts:
             self.insert1(bout)
+
+
+@schema
+class Movement(dj.Imported):
+    turning_threshold: float = 20  # deg/sec
+    moving_threshold:  float = 2.5  # cm/sec
+
+    
+
+    definition = """
+        # stores information about when the mouse is doing certain types of movements
+        -> ValidatedSession
+        ---
+        moving:         longblob  # moving but not necessarily walking
+        walking:        longblob  # 1 when the mouse is walking
+        turning_left:   longblob
+        turning_right:  longblob
+    """
+
+    def make(self, key):
+        '''
+            Gets arrays indicating when the mouse id doing certain kinds of movements
+        '''
+        # get data
+        tracking = Tracking.get_session_tracking(key['name'])
+
+        # get when walking
+        key['walking'] = LocomotionBouts.is_locomoting(key['name'])
+
+        # get other movements
+        key = _tracking.get_movements(key, tracking, self.moving_threshold, self.turning_threshold)
+
+        self.insert1(key)
 
 
 # ---------------------------------------------------------------------------- #
@@ -717,7 +750,7 @@ class Unit(dj.Imported):
                 units = _recording.get_units_firing_rate(units, frate_window, triggers, ValidatedSession.analog_sampling_rate)
             else:
                 # load pre-computed firing rates
-                units['firing_rate'] = list((Unit * FiringRate & f"name='{session_name}'" & f'firing_rate_std={frate_window}').fetch('firing_rate'))
+                units['firing_rate'] = list((query * FiringRate & f'bin_width={frate_window}').fetch('firing_rate'))
         return units
 
     def is_in_target_region(
@@ -802,15 +835,15 @@ class FiringRate(dj.Imported):
     definition = """
         # spike times in milliseconds and video frame number
         -> Unit
-        bin_width:                   float  # bin width in milliseconds
+        bin_width:                   float  # std of gaussian kernel in milliseconds
         ---
         firing_rate:                 longblob  # in video frames number
     """
 
     def make(self, key):
-        logger.info(f'Processing: {key}')
         unit = (Unit * Unit.Spikes & key).fetch1()
         triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
+        logger.info(f'Processing: {unit}')
 
         # get firing rates
         for frate_window in Unit.precomputed_firing_rate_windows:
@@ -871,6 +904,9 @@ if __name__ == "__main__":
     logger.info("#####    Filling LocomotionBouts")
     # LocomotionBouts().populate(display_progress=True)
 
+    logger.info("#####    Filling Movemnt")
+    Movement().populate(display_progress=True)
+
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
 
@@ -879,8 +915,11 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Unit")
     # Unit().populate(display_progress=True)
-    FiringRate().populate(display_progress=True)
-    FiringRate().check_complete()
+    # FiringRate().populate(display_progress=True)
+    # FiringRate().check_complete()
+
+    # TODO re populate BEHAV with tone off times
+    # TODO behav get tone_on for session
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
@@ -895,6 +934,7 @@ if __name__ == "__main__":
         Probe.RecordingSite,
         Unit,
         LocomotionBouts,
+        Movement,
     ]
     NAMES = [
         "Mouse",
@@ -907,6 +947,7 @@ if __name__ == "__main__":
         "RecordingSite",
         "Unit",
         "LocomotionBouts",
+        "Movement",
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)

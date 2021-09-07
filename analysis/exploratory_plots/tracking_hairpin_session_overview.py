@@ -15,7 +15,7 @@ from analysis import visuals
 from analysis._visuals import move_figure
 
 from data.dbase import db_tables
-from data import data_utils, colors
+from data import colors
 
 base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 
@@ -33,6 +33,7 @@ def plot_hairpin_tracking(
             bouts:pd.DataFrame,
             out_bouts:pd.DataFrame,
             in_bouts:pd.DataFrame,
+            bouts_stacked:pd.DataFrame,
             out_bouts_stacked:pd.DataFrame,
             in_bouts_stacked:pd.DataFrame,
     ):
@@ -42,12 +43,12 @@ def plot_hairpin_tracking(
     f = plt.figure(figsize=(24, 12))
     axes = f.subplot_mosaic(
         """
-        ABCDER
-        ABCDER
-        FGPHHS
-        FGPIIT
-        LMQNNU
-        LMQOOV
+        ABCDERX
+        ABCDERX
+        FGPHHSY
+        FGPIITY
+        LMQNNUW
+        LMQOOVW
     """
     )
     f.suptitle(session_name)
@@ -69,10 +70,17 @@ def plot_hairpin_tracking(
     axes['E'].hist(out_bouts.duration, color=colors.outbound, label='out', bins=15, alpha=.7, ec=[.2, .2, .2], histtype='stepfilled', lw=2)
     axes['E'].hist(in_bouts.duration, color=colors.inbound, label='in', bins=15, alpha=.7, ec=[.2, .2, .2], histtype='stepfilled', lw=2)
 
-    # plot speed vs angular velocity
-    is_locomoting = np.where(db_tables.LocomotionBouts.is_locomoting(session_name))[0]
-    trk = pd.DataFrame(dict(speed=tracking.speed[is_locomoting], angular_velocity=np.abs(tracking.angular_velocity[is_locomoting])))
-    visuals.plot_bin_x_by_y(trk, 'angular_velocity', 'speed', axes['R'], bins=np.linspace(0, trk.speed.max(), 11), colors=grey_darker)
+    # plot histograms of speed and angular velocity distribution
+    axes['X'].hist(tracking.speed, bins=50, color=colors.speed, density=True)
+    axes['X'].axvline(db_tables.Movement.moving_threshold, lw=2, ls='--', color=grey_dark, zorder=100)
+    axes['Y'].hist(tracking.angular_velocity, bins=50, color=colors.angular_velocity, density=True)
+    axes['Y'].axvline(db_tables.Movement.turning_threshold, lw=2, ls='--', color=grey_dark, zorder=100)
+    axes['Y'].axvline(-db_tables.Movement.turning_threshold, lw=2, ls='--', color=grey_dark, zorder=100)
+
+    # plot speed vs angular velocity inn all data and during botus only
+    trk = dict(speed=tracking.speed[tracking.moving==1], angular_velocity=tracking.angular_velocity[tracking.moving==1])
+    visuals.plot_heatmap_2d(trk, key=None, ax=axes['R'], x_key='speed', y_key='angular_velocity', vmax=None)
+    visuals.plot_heatmap_2d(bouts_stacked, key=None, ax=axes['W'], x_key='speed',  y_key='angular_velocity', vmax=None)
 
     # draw speed and orientation heatmaps during bouts
     visuals.plot_heatmap_2d(in_bouts_stacked, 'speed', ax=axes['F'], alpha=1, vmax=30, cmap='inferno')
@@ -81,7 +89,6 @@ def plot_hairpin_tracking(
     visuals.plot_heatmap_2d(out_bouts_stacked, 'orientation', ax=axes['M'], alpha=1, vmin=0, vmax=360, edgecolors=grey_darker)
     visuals.plot_heatmap_2d(in_bouts_stacked, 'angular_velocity', ax=axes['P'], alpha=1, vmin=-45, vmax=45, edgecolors=grey_darker)
     visuals.plot_heatmap_2d(out_bouts_stacked, 'angular_velocity', ax=axes['Q'], alpha=1, vmin=-45, vmax=45, edgecolors=grey_darker)
-
 
     # plot speeds binned by global coords for in/out bouts
     nbins=25
@@ -99,6 +106,7 @@ def plot_hairpin_tracking(
     axes['U'].hist(out_bouts_stacked.speed, bins=20, color=colors.speed)
     axes['V'].hist(out_bouts_stacked.angular_velocity, bins=20, color=colors.angular_velocity)
 
+    # ---------------------------------- cleanup --------------------------------- #
     for ax in 'IO':
         axes[ax].axhline(0, lw=1, color=[.6, .6, .6], zorder=-1)
 
@@ -115,22 +123,24 @@ def plot_hairpin_tracking(
     axes["C"].set(ylabel='speed (cm/s)', xticks=[0, 60, 120], xticklabels=[-1, 0, 1], xlabel='time (s)', title='bout onset')
     axes["D"].set(ylabel='speed (cm/s)', xticks=[0, 60, 120], xticklabels=[-1, 0, 1], xlabel='time (s)', title='bout offset')
     axes['E'].set(ylabel='counts', xlabel='duration (s)', title='Bouts duration')
-    axes['F'].set(ylabel='IN', xticks=[], yticks=[])
-    axes['G'].set( xticks=[], yticks=[])
+    axes['F'].set(ylabel='IN', xticks=[], yticks=[], title='speed')
+    axes['G'].set( xticks=[], yticks=[], title='orientation')
     axes['H'].set(ylabel='speed (cm/s)', xticks=[])
     axes['I'].set(ylabel='ang vel (deg/s)', xticks=[])
     axes['L'].set(ylabel='OUT', xticks=[], yticks=[], xlabel='speed')
     axes['M'].set( xticks=[], yticks=[], xlabel='orientation')
     axes['N'].set(ylabel='speed (cm/s)', xticks=[])
     axes['O'].set(ylabel='ang vel (deg/s)', xticks=np.linspace(0, 1, 11))
-    axes['P'].set( xticks=[], yticks=[])
+    axes['P'].set( xticks=[], yticks=[], title='angular velocity')
     axes['Q'].set( xticks=[], yticks=[], xlabel='ang vel (deg/s)')
-    axes['R'].set(xlabel='speed (cm/s)', ylabel='abs(ang vel) (deg/s)')
-
-    axes['S'].set(xlabel='speed (cm/s)')
+    axes['R'].set(xlabel='speed (cm/s)', ylabel='ang vel (deg/s)', title='moving')
+    axes['S'].set(xlabel='speed (cm/s)', title='in bouts')
     axes['T'].set(xlabel='angular velocity (deg/s)')
-    axes['U'].set(xlabel='speed (cm/s)')
+    axes['U'].set(xlabel='speed (cm/s)', title='out bouts')
     axes['V'].set(xlabel='angular velocity (deg/s)')
+    axes['X'].set(xlabel='speed (cm/s)', title='all tracking')
+    axes['Y'].set(xlabel='angular velocity (deg/s)')
+    axes['W'].set(xlabel='speed (cm/s)', ylabel='ang vel (deg/s)', title='bouts heatmap')
 
     for ax in "AFGLMPQ":
         axes[ax].axis('equal')

@@ -11,7 +11,7 @@ sys.path.append("./")
 from tpd import recorder
 
 
-from data.dbase.db_tables import Probe, Unit, Recording, Tracking, LocomotionBouts, Session, Behavior, FiringRate
+from data.dbase.db_tables import Probe, Unit, Recording, Tracking, LocomotionBouts, Session, Behavior
 from data import data_utils
 from analysis.exploratory_plots import plot_n_units_per_channel, plot_hairpin_tracking,  plot_unit, plot_unit_firing_rate
 '''
@@ -42,11 +42,11 @@ TARGETS = (
 class Inspector:
     base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 
-    def __init__(self, session_name:str, events_window:int=3*60, firing_rate_window:int=100):
+    def __init__(self, session_name:str, events_window_s:int=3, firing_rate_window:int=100):
         self.session_name = session_name
         self.hairpin = Session.on_hairpin(self.session_name)
 
-        self.events_window = events_window
+        self.events_window = events_window_s * 60
         self.firing_rate_window = firing_rate_window
 
         # start logging
@@ -72,8 +72,11 @@ class Inspector:
         self.bouts = LocomotionBouts.get_session_bouts(self.session_name)
         self.out_bouts = self.bouts.loc[self.bouts.direction=='outbound']
         self.in_bouts = self.bouts.loc[self.bouts.direction=='inbound']
+
+        self.bouts_stacked = data_utils.get_bouts_tracking_stacked(self.tracking, self.bouts)
         self.out_bouts_stacked = data_utils.get_bouts_tracking_stacked(self.tracking, self.out_bouts)
         self.in_bouts_stacked = data_utils.get_bouts_tracking_stacked(self.tracking, self.in_bouts)
+
 
         # get units and recording sites
         recording = (Recording & f'name="{self.session_name}"').fetch()
@@ -106,6 +109,7 @@ class Inspector:
                         self.bouts,
                         self.out_bouts,
                         self.in_bouts,
+                        self.bouts_stacked,
                         self.out_bouts_stacked,
                         self.in_bouts_stacked,
                         )
@@ -127,6 +131,7 @@ class Inspector:
                 self.bouts,
                 self.out_bouts,
                 self.in_bouts,
+                self.bouts_stacked,
                 self.units,
                 unit,
                 self.tone_onsets,
@@ -140,20 +145,23 @@ class Inspector:
                     raise ValueError(f'Plotting firing rate only works for a single unit, cant plot it for: {unit}')
                 plot_unit_firing_rate(self.units.loc[self.units.unit_id == unit].iloc[0])
 
+        # save figs
+        recorder.add_figures(svg=False)
+
+        # show figs and close
         if show:
             logger.debug('Showing plot')
             plt.show()
 
-        recorder.add_figures(svg=False)
         plt.close("all")
 
 
 if __name__ == '__main__':
-    insp = Inspector('FC_210714_AAA1110750_r4_hairpin',firing_rate_window=31)
+    insp = Inspector('FC_210714_AAA1110750_r4_hairpin', firing_rate_window=500, events_window_s=5)
     insp.plot(
         tracking = False,
         probe = False,
-        unit = 9,
+        unit = 28,
         firing_rate = False,
         show=True
     )

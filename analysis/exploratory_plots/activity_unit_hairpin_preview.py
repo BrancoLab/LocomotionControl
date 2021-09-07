@@ -33,6 +33,7 @@ def plot_unit(
             bouts:pd.DataFrame,
             out_bouts:pd.DataFrame,
             in_bouts:pd.DataFrame,
+            bouts_stacked:pd.DataFrame,
             units:pd.DataFrame,
             unit_id:Union[int, str],
             tone_onsets:np.ndarray,
@@ -68,17 +69,16 @@ def plot_unit(
         f = plt.figure(figsize=(24, 12))
         axes = f.subplot_mosaic(
             """
-            ARBCDU
-            ARBCEU
-            FSGHIV
-            FSGHLV
-            MTNOPZ
-            MTNOQZ
+            ARBCDUV
+            ARBCEUV
+            FSGHIXX
+            FSGHLXX
+            MTNOPZY
+            MTNOQZY
         """
         )
         f.suptitle(session_name+f"unit {unit.unit_id} {unit.brain_region}")
         f._save_name = f"unit_{unit.unit_id}_{unit.brain_region}"
-
 
         # plot spikes against tracking, speed and angular velocity
         visuals.plot_heatmap_2d(unit_tracking, 'spikes', axes['A'], cmap='inferno', vmax=None)
@@ -103,7 +103,6 @@ def plot_unit(
         visuals.plot_raster(unit.spikes, bouts.end_frame, axes['P'], window=WINDOW)
         visuals.plot_aligned(tracking.firing_rate, bouts.end_frame, axes['Q'], 'pre', color = blue_grey, lw=1, alpha=.85, window=WINDOW)
 
-        # plot firing rate by speed and angular velocity
         # plot firing rate binned by speed and angular velocity
         visuals.plot_bin_x_by_y(tracking, 'firing_rate', 'speed', axes['U'], colors=colors.speed, bins=10, min_count=10, s=50)
         visuals.plot_heatmap_2d(tracking, x_key='speed', y_key='firing_rate', ax=axes['U'], vmax=None, zorder=-10, alpha=.5, cmap='inferno', linewidths=0, gridsize=20)
@@ -114,6 +113,16 @@ def plot_unit(
 
         # plot probe electrodes in which there is the unit
         visuals.plot_probe_electrodes(db_tables.Unit.get_unit_sites(mouse_id, session_name, unit['unit_id']), axes['Z'], annotate_every=1, TARGETS=None, x_shift=False, s=100, lw=2)
+
+        # plot firing rate based on movements
+        visuals.plot_avg_firing_rate_based_on_movement(tracking, unit, axes['X'])
+
+        # plot heatmap of firing rate vs speed by ang vel heatmap (during bouts)
+        trk = dict(
+                    speed=tracking.speed[tracking.walking == 1], 
+                    angular_velocity=tracking.angular_velocity[tracking.walking ==1],
+                    firing_rate=tracking.firing_rate[tracking.walking==1])
+        visuals.plot_heatmap_2d(trk, key='firing_rate', ax=axes['Y'], x_key='speed', y_key='angular_velocity', vmax=None)
 
         # --------------------------------- in bouts --------------------------------- #
         # plot bouts 2d
@@ -173,6 +182,8 @@ def plot_unit(
         axes['U'].set(ylabel='firing rate', xlabel='speed')
         axes['V'].set(ylabel='firing rate', xlabel='angular velocity', xlim=[-350, 350])
         axes['Z'].set(xticks=[])
+
+        axes['Y'].set(title='bouts firing rate heatmap', xlabel='speed (cm/s)', ylabel='ang vel (deg/s)')
 
         for ax in 'ARFM':
             axes[ax].axis('equal')
