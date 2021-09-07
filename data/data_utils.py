@@ -43,14 +43,23 @@ def pd_series_to_df(series:pd.Series) -> pd.DataFrame:
         {k:series[k] for k in keys}
     )
 
-def get_event_times(data:np.ndarray, skip_first:int=20*60, min_pause:int=5*60, th:float = .1, abs_val:bool=False, debug:bool=False):
+def get_event_times(
+        data:np.ndarray,
+        skip_first:int=20*60,
+        min_pause:int=5*60,
+        min_duration:int = 4*60,
+        max_duration:int=20*60,
+        th:float = .1,
+        abs_val:bool=False,
+        shift:int=0,
+        debug:bool=False) -> Tuple[list, list]:
     '''
         Given a 1D time serires it gets all the times there's a new 'stimulus' (signal going > threshold).
         It only keeps events that are at least 'min_pause' frames apart
     '''    
     if abs_val:
         data = np.abs(data)
-    onsets = get_onset_offset(data, th=th)[0]
+    onsets, offsets = get_onset_offset(data, th=th)
 
     # skip onsets that occurred soon after the session start
     onsets = [on for on in onsets if on > skip_first]
@@ -62,11 +71,41 @@ def get_event_times(data:np.ndarray, skip_first:int=20*60, min_pause:int=5*60, t
         if np.max(leading) < th/2:
             clean_onsets.append(onset)
 
+    # shift onsets
+    clean_onsets = np.array(clean_onsets) - shift
+
+    # get offsets
+    clean_offsets = []
+    for n, onset in enumerate(clean_onsets):
+        if n == 0: continue
+        else:
+            # get the last offset before the clean onset
+            previous_offsets = [off for off in offsets if off < onset]
+            previous_offsets = [off for off in previous_offsets if off - clean_onsets[n-1] < max_duration]
+
+            clean_offsets.append(
+                previous_offsets[-1] + shift
+            )
+    clean_offsets.append(offsets[-1] + shift)
+
+    # check
+    if len(clean_onsets) != len(clean_offsets) or len(set(clean_onsets)) != len(set(clean_offsets)):
+        raise ValueError('Error while getting event times')
+
+    # remove events too short or too long
+    onsets, offsets = [], []
+    for on, off in zip(clean_onsets, clean_offsets):
+        if min_duration <= off-on <=max_duration:
+            onsets.append(on); offsets.append(off)
+
+    from scipy.signal import medfilt
+    filtered = medfilt(data, kernel_size=71)
+
     if debug:
         logger.debug(f'Found {len(onsets)} event times prior to cleaning, kept {len(clean_onsets)}')
         # visualize event times
-        plot_signal_and_events(data, clean_onsets, show=True)
-    return clean_onsets
+        plot_signal_and_events(data, onsets, offsets, second_signal=filtered, show=True)
+    return onsets, offsets
 
 def bin_x_by_y(data:Union[pd.DataFrame, pd.Series], x:str, y:str, bins:Union[int, np.ndarray]=10, min_count:int=0) -> Tuple[np.ndarray, float, float, int]:
     '''

@@ -86,7 +86,3 @@ def load_session_data(session:dict, key:dict, sampling_rate:int):
 
 
 
-def get_tone_onsetes(key:dict, speaker_signal: np.ndarray):
-    key['tone_onsets'] = data_utils.get_event_times(speaker_signal, min_pause=5*60, th=.025, abs_val=True, debug=False) - 2
-    return key
-    

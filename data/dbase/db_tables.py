@@ -326,15 +326,6 @@ class Behavior(dj.Imported):
         trigger_roi:                longblob  # 1 when mouse in trigger ROI
         reward_roi:                 longblob  # 1 when mouse in reward ROI
     """
-    analog_sampling_rate = 30000  # in bonsai
-
-    class Tones(dj.Part):
-        definition = """
-            -> Behavior
-            ---
-            tone_onsets:                 longblob  # tone onset times in frame number
-        """
-
     def make(self, key):
         """
             loads data from .bin and .csv data saved by bonsai.
@@ -354,17 +345,39 @@ class Behavior(dj.Imported):
         except Exception:
             logger.warning(f"Failed to fetch data for {name} - not validated?")
             return
-        else:
-            tone_key = key.copy()
 
         # load, format & insert data
         key = _behavior.load_session_data(session, key, ValidatedSession.analog_sampling_rate)
         if key is not None:
             self.insert1(key)
 
-            # get tone onsets times
-            tones_key = _behavior.get_tone_onsetes(tone_key, key['speaker'])
-            self.Tones.insert1(tones_key)
+
+@schema
+class Tones(dj.Computed):
+    definition = """
+        -> Behavior
+        ---
+        tone_onsets:                 longblob  # tone onset times in frame number
+        tone_offsets:                longblob
+    """
+    # @staticmethod
+    # def get_session_tone_on(session_name:str) -> np.ndarray:
+
+    def make(self, key):
+        speaker = (Behavior & key).fetch1('speaker')
+
+        # get tone onsets/offsets times
+        key['tone_onsets'], key['tone_offsets'] = data_utils.get_event_times(
+                        speaker, 
+                        min_pause=3*60,
+                        min_duration = 4*60,
+                        max_duration=20*60,
+                        th=.025,
+                        abs_val=True,
+                        debug=True,
+                        shift=1)
+
+        # self.insert1(key)
 
 
 # ---------------------------------------------------------------------------- #
@@ -871,7 +884,7 @@ class FiringRate(dj.Imported):
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # FiringRate().drop()
+    # Behavior().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -897,6 +910,7 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Behavior")
     # Behavior().populate(display_progress=True)
+    Tones().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
@@ -905,7 +919,7 @@ if __name__ == "__main__":
     # LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Movemnt")
-    Movement().populate(display_progress=True)
+    # Movement().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)

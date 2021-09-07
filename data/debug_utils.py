@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Union
 
-from myterial import blue_dark, salmon_dark, indigo
+from myterial import blue_dark, salmon_dark, indigo, green
 
 
-def plot_signal_and_events(signal:np.ndarray, events:Union[np.ndarray, list], secondary_events:np.ndarray=None, show:bool=False):
+def plot_signal_and_events(signal:np.ndarray, events:Union[np.ndarray, list], events_two:Union[np.ndarray, list], second_signal:np.ndarray=None, secondary_events:np.ndarray=None, show:bool=False):
     '''
         Plots a signals and marks event times on it
     '''
@@ -14,9 +14,13 @@ def plot_signal_and_events(signal:np.ndarray, events:Union[np.ndarray, list], se
 
     ax.plot(signal, color=[.3, .3, .3])
     ax.scatter(events, signal[events], color='salmon', marker='v', zorder=100)
+    ax.scatter(events_two, signal[events_two], color=green, marker='^', zorder=100)
 
     if secondary_events is not None:
         ax.scatter(secondary_events, signal[secondary_events], color='green', marker='v', zorder=999, alpha=.7)
+
+    if second_signal is not None:
+        ax.plot(second_signal, lw=2, color='r')
 
     if show:
         plt.show()
