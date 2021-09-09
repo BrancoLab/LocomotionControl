@@ -13,7 +13,7 @@ from tpd import recorder
 
 from data.dbase.db_tables import Probe, Unit, Recording, Tracking, LocomotionBouts, Session, Probe, Tones
 from data import data_utils
-from analysis.exploratory_plots import plot_n_units_per_channel, plot_hairpin_tracking,  plot_unit, plot_unit_firing_rate, render_probe_3d
+from analysis.exploratory_plots import plot_n_units_per_channel, plot_hairpin_tracking,  plot_unit, plot_unit_firing_rate, render_probe_3d, render_probe_regions_slices
 '''
     Inspects the data from one recording session. Can plot:
         - tracking data
@@ -27,7 +27,6 @@ TARGETS = (
     "PRNc",
     "CUN",
     "GRN",
-    "MB",
     "PPN",
     "RSPagl1",
     "RSPagl2/3",
@@ -83,7 +82,7 @@ class Inspector:
         # get units and recording sites
         recording = (Recording & f'name="{self.session_name}"').fetch()
         logger.info('Fetching ephys data')
-        self.units = Unit.get_session_units(self.session_name, spikes=True, firing_rate=True, frate_window = self.firing_rate_window)
+        self.units = Unit.get_session_units(self.session_name, spikes=True, firing_rate=False, frate_window = self.firing_rate_window)
         self.rsites = pd.DataFrame((Probe.RecordingSite & recording).fetch())
         logger.debug(f'Found {len(self.units)} units')
 
@@ -122,7 +121,8 @@ class Inspector:
         if probe:
             logger.info('Plotting PROBE')
             plot_n_units_per_channel(self.session_name, self.units, self.rsites, TARGETS)
-            render_probe_3d(self.rsites, self.base_folder / self.session_name)
+            render_probe_3d(self.rsites, self.base_folder / self.session_name, TARGETS)
+            render_probe_regions_slices(self.rsites, self.base_folder / self.session_name, TARGETS)
 
         # unit ephys
         if unit is not None:

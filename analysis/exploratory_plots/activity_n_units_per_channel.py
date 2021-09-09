@@ -20,7 +20,7 @@ base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 def plot_n_units_per_channel(rname, units, rsites, TARGETS):
     f, axes = plt.subplots(figsize=(12, 12), ncols=2, sharey=True)
     f.suptitle(rname)
-    f._save_name = f"{rname}_activity_preview"
+    f._save_name = f"activity_units_per_channel"
 
     # draw probe
     plot_probe_electrodes(rsites, axes[0], TARGETS)

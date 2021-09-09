@@ -889,7 +889,7 @@ class FiringRate(dj.Imported):
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Tones().drop()
+    # Probe().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -933,12 +933,10 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
-    # Unit().populate(display_progress=True)
+    Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 
-    # TODO re populate BEHAV with tone off times
-    # TODO behav get tone_on for session
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
