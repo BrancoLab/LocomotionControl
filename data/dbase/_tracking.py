@@ -1,6 +1,6 @@
 from loguru import logger
 import numpy as np
-from scipy.signal import medfilt
+import scipy
 import pandas as pd
 
 from fcutils.maths.geometry import (
@@ -12,7 +12,7 @@ from fcutils.maths.geometry import (
 from fcutils.maths.geometry import (
     calc_angle_between_vectors_of_points_2d as get_orientation,
 )
-from fcutils.maths.geometry import calc_ang_velocity
+from fcutils.maths import derivative
 from fcutils.path import size
 
 from data.dbase.io import load_dlc_tracking
@@ -43,8 +43,8 @@ def process_body_part(
     x, y = register(bp_data["x"], bp_data["y"], M)
 
     # median filter pass
-    x = medfilt(x, kernel_size=7)
-    y = medfilt(y, kernel_size=7)
+    x = data_utils.convolve_with_gaussian(x, kernel_width=7)
+    y = data_utils.convolve_with_gaussian(y, kernel_width=7)
 
     # scale to go px -> cm
     x *= cm_per_px
@@ -59,10 +59,15 @@ def process_body_part(
     xy = data_utils.interpolate_nans(x=x, y=y)
     x, y = np.array(list(xy["x"].values())), np.array(list(xy["y"].values()))
 
+    # flip data on X axis
+    x = x - np.min(x)
+    x_mean = np.mean(x, axis=0)
+    x = (x_mean - x) + x_mean
+
     # compute speed and direction of movement
     dir_of_mvmt = get_dir_of_mvmt_from_xy(x, y)
     speed = (
-        medfilt(get_speed_from_xy(x, y), kernel_size=15) * 60
+        data_utils.convolve_with_gaussian(get_speed_from_xy(x, y), kernel_width=7) * 60
     )  # speed in cm / s
 
     # makre sure there are no nans
@@ -73,34 +78,43 @@ def process_body_part(
     return results
 
 
-def compute_body_orientation(body_parts_tracking: dict):
+def calc_angular_velocity(angles:np.ndarray) -> np.ndarray:
+    # convert to radians and take derivative
+    rad = np.unwrap(np.deg2rad(angles))
+    rad = data_utils.convolve_with_gaussian(rad, 21)
+
+    diff = derivative(rad)
+    return np.rad2deg(diff)
+
+def compute_body_orientation_and_avel(body_parts_tracking: dict):
     # get data
-    body = pd.DataFrame(body_parts_tracking["body"]).interpolate(azis=0)
-    snout = pd.DataFrame(body_parts_tracking["snout"]).interpolate(azis=0)
+    body = pd.DataFrame(body_parts_tracking["body"]).interpolate(axis=0)
+    snout = pd.DataFrame(body_parts_tracking["snout"]).interpolate(axis=0)
     tail_base = pd.DataFrame(body_parts_tracking["tail_base"]).interpolate(
-        azis=0
+        axis=0
     )
      
-    # compute orientation
+    # compute orientation of each body part
     orientation_body = get_orientation(tail_base.x, tail_base.y, snout.x, snout.y)
     orientation_snout = get_orientation(body.x, body.y, snout.x, snout.y)
     orientation_tail = get_orientation(
         tail_base.x, tail_base.y, body.x, body.y
     )
 
-    orientation =np.mean(
-        np.vstack([orientation_body, orientation_snout, orientation_tail]), axis=0
-    )
+    # take median across body parts and smooth
+    orientation = data_utils.convolve_with_gaussian(scipy.stats.circmean(
+        np.vstack([orientation_body, orientation_snout, orientation_tail]), axis=0, high=360
+    ), 15)
 
-
-    # compute angular velocity
-    avel = medfilt(np.mean(
+    # compute angular velocity in deg/s
+    avel = np.median(
         np.vstack([
-            calc_ang_velocity(orientation_body),
-            calc_ang_velocity(orientation_snout),
-            calc_ang_velocity(orientation_tail),
+            calc_angular_velocity(orientation_body),
+            calc_angular_velocity(orientation_snout),
+            calc_angular_velocity(orientation_tail),
         ]), axis=0
-    ), kernel_size=15) * 60
+    ) * 60
+    avel[0:10] = avel[-100:]= 0
 
     return orientation, avel
 
@@ -138,7 +152,7 @@ def process_tracking_data(
 
     # compute orientation
     logger.debug("      computing body orientation")
-    orientation, angular_velocity = compute_body_orientation(
+    orientation, angular_velocity = compute_body_orientation_and_avel(
         body_parts_tracking
     )
 

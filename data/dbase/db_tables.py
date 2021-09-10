@@ -423,7 +423,7 @@ class Tracking(dj.Imported):
     
     """
 
-    likelihood_threshold = 0.9
+    likelihood_threshold = 0.995
     cm_per_px = 60 / 830
     bparts = (
         "snout",
@@ -440,7 +440,6 @@ class Tracking(dj.Imported):
         ---
         orientation:            longblob  # orientation in deg
         angular_velocity:       longblob  # angular velocityi in deg/sec
-        ---
     """
 
     class BodyPart(dj.Part):
@@ -509,8 +508,10 @@ class Tracking(dj.Imported):
             self.Linearized.insert1(key)
 
     @staticmethod
-    def get_session_tracking(session_name, body_only=True):
-        query = Tracking * Tracking.BodyPart * Movement & f'name="{session_name}"'
+    def get_session_tracking(session_name, body_only=True, movement=True):
+        query = Tracking * Tracking.BodyPart & f'name="{session_name}"'
+        if movement:
+            query = query * Movement
 
         if body_only:
             query = query & f"bpname='body'"
@@ -580,7 +581,7 @@ class LocomotionBouts(dj.Imported):
             return
 
         # get tracking data
-        tracking = Tracking.get_session_tracking(key["name"], body_only=False)
+        tracking = Tracking.get_session_tracking(key["name"], body_only=False, movement=False)
         if tracking.empty:
             logger.warning(
                 f'Failed to get tracking data for session {key["name"]}'
@@ -731,7 +732,7 @@ class Recording(dj.Imported):
 
 @schema
 class Unit(dj.Imported):
-    precomputed_firing_rate_windows = [10, 33, 100, 250, 500]
+    precomputed_firing_rate_windows = [33, 100, 150, 250]
 
     definition = """
         # a single unit's spike sorted data
@@ -889,7 +890,9 @@ class FiringRate(dj.Imported):
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Probe().drop()
+    # Tracking().drop()
+    # LocomotionBouts().drop()
+    # Movement().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -915,16 +918,16 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Behavior")
     # Behavior().populate(display_progress=True)
-    Tones().populate(display_progress=True)
+    # Tones().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
-    # Tracking().populate(display_progress=True)
+    Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
-    # LocomotionBouts().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Movemnt")
-    # Movement().populate(display_progress=True)
+    Movement().populate(display_progress=True)
 
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
@@ -933,9 +936,11 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
-    Unit().populate(display_progress=True)
+    # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
+
+    # TODO FIX NOISY TRACKING :(
 
 
     # -------------------------------- print stuff ------------------------------- #

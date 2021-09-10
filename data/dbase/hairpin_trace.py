@@ -88,19 +88,19 @@ class Segment:
 
 POINTS = [  # hand defined points along the track
     (20, 40),  # start
-    (22, 8),  # end of first corridor
-    (12, 8),  # first bend
-    (12, 45),  # end of second corridor
-    (28, 45),  # end of second bend
-    (28, 8),  # end of third corridor
-    (38, 8),  # end of third bend
-    (38, 47),  # end of fourth corridor
-    (28, 58),  # end of fourth bend
-    (12, 58),  # end of fifth corridor
-    (2, 47),  # end of fifth bend
-    (2, 2),  # goal location
+    (18, 8),  # end of first corridor
+    (28, 8),  # first bend
+    (28, 45),  # end of second corridor
+    (12, 45),  # end of second bend
+    (12, 8),  # end of third corridor
+    (2, 8),  # end of third bend
+    (2, 47),  # end of fourth corridor
+    (12, 58),  # end of fourth bend
+    (28, 58),  # end of fifth corridor
+    (38, 47),  # end of fifth bend
+    (38, 2),  # goal location
     (20, 35),  # end of reward trigger area
-    (2, 7),  # start of goal location
+    (38, 7),  # start of goal location
 ]
 
 

@@ -306,6 +306,9 @@ def get_session_bouts(
             direction, complete = "none", "none"
             start_roi, end_roi = -1, -1
 
+        if bstart in [b['start_frame'] for b in bouts]:
+            continue
+
         # put everything together
         bout = key.copy()
         bout["start_frame"] = bstart
@@ -320,6 +323,6 @@ def get_session_bouts(
 
     n_complete = len([b for b in bouts if b["complete"] == "true"])
     logger.debug(
-        f" kept {len(bouts)} bouts of which {n_complete} are complete"
+        f" kept {len(bouts)}/{len(onsets)} ({len(bouts)/len(onsets):.2f} %) bouts of which {n_complete} are complete"
     )
     return bouts

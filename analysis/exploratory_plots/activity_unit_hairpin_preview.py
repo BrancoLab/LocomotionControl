@@ -78,7 +78,7 @@ def plot_unit(
         """
         )
         f.suptitle(session_name+f"unit {unit.unit_id} {unit.brain_region}")
-        f._save_name = f"unit_{unit.unit_id}_{unit.brain_region}"
+        f._save_name = f"unit_{unit.unit_id}_{unit.brain_region}".replace('\\', '_')
 
         # plot spikes against tracking, speed and angular velocity
         visuals.plot_heatmap_2d(unit_tracking, 'spikes', axes['A'], cmap='inferno', vmax=None)

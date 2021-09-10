@@ -82,7 +82,7 @@ class Inspector:
         # get units and recording sites
         recording = (Recording & f'name="{self.session_name}"').fetch()
         logger.info('Fetching ephys data')
-        self.units = Unit.get_session_units(self.session_name, spikes=True, firing_rate=False, frate_window = self.firing_rate_window)
+        self.units = Unit.get_session_units(self.session_name, spikes=True, firing_rate=True, frate_window = self.firing_rate_window)
         self.rsites = pd.DataFrame((Probe.RecordingSite & recording).fetch())
         logger.debug(f'Found {len(self.units)} units')
 
@@ -163,8 +163,8 @@ if __name__ == '__main__':
     insp = Inspector('FC_210714_AAA1110750_r4_hairpin', firing_rate_window=250, events_window_s=5)
     insp.plot(
         tracking = False,
-        probe = True,
-        unit = None,
+        probe = False,
+        unit = 'all',
         firing_rate = False,
         show=False
     )
