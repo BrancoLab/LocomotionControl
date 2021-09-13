@@ -81,7 +81,7 @@ def process_body_part(
 def calc_angular_velocity(angles:np.ndarray) -> np.ndarray:
     # convert to radians and take derivative
     rad = np.unwrap(np.deg2rad(angles))
-    rad = data_utils.convolve_with_gaussian(rad, 21)
+    rad = data_utils.convolve_with_gaussian(rad, 7)
 
     diff = derivative(rad)
     return np.rad2deg(diff)
@@ -104,7 +104,7 @@ def compute_body_orientation_and_avel(body_parts_tracking: dict):
     # take median across body parts and smooth
     orientation = data_utils.convolve_with_gaussian(scipy.stats.circmean(
         np.vstack([orientation_body, orientation_snout, orientation_tail]), axis=0, high=360
-    ), 15)
+    ), 7)
 
     # compute angular velocity in deg/s
     avel = np.median(

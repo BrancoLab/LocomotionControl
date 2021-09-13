@@ -21,7 +21,7 @@ raw_videos_folder = Path(r'W:\swc\branco\Federico\Locomotion\raw\video')
 
 raw_videos = files(raw_videos_folder, 'FC_*.avi')
 raw_videos = [v for v in raw_videos if '_d' not in v.name and 'test' not in v.name.lower() and 't_' not in v.name]
-logger.debug(f'Found {len(raw_videos)}')
+logger.debug(f'Found {len(raw_videos)} videos')
 
 
 N_clips_per_vid = 4
@@ -38,6 +38,7 @@ for video in track(raw_videos):
     for n, start_frame in enumerate(clips_starts):
         save_path = dlc_folder / 'videos' / (video.stem + f'_{n}.avi')
         if save_path.exists():
+            print('skippy syoppy')
             continue
         logger.info(f'Saving clip {n}: "{save_path.stem}"')
 

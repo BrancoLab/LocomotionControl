@@ -418,15 +418,16 @@ class CCM(dj.Imported):
 class Tracking(dj.Imported):
     """
         tracking data from DLC. The
-        entries in the main table reflext the mouse's body\body axis
+        entries in the main table reflect the mouse's body\body axis
         and a sub table is used for each body part.
     
     """
 
-    likelihood_threshold = 0.995
+    likelihood_threshold = 0.9975
     cm_per_px = 60 / 830
     bparts = (
         "snout",
+        "neck",
         "body",
         "tail_base",
         "left_fl",
