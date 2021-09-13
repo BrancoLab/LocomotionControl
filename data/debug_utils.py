@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Union
@@ -6,21 +5,55 @@ from typing import Union
 from myterial import blue_dark, salmon_dark, indigo, green
 
 
-def plot_signal_and_events(signal:np.ndarray, events:Union[np.ndarray, list], events_two:Union[np.ndarray, list], second_signal:np.ndarray=None, secondary_events:np.ndarray=None, show:bool=False):
-    '''
+def plot_signal_and_events(
+    signal: np.ndarray,
+    events: Union[np.ndarray, list],
+    events_two: Union[np.ndarray, list],
+    second_signal: np.ndarray = None,
+    secondary_events: np.ndarray = None,
+    show: bool = False,
+):
+    """
         Plots a signals and marks event times on it
-    '''
+    """
     f, ax = plt.subplots(figsize=(16, 8))
 
-    ax.plot(signal, color=[.3, .3, .3])
-    ax.scatter(events, signal[events], color='salmon', marker='^', zorder=100, label = 'evt1', s=100, lw=1, ec='k')
-    ax.scatter(events_two, signal[events_two], color=green, marker='v', zorder=100, label='evt2', s=100, lw=1, ec='k')
+    ax.plot(signal, color=[0.3, 0.3, 0.3])
+    ax.scatter(
+        events,
+        signal[events],
+        color="salmon",
+        marker="^",
+        zorder=100,
+        label="evt1",
+        s=100,
+        lw=1,
+        ec="k",
+    )
+    ax.scatter(
+        events_two,
+        signal[events_two],
+        color=green,
+        marker="v",
+        zorder=100,
+        label="evt2",
+        s=100,
+        lw=1,
+        ec="k",
+    )
 
     if secondary_events is not None:
-        ax.scatter(secondary_events, signal[secondary_events], color='blue', marker='v', zorder=999, alpha=.7)
+        ax.scatter(
+            secondary_events,
+            signal[secondary_events],
+            color="blue",
+            marker="v",
+            zorder=999,
+            alpha=0.7,
+        )
 
     if second_signal is not None:
-        ax.plot(second_signal, lw=2, color='r', alpha=.5)
+        ax.plot(second_signal, lw=2, color="r", alpha=0.5)
 
     ax.legend()
     if show:

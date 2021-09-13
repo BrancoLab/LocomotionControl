@@ -6,9 +6,9 @@ from data.dbase.io import load_bin
 
 
 def get_triggers(session: dict, sampling_rate: int = 30000) -> dict:
-    '''
+    """
         Get the time at which frame triggers occur in bonsai
-    '''
+    """
     name = session["name"]
     logger.debug(f'Getting bonsai trigger times for session "{name}"')
 

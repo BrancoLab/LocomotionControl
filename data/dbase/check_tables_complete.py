@@ -7,7 +7,7 @@ sys.path.append("./")
 from data import dbase
 
 
-def get_sessions_to_track(recordings_only:bool=True):
+def get_sessions_to_track(recordings_only: bool = True):
     """
         It gets a list of sessions left to track
     """
@@ -15,7 +15,11 @@ def get_sessions_to_track(recordings_only:bool=True):
     sessions_in_table = dbase.db_tables.Session.fetch("name")
 
     if recordings_only:
-        sessions_in_table = [s for s in sessions_in_table if dbase.db_tables.Session.has_recording(s)]
+        sessions_in_table = [
+            s
+            for s in sessions_in_table
+            if dbase.db_tables.Session.has_recording(s)
+        ]
 
     need_tracking = []
     for session in sessions_in_table:

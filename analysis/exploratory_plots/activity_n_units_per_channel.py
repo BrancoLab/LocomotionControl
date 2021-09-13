@@ -17,6 +17,7 @@ base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 # ---------------------------------------------------------------------------- #
 # get all recordings
 
+
 def plot_n_units_per_channel(rname, units, rsites, TARGETS):
     f, axes = plt.subplots(figsize=(12, 12), ncols=2, sharey=True)
     f.suptitle(rname)
@@ -27,20 +28,23 @@ def plot_n_units_per_channel(rname, units, rsites, TARGETS):
 
     # draw barplot of # units per channel
     counts = units.groupby("site_id").count()["name"]
-    _colors = [rsites.loc[rsites.site_id == n]['color'].iloc[0] for n in counts.index]
-    _regions = [rsites.loc[rsites.site_id == n]['brain_region'].iloc[0] for n in counts.index]
+    _colors = [
+        rsites.loc[rsites.site_id == n]["color"].iloc[0] for n in counts.index
+    ]
+    _regions = [
+        rsites.loc[rsites.site_id == n]["brain_region"].iloc[0]
+        for n in counts.index
+    ]
     colors = [
         c if r in TARGETS else (c if c == "k" else blue_grey)
         for c, r in zip(_colors, _regions)
     ]
-    probe_coords = [rsites.loc[rsites.site_id == n]['probe_coordinates'].iloc[0] for n in counts.index]
+    probe_coords = [
+        rsites.loc[rsites.site_id == n]["probe_coordinates"].iloc[0]
+        for n in counts.index
+    ]
     axes[1].barh(
-        probe_coords,
-        counts.values,
-        color=colors,
-        height=10,
-        lw=1,
-        ec='k'
+        probe_coords, counts.values, color=colors, height=10, lw=1, ec="k"
     )
 
     # cleanup and save

@@ -32,8 +32,8 @@ def place_probe_recording_sites(
     # find multiple reconstructions files paths
     try:
         rec_path = Path(probe_metadata["reconstructed_track_filepath"])
-    except  TypeError:
-        logger.warning(f'Did not find reconstructed track filepath')
+    except TypeError:
+        logger.warning(f"Did not find reconstructed track filepath")
         return
 
     fld, name = rec_path.parent, rec_path.stem

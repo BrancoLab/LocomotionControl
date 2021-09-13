@@ -276,9 +276,7 @@ def get_session_bouts(
             raise ValueError("Something went wrong...")
 
         # get precise bout start and end times based on paw speeds
-        bstart, bend = get_bout_start_end_times(
-            tracking, bstart, bend
-        )
+        bstart, bend = get_bout_start_end_times(tracking, bstart, bend)
         if bstart is None or bend is None:
             continue
         elif bend == len(tracking.body.x):
@@ -306,7 +304,7 @@ def get_session_bouts(
             direction, complete = "none", "none"
             start_roi, end_roi = -1, -1
 
-        if bstart in [b['start_frame'] for b in bouts]:
+        if bstart in [b["start_frame"] for b in bouts]:
             continue
 
         # put everything together

@@ -67,7 +67,10 @@ def process_body_part(
     # compute speed and direction of movement
     dir_of_mvmt = get_dir_of_mvmt_from_xy(x, y)
     speed = (
-        data_utils.convolve_with_gaussian(get_speed_from_xy(x, y), kernel_width=7) * 60
+        data_utils.convolve_with_gaussian(
+            get_speed_from_xy(x, y), kernel_width=7
+        )
+        * 60
     )  # speed in cm / s
 
     # makre sure there are no nans
@@ -78,13 +81,14 @@ def process_body_part(
     return results
 
 
-def calc_angular_velocity(angles:np.ndarray) -> np.ndarray:
+def calc_angular_velocity(angles: np.ndarray) -> np.ndarray:
     # convert to radians and take derivative
     rad = np.unwrap(np.deg2rad(angles))
     rad = data_utils.convolve_with_gaussian(rad, 7)
 
     diff = derivative(rad)
     return np.rad2deg(diff)
+
 
 def compute_body_orientation_and_avel(body_parts_tracking: dict):
     # get data
@@ -93,28 +97,41 @@ def compute_body_orientation_and_avel(body_parts_tracking: dict):
     tail_base = pd.DataFrame(body_parts_tracking["tail_base"]).interpolate(
         axis=0
     )
-     
+
     # compute orientation of each body part
-    orientation_body = get_orientation(tail_base.x, tail_base.y, snout.x, snout.y)
+    orientation_body = get_orientation(
+        tail_base.x, tail_base.y, snout.x, snout.y
+    )
     orientation_snout = get_orientation(body.x, body.y, snout.x, snout.y)
     orientation_tail = get_orientation(
         tail_base.x, tail_base.y, body.x, body.y
     )
 
     # take median across body parts and smooth
-    orientation = data_utils.convolve_with_gaussian(scipy.stats.circmean(
-        np.vstack([orientation_body, orientation_snout, orientation_tail]), axis=0, high=360
-    ), 7)
+    orientation = data_utils.convolve_with_gaussian(
+        scipy.stats.circmean(
+            np.vstack([orientation_body, orientation_snout, orientation_tail]),
+            axis=0,
+            high=360,
+        ),
+        7,
+    )
 
     # compute angular velocity in deg/s
-    avel = np.median(
-        np.vstack([
-            calc_angular_velocity(orientation_body),
-            calc_angular_velocity(orientation_snout),
-            calc_angular_velocity(orientation_tail),
-        ]), axis=0
-    ) * 60
-    avel[0:10] = avel[-100:]= 0
+    avel = (
+        np.median(
+            np.vstack(
+                [
+                    calc_angular_velocity(orientation_body),
+                    calc_angular_velocity(orientation_snout),
+                    calc_angular_velocity(orientation_tail),
+                ]
+            ),
+            axis=0,
+        )
+        * 60
+    )
+    avel[0:10] = avel[-100:] = 0
 
     return orientation, avel
 
@@ -176,22 +193,31 @@ def process_tracking_data(
     return key, body_parts_tracking, len(orientation)
 
 
-def get_movements(key:dict, tracking:pd.DataFrame, moving_threshold:float, turning_threshold:float) -> dict:
-    '''
+def get_movements(
+    key: dict,
+    tracking: pd.DataFrame,
+    moving_threshold: float,
+    turning_threshold: float,
+) -> dict:
+    """
         Creates array indicating when the mouse is doing different kinds of movements
-    '''
+    """
     base_array = np.zeros_like(tracking.x)
 
     # get when moving
-    key['moving'] = base_array.copy()
-    key['moving'][np.where(tracking.speed > moving_threshold)[0]] = 1
+    key["moving"] = base_array.copy()
+    key["moving"][np.where(tracking.speed > moving_threshold)[0]] = 1
 
     # get when turning left
-    key['turning_left'] = base_array.copy()
-    key['turning_left'][np.where(tracking.angular_velocity > turning_threshold)[0]] = 1
+    key["turning_left"] = base_array.copy()
+    key["turning_left"][
+        np.where(tracking.angular_velocity > turning_threshold)[0]
+    ] = 1
 
     # get when turning right
-    key['turning_right'] = base_array.copy()
-    key['turning_right'][np.where(tracking.angular_velocity < -turning_threshold)[0]] = 1
+    key["turning_right"] = base_array.copy()
+    key["turning_right"][
+        np.where(tracking.angular_velocity < -turning_threshold)[0]
+    ] = 1
 
     return key

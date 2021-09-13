@@ -5,7 +5,6 @@ from pathlib import Path
 import cv2
 from typing import List, Tuple
 import numpy as np
-import time
 
 from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
@@ -14,7 +13,7 @@ import sys
 
 sys.path.append("./")
 
-from data.dbase import schema, connected
+from data.dbase import schema
 from data.dbase._tables import (
     insert_entry_in_table,
     print_table_content_to_file,
@@ -36,7 +35,6 @@ from data.dbase import (
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata
 from data import data_utils
-
 
 
 DO_RECORDINGS_ONLY = True
@@ -326,6 +324,7 @@ class Behavior(dj.Imported):
         trigger_roi:                longblob  # 1 when mouse in trigger ROI
         reward_roi:                 longblob  # 1 when mouse in reward ROI
     """
+
     def make(self, key):
         """
             loads data from .bin and .csv data saved by bonsai.
@@ -334,20 +333,26 @@ class Behavior(dj.Imported):
             2. load/cut .bin file from bonsai
             3. load/cut .csv file from bonsai
         """
-        if DO_RECORDINGS_ONLY and not Session.has_recording(key['name']):
-            logger.debug(f'Skipping {key["name"]} because it is not a recording')
+        if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+            logger.debug(
+                f'Skipping {key["name"]} because it is not a recording'
+            )
             return
 
         # fetch metadata
         name = key["name"]
         try:
-            session = (Session * ValidatedSession * BonsaiTriggers & f'name="{name}"').fetch1()
+            session = (
+                Session * ValidatedSession * BonsaiTriggers & f'name="{name}"'
+            ).fetch1()
         except Exception:
             logger.warning(f"Failed to fetch data for {name} - not validated?")
             return
 
         # load, format & insert data
-        key = _behavior.load_session_data(session, key, ValidatedSession.analog_sampling_rate)
+        key = _behavior.load_session_data(
+            session, key, ValidatedSession.analog_sampling_rate
+        )
         if key is not None:
             self.insert1(key)
 
@@ -360,27 +365,33 @@ class Tones(dj.Computed):
         tone_onsets:                 longblob  # tone onset times in frame number
         tone_offsets:                longblob
     """
+
     @staticmethod
-    def get_session_tone_on(session_name:str) -> np.ndarray:
-        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1('n_frames')
+    def get_session_tone_on(session_name: str) -> np.ndarray:
+        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1(
+            "n_frames"
+        )
         tone_on = np.zeros(n_frames)
 
         session_tone = (Tones & f'name="{session_name}"').fetch1()
-        for on, off in zip(session_tone['tone_onsets'], session_tone['tone_offsets']):
+        for on, off in zip(
+            session_tone["tone_onsets"], session_tone["tone_offsets"]
+        ):
             tone_on[on:off] = 1
         return tone_on
 
     def make(self, key):
-        speaker = (Behavior & key).fetch1('speaker')
+        speaker = (Behavior & key).fetch1("speaker")
 
         # get tone onsets/offsets times
-        key['tone_onsets'], key['tone_offsets'] = data_utils.get_event_times(
-                        speaker, 
-                        kernel_size=211,
-                        th=.005,
-                        abs_val=True,
-                        debug=False,
-                        shift=1)
+        key["tone_onsets"], key["tone_offsets"] = data_utils.get_event_times(
+            speaker,
+            kernel_size=211,
+            th=0.005,
+            abs_val=True,
+            debug=False,
+            shift=1,
+        )
 
         self.insert1(key)
 
@@ -463,10 +474,10 @@ class Tracking(dj.Imported):
         """
 
     def make(self, key):
-        if DO_RECORDINGS_ONLY and not Session.has_recording(key['name']):
+        if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
             logger.info(f'Skipping {key["name"]} because its not a recording')
             return
-        
+
         # get tracking data file
         tracking_file = Session.get_session_tracking_file(key["name"])
         if tracking_file is None:
@@ -572,7 +583,9 @@ class LocomotionBouts(dj.Imported):
 
     @staticmethod
     def get_session_bouts(session_name: str) -> pd.DataFrame:
-        return pd.DataFrame((LocomotionBouts & f'name="{session_name}"').fetch())
+        return pd.DataFrame(
+            (LocomotionBouts & f'name="{session_name}"').fetch()
+        )
 
     def make(self, key):
         if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
@@ -582,7 +595,9 @@ class LocomotionBouts(dj.Imported):
             return
 
         # get tracking data
-        tracking = Tracking.get_session_tracking(key["name"], body_only=False, movement=False)
+        tracking = Tracking.get_session_tracking(
+            key["name"], body_only=False, movement=False
+        )
         if tracking.empty:
             logger.warning(
                 f'Failed to get tracking data for session {key["name"]}'
@@ -611,9 +626,7 @@ class LocomotionBouts(dj.Imported):
 @schema
 class Movement(dj.Imported):
     turning_threshold: float = 20  # deg/sec
-    moving_threshold:  float = 2.5  # cm/sec
-
-    
+    moving_threshold: float = 2.5  # cm/sec
 
     definition = """
         # stores information about when the mouse is doing certain types of movements
@@ -626,17 +639,19 @@ class Movement(dj.Imported):
     """
 
     def make(self, key):
-        '''
+        """
             Gets arrays indicating when the mouse id doing certain kinds of movements
-        '''
+        """
         # get data
-        tracking = Tracking.get_session_tracking(key['name'])
+        tracking = Tracking.get_session_tracking(key["name"])
 
         # get when walking
-        key['walking'] = LocomotionBouts.is_locomoting(key['name'])
+        key["walking"] = LocomotionBouts.is_locomoting(key["name"])
 
         # get other movements
-        key = _tracking.get_movements(key, tracking, self.moving_threshold, self.turning_threshold)
+        key = _tracking.get_movements(
+            key, tracking, self.moving_threshold, self.turning_threshold
+        )
 
         self.insert1(key)
 
@@ -673,12 +688,15 @@ class Probe(dj.Imported):
         """
 
     @staticmethod
-    def get_session_sites(mouse:str) -> pd.DataFrame:
-        return pd.DataFrame((Probe * Probe.RecordingSite & f'mouse_id="{mouse}"').fetch())
-
+    def get_session_sites(mouse: str) -> pd.DataFrame:
+        return pd.DataFrame(
+            (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"').fetch()
+        )
 
     def make(self, key):
-        logger.info(f'Getting reconstructed probe position for mouse {key["mouse_id"]}')
+        logger.info(
+            f'Getting reconstructed probe position for mouse {key["mouse_id"]}'
+        )
         metadata = get_probe_metadata(key["mouse_id"])
         if metadata is None:
             return
@@ -726,7 +744,9 @@ class Recording(dj.Imported):
         ).parent.parent.name
 
         # get paths
-        key = _recording.get_recording_filepaths(key, rec_metadata, self.recordings_folder, rec_folder)
+        key = _recording.get_recording_filepaths(
+            key, rec_metadata, self.recordings_folder, rec_folder
+        )
         if key is not None:
             self.insert1(key)
 
@@ -754,9 +774,14 @@ class Unit(dj.Imported):
         """
 
     @staticmethod
-    def get_session_units(session_name:str, spikes:bool=False, firing_rate:bool=False, frate_window:int=50) -> pd.DataFrame:
+    def get_session_units(
+        session_name: str,
+        spikes: bool = False,
+        firing_rate: bool = False,
+        frate_window: int = 50,
+    ) -> pd.DataFrame:
         # query
-        query = (Unit * Probe.RecordingSite & f"name='{session_name}'")
+        query = Unit * Probe.RecordingSite & f"name='{session_name}'"
         if spikes:
             query = query * Unit.Spikes
 
@@ -766,11 +791,23 @@ class Unit(dj.Imported):
         # augment
         if firing_rate:
             if frate_window not in Unit.precomputed_firing_rate_windows:
-                triggers = (Session * ValidatedSession * BonsaiTriggers & f'name="{session_name}"').fetch1()
-                units = _recording.get_units_firing_rate(units, frate_window, triggers, ValidatedSession.analog_sampling_rate)
+                triggers = (
+                    Session * ValidatedSession * BonsaiTriggers
+                    & f'name="{session_name}"'
+                ).fetch1()
+                units = _recording.get_units_firing_rate(
+                    units,
+                    frate_window,
+                    triggers,
+                    ValidatedSession.analog_sampling_rate,
+                )
             else:
                 # load pre-computed firing rates
-                units['firing_rate'] = list((query * FiringRate & f'bin_width={frate_window}').fetch('firing_rate'))
+                units["firing_rate"] = list(
+                    (query * FiringRate & f"bin_width={frate_window}").fetch(
+                        "firing_rate"
+                    )
+                )
         return units
 
     def is_in_target_region(
@@ -799,9 +836,13 @@ class Unit(dj.Imported):
         return False, None, None
 
     @staticmethod
-    def get_unit_sites(mouse:str, session_name:str, unit_id:int) -> pd.DataFrame:
+    def get_unit_sites(
+        mouse: str, session_name: str, unit_id: int
+    ) -> pd.DataFrame:
         rsites = Probe.get_session_sites(mouse)
-        unit_sites = (Unit & f'name="{session_name}"' & f'unit_id={unit_id}').fetch1('secondary_sites_ids')
+        unit_sites = (
+            Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
+        ).fetch1("secondary_sites_ids")
 
         rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
         return rsites
@@ -819,14 +860,16 @@ class Unit(dj.Imported):
         triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
 
         # deal with concatenated recordinds
-        if recording['concatenated'] == 1:
+        if recording["concatenated"] == 1:
             # load recordings metadata
             rec_metadata = pd.read_excel(
                 Session.recordings_metadata_path, engine="odf"
             )
-                
+
             # cut unit spikes
-            pre_cut, post_cut = _recording.cut_concatenated_units(recording, triggers, rec_metadata)
+            pre_cut, post_cut = _recording.cut_concatenated_units(
+                recording, triggers, rec_metadata
+            )
         else:
             pre_cut, post_cut = None, None
         # fill in units
@@ -840,7 +883,11 @@ class Unit(dj.Imported):
 
             # get adjusted spike times
             unit_spikes = _recording.get_unit_spike_times(
-                unit, triggers, ValidatedSession.analog_sampling_rate, pre_cut=pre_cut, post_cut=post_cut
+                unit,
+                triggers,
+                ValidatedSession.analog_sampling_rate,
+                pre_cut=pre_cut,
+                post_cut=post_cut,
             )
             spikes_key = {**key.copy(), **unit_spikes}
             spikes_key["unit_id"] = unit["unit_id"]
@@ -863,16 +910,23 @@ class FiringRate(dj.Imported):
     def make(self, key):
         unit = (Unit * Unit.Spikes & key).fetch1()
         triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
-        logger.info(f'Processing: {unit}')
+        logger.info(f"Processing: {unit}")
 
         # get firing rates
         for frate_window in Unit.precomputed_firing_rate_windows:
-            unit_frate = _recording.get_units_firing_rate(unit, frate_window, triggers, ValidatedSession.analog_sampling_rate)
+            unit_frate = _recording.get_units_firing_rate(
+                unit,
+                frate_window,
+                triggers,
+                ValidatedSession.analog_sampling_rate,
+            )
             frate_key = {**key.copy(), **unit_frate}
             frate_key["unit_id"] = unit["unit_id"]
-            frate_key['bin_width'] = frate_window
-            del frate_key['site_id']; del frate_key['secondary_sites_ids']
-            del frate_key['spikes']; del frate_key['spikes_ms']
+            frate_key["bin_width"] = frate_window
+            del frate_key["site_id"]
+            del frate_key["secondary_sites_ids"]
+            del frate_key["spikes"]
+            del frate_key["spikes_ms"]
 
             self.insert1(frate_key)
             # time.sleep(5)
@@ -884,9 +938,10 @@ class FiringRate(dj.Imported):
         expected = n_per_unit * n_units
 
         if len(FiringRate()) != expected:
-            raise ValueError('Not all units have all firing rates  :(')
+            raise ValueError("Not all units have all firing rates  :(")
         else:
-            logger.info('Firing rate has everything')
+            logger.info("Firing rate has everything")
+
 
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
@@ -897,7 +952,7 @@ if __name__ == "__main__":
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
-    
+
     # logger.info('#####    Sorting FILES')
     # from data.dbase.io import sort_files
     # sort_files()
@@ -942,7 +997,6 @@ if __name__ == "__main__":
     # FiringRate().check_complete()
 
     # TODO FIX NOISY TRACKING :(
-
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

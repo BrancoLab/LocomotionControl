@@ -9,10 +9,15 @@ from scipy import stats
 
 sys.path.append("./")
 
-from fcutils.maths.signals import rolling_mean
 from fcutils.path import files, size
 
-def get_recording_filepaths(key:dict, rec_metadata:pd.DataFrame, recordings_folder:Path, rec_folder:str) -> dict:
+
+def get_recording_filepaths(
+    key: dict,
+    rec_metadata: pd.DataFrame,
+    recordings_folder: Path,
+    rec_folder: str,
+) -> dict:
 
     # Check if it's a concatenated recording
     concat_filepath = rec_metadata.loc[
@@ -23,20 +28,20 @@ def get_recording_filepaths(key:dict, rec_metadata:pd.DataFrame, recordings_fold
         rec_name = concat_filepath
         rec_path = recordings_folder / Path(rec_name)
         key["concatenated"] = 1
-        
+
         if not rec_path.is_dir() or not files(rec_path):
-            logger.warning(f'Invalid rec path: {rec_path} for session {key["name"]}')
+            logger.warning(
+                f'Invalid rec path: {rec_path} for session {key["name"]}'
+            )
             return None
-            
-        rec_name = rec_name + '_g0'
+
+        rec_name = rec_name + "_g0"
     else:
         rec_name = rec_metadata.loc[
             rec_metadata["recording folder"] == rec_folder
         ]["recording folder"].iloc[0]
         rec_path = (
-            recordings_folder
-            / Path(rec_name)
-            / Path(rec_name + "_imec0")
+            recordings_folder / Path(rec_name) / Path(rec_name + "_imec0")
         )
         key["concatenated"] = -1
 
@@ -61,6 +66,7 @@ def get_recording_filepaths(key:dict, rec_metadata:pd.DataFrame, recordings_fold
             return None
 
     return key
+
 
 def load_cluster_curation_results(
     results_filepath: Union[Path, str], results_csv_path: Union[Path, str]
@@ -91,7 +97,9 @@ def load_cluster_curation_results(
     # load spikes data from the .csv file
     logger.debug(f"Loading spikes data from CSV ({size(results_csv_path)})")
     spikes = pd.read_csv(results_csv_path)
-    logger.debug(f"     loaded data about {len(spikes)} spikes ({spikes.iloc[-1].spikeTimes}s)")
+    logger.debug(
+        f"     loaded data about {len(spikes)} spikes ({spikes.iloc[-1].spikeTimes}s)"
+    )
 
     # get units data
     units = []
@@ -102,7 +110,7 @@ def load_cluster_curation_results(
                 raw_spikes_s=unit["spikeTimes"].values,
                 unit_id=cluster,
                 recording_site_id=unit.spikeSites.mode().iloc[0],
-                secondary_sites_ids =np.sort(unit.spikeSites.unique())
+                secondary_sites_ids=np.sort(unit.spikeSites.unique()),
             )
         )
 
@@ -110,7 +118,11 @@ def load_cluster_curation_results(
 
 
 def get_unit_spike_times(
-    unit: dict, triggers: dict, sampling_rate: int, pre_cut:int=None, post_cut:int=None
+    unit: dict,
+    triggers: dict,
+    sampling_rate: int,
+    pre_cut: int = None,
+    post_cut: int = None,
 ) -> dict:
     """
         Gets a unit's spikes times aligned to bonsai's video frames
@@ -122,17 +134,21 @@ def get_unit_spike_times(
     # if unit["raw_spikes_s"][-1] - 2 > triggers['duration']:  # -2 to account for tails of recording
     #     raise ValueError('The last spike cannot be after after the end of the video')
 
-
     # get spike times in sample number
     spikes_samples = unit["raw_spikes_s"] * sampling_rate
 
     # cut to deal with concatenated recordings
     if pre_cut is not None:
-        spikes_samples = spikes_samples[(spikes_samples > pre_cut) & (spikes_samples < post_cut)]
+        spikes_samples = spikes_samples[
+            (spikes_samples > pre_cut) & (spikes_samples < post_cut)
+        ]
         spikes_samples -= pre_cut
 
     # cut frames spikes in the 1s before/after the recording
-    spikes_samples = spikes_samples[(spikes_samples > triggers["ephys_cut_start"]) & (spikes_samples < triggers["n_samples"])]
+    spikes_samples = spikes_samples[
+        (spikes_samples > triggers["ephys_cut_start"])
+        & (spikes_samples < triggers["n_samples"])
+    ]
 
     # cut and scale to match bonsai data
     spikes_samples = spikes_samples - triggers["ephys_cut_start"]
@@ -152,32 +168,42 @@ def get_unit_spike_times(
         raise ValueError("Error while assigning frame number to spike times")
 
     # return data
-    return dict(spikes_ms=spikes_samples / sampling_rate * 1000, spikes=spikes_frames)
+    return dict(
+        spikes_ms=spikes_samples / sampling_rate * 1000, spikes=spikes_frames
+    )
 
 
-def cut_concatenated_units(recording:dict, triggers:dict, rec_metadata:pd.DataFrame) -> Tuple[int, int]:
-    '''
+def cut_concatenated_units(
+    recording: dict, triggers: dict, rec_metadata: pd.DataFrame
+) -> Tuple[int, int]:
+    """
         Split units spiking data from concatenated recordings. Return min and max values (in samples)
         for spikes to keep. The keeping of the spikes is actually done in 'get_unit_spike_times'
-    '''
+    """
     # get if first or second in concatenated data
-    concat_filename = Path(recording['spike_sorting_spikes_file_path']).stem[:-15]
-    concat_metadata = rec_metadata.loc[rec_metadata['concatenated recording file']==concat_filename]
+    concat_filename = Path(recording["spike_sorting_spikes_file_path"]).stem[
+        :-15
+    ]
+    concat_metadata = rec_metadata.loc[
+        rec_metadata["concatenated recording file"] == concat_filename
+    ]
 
     if len(concat_metadata) != 2:
-        raise ValueError('Expected to find two metadata entries')
+        raise ValueError("Expected to find two metadata entries")
 
-    rec_filename = Path(recording['ephys_ap_data_path']).stem[:-12]
-    idx = np.where(concat_metadata['recording folder'] == rec_filename)[0][0]
+    rec_filename = Path(recording["ephys_ap_data_path"]).stem[:-12]
+    idx = np.where(concat_metadata["recording folder"] == rec_filename)[0][0]
     is_first = idx == 0
 
     # deal with things separately based on if its first or second recording
     if is_first:
         pre_cut = 0
-        post_cut = triggers['n_samples']
+        post_cut = triggers["n_samples"]
     else:
         # Get the number of samples of the previous recording and set that as pre_cut
-        raise NotImplementedError('need to deal with second of two concatenated recordings')
+        raise NotImplementedError(
+            "need to deal with second of two concatenated recordings"
+        )
 
     return pre_cut, post_cut
 
@@ -185,30 +211,35 @@ def cut_concatenated_units(recording:dict, triggers:dict, rec_metadata:pd.DataFr
 # -------------------------------- firing rate ------------------------------- #
 
 
-def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, triggers:dict, sampling_rate:int) -> Union[pd.DataFrame, dict]:
-    '''
+def get_units_firing_rate(
+    units: Union[pd.DataFrame, dict],
+    frate_window: float,
+    triggers: dict,
+    sampling_rate: int,
+) -> Union[pd.DataFrame, dict]:
+    """
         Computs the firing rate of a unit by binnig spikes with bins
         of width = frate_window milliseconds. It also samples the resulting firing rate array
         to the firing rate at frame times
-    '''
+    """
     # prepare arrays
-    logger.debug(f'Getting firing rate with window width {frate_window}ms')
-    trigger_times_ms = np.int32(triggers['trigger_times'] / sampling_rate * 1000)
+    logger.debug(f"Getting firing rate with window width {frate_window}ms")
+    trigger_times_ms = np.int32(
+        triggers["trigger_times"] / sampling_rate * 1000
+    )
     trigger_times_ms[-1] = trigger_times_ms[-1] - 1
-    n_ms = int(triggers['trigger_times'][-1] / sampling_rate * 1000)
+    n_ms = int(triggers["trigger_times"][-1] / sampling_rate * 1000)
     time_array = np.zeros(n_ms)
 
     # check if we are dealing with a single unit
     if isinstance(units, dict):
         units_list = [pd.Series(units)]
     else:
-        units_list = [unit for i,unit in units.iterrows()]
+        units_list = [unit for i, unit in units.iterrows()]
 
     # define gaussian kernel
     norm = stats.norm(0, frate_window)
-    X = np.linspace(norm.ppf(0.0001),
-                    norm.ppf(0.9999), 
-                    frate_window)
+    X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), frate_window)
     kernel = norm.pdf(X)
     kernel /= np.sum(kernel)  # normalize area under the curve to 1
 
@@ -219,9 +250,8 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
     rates, rates_frames = [], []
     for i, unit in enumerate(units_list):
         spikes_ms = unit.spikes_ms.astype(np.int32)
-        if spikes_ms.max() > n_ms: 
-            raise ValueError('spikes times after max duration')
-
+        if spikes_ms.max() > n_ms:
+            raise ValueError("spikes times after max duration")
 
         # get an array with number of spikes per ms
         spikes_ms_counts = pd.Series(spikes_ms).value_counts()
@@ -229,8 +259,8 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
         spikes_counts[spikes_ms_counts.index] = spikes_ms_counts.values
 
         # convolve with gaussian
-        spike_rate = np.convolve(spikes_counts, kernel, mode='same')
-        
+        spike_rate = np.convolve(spikes_counts, kernel, mode="same")
+
         # get density with histogram
         # spikes_density, bin_edges = np.histogram(spikes_ms, n_bins, density=True)
 
@@ -239,27 +269,22 @@ def get_units_firing_rate(units:Union[pd.DataFrame, dict], frate_window:float, t
         #     spike_rate[int(start):int(end)] = rate
 
         if not len(spike_rate) == n_ms:
-            raise ValueError('Should be of length n milliseconds')
+            raise ValueError("Should be of length n milliseconds")
 
         # get spike rate at frame times
         spike_rate_frames = spike_rate[trigger_times_ms]
-        if len(spike_rate_frames) != len(triggers['trigger_times']):
-            raise ValueError('Mismatched array length')
+        if len(spike_rate_frames) != len(triggers["trigger_times"]):
+            raise ValueError("Mismatched array length")
 
         rates.append(spike_rate)
         rates_frames.append(spike_rate_frames)
 
     if isinstance(units, dict):
-        units['firing_rate'] = rates_frames[0]
+        units["firing_rate"] = rates_frames[0]
     else:
-        units['firing_rate'] = rates_frames
+        units["firing_rate"] = rates_frames
 
     return units
-
-    
-
-
-
 
 
 if __name__ == "__main__":

@@ -1,15 +1,12 @@
 import sys
 from tpd import recorder
 import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
 
 sys.path.append("./")
 from pathlib import Path
 
-from fcutils.plot.figure import clean_axes
-from myterial.utils import make_palette
-from myterial import grey_dark, grey_light
+
+from myterial import grey_dark
 
 from analysis import visuals
 
@@ -25,13 +22,11 @@ base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis")
 """
 
 
-
 sessions = (
     db_tables.ValidatedSession * db_tables.Session
     & "is_recording=1"
     & 'arena="openarena"'
 )
-
 
 
 for session in sessions:
@@ -50,7 +45,7 @@ for session in sessions:
     data_utils.downsample_tracking_data(downsampled_tracking, factor=10)
 
     # get locomotion bouts
-    bouts = db_tables.LocomotionBouts.get_session_bouts(session['name'])
+    bouts = db_tables.LocomotionBouts.get_session_bouts(session["name"])
 
     # crate figure
     f = plt.figure(figsize=(24, 12))
@@ -63,24 +58,52 @@ for session in sessions:
     f.suptitle(session["name"])
     f._save_name = "tracking_data_2d"
 
-
     # plot tracking and botus 2d
-    visuals.plot_tracking_xy(downsampled_tracking, ax=axes['A'], plot=True, color=[.4, .4, .4], alpha=.8)
-    visuals.plot_bouts_2d(body_tracking, bouts, axes['A'], lw=2, zorder=100, c='salmon')
+    visuals.plot_tracking_xy(
+        downsampled_tracking,
+        ax=axes["A"],
+        plot=True,
+        color=[0.4, 0.4, 0.4],
+        alpha=0.8,
+    )
+    visuals.plot_bouts_2d(
+        body_tracking, bouts, axes["A"], lw=2, zorder=100, c="salmon"
+    )
 
     # plot speed aligned to bouts starts and ends
-    visuals.plot_aligned(body_tracking.speed, bouts.start_frame, axes['B'], 'after', alpha=.5)
-    visuals.plot_aligned(body_tracking.speed, bouts.end_frame, axes['C'], 'pre', alpha=.5)
+    visuals.plot_aligned(
+        body_tracking.speed, bouts.start_frame, axes["B"], "after", alpha=0.5
+    )
+    visuals.plot_aligned(
+        body_tracking.speed, bouts.end_frame, axes["C"], "pre", alpha=0.5
+    )
 
     # plot histopgram of botus duration
-    axes['D'].hist(bouts.duration, color=grey_dark, label='out', bins=15, alpha=.7, ec=[.2, .2, .2], histtype='stepfilled', lw=2)
+    axes["D"].hist(
+        bouts.duration,
+        color=grey_dark,
+        label="out",
+        bins=15,
+        alpha=0.7,
+        ec=[0.2, 0.2, 0.2],
+        histtype="stepfilled",
+        lw=2,
+    )
 
     # TODO plot bouts centered and rotated in E
 
     # plot bouts speed and ang vel profiles
-    visuals.plot_bouts_x(body_tracking, bouts, axes['F'], 'speed', color=colors.speed, alpha=.5)
-    visuals.plot_bouts_x(body_tracking, bouts, axes['G'], 'angular_velocity', color=colors.angular_velocity, alpha=.5)
-
+    visuals.plot_bouts_x(
+        body_tracking, bouts, axes["F"], "speed", color=colors.speed, alpha=0.5
+    )
+    visuals.plot_bouts_x(
+        body_tracking,
+        bouts,
+        axes["G"],
+        "angular_velocity",
+        color=colors.angular_velocity,
+        alpha=0.5,
+    )
 
     plt.show()
     break

@@ -14,6 +14,7 @@ from fcutils.maths.signals import get_onset_offset
 from data.dbase.io import load_bin, get_recording_local_copy
 from data.debug_utils import plot_recording_triggers
 
+
 def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
     """
         Checks that a bonsai behaviour recording ran correctly

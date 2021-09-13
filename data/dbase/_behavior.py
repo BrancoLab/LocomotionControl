@@ -5,9 +5,9 @@ import pandas as pd
 from fcutils.path import size
 
 from data.dbase.io import load_bin
-from data import data_utils
 
-def load_session_data(session:dict, key:dict, sampling_rate:int):
+
+def load_session_data(session: dict, key: dict, sampling_rate: int):
     """
         loads and cleans up the bonsai data for one session
     """
@@ -21,26 +21,29 @@ def load_session_data(session:dict, key:dict, sampling_rate:int):
     )
 
     # get analog inputs between frames start/end times
-    n_samples_per_frame= int(sampling_rate / 60)
-    end_cut = session['trigger_times'][-1]+session["bonsai_cut_start"]+n_samples_per_frame
-    _analog = (
-        analog[session["bonsai_cut_start"] : end_cut] / 5
+    n_samples_per_frame = int(sampling_rate / 60)
+    end_cut = (
+        session["trigger_times"][-1]
+        + session["bonsai_cut_start"]
+        + n_samples_per_frame
     )
+    _analog = analog[session["bonsai_cut_start"] : end_cut] / 5
 
     # get signals in high sampling rate
-    analog_data = dict(pump=5 - _analog[:, 1],  # 5 -  to invert signal
-                    speaker = _analog[:, 2])
+    analog_data = dict(
+        pump=5 - _analog[:, 1], speaker=_analog[:, 2]  # 5 -  to invert signal
+    )
 
     # go from samples to frame times
     for name, sample_values in analog_data.items():
         frames_values = sample_values[::n_samples_per_frame]
 
-        if len(frames_values) != session['n_frames']:
-            raise ValueError('Wrong number of frames')
-        
+        if len(frames_values) != session["n_frames"]:
+            raise ValueError("Wrong number of frames")
+
         # add to key
         key[name] = frames_values
-        
+
     # load csv data
     logger.debug(f"Loading CSV file ({size(session['csv_file_path'])})")
     try:
@@ -53,7 +56,7 @@ def load_session_data(session:dict, key:dict, sampling_rate:int):
         logger.warning("Skipping because of incomplete CSV")
         return None  # first couple recordings didn't save all data
 
-    logger.debug('Data loaded, cleaning it up')
+    logger.debug("Data loaded, cleaning it up")
     data.columns = [
         "ROI activity",
         "lick ROI activity",
@@ -83,6 +86,3 @@ def load_session_data(session:dict, key:dict, sampling_rate:int):
         [data["reward available signal"].values, pad]
     )
     return key
-
-
-
