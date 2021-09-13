@@ -1,4 +1,9 @@
-import datajoint as dj
+try:
+    import datajoint as dj
+except ImportError:
+    have_dj = False
+else:
+    have_dj = True
 
 ip = "127.0.0.1"  # "localhost"
 
@@ -16,20 +21,23 @@ def start_connection():
     D:\Dropbox (UCL - SWC)\Rotation_vte\mysql-server\data\Database
 
     """
-    dbname = "LOCOMOTION"  # Name of the database subfolder with data
-    if dj.config["database.user"] != "root":
+    if have_dj:
+        dbname = "LOCOMOTION"  # Name of the database subfolder with data
+        if dj.config["database.user"] != "root":
 
-        dj.config["database.host"] = ip
-        dj.config["database.user"] = "root"
-        dj.config["database.password"] = psw
-        dj.config["database.safemode"] = True
-        dj.config["safemode"] = False
-        dj.config["enable_python_native_blobs"] = True
+            dj.config["database.host"] = ip
+            dj.config["database.user"] = "root"
+            dj.config["database.password"] = psw
+            dj.config["database.safemode"] = True
+            dj.config["safemode"] = False
+            dj.config["enable_python_native_blobs"] = True
 
-        dj.conn()
+            dj.conn()
 
-    schema = dj.schema(dbname)
-    return dbname, schema
+        schema = dj.schema(dbname)
+        return dbname, schema
+    else:
+        return None, None
 
 
 def print_erd():

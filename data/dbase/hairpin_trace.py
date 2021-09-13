@@ -20,6 +20,10 @@ from myterial import (
 )
 from myterial.utils import map_color
 
+from fcutils.maths.geometry import (
+    calc_angle_between_points_of_vector_2d as get_dir_of_mvmt_from_xy,
+)
+
 
 @dataclass
 class Segment:
@@ -213,10 +217,15 @@ class HairpinTrace:
             [len(segment.line) for segment in self.segments]
         )
 
-        # stach all segmnts into a curve
+        # stack all segmnts into a curve
         self.trace = np.vstack([segment.line for segment in self.segments])
         self.trace_ids = np.concatenate(
             [segment.ids for segment in self.segments]
+        )
+
+        # get the orientation of each segment
+        self.trace_orientation = get_dir_of_mvmt_from_xy(
+            self.trace[:, 0], self.trace[:, 1]
         )
 
     def draw(

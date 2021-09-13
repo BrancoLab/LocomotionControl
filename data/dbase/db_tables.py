@@ -1,4 +1,9 @@
-import datajoint as dj
+try:
+    import datajoint as dj
+except ImportError:
+    have_dj = False
+else:
+    have_dj = True
 from loguru import logger
 import pandas as pd
 from pathlib import Path
@@ -43,904 +48,917 @@ DO_RECORDINGS_ONLY = True
 #                                     mouse                                    #
 # ---------------------------------------------------------------------------- #
 
+if have_dj:
 
-@schema
-class Mouse(dj.Manual):
-    definition = """
-        # represents mice
-        mouse_id: varchar(128)
-        ---
-        strain: varchar(64)
-        dob: varchar(64)
-    """
-
-    def fill(self):
+    @schema
+    class Mouse(dj.Manual):
+        definition = """
+            # represents mice
+            mouse_id: varchar(128)
+            ---
+            strain: varchar(64)
+            dob: varchar(64)
         """
-            fills in the table
+
+        def fill(self):
+            """
+                fills in the table
+            """
+            data = from_yaml("data\dbase\mice.yaml")
+            logger.info("Filling in mice table")
+
+            for mouse in track(
+                data, description="Adding mice", transient=True
+            ):
+                mouse = mouse["mouse"]
+
+                # add to table
+                insert_entry_in_table(
+                    mouse["mouse_id"], "mouse_id", mouse, self
+                )
+
+    # ---------------------------------------------------------------------------- #
+    #                                   sessions                                   #
+    # ---------------------------------------------------------------------------- #
+
+    @schema
+    class Session(dj.Manual):
+        definition = """
+            # a session is one experiment on one day on one mouse | this keeps track of the paths
+            -> Mouse
+            name: varchar(128)
+            ---
+            date: varchar(256)
+            is_recording: int   # 1 for recordings and 0 else
+            arena: varchar(64)
+            video_file_path: varchar(256)
+            ai_file_path: varchar(256)
+            csv_file_path: varchar(256)
+            ephys_ap_data_path: varchar(256)
+            ephys_ap_meta_path: varchar(256)
         """
-        data = from_yaml("data\dbase\mice.yaml")
-        logger.info("Filling in mice table")
 
-        for mouse in track(data, description="Adding mice", transient=True):
-            mouse = mouse["mouse"]
-
-            # add to table
-            insert_entry_in_table(mouse["mouse_id"], "mouse_id", mouse, self)
-
-
-# ---------------------------------------------------------------------------- #
-#                                   sessions                                   #
-# ---------------------------------------------------------------------------- #
-
-
-@schema
-class Session(dj.Manual):
-    definition = """
-        # a session is one experiment on one day on one mouse | this keeps track of the paths
-        -> Mouse
-        name: varchar(128)
-        ---
-        date: varchar(256)
-        is_recording: int   # 1 for recordings and 0 else
-        arena: varchar(64)
-        video_file_path: varchar(256)
-        ai_file_path: varchar(256)
-        csv_file_path: varchar(256)
-        ephys_ap_data_path: varchar(256)
-        ephys_ap_meta_path: varchar(256)
-    """
-
-    recordings_metadata_path = Path(
-        r"W:\swc\branco\Federico\Locomotion\raw\recordings_metadata.ods"
-    )
-    recordings_raw_data_path = Path(
-        r"W:\swc\branco\Federico\Locomotion\raw\recordings"
-    )
-
-    def fill(self):
-        # fill
-        _session.fill_session_table(self)
-
-        # check everything went okay
-        self.check_recordings_complete()
-
-    def check_recordings_complete(self):
-        """
-            Checks that all recording sessions are in the table
-        """
-        in_table = Session.fetch("name")
-        recorded_sessions = pd.read_excel(
-            self.recordings_metadata_path, engine="odf"
+        recordings_metadata_path = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\recordings_metadata.ods"
         )
-        for i, session in recorded_sessions.iterrows():
-            if session["bonsai filename"] not in in_table:
-                raise ValueError(f"Recording session not in table:\n{session}")
-
-        if len((Session & "is_recording=1").fetch()) != len(recorded_sessions):
-            raise ValueError(
-                "Not enough recorded sessions in table, but not sure which one is missing"
-            )
-
-    @staticmethod
-    def on_hairpin(session_name):
-        session = pd.Series((Session & f'name="{session_name}"').fetch1())
-        return session.arena == "hairpin"
-
-    @staticmethod
-    def has_recording(session_name):
-        """
-            Returns True if the session had neuropixel recordings, else False.
-
-            Arguments:
-                session_name: str. Session name
-        """
-        session = pd.Series((Session & f'name="{session_name}"').fetch1())
-        return session.is_recording
-
-    @staticmethod
-    def get_session_tracking_file(session_name):
-        tracking_files_folder = raw_data_folder / "tracking"
-        video_name = Path(
-            (Session & f'name="{session_name}"').fetch1("video_file_path")
-        ).stem
-        tracking_files = files(
-            tracking_files_folder, pattern=f"{video_name}*.h5"
+        recordings_raw_data_path = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\recordings"
         )
 
-        if not tracking_files:
-            logger.warning(f"No tracking data found for {session_name}")
-        return tracking_files
+        def fill(self):
+            # fill
+            _session.fill_session_table(self)
 
-    @staticmethod
-    def was_tracked(session_name):
+            # check everything went okay
+            self.check_recordings_complete()
+
+        def check_recordings_complete(self):
+            """
+                Checks that all recording sessions are in the table
+            """
+            in_table = Session.fetch("name")
+            recorded_sessions = pd.read_excel(
+                self.recordings_metadata_path, engine="odf"
+            )
+            for i, session in recorded_sessions.iterrows():
+                if session["bonsai filename"] not in in_table:
+                    raise ValueError(
+                        f"Recording session not in table:\n{session}"
+                    )
+
+            if len((Session & "is_recording=1").fetch()) != len(
+                recorded_sessions
+            ):
+                raise ValueError(
+                    "Not enough recorded sessions in table, but not sure which one is missing"
+                )
+
+        @staticmethod
+        def on_hairpin(session_name):
+            session = pd.Series((Session & f'name="{session_name}"').fetch1())
+            return session.arena == "hairpin"
+
+        @staticmethod
+        def has_recording(session_name):
+            """
+                Returns True if the session had neuropixel recordings, else False.
+
+                Arguments:
+                    session_name: str. Session name
+            """
+            session = pd.Series((Session & f'name="{session_name}"').fetch1())
+            return session.is_recording
+
+        @staticmethod
+        def get_session_tracking_file(session_name):
+            tracking_files_folder = raw_data_folder / "tracking"
+            video_name = Path(
+                (Session & f'name="{session_name}"').fetch1("video_file_path")
+            ).stem
+            tracking_files = files(
+                tracking_files_folder, pattern=f"{video_name}*.h5"
+            )
+
+            if not tracking_files:
+                logger.warning(f"No tracking data found for {session_name}")
+            return tracking_files
+
+        @staticmethod
+        def was_tracked(session_name):
+            """
+                Checks if DLC was ran on the session by looking for a correctly
+                named file.
+            """
+            tracking_files = Session.get_session_tracking_file(session_name)
+
+            if not tracking_files:
+                return None
+            elif isinstance(tracking_files, Path):
+                return True
+            else:
+                logger.warning(
+                    f"While looking for tracking data for {session_name} found {len(tracking_files)} tracking files:\n{tracking_files}"
+                )
+                return True
+
+    # ---------------------------------------------------------------------------- #
+    #                              validated sessions                              #
+    # ---------------------------------------------------------------------------- #
+
+    @schema
+    class ValidatedSession(dj.Imported):
+        definition = """
+            # checks that the video and AI files for a session are saved correctly and video/recording are syncd
+            -> Session
+            ---
+            n_frames:                   int  # number of video frames in session
+            duration:                   int  # experiment duration in seconds
+            n_analog_channels:          int  # number of AI channels recorded in bonsai
+            bonsai_cut_start:           int  # where to start/end cutting bonsai signals to align to ephys
+            bonsai_cut_end:             int
+            ephys_cut_start:            int  # where to start/end cutting bonsai signals to align to bonsai
+            ephys_time_scaling_factor:  float  # scales ephys spikes in time to align to bonsai
         """
-            Checks if DLC was ran on the session by looking for a correctly
-            named file.
-        """
-        tracking_files = Session.get_session_tracking_file(session_name)
+        analog_sampling_rate = 30000
+        excluded_sessions = [
+            "FC_210713_AAA1110750_r3_hairpin",  # skipping because cable borke mid recording
+        ]
 
-        if not tracking_files:
-            return None
-        elif isinstance(tracking_files, Path):
-            return True
-        else:
-            logger.warning(
-                f"While looking for tracking data for {session_name} found {len(tracking_files)} tracking files:\n{tracking_files}"
-            )
-            return True
+        def make(self, key):
+            # fetch data
+            session = (Session & key).fetch1()
+            has_rec = Session.has_recording(key["name"])
+            if has_rec:
+                previously_validated_path = (
+                    "data/dbase/validated_recordings.yaml"
+                )
+            else:
+                previously_validated_path = (
+                    "data/dbase/validated_sessions.yaml"
+                )
 
+            # load previously validated sessions to speed things up
+            previously_validated = from_yaml(previously_validated_path)
 
-# ---------------------------------------------------------------------------- #
-#                              validated sessions                              #
-# ---------------------------------------------------------------------------- #
-
-
-@schema
-class ValidatedSession(dj.Imported):
-    definition = """
-        # checks that the video and AI files for a session are saved correctly and video/recording are syncd
-        -> Session
-        ---
-        n_frames:                   int  # number of video frames in session
-        duration:                   int  # experiment duration in seconds
-        n_analog_channels:          int  # number of AI channels recorded in bonsai
-        bonsai_cut_start:           int  # where to start/end cutting bonsai signals to align to ephys
-        bonsai_cut_end:             int
-        ephys_cut_start:            int  # where to start/end cutting bonsai signals to align to bonsai
-        ephys_time_scaling_factor:  float  # scales ephys spikes in time to align to bonsai
-    """
-    analog_sampling_rate = 30000
-    excluded_sessions = [
-        "FC_210713_AAA1110750_r3_hairpin",  # skipping because cable borke mid recording
-    ]
-
-    def make(self, key):
-        # fetch data
-        session = (Session & key).fetch1()
-        has_rec = Session.has_recording(key["name"])
-        if has_rec:
-            previously_validated_path = "data/dbase/validated_recordings.yaml"
-        else:
-            previously_validated_path = "data/dbase/validated_sessions.yaml"
-
-        # load previously validated sessions to speed things up
-        previously_validated = from_yaml(previously_validated_path)
-
-        # check if session has known problems and should be excluded
-        if session["name"] in self.excluded_sessions:
-            logger.info(
-                f'Skipping session "{session["name"]}" because its in the excluded sessions list'
-            )
-            return
-
-        # check if validation was already executed on this session
-        if session["name"] in previously_validated.keys():
-            logger.debug(
-                f'Session {session["name"]} was previously validated, loading results'
-            )
-            key = previously_validated[session["name"]]
-        else:
-            logger.debug(f'Validating session: {session["name"]}')
-
-            if not has_rec and DO_RECORDINGS_ONLY:
+            # check if session has known problems and should be excluded
+            if session["name"] in self.excluded_sessions:
                 logger.info(
-                    f'Skipping {session["name"]} because we are doing recording sessions ONLY'
+                    f'Skipping session "{session["name"]}" because its in the excluded sessions list'
                 )
                 return
 
-            # check bonsai recording was correct
-            (
-                is_ok,
-                analog_nsigs,
-                duration_seconds,
-                n_frames,
-                bonsai_cut_start,
-                bonsai_cut_end,
-            ) = qc.validate_behavior(
-                session["video_file_path"],
-                session["ai_file_path"],
-                self.analog_sampling_rate,
-            )
-            if not is_ok:
-                logger.warning(f"Session failed to pass validation: {key}")
-                return
+            # check if validation was already executed on this session
+            if session["name"] in previously_validated.keys():
+                logger.debug(
+                    f'Session {session["name"]} was previously validated, loading results'
+                )
+                key = previously_validated[session["name"]]
             else:
-                logger.info(f"Session passed BEHAVIOR validation")
+                logger.debug(f'Validating session: {session["name"]}')
 
-            # check ephys data OK and get time scaling factor to align to bonsai
-            if has_rec:
+                if not has_rec and DO_RECORDINGS_ONLY:
+                    logger.info(
+                        f'Skipping {session["name"]} because we are doing recording sessions ONLY'
+                    )
+                    return
+
+                # check bonsai recording was correct
                 (
                     is_ok,
-                    ephys_cut_start,
-                    time_scaling_factor,
-                ) = qc.validate_recording(
+                    analog_nsigs,
+                    duration_seconds,
+                    n_frames,
+                    bonsai_cut_start,
+                    bonsai_cut_end,
+                ) = qc.validate_behavior(
+                    session["video_file_path"],
                     session["ai_file_path"],
-                    session["ephys_ap_data_path"],
-                    sampling_rate=self.analog_sampling_rate,
+                    self.analog_sampling_rate,
                 )
-            else:
-                time_scaling_factor, ephys_cut_start = -1, -1
+                if not is_ok:
+                    logger.warning(f"Session failed to pass validation: {key}")
+                    return
+                else:
+                    logger.info(f"Session passed BEHAVIOR validation")
 
-            if not is_ok:
+                # check ephys data OK and get time scaling factor to align to bonsai
+                if has_rec:
+                    (
+                        is_ok,
+                        ephys_cut_start,
+                        time_scaling_factor,
+                    ) = qc.validate_recording(
+                        session["ai_file_path"],
+                        session["ephys_ap_data_path"],
+                        sampling_rate=self.analog_sampling_rate,
+                    )
+                else:
+                    time_scaling_factor, ephys_cut_start = -1, -1
+
+                if not is_ok:
+                    logger.warning(
+                        f"Session failed to pass RECORDING validation: {key}"
+                    )
+                    return
+                else:
+                    logger.info(f"Session passed RECORDING validation")
+
+                # prepare data
+                key["n_frames"] = int(n_frames)
+                key["duration"] = float(duration_seconds)
+                key["bonsai_cut_start"] = float(bonsai_cut_start)
+                key["bonsai_cut_end"] = float(bonsai_cut_end)
+                key["ephys_cut_start"] = float(ephys_cut_start)
+                key["ephys_time_scaling_factor"] = float(time_scaling_factor)
+                key["n_analog_channels"] = int(analog_nsigs)
+
+                # save results to file
+                # if has_rec:
+                logger.debug(f"Saving key entries to yaml: {key}")
+                previously_validated[session["name"]] = key
+                to_yaml(previously_validated_path, previously_validated)
+
+            # fill in table
+            logger.info(f'Inserting session data in table: {key["name"]}')
+            self.insert1(key)
+
+    @schema
+    class BonsaiTriggers(dj.Imported):
+        definition = """
+            # stores the time (in samples) of camera triggers in bonsai. To registere spikes to them
+            -> ValidatedSession
+            ---
+            trigger_times:   longblob
+            n_samples:      int         # tot number of samples in recording
+            n_ms:           int         # duration in milliseconds
+        """
+
+        def make(self, key):
+            session = (Session * ValidatedSession & key).fetch1()
+            triggers = _triggers.get_triggers(session)
+
+            key = {**key, **triggers}
+            self.insert1(key)
+
+    # ---------------------------------------------------------------------------- #
+    #                                 behavior data                                #
+    # ---------------------------------------------------------------------------- #
+    @schema
+    class Behavior(dj.Imported):
+        definition = """
+            # stores AI and csv data from Bonsai in a nicely formatted manner
+            -> ValidatedSession
+            ---
+            speaker:                    longblob  # signal sent to speakers (signals in frame times)
+            pump:                       longblob  # signal sent to pump
+            reward_signal:              longblob  # 0 -> 1 when reward is delivered
+            reward_available_signal:    longblob  # 1 when the reward becomes available
+            trigger_roi:                longblob  # 1 when mouse in trigger ROI
+            reward_roi:                 longblob  # 1 when mouse in reward ROI
+        """
+
+        def make(self, key):
+            """
+                loads data from .bin and .csv data saved by bonsai.
+
+                1. get session
+                2. load/cut .bin file from bonsai
+                3. load/cut .csv file from bonsai
+            """
+            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+                logger.debug(
+                    f'Skipping {key["name"]} because it is not a recording'
+                )
+                return
+
+            # fetch metadata
+            name = key["name"]
+            try:
+                session = (
+                    Session * ValidatedSession * BonsaiTriggers
+                    & f'name="{name}"'
+                ).fetch1()
+            except Exception:
                 logger.warning(
-                    f"Session failed to pass RECORDING validation: {key}"
+                    f"Failed to fetch data for {name} - not validated?"
+                )
+                return
+
+            # load, format & insert data
+            key = _behavior.load_session_data(
+                session, key, ValidatedSession.analog_sampling_rate
+            )
+            if key is not None:
+                self.insert1(key)
+
+    @schema
+    class Tones(dj.Computed):
+        definition = """
+            -> Behavior
+            ---
+            tone_onsets:                 longblob  # tone onset times in frame number
+            tone_offsets:                longblob
+        """
+
+        @staticmethod
+        def get_session_tone_on(session_name: str) -> np.ndarray:
+            n_frames = (ValidatedSession & f'name="{session_name}"').fetch1(
+                "n_frames"
+            )
+            tone_on = np.zeros(n_frames)
+
+            session_tone = (Tones & f'name="{session_name}"').fetch1()
+            for on, off in zip(
+                session_tone["tone_onsets"], session_tone["tone_offsets"]
+            ):
+                tone_on[on:off] = 1
+            return tone_on
+
+        def make(self, key):
+            speaker = (Behavior & key).fetch1("speaker")
+
+            # get tone onsets/offsets times
+            (
+                key["tone_onsets"],
+                key["tone_offsets"],
+            ) = data_utils.get_event_times(
+                speaker,
+                kernel_size=211,
+                th=0.005,
+                abs_val=True,
+                debug=False,
+                shift=1,
+            )
+
+            self.insert1(key)
+
+    # ---------------------------------------------------------------------------- #
+    #                           COMMON COORDINATES MATRIX                          #
+    # ---------------------------------------------------------------------------- #
+    @schema
+    class CCM(dj.Imported):
+        definition = """
+        # stores common coordinates matrix for a session
+        -> ValidatedSession
+        ---
+        correction_matrix:      longblob        # 2x3 Matrix used for correction
+        """
+
+        def make(self, key):
+            # Get the maze model template
+
+            arena = cv2.imread("data/dbase/arena_template.png")
+            arena = cv2.cvtColor(arena, cv2.COLOR_RGB2GRAY)
+
+            # Get path to video
+            videopath = (Session & key).fetch1("video_file_path")
+
+            # get matrix
+            key["correction_matrix"] = _ccm.get_matrix(videopath, arena)
+            self.insert1(key)
+
+    # ---------------------------------------------------------------------------- #
+    #                                 tracking data                                #
+    # ----------------------------------------------------------------------------
+    @schema
+    class Tracking(dj.Imported):
+        """
+            tracking data from DLC. The
+            entries in the main table reflect the mouse's body\body axis
+            and a sub table is used for each body part.
+        
+        """
+
+        likelihood_threshold = 0.9975
+        cm_per_px = 60 / 830
+        bparts = (
+            "snout",
+            "neck",
+            "body",
+            "tail_base",
+            "left_fl",
+            "left_hl",
+            "right_fl",
+            "right_hl",
+        )
+
+        definition = """
+            -> ValidatedSession
+            ---
+            orientation:            longblob  # orientation in deg
+            angular_velocity:       longblob  # angular velocityi in deg/sec
+        """
+
+        class BodyPart(dj.Part):
+            definition = """
+                -> Tracking
+                bpname:  varchar(64)
+                ---
+                x:                      longblob  # body position in cm
+                y:                      longblob  # body position in cm
+                speed:                  longblob  # body speed in cm/s
+                direction_of_movement:  longblob  # angle towards where the mouse is moving next
+            """
+
+        class Linearized(dj.Part):
+            definition = """
+                -> Tracking
+                ---
+                segment:        longblob  # index of hairpin arena segment
+                global_coord:   longblob # values in range 0-1 with position along the arena
+            """
+
+        def make(self, key):
+            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+                logger.info(
+                    f'Skipping {key["name"]} because its not a recording'
+                )
+                return
+
+            # get tracking data file
+            tracking_file = Session.get_session_tracking_file(key["name"])
+            if tracking_file is None:
+                return
+
+            # get number of frames in session
+            n_frames = (ValidatedSession & key).fetch1("n_frames")
+
+            # get CCM registration matrix
+            M = (CCM & key).fetch1("correction_matrix")
+
+            # process data
+            (
+                key,
+                bparts_keys,
+                tracking_n_frames,
+            ) = _tracking.process_tracking_data(
+                key,
+                tracking_file,
+                M,
+                likelihood_th=self.likelihood_threshold,
+                cm_per_px=self.cm_per_px,
+            )
+
+            # check number of frames
+            if n_frames != tracking_n_frames:
+                raise ValueError(
+                    "Number of frames in video and tracking dont match!!"
+                )
+
+            # insert into table
+            self.insert1(key)
+            for bpkey in bparts_keys.values():
+                self.BodyPart.insert1(bpkey)
+
+            # Get linearized position
+            if Session.on_hairpin(key["name"]):
+                hp = HairpinTrace()
+                key["segment"], key["global_coord"] = hp.assign_tracking(
+                    bparts_keys["body"]["x"], bparts_keys["body"]["y"]
+                )
+                del key["orientation"]
+                del key["angular_velocity"]
+                self.Linearized.insert1(key)
+
+        @staticmethod
+        def get_session_tracking(session_name, body_only=True, movement=True):
+            query = Tracking * Tracking.BodyPart & f'name="{session_name}"'
+            if movement:
+                query = query * Movement
+
+            if body_only:
+                query = query & f"bpname='body'"
+
+            if Session.on_hairpin(session_name):
+                query = query * Tracking.Linearized
+
+            if len(query) == 1:
+                return pd.DataFrame(query.fetch()).iloc[0]
+            else:
+                return pd.DataFrame(query.fetch())
+
+    # ---------------------------------------------------------------------------- #
+    #                                  locomotion bouts                            #
+    # ---------------------------------------------------------------------------- #
+    @schema
+    class LocomotionBouts(dj.Imported):
+        definition = """
+            # identified bouts of continous locomotion
+            -> ValidatedSession
+            start_frame:        int
+            end_frame:          int  # last frame of locomotion bout
+            ---
+            duration:           float  # duration in seconds
+            direction:          varchar(64)   # 'outbound' or 'inbound' or 'none'
+            color:              varchar(64)
+            complete:           varchar(32)    # True if its form reward to trigger ROIs
+            start_roi:          int
+            end_roi:            int
+        """
+
+        speed_th: float = 5  # cm/s
+        min_peak_speed = (
+            10  # cm/s - each bout must reach this speed at some point
+        )
+        max_pause: float = 1  # (s) if paused for < than this its one contiuous locomotion bout
+        min_duration: float = 2  # (s) keep only outs that last at least this long
+
+        min_gcoord_delta: float = 0.1  # the global coordinates must change of at least this during bout
+
+        @staticmethod
+        def is_locomoting(session_name: str) -> np.ndarray:
+            """
+                Returns an array of 1 and 0 with 1 for every frame in which the mouse
+                is walking
+            """
+            n_frames = (ValidatedSession & f'name="{session_name}"').fetch1(
+                "n_frames"
+            )
+            locomoting = np.zeros(n_frames)
+
+            bouts = pd.DataFrame(
+                (LocomotionBouts & f'name="{session_name}"').fetch()
+            )
+            for i, bout in bouts.iterrows():
+                locomoting[bout.start_frame : bout.end_frame] = 1
+            return locomoting
+
+        @staticmethod
+        def get_session_bouts(session_name: str) -> pd.DataFrame:
+            return pd.DataFrame(
+                (LocomotionBouts & f'name="{session_name}"').fetch()
+            )
+
+        def make(self, key):
+            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+                logger.debug(
+                    f'Skipping {key["name"]} because it doesnt have a recording'
+                )
+                return
+
+            # get tracking data
+            tracking = Tracking.get_session_tracking(
+                key["name"], body_only=False, movement=False
+            )
+            if tracking.empty:
+                logger.warning(
+                    f'Failed to get tracking data for session {key["name"]}'
                 )
                 return
             else:
-                logger.info(f"Session passed RECORDING validation")
+                logger.info(
+                    f'Getting locomotion bouts for session {key["name"]}'
+                )
 
-            # prepare data
-            key["n_frames"] = int(n_frames)
-            key["duration"] = float(duration_seconds)
-            key["bonsai_cut_start"] = float(bonsai_cut_start)
-            key["bonsai_cut_end"] = float(bonsai_cut_end)
-            key["ephys_cut_start"] = float(ephys_cut_start)
-            key["ephys_time_scaling_factor"] = float(time_scaling_factor)
-            key["n_analog_channels"] = int(analog_nsigs)
-
-            # save results to file
-            # if has_rec:
-            logger.debug(f"Saving key entries to yaml: {key}")
-            previously_validated[session["name"]] = key
-            to_yaml(previously_validated_path, previously_validated)
-
-        # fill in table
-        logger.info(f'Inserting session data in table: {key["name"]}')
-        self.insert1(key)
-
-
-@schema
-class BonsaiTriggers(dj.Imported):
-    definition = """
-        # stores the time (in samples) of camera triggers in bonsai. To registere spikes to them
-        -> ValidatedSession
-        ---
-        trigger_times:   longblob
-        n_samples:      int         # tot number of samples in recording
-        n_ms:           int         # duration in milliseconds
-    """
-
-    def make(self, key):
-        session = (Session * ValidatedSession & key).fetch1()
-        triggers = _triggers.get_triggers(session)
-
-        key = {**key, **triggers}
-        self.insert1(key)
-
-
-# ---------------------------------------------------------------------------- #
-#                                 behavior data                                #
-# ---------------------------------------------------------------------------- #
-@schema
-class Behavior(dj.Imported):
-    definition = """
-        # stores AI and csv data from Bonsai in a nicely formatted manner
-        -> ValidatedSession
-        ---
-        speaker:                    longblob  # signal sent to speakers (signals in frame times)
-        pump:                       longblob  # signal sent to pump
-        reward_signal:              longblob  # 0 -> 1 when reward is delivered
-        reward_available_signal:    longblob  # 1 when the reward becomes available
-        trigger_roi:                longblob  # 1 when mouse in trigger ROI
-        reward_roi:                 longblob  # 1 when mouse in reward ROI
-    """
-
-    def make(self, key):
-        """
-            loads data from .bin and .csv data saved by bonsai.
-
-            1. get session
-            2. load/cut .bin file from bonsai
-            3. load/cut .csv file from bonsai
-        """
-        if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
-            logger.debug(
-                f'Skipping {key["name"]} because it is not a recording'
+            # get bouts
+            bouts = _locomotion_bouts.get_session_bouts(
+                key,
+                tracking,
+                Session.on_hairpin(key["name"]),
+                speed_th=self.speed_th,
+                max_pause=self.max_pause,
+                min_duration=self.min_duration,
+                min_peak_speed=self.min_peak_speed,
+                min_gcoord_delta=self.min_gcoord_delta,
             )
-            return
 
-        # fetch metadata
-        name = key["name"]
-        try:
-            session = (
-                Session * ValidatedSession * BonsaiTriggers & f'name="{name}"'
-            ).fetch1()
-        except Exception:
-            logger.warning(f"Failed to fetch data for {name} - not validated?")
-            return
+            # insert in table
+            for bout in bouts:
+                self.insert1(bout)
 
-        # load, format & insert data
-        key = _behavior.load_session_data(
-            session, key, ValidatedSession.analog_sampling_rate
-        )
-        if key is not None:
+    @schema
+    class Movement(dj.Imported):
+        turning_threshold: float = 20  # deg/sec
+        moving_threshold: float = 2.5  # cm/sec
+
+        definition = """
+            # stores information about when the mouse is doing certain types of movements
+            -> ValidatedSession
+            ---
+            moving:         longblob  # moving but not necessarily walking
+            walking:        longblob  # 1 when the mouse is walking
+            turning_left:   longblob
+            turning_right:  longblob
+        """
+
+        def make(self, key):
+            """
+                Gets arrays indicating when the mouse id doing certain kinds of movements
+            """
+            # get data
+            tracking = Tracking.get_session_tracking(key["name"])
+
+            # get when walking
+            key["walking"] = LocomotionBouts.is_locomoting(key["name"])
+
+            # get other movements
+            key = _tracking.get_movements(
+                key, tracking, self.moving_threshold, self.turning_threshold
+            )
+
             self.insert1(key)
 
+    # ---------------------------------------------------------------------------- #
+    #                                  ephys data                                  #
+    # ---------------------------------------------------------------------------- #
 
-@schema
-class Tones(dj.Computed):
-    definition = """
-        -> Behavior
-        ---
-        tone_onsets:                 longblob  # tone onset times in frame number
-        tone_offsets:                longblob
-    """
-
-    @staticmethod
-    def get_session_tone_on(session_name: str) -> np.ndarray:
-        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1(
-            "n_frames"
-        )
-        tone_on = np.zeros(n_frames)
-
-        session_tone = (Tones & f'name="{session_name}"').fetch1()
-        for on, off in zip(
-            session_tone["tone_onsets"], session_tone["tone_offsets"]
-        ):
-            tone_on[on:off] = 1
-        return tone_on
-
-    def make(self, key):
-        speaker = (Behavior & key).fetch1("speaker")
-
-        # get tone onsets/offsets times
-        key["tone_onsets"], key["tone_offsets"] = data_utils.get_event_times(
-            speaker,
-            kernel_size=211,
-            th=0.005,
-            abs_val=True,
-            debug=False,
-            shift=1,
-        )
-
-        self.insert1(key)
-
-
-# ---------------------------------------------------------------------------- #
-#                           COMMON COORDINATES MATRIX                          #
-# ---------------------------------------------------------------------------- #
-@schema
-class CCM(dj.Imported):
-    definition = """
-    # stores common coordinates matrix for a session
-    -> ValidatedSession
-    ---
-    correction_matrix:      longblob        # 2x3 Matrix used for correction
-    """
-
-    def make(self, key):
-        # Get the maze model template
-
-        arena = cv2.imread("data/dbase/arena_template.png")
-        arena = cv2.cvtColor(arena, cv2.COLOR_RGB2GRAY)
-
-        # Get path to video
-        videopath = (Session & key).fetch1("video_file_path")
-
-        # get matrix
-        key["correction_matrix"] = _ccm.get_matrix(videopath, arena)
-        self.insert1(key)
-
-
-# ---------------------------------------------------------------------------- #
-#                                 tracking data                                #
-# ----------------------------------------------------------------------------
-@schema
-class Tracking(dj.Imported):
-    """
-        tracking data from DLC. The
-        entries in the main table reflect the mouse's body\body axis
-        and a sub table is used for each body part.
-    
-    """
-
-    likelihood_threshold = 0.9975
-    cm_per_px = 60 / 830
-    bparts = (
-        "snout",
-        "neck",
-        "body",
-        "tail_base",
-        "left_fl",
-        "left_hl",
-        "right_fl",
-        "right_hl",
-    )
-
-    definition = """
-        -> ValidatedSession
-        ---
-        orientation:            longblob  # orientation in deg
-        angular_velocity:       longblob  # angular velocityi in deg/sec
-    """
-
-    class BodyPart(dj.Part):
+    @schema
+    class Probe(dj.Imported):
         definition = """
-            -> Tracking
-            bpname:  varchar(64)
+            # relevant probe information
+            -> Mouse
             ---
-            x:                      longblob  # body position in cm
-            y:                      longblob  # body position in cm
-            speed:                  longblob  # body speed in cm/s
-            direction_of_movement:  longblob  # angle towards where the mouse is moving next
+            skull_coordinates:                              longblob  # AP, ML from bregma in mm
+            implanted_depth:                                longblob  # Z axis of stereotax in mm from brain surface
+            reconstructed_track_filepath:                   varchar(256)
+            angle_ml:                                       longblob
+            angle_ap:                                       longblob
         """
 
-    class Linearized(dj.Part):
-        definition = """
-            -> Tracking
-            ---
-            segment:        longblob  # index of hairpin arena segment
-            global_coord:   longblob # values in range 0-1 with position along the arena
-        """
+        class RecordingSite(dj.Part):
+            definition = """
+                # metadata about recording sites locations
+                -> Probe
+                site_id:                        int
+                ---
+                registered_brain_coordinates:   blob  # in um, in atlas space
+                probe_coordinates:              int   # position in um along probe
+                brain_region:                   varchar(128)  # acronym
+                brain_region_id:                int
+                color:                          varchar(128)  # brain region color
+            """
 
-    def make(self, key):
-        if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
-            logger.info(f'Skipping {key["name"]} because its not a recording')
-            return
-
-        # get tracking data file
-        tracking_file = Session.get_session_tracking_file(key["name"])
-        if tracking_file is None:
-            return
-
-        # get number of frames in session
-        n_frames = (ValidatedSession & key).fetch1("n_frames")
-
-        # get CCM registration matrix
-        M = (CCM & key).fetch1("correction_matrix")
-
-        # process data
-        key, bparts_keys, tracking_n_frames = _tracking.process_tracking_data(
-            key,
-            tracking_file,
-            M,
-            likelihood_th=self.likelihood_threshold,
-            cm_per_px=self.cm_per_px,
-        )
-
-        # check number of frames
-        if n_frames != tracking_n_frames:
-            raise ValueError(
-                "Number of frames in video and tracking dont match!!"
+        @staticmethod
+        def get_session_sites(mouse: str) -> pd.DataFrame:
+            return pd.DataFrame(
+                (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"').fetch()
             )
 
-        # insert into table
-        self.insert1(key)
-        for bpkey in bparts_keys.values():
-            self.BodyPart.insert1(bpkey)
-
-        # Get linearized position
-        if Session.on_hairpin(key["name"]):
-            hp = HairpinTrace()
-            key["segment"], key["global_coord"] = hp.assign_tracking(
-                bparts_keys["body"]["x"], bparts_keys["body"]["y"]
+        def make(self, key):
+            logger.info(
+                f'Getting reconstructed probe position for mouse {key["mouse_id"]}'
             )
-            del key["orientation"]
-            del key["angular_velocity"]
-            self.Linearized.insert1(key)
+            metadata = get_probe_metadata(key["mouse_id"])
+            if metadata is None:
+                return
+            probe_key = {**key, **metadata}
 
-    @staticmethod
-    def get_session_tracking(session_name, body_only=True, movement=True):
-        query = Tracking * Tracking.BodyPart & f'name="{session_name}"'
-        if movement:
-            query = query * Movement
+            recording_sites = _probe.place_probe_recording_sites(metadata)
+            if recording_sites is None:
+                return
 
-        if body_only:
-            query = query & f"bpname='body'"
+            # insert into main table
+            self.insert1(probe_key)
+            for rsite in recording_sites:
+                rsite_key = {**key, **rsite}
+                self.RecordingSite.insert1(rsite_key)
 
-        if Session.on_hairpin(session_name):
-            query = query * Tracking.Linearized
-
-        if len(query) == 1:
-            return pd.DataFrame(query.fetch()).iloc[0]
-        else:
-            return pd.DataFrame(query.fetch())
-
-
-# ---------------------------------------------------------------------------- #
-#                                  locomotion bouts                            #
-# ---------------------------------------------------------------------------- #
-@schema
-class LocomotionBouts(dj.Imported):
-    definition = """
-        # identified bouts of continous locomotion
-        -> ValidatedSession
-        start_frame:        int
-        end_frame:          int  # last frame of locomotion bout
-        ---
-        duration:           float  # duration in seconds
-        direction:          varchar(64)   # 'outbound' or 'inbound' or 'none'
-        color:              varchar(64)
-        complete:           varchar(32)    # True if its form reward to trigger ROIs
-        start_roi:          int
-        end_roi:            int
-    """
-
-    speed_th: float = 5  # cm/s
-    min_peak_speed = 10  # cm/s - each bout must reach this speed at some point
-    max_pause: float = 1  # (s) if paused for < than this its one contiuous locomotion bout
-    min_duration: float = 2  # (s) keep only outs that last at least this long
-
-    min_gcoord_delta: float = 0.1  # the global coordinates must change of at least this during bout
-
-    @staticmethod
-    def is_locomoting(session_name: str) -> np.ndarray:
-        """
-            Returns an array of 1 and 0 with 1 for every frame in which the mouse
-            is walking
-        """
-        n_frames = (ValidatedSession & f'name="{session_name}"').fetch1(
-            "n_frames"
-        )
-        locomoting = np.zeros(n_frames)
-
-        bouts = pd.DataFrame(
-            (LocomotionBouts & f'name="{session_name}"').fetch()
-        )
-        for i, bout in bouts.iterrows():
-            locomoting[bout.start_frame : bout.end_frame] = 1
-        return locomoting
-
-    @staticmethod
-    def get_session_bouts(session_name: str) -> pd.DataFrame:
-        return pd.DataFrame(
-            (LocomotionBouts & f'name="{session_name}"').fetch()
-        )
-
-    def make(self, key):
-        if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
-            logger.debug(
-                f'Skipping {key["name"]} because it doesnt have a recording'
-            )
-            return
-
-        # get tracking data
-        tracking = Tracking.get_session_tracking(
-            key["name"], body_only=False, movement=False
-        )
-        if tracking.empty:
-            logger.warning(
-                f'Failed to get tracking data for session {key["name"]}'
-            )
-            return
-        else:
-            logger.info(f'Getting locomotion bouts for session {key["name"]}')
-
-        # get bouts
-        bouts = _locomotion_bouts.get_session_bouts(
-            key,
-            tracking,
-            Session.on_hairpin(key["name"]),
-            speed_th=self.speed_th,
-            max_pause=self.max_pause,
-            min_duration=self.min_duration,
-            min_peak_speed=self.min_peak_speed,
-            min_gcoord_delta=self.min_gcoord_delta,
-        )
-
-        # insert in table
-        for bout in bouts:
-            self.insert1(bout)
-
-
-@schema
-class Movement(dj.Imported):
-    turning_threshold: float = 20  # deg/sec
-    moving_threshold: float = 2.5  # cm/sec
-
-    definition = """
-        # stores information about when the mouse is doing certain types of movements
-        -> ValidatedSession
-        ---
-        moving:         longblob  # moving but not necessarily walking
-        walking:        longblob  # 1 when the mouse is walking
-        turning_left:   longblob
-        turning_right:  longblob
-    """
-
-    def make(self, key):
-        """
-            Gets arrays indicating when the mouse id doing certain kinds of movements
-        """
-        # get data
-        tracking = Tracking.get_session_tracking(key["name"])
-
-        # get when walking
-        key["walking"] = LocomotionBouts.is_locomoting(key["name"])
-
-        # get other movements
-        key = _tracking.get_movements(
-            key, tracking, self.moving_threshold, self.turning_threshold
-        )
-
-        self.insert1(key)
-
-
-# ---------------------------------------------------------------------------- #
-#                                  ephys data                                  #
-# ---------------------------------------------------------------------------- #
-
-
-@schema
-class Probe(dj.Imported):
-    definition = """
-        # relevant probe information
-        -> Mouse
-        ---
-        skull_coordinates:                              longblob  # AP, ML from bregma in mm
-        implanted_depth:                                longblob  # Z axis of stereotax in mm from brain surface
-        reconstructed_track_filepath:                   varchar(256)
-        angle_ml:                                       longblob
-        angle_ap:                                       longblob
-    """
-
-    class RecordingSite(dj.Part):
+    @schema
+    class Recording(dj.Imported):
         definition = """
-            # metadata about recording sites locations
-            -> Probe
-            site_id:                        int
+            # stores metadata about the ephys recording
+            -> ValidatedSession
             ---
-            registered_brain_coordinates:   blob  # in um, in atlas space
-            probe_coordinates:              int   # position in um along probe
-            brain_region:                   varchar(128)  # acronym
-            brain_region_id:                int
-            color:                          varchar(128)  # brain region color
+            concatenated:                       int           # 1 if spike sorting was done on concatenated data
+            spike_sorting_params_file_path:     varchar(256)  # PRM file with spike sorting paramters
+            spike_sorting_spikes_file_path:     varchar(256)  # CSV files with spikes times
+            spike_sorting_clusters_file_path:   varchar(256)  # MAT file with clusters IDs
         """
-
-    @staticmethod
-    def get_session_sites(mouse: str) -> pd.DataFrame:
-        return pd.DataFrame(
-            (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"').fetch()
+        recordings_folder = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\recordings"
         )
 
-    def make(self, key):
-        logger.info(
-            f'Getting reconstructed probe position for mouse {key["mouse_id"]}'
-        )
-        metadata = get_probe_metadata(key["mouse_id"])
-        if metadata is None:
-            return
-        probe_key = {**key, **metadata}
+        def make(self, key):
+            # check if the session has a recording
+            if not Session.has_recording(key["name"]):
+                return
 
-        recording_sites = _probe.place_probe_recording_sites(metadata)
-        if recording_sites is None:
-            return
-
-        # insert into main table
-        self.insert1(probe_key)
-        for rsite in recording_sites:
-            rsite_key = {**key, **rsite}
-            self.RecordingSite.insert1(rsite_key)
-
-
-@schema
-class Recording(dj.Imported):
-    definition = """
-        # stores metadata about the ephys recording
-        -> ValidatedSession
-        ---
-        concatenated:                       int           # 1 if spike sorting was done on concatenated data
-        spike_sorting_params_file_path:     varchar(256)  # PRM file with spike sorting paramters
-        spike_sorting_spikes_file_path:     varchar(256)  # CSV files with spikes times
-        spike_sorting_clusters_file_path:   varchar(256)  # MAT file with clusters IDs
-    """
-    recordings_folder = Path(
-        r"W:\swc\branco\Federico\Locomotion\raw\recordings"
-    )
-
-    def make(self, key):
-        # check if the session has a recording
-        if not Session.has_recording(key["name"]):
-            return
-
-        # load recordings metadata
-        rec_metadata = pd.read_excel(
-            Session.recordings_metadata_path, engine="odf"
-        )
-
-        # get recording folder
-        rec_folder = Path(
-            (Session & key).fetch1("ephys_ap_data_path")
-        ).parent.parent.name
-
-        # get paths
-        key = _recording.get_recording_filepaths(
-            key, rec_metadata, self.recordings_folder, rec_folder
-        )
-        if key is not None:
-            self.insert1(key)
-
-
-@schema
-class Unit(dj.Imported):
-    precomputed_firing_rate_windows = [33, 100, 150, 250]
-
-    definition = """
-        # a single unit's spike sorted data
-        -> Recording
-        unit_id:        int
-        ---
-        -> Probe.RecordingSite
-        secondary_sites_ids:    longblob  # site_id of each cluster recording site
-    """
-
-    class Spikes(dj.Part):
-        definition = """
-            # spike times in milliseconds and video frame number
-            -> Unit
-            ---
-            spikes_ms:              longblob
-            spikes:                 longblob  # in video frames number
-        """
-
-    @staticmethod
-    def get_session_units(
-        session_name: str,
-        spikes: bool = False,
-        firing_rate: bool = False,
-        frate_window: int = 50,
-    ) -> pd.DataFrame:
-        # query
-        query = Unit * Probe.RecordingSite & f"name='{session_name}'"
-        if spikes:
-            query = query * Unit.Spikes
-
-        # fetch
-        units = pd.DataFrame(query)
-
-        # augment
-        if firing_rate:
-            if frate_window not in Unit.precomputed_firing_rate_windows:
-                triggers = (
-                    Session * ValidatedSession * BonsaiTriggers
-                    & f'name="{session_name}"'
-                ).fetch1()
-                units = _recording.get_units_firing_rate(
-                    units,
-                    frate_window,
-                    triggers,
-                    ValidatedSession.analog_sampling_rate,
-                )
-            else:
-                # load pre-computed firing rates
-                units["firing_rate"] = list(
-                    (query * FiringRate & f"bin_width={frate_window}").fetch(
-                        "firing_rate"
-                    )
-                )
-        return units
-
-    def is_in_target_region(
-        unit: dict, targets: List[str]
-    ) -> Tuple[bool, bool, str]:
-        """
-            Checks if any of the unit's recording sites lays into
-            target region. Returns True/False based on that, 
-            True/False based on if the unit's main site is a target
-            and the name of the target region.
-        """
-
-        # check if the main unit's site is a target
-        main_site = (Probe * Probe.RecordingSite & unit).fetch1()
-        if main_site["brain_region"] in targets:
-            return True, True, main_site["brain_region"]
-
-        # check secondary sites
-        for site_number in unit["secondary_sites_ids"]:
-            site = (
-                Probe * Probe.RecordingSite & f"site_id={site_number}"
-            ).fetch1()
-            if site["brain_region"] in targets:
-                return True, False, site["brain_region"]
-
-        return False, None, None
-
-    @staticmethod
-    def get_unit_sites(
-        mouse: str, session_name: str, unit_id: int
-    ) -> pd.DataFrame:
-        rsites = Probe.get_session_sites(mouse)
-        unit_sites = (
-            Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
-        ).fetch1("secondary_sites_ids")
-
-        rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
-        return rsites
-
-    def make(self, key):
-        recording = (Session * Recording & key).fetch1()
-
-        # load units data
-        units = _recording.load_cluster_curation_results(
-            recording["spike_sorting_clusters_file_path"],
-            recording["spike_sorting_spikes_file_path"],
-        )
-
-        # load behavior camera triggers
-        triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
-
-        # deal with concatenated recordinds
-        if recording["concatenated"] == 1:
             # load recordings metadata
             rec_metadata = pd.read_excel(
                 Session.recordings_metadata_path, engine="odf"
             )
 
-            # cut unit spikes
-            pre_cut, post_cut = _recording.cut_concatenated_units(
-                recording, triggers, rec_metadata
+            # get recording folder
+            rec_folder = Path(
+                (Session & key).fetch1("ephys_ap_data_path")
+            ).parent.parent.name
+
+            # get paths
+            key = _recording.get_recording_filepaths(
+                key, rec_metadata, self.recordings_folder, rec_folder
             )
-        else:
-            pre_cut, post_cut = None, None
-        # fill in units
-        for nu, unit in enumerate(units):
-            logger.debug(f"processing unit {nu+1}/{len(units)}")
-            # enter info in main table
-            unit_key = key.copy()
-            unit_key["unit_id"] = unit["unit_id"]
-            unit_key["site_id"] = unit["recording_site_id"]
-            unit_key["secondary_sites_ids"] = unit["secondary_sites_ids"]
+            if key is not None:
+                self.insert1(key)
 
-            # get adjusted spike times
-            unit_spikes = _recording.get_unit_spike_times(
-                unit,
-                triggers,
-                ValidatedSession.analog_sampling_rate,
-                pre_cut=pre_cut,
-                post_cut=post_cut,
+    @schema
+    class Unit(dj.Imported):
+        precomputed_firing_rate_windows = [33, 100, 150, 250]
+
+        definition = """
+            # a single unit's spike sorted data
+            -> Recording
+            unit_id:        int
+            ---
+            -> Probe.RecordingSite
+            secondary_sites_ids:    longblob  # site_id of each cluster recording site
+        """
+
+        class Spikes(dj.Part):
+            definition = """
+                # spike times in milliseconds and video frame number
+                -> Unit
+                ---
+                spikes_ms:              longblob
+                spikes:                 longblob  # in video frames number
+            """
+
+        @staticmethod
+        def get_session_units(
+            session_name: str,
+            spikes: bool = False,
+            firing_rate: bool = False,
+            frate_window: int = 50,
+        ) -> pd.DataFrame:
+            # query
+            query = Unit * Probe.RecordingSite & f"name='{session_name}'"
+            if spikes:
+                query = query * Unit.Spikes
+
+            # fetch
+            units = pd.DataFrame(query)
+
+            # augment
+            if firing_rate:
+                if frate_window not in Unit.precomputed_firing_rate_windows:
+                    triggers = (
+                        Session * ValidatedSession * BonsaiTriggers
+                        & f'name="{session_name}"'
+                    ).fetch1()
+                    units = _recording.get_units_firing_rate(
+                        units,
+                        frate_window,
+                        triggers,
+                        ValidatedSession.analog_sampling_rate,
+                    )
+                else:
+                    # load pre-computed firing rates
+                    units["firing_rate"] = list(
+                        (
+                            query * FiringRate & f"bin_width={frate_window}"
+                        ).fetch("firing_rate")
+                    )
+            return units
+
+        def is_in_target_region(
+            unit: dict, targets: List[str]
+        ) -> Tuple[bool, bool, str]:
+            """
+                Checks if any of the unit's recording sites lays into
+                target region. Returns True/False based on that, 
+                True/False based on if the unit's main site is a target
+                and the name of the target region.
+            """
+
+            # check if the main unit's site is a target
+            main_site = (Probe * Probe.RecordingSite & unit).fetch1()
+            if main_site["brain_region"] in targets:
+                return True, True, main_site["brain_region"]
+
+            # check secondary sites
+            for site_number in unit["secondary_sites_ids"]:
+                site = (
+                    Probe * Probe.RecordingSite & f"site_id={site_number}"
+                ).fetch1()
+                if site["brain_region"] in targets:
+                    return True, False, site["brain_region"]
+
+            return False, None, None
+
+        @staticmethod
+        def get_unit_sites(
+            mouse: str, session_name: str, unit_id: int
+        ) -> pd.DataFrame:
+            rsites = Probe.get_session_sites(mouse)
+            unit_sites = (
+                Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
+            ).fetch1("secondary_sites_ids")
+
+            rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
+            return rsites
+
+        def make(self, key):
+            recording = (Session * Recording & key).fetch1()
+
+            # load units data
+            units = _recording.load_cluster_curation_results(
+                recording["spike_sorting_clusters_file_path"],
+                recording["spike_sorting_spikes_file_path"],
             )
-            spikes_key = {**key.copy(), **unit_spikes}
-            spikes_key["unit_id"] = unit["unit_id"]
 
-            # insert into table
-            self.insert1(unit_key)
-            self.Spikes.insert1(spikes_key)
+            # load behavior camera triggers
+            triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
 
+            # deal with concatenated recordinds
+            if recording["concatenated"] == 1:
+                # load recordings metadata
+                rec_metadata = pd.read_excel(
+                    Session.recordings_metadata_path, engine="odf"
+                )
 
-@schema
-class FiringRate(dj.Imported):
-    definition = """
-        # spike times in milliseconds and video frame number
-        -> Unit
-        bin_width:                   float  # std of gaussian kernel in milliseconds
-        ---
-        firing_rate:                 longblob  # in video frames number
-    """
+                # cut unit spikes
+                pre_cut, post_cut = _recording.cut_concatenated_units(
+                    recording, triggers, rec_metadata
+                )
+            else:
+                pre_cut, post_cut = None, None
+            # fill in units
+            for nu, unit in enumerate(units):
+                logger.debug(f"processing unit {nu+1}/{len(units)}")
+                # enter info in main table
+                unit_key = key.copy()
+                unit_key["unit_id"] = unit["unit_id"]
+                unit_key["site_id"] = unit["recording_site_id"]
+                unit_key["secondary_sites_ids"] = unit["secondary_sites_ids"]
 
-    def make(self, key):
-        unit = (Unit * Unit.Spikes & key).fetch1()
-        triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
-        logger.info(f"Processing: {unit}")
+                # get adjusted spike times
+                unit_spikes = _recording.get_unit_spike_times(
+                    unit,
+                    triggers,
+                    ValidatedSession.analog_sampling_rate,
+                    pre_cut=pre_cut,
+                    post_cut=post_cut,
+                )
+                spikes_key = {**key.copy(), **unit_spikes}
+                spikes_key["unit_id"] = unit["unit_id"]
 
-        # get firing rates
-        for frate_window in Unit.precomputed_firing_rate_windows:
-            unit_frate = _recording.get_units_firing_rate(
-                unit,
-                frate_window,
-                triggers,
-                ValidatedSession.analog_sampling_rate,
-            )
-            frate_key = {**key.copy(), **unit_frate}
-            frate_key["unit_id"] = unit["unit_id"]
-            frate_key["bin_width"] = frate_window
-            del frate_key["site_id"]
-            del frate_key["secondary_sites_ids"]
-            del frate_key["spikes"]
-            del frate_key["spikes_ms"]
+                # insert into table
+                self.insert1(unit_key)
+                self.Spikes.insert1(spikes_key)
 
-            self.insert1(frate_key)
-            # time.sleep(5)
+    @schema
+    class FiringRate(dj.Imported):
+        definition = """
+            # spike times in milliseconds and video frame number
+            -> Unit
+            bin_width:                   float  # std of gaussian kernel in milliseconds
+            ---
+            firing_rate:                 longblob  # in video frames number
+        """
 
-    def check_complete(self):
-        # checks that all units have all firing rates
-        n_per_unit = len(Unit.precomputed_firing_rate_windows)
-        n_units = len(Unit())
-        expected = n_per_unit * n_units
+        def make(self, key):
+            unit = (Unit * Unit.Spikes & key).fetch1()
+            triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
+            logger.info(f"Processing: {unit}")
 
-        if len(FiringRate()) != expected:
-            raise ValueError("Not all units have all firing rates  :(")
-        else:
-            logger.info("Firing rate has everything")
+            # get firing rates
+            for frate_window in Unit.precomputed_firing_rate_windows:
+                unit_frate = _recording.get_units_firing_rate(
+                    unit,
+                    frate_window,
+                    triggers,
+                    ValidatedSession.analog_sampling_rate,
+                )
+                frate_key = {**key.copy(), **unit_frate}
+                frate_key["unit_id"] = unit["unit_id"]
+                frate_key["bin_width"] = frate_window
+                del frate_key["site_id"]
+                del frate_key["secondary_sites_ids"]
+                del frate_key["spikes"]
+                del frate_key["spikes_ms"]
+
+                self.insert1(frate_key)
+                # time.sleep(5)
+
+        def check_complete(self):
+            # checks that all units have all firing rates
+            n_per_unit = len(Unit.precomputed_firing_rate_windows)
+            n_units = len(Unit())
+            expected = n_per_unit * n_units
+
+            if len(FiringRate()) != expected:
+                raise ValueError("Not all units have all firing rates  :(")
+            else:
+                logger.info("Firing rate has everything")
 
 
 if __name__ == "__main__":
