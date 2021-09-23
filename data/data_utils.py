@@ -22,6 +22,26 @@ KEYS = (
     "firing_rate",
 )
 
+def remove_outlier_values(data:np.ndarray, threshold:Union[Tuple[float, float], float], errors_calculation_array:np.ndarray=None) -> np.ndarray:
+    '''
+        Removes extreme values form an array by setting them to nan and interpolating what's left
+    '''
+    dtype = data.dtype
+
+    # find where extreme values are
+    if errors_calculation_array is None:
+        errors_calculation_array = data.copy()
+    
+    if isinstance(threshold, tuple):
+        errors = np.where((errors_calculation_array > threshold[0])&(errors_calculation_array < threshold[1]))[0]
+    else:
+        errors = np.where(errors_calculation_array > threshold)[0]
+    
+    data[errors-1] = np.nan
+    data[errors] = np.nan
+    data = interpolate_nans(data=data)['data']
+    return np.array(list(data.values())).astype(dtype)
+
 
 def convolve_with_gaussian(
     data: np.ndarray, kernel_width: int = 21
@@ -36,7 +56,8 @@ def convolve_with_gaussian(
     _kernnel = norm.pdf(X)
     kernel = _kernnel / np.sum(_kernnel)
 
-    return np.convolve(data, kernel, mode="same")
+    padded = np.pad(data, kernel_width, mode='edge')
+    return np.convolve(padded, kernel, mode="same")[kernel_width:-kernel_width]
 
 
 def get_bouts_tracking_stacked(

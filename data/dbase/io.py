@@ -49,12 +49,12 @@ def get_recording_local_copy(remote_path):
     local_path = local_raw_recordings_folder / remote.parent / remote.name
     if local_path.exists():
         logger.debug(f"Using local copy of file: {local_path.name}")
-        return local_path
+        return Path(local_path)
     else:
         logger.warning(
             f"Could not find local copy of recording file: {local_path.name}"
         )
-        return remote_path
+        return Path(remote_path)
 
 
 def load_bin(filepath, nsigs=4, dtype=None, order=None):

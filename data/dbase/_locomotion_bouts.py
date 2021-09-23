@@ -8,6 +8,7 @@ from fcutils.maths.signals import get_onset_offset
 
 from data.data_structures import TrackingData
 from data import colors
+from data import data_utils
 
 
 def plot_speeds(
@@ -140,10 +141,10 @@ def get_threshold_crossing(
         Gets the last/first time the speed of all paws crossed a threshold
     """
     speeds = (
-        tracking.right_fl.speed,
-        tracking.left_fl.speed,
-        tracking.right_hl.speed,
-        tracking.left_hl.speed,
+        tracking.right_fl.bp_speed,
+        tracking.left_fl.bp_speed,
+        tracking.right_hl.bp_speed,
+        tracking.left_hl.bp_speed,
     )
     if direction == "up":
         if frame == 0:
@@ -152,6 +153,7 @@ def get_threshold_crossing(
 
         crosses = []
         for paw in speeds:
+            paw = data_utils.convolve_with_gaussian(paw, 8)
             try:
                 crosses.append(np.where(paw[start:frame] < threshold)[0][-1])
             except IndexError:
@@ -190,19 +192,37 @@ def get_bout_start_end_times(
     """
 
     # get exactly when the bout starts and ends
-    precise_start = get_threshold_crossing(tracking, bstart, "up", 2)
-    precise_end = get_threshold_crossing(tracking, bend, "down", 2)
+    precise_start = get_threshold_crossing(tracking, bstart, "up", 8)
+    precise_end = get_threshold_crossing(tracking, bend, "down", 8)
 
     # plot_bout_start_end(tracking.body.speed,
-    #     rfl=tracking.right_fl.speed,
-    #     lfl=tracking.left_fl.speed,
-    #     rhl=tracking.right_hl.speed,
-    #     lhl=tracking.left_hl.speed,
+    #     rfl=tracking.right_fl.bp_speed,
+    #     lfl=tracking.left_fl.bp_speed,
+    #     rhl=tracking.right_hl.bp_speed,
+    #     lhl=tracking.left_hl.bp_speed,
     #     precise_start = precise_start,
     #     precise_end = precise_end,
-    #     start=bstart, end=bend, speed_th=speed_th)
+    #     start=bstart, end=bend, speed_th=10)
 
     return precise_start, precise_end
+
+def is_quiet(tracking: tuple, bstart: int, bend: int, duration: int, shift:int=5, th:float=5) -> bool:
+    '''
+        Checks if the speed of all paws is law enough before and after the 
+        the bout which means the mouse wasnt mooving to much.
+    '''
+    speeds = np.vstack([
+        tracking.right_fl.bp_speed,
+        tracking.left_fl.bp_speed,
+        tracking.right_hl.bp_speed,
+        tracking.left_hl.bp_speed,
+    ])
+
+    if np.mean(speeds[:, bstart-duration-shift:bstart-shift]) > th:
+        return False
+    elif np.mean(speeds[:, bend+shift:bend+shift+duration]) > th:
+        return False
+    return True
 
 
 def check_gcoord_delta(
@@ -216,7 +236,6 @@ def check_gcoord_delta(
 
 
 def get_bout_direction(tracking: tuple, bstart: int, bend: int) -> str:
-    # plt.plot(tracking.body.global_coord[bstart:bend]); plt.show()
     gstart, gend = (
         tracking.body.global_coord[bstart],
         tracking.body.global_coord[bend],
@@ -261,7 +280,7 @@ def get_session_bouts(
 
     # get when the mouse is moving
     is_moving = get_when_moving(
-        tracking.body.speed, speed_th, max_pause, min_duration, min_peak_speed
+        data_utils.convolve_with_gaussian(tracking.body.speed, 21), speed_th, max_pause, min_duration, min_peak_speed
     )
     # plot_speeds(tracking.body.speed, is_moving=is_moving)
 
@@ -307,6 +326,10 @@ def get_session_bouts(
         if bstart in [b["start_frame"] for b in bouts]:
             continue
 
+        # check that there's no movement before/after bout
+        if not is_quiet(tracking, bstart, bend, duration=int(0.5 * 60)):
+            continue
+
         # put everything together
         bout = key.copy()
         bout["start_frame"] = bstart
@@ -321,6 +344,6 @@ def get_session_bouts(
 
     n_complete = len([b for b in bouts if b["complete"] == "true"])
     logger.debug(
-        f" kept {len(bouts)}/{len(onsets)} ({len(bouts)/len(onsets):.2f} %) bouts of which {n_complete} are complete"
+        f" kept {len(bouts)}/{len(onsets)} ({len(bouts)/len(onsets)*100:.2f} %) bouts of which {n_complete} are complete"
     )
     return bouts

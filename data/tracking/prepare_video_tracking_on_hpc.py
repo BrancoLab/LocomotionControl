@@ -8,6 +8,7 @@ from fcutils.path import files
 Creates a set of bash scripts to analyze files with DLC on HPC
 """
 
+# videos_folder = Path(r'W:\swc\branco\Federico\Locomotion\dlc\videos')
 videos_folder = Path(r"W:\swc\branco\Federico\Locomotion\raw\video")
 tracking_folder = Path(r"W:\swc\branco\Federico\Locomotion\raw\tracking")
 bash_folder = Path(r"W:\swc\branco\Federico\Locomotion\dlc\dlc_individuals")
@@ -18,8 +19,7 @@ videos = files(videos_folder, "FC_*.avi")
 videos = [
     v
     for v in videos
-    if "_d" not in v.name
-    and "test" not in v.name.lower()
+    if "test" not in v.name.lower()
     and "t_" not in v.name
 ]
 
@@ -38,10 +38,10 @@ BASH_TEMPLATE = """#! /bin/bash
 
 #SBATCH -p gpu # partition (queue)
 #SBATCH -N 1   # number of nodes
-#SBATCH --mem 80G # memory pool for all cores
-#SBATCH --gres=gpu:gtx1080:1
-#SBATCH -n 10
-#SBATCH -t 2-0:0 # time
+#SBATCH --mem 40G # memory pool for all cores
+#SBATCH --gres=gpu:gtx1080
+#SBATCH -n 1
+#SBATCH -t 5-0:0 # time
 #SBATCH	-o out.out
 #SBATCH -e err.err
 #SBATCH --mail-user=federicoclaudi@protonmail.com
@@ -49,22 +49,25 @@ BASH_TEMPLATE = """#! /bin/bash
 
 echo "loading conda env"
 module load miniconda
-module load nvidia/9.0
+module load cuda/9.0
 
 conda activate dlc
 export DLClight=True
-export CUDA_VISIBLE_DEVICES=1
 
 echo "running tracking"
-python dlc_on_hpc.py '/nfs/winstor/branco/Federico/Locomotion/dlc/locomotion/config.yaml' 'VIDEO' 'DEST'
+python dlc_on_hpc.py '/nfs/winstor/branco/Federico/Locomotion/dlc/locomotion-fc-2021-09-13/config.yaml' '/VIDEO' '/DEST'
 
 """
+
+# export CUDA_VISIBLE_DEVICES=0
+
 
 logger.info(
     f"Found {len(to_track)} videos left to track. Generating bash files."
 )
 for video in track(to_track):
     winstor_video_path = winstor_folder / "raw" / "video" / video.name
+    # winstor_video_path = winstor_folder / "dlc" / "videos" / video.name
     winstor_save_path = winstor_folder / "raw" / "tracking"
 
     bash_content = BASH_TEMPLATE.replace(

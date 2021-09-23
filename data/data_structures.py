@@ -9,8 +9,10 @@ class TrackingData:
     bp: str
     x: np.ndarray
     y: np.ndarray
-    speed: np.ndarray
+    bp_speed: np.ndarray
     direction_of_movement: np.ndarray
+    dmov_velocity: np.ndarray
+    speed:np.ndarray=None
     orientation: np.ndarray = None
     angular_velocity: np.ndarray = None
     segment: np.ndarray = None

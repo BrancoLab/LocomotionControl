@@ -42,7 +42,7 @@ from data.dbase.io import get_probe_metadata
 from data import data_utils
 
 
-DO_RECORDINGS_ONLY = True
+DO_RECORDINGS_ONLY = False
 
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
@@ -97,7 +97,7 @@ if have_dj:
             ephys_ap_data_path: varchar(256)
             ephys_ap_meta_path: varchar(256)
         """
-
+        too_early_date = 210412  # sessions before this have weird arenas and tracking doesnt do well
         recordings_metadata_path = Path(
             r"W:\swc\branco\Federico\Locomotion\raw\recordings_metadata.ods"
         )
@@ -120,23 +120,22 @@ if have_dj:
             recorded_sessions = pd.read_excel(
                 self.recordings_metadata_path, engine="odf"
             )
+            recorded_sessions = recorded_sessions.loc[recorded_sessions['USE?'] == 'yes']
             for i, session in recorded_sessions.iterrows():
                 if session["bonsai filename"] not in in_table:
                     raise ValueError(
                         f"Recording session not in table:\n{session}"
                     )
 
-            if len((Session & "is_recording=1").fetch()) != len(
-                recorded_sessions
-            ):
-                raise ValueError(
-                    "Not enough recorded sessions in table, but not sure which one is missing"
-                )
-
         @staticmethod
         def on_hairpin(session_name):
             session = pd.Series((Session & f'name="{session_name}"').fetch1())
             return session.arena == "hairpin"
+
+        @staticmethod
+        def is_too_early(session_name):
+            session = pd.Series((Session & f'name="{session_name}"').fetch1())
+            return int(session.date) <= Session.too_early_date
 
         @staticmethod
         def has_recording(session_name):
@@ -161,6 +160,8 @@ if have_dj:
 
             if not tracking_files:
                 logger.warning(f"No tracking data found for {session_name}")
+            elif isinstance(tracking_files, list):
+                raise ValueError("Found too many tracking files")
             return tracking_files
 
         @staticmethod
@@ -202,9 +203,25 @@ if have_dj:
         analog_sampling_rate = 30000
         excluded_sessions = [
             "FC_210713_AAA1110750_r3_hairpin",  # skipping because cable borke mid recording
+            "210818_281_longcol_inter_openarena",  # didnt save bonsai data
         ]
 
+        def mark_failed_validation(self, key, reason, nsigs, failed):
+                key = (Session & key).fetch1()
+                key['__REASON'] = reason
+                key['nsigs'] = nsigs
+                key['__IS_RECORDING'] = Session.has_recording(key["name"])
+                failed[key['name']] = key
+                to_yaml('data/dbase/validation_failed.yaml', failed)
+
         def make(self, key):
+            # check if this session has previously failed validatoin
+            failed = from_yaml('data/dbase/validation_failed.yaml')
+            if failed is None: failed = {}
+            if key['name'] in failed.keys():
+                logger.warning(f'Skipping because {key["name"]} previously failed validation')
+                return
+
             # fetch data
             session = (Session & key).fetch1()
             has_rec = Session.has_recording(key["name"])
@@ -250,13 +267,15 @@ if have_dj:
                     n_frames,
                     bonsai_cut_start,
                     bonsai_cut_end,
+                    reason
                 ) = qc.validate_behavior(
                     session["video_file_path"],
                     session["ai_file_path"],
                     self.analog_sampling_rate,
                 )
                 if not is_ok:
-                    logger.warning(f"Session failed to pass validation: {key}")
+                    self.mark_failed_validation(key, reason, analog_nsigs, failed)
+                    logger.warning(f"Session failed to pass BEHAVIOR validation: {key}")
                     return
                 else:
                     logger.info(f"Session passed BEHAVIOR validation")
@@ -267,6 +286,7 @@ if have_dj:
                         is_ok,
                         ephys_cut_start,
                         time_scaling_factor,
+                        reason,
                     ) = qc.validate_recording(
                         session["ai_file_path"],
                         session["ephys_ap_data_path"],
@@ -279,6 +299,7 @@ if have_dj:
                     logger.warning(
                         f"Session failed to pass RECORDING validation: {key}"
                     )
+                    self.mark_failed_validation(key, reason, analog_nsigs, failed)
                     return
                 else:
                     logger.info(f"Session passed RECORDING validation")
@@ -293,7 +314,6 @@ if have_dj:
                 key["n_analog_channels"] = int(analog_nsigs)
 
                 # save results to file
-                # if has_rec:
                 logger.debug(f"Saving key entries to yaml: {key}")
                 previously_validated[session["name"]] = key
                 to_yaml(previously_validated_path, previously_validated)
@@ -448,8 +468,7 @@ if have_dj:
             and a sub table is used for each body part.
         
         """
-
-        likelihood_threshold = 0.9975
+        likelihood_threshold = 0.95
         cm_per_px = 60 / 830
         bparts = (
             "snout",
@@ -467,6 +486,9 @@ if have_dj:
             ---
             orientation:            longblob  # orientation in deg
             angular_velocity:       longblob  # angular velocityi in deg/sec
+            speed:                  longblob  # body speed in cm/sec
+            direction_of_movement:  longblob  # angle towards where the mouse is moving next
+            dmov_velocity:          longblob  # rate of change of the direction of movement
         """
 
         class BodyPart(dj.Part):
@@ -476,8 +498,7 @@ if have_dj:
                 ---
                 x:                      longblob  # body position in cm
                 y:                      longblob  # body position in cm
-                speed:                  longblob  # body speed in cm/s
-                direction_of_movement:  longblob  # angle towards where the mouse is moving next
+                bp_speed:                  longblob  # body speed in cm/s
             """
 
         class Linearized(dj.Part):
@@ -489,15 +510,22 @@ if have_dj:
             """
 
         def make(self, key):
+            _key = key.copy()
+
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
                 logger.info(
                     f'Skipping {key["name"]} because its not a recording'
                 )
                 return
 
+            if Session.is_too_early(key["name"]):
+                logger.info(f'Skipping session {key["name"]} because its too early - bad tracking')
+                return
+
             # get tracking data file
             tracking_file = Session.get_session_tracking_file(key["name"])
             if tracking_file is None:
+                logger.warning('No tracking file found')
                 return
 
             # get number of frames in session
@@ -533,12 +561,11 @@ if have_dj:
             # Get linearized position
             if Session.on_hairpin(key["name"]):
                 hp = HairpinTrace()
-                key["segment"], key["global_coord"] = hp.assign_tracking(
+                lin_key = _key.copy()
+                lin_key["segment"], lin_key["global_coord"] = hp.assign_tracking(
                     bparts_keys["body"]["x"], bparts_keys["body"]["y"]
                 )
-                del key["orientation"]
-                del key["angular_velocity"]
-                self.Linearized.insert1(key)
+                self.Linearized.insert1(lin_key)
 
         @staticmethod
         def get_session_tracking(session_name, body_only=True, movement=True):
@@ -576,14 +603,14 @@ if have_dj:
             end_roi:            int
         """
 
-        speed_th: float = 5  # cm/s
+        speed_th: float = 10  # cm/s
         min_peak_speed = (
-            10  # cm/s - each bout must reach this speed at some point
+            15  # cm/s - each bout must reach this speed at some point
         )
-        max_pause: float = 1  # (s) if paused for < than this its one contiuous locomotion bout
+        max_pause: float = .5  # (s) if paused for < than this its one contiuous locomotion bout
         min_duration: float = 2  # (s) keep only outs that last at least this long
 
-        min_gcoord_delta: float = 0.1  # the global coordinates must change of at least this during bout
+        min_gcoord_delta: float = 0.25  # the global coordinates must change of at least this during bout
 
         @staticmethod
         def is_locomoting(session_name: str) -> np.ndarray:
@@ -984,7 +1011,7 @@ if __name__ == "__main__":
     # Session().fill()
 
     logger.info("#####    Filling Validated Session")
-    # ValidatedSession().populate(display_progress=True)
+    ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
@@ -995,7 +1022,7 @@ if __name__ == "__main__":
     # Tones().populate(display_progress=True)
 
     logger.info("#####    Filling Tracking")
-    Tracking().populate(display_progress=True)
+    # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
     LocomotionBouts().populate(display_progress=True)
@@ -1014,7 +1041,6 @@ if __name__ == "__main__":
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 
-    # TODO FIX NOISY TRACKING :(
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

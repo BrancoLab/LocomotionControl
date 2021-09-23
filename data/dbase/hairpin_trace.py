@@ -25,6 +25,8 @@ from fcutils.maths.geometry import (
 )
 
 
+from data.data_utils import convolve_with_gaussian
+
 @dataclass
 class Segment:
     p0: tuple  # start point
@@ -36,9 +38,7 @@ class Segment:
 
     @property
     def length(self):
-        return sqrt(
-            (self.p0[0] - self.p1[0]) ** 2 + (self.p0[1] - self.p1[1]) ** 2
-        )
+        return  np.linalg.norm(np.array(self.p0) - np.array(self.p1))
 
     def interpolate(self, n_points: int):
         """
@@ -49,6 +49,7 @@ class Segment:
         # interpolate between knots
         for step in np.linspace(0, 1, n_points):
             line.append(p0 * (1 - step) + p1 * step)
+
         self.line = np.vstack(line)
         self.ids = (
             np.ones(len(self.line)) * self.iid
@@ -92,16 +93,16 @@ class Segment:
 
 POINTS = [  # hand defined points along the track
     (20, 40),  # start
-    (18, 8),  # end of first corridor
-    (28, 8),  # first bend
-    (28, 45),  # end of second corridor
-    (12, 45),  # end of second bend
-    (12, 8),  # end of third corridor
-    (2, 8),  # end of third bend
-    (2, 47),  # end of fourth corridor
-    (12, 58),  # end of fourth bend
-    (28, 58),  # end of fifth corridor
-    (38, 47),  # end of fifth bend
+    (18, 2),  # end of first corridor
+    (30, 2),  # first bend
+    (29, 47),  # end of second corridor
+    (10, 47),  # end of second bend
+    (12, 2),  # end of third corridor
+    (1, 2),  # end of third bend
+    (2, 50),  # end of fourth corridor
+    (12, 57),  # end of fourth bend
+    (28, 57),  # end of fifth corridor
+    (38, 50),  # end of fifth bend
     (38, 2),  # goal location
     (20, 35),  # end of reward trigger area
     (38, 7),  # start of goal location
@@ -109,7 +110,7 @@ POINTS = [  # hand defined points along the track
 
 
 class HairpinTrace:
-    _n_samples: int = 500  # target number of samples in trace
+    _n_samples: int = 2000  # target number of samples in trace
     trace = None  # to be filed in
 
     segments = [
@@ -204,7 +205,7 @@ class HairpinTrace:
             the nmber of samples in each segments is matched to its length.
         """
         tot_length = np.sum([seg.length for seg in self.segments])
-        samples_per_unit_length = int(np.ceil(self._n_samples / tot_length))
+        samples_per_unit_length = self._n_samples / tot_length
         samples_per_segment = [
             int(seg.length * samples_per_unit_length) for seg in self.segments
         ]
@@ -212,19 +213,20 @@ class HairpinTrace:
         for segment, n_samples in zip(self.segments, samples_per_segment):
             segment.interpolate(n_samples)
 
-        # get the length of each line segment to check we have the right number of samples
-        self.trace_length = np.sum(
-            [len(segment.line) for segment in self.segments]
-        )
-
         # stack all segmnts into a curve
-        self.trace = np.vstack([segment.line for segment in self.segments])
+        trace = np.vstack([segment.line for segment in self.segments])
         self.trace_ids = np.concatenate(
             [segment.ids for segment in self.segments]
         )
 
+        # smooth the curve to make it more bendy
+        x = convolve_with_gaussian(trace[:, 0], 200)
+        y = convolve_with_gaussian(trace[:, 1], 200)
+        self.trace = np.vstack([x, y]).T
+
         # get the orientation of each segment
         self.trace_orientation = get_dir_of_mvmt_from_xy(
+
             self.trace[:, 0], self.trace[:, 1]
         )
 
@@ -239,6 +241,9 @@ class HairpinTrace:
         # draw each segment
         for segment in self.segments:
             segment.draw(ax)
+
+        ax.scatter(self.trace[:, 0], self.trace[:, 1], s=20, zorder=101, color=[.4, .4,.4])
+
 
         # draw tracking data
         if tracking is not None:
@@ -260,6 +265,17 @@ class HairpinTrace:
 if __name__ == "__main__":
     tr = HairpinTrace()
 
-    tr.draw()
+    try:
+        import sys
+        sys.path.append('./')
+        from data.dbase.db_tables import Tracking
+
+        trk = Tracking.get_session_tracking('FC_210413_AAA1110750_d11', body_only=True)
+    except:
+        trk = None
+
+
+    tr.draw(tracking=trk)
+
 
     plt.show()

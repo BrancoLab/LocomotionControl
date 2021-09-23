@@ -5,15 +5,19 @@ sys.path.append("./")
 from loguru import logger
 from pathlib import Path
 import numpy as np
+from random import choices
 
 from fcutils.path import files
 from fcutils import video as video_utils
 from fcutils.progress import track
 
+
 """
     Generate short clips from the videos we have
 """
 
+
+from data.dbase.db_tables import Tracking
 
 dlc_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\dlc")
 raw_videos_folder = Path(r"W:\swc\branco\Federico\Locomotion\raw\video")
@@ -42,13 +46,18 @@ for video in track(raw_videos):
         )
         continue
 
-    clips_starts = np.random.uniform(
-        2000, n_frames - 2000, size=N_clips_per_vid
-    ).astype(np.int32)
+    # get when mouse is going fast
+    tracking = Tracking.get_session_tracking(video.stem.split('_video')[0], body_only=True, movement=True)
+
+    if tracking.empty:
+        print('Skippy because no tracking')
+        continue
+
+    clips_starts = sorted(choices(np.where(tracking.walking ==1)[0], k=N_clips_per_vid))
     for n, start_frame in enumerate(clips_starts):
         save_path = dlc_folder / "videos" / (video.stem + f"_{n}.avi")
         if save_path.exists():
-            print("skippy syoppy")
+            print("skippy stoppy")
             continue
         logger.info(f'Saving clip {n}: "{save_path.stem}"')
 
