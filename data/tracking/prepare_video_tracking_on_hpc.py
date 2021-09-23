@@ -17,10 +17,7 @@ winstor_folder = PurePosixPath("nfs/winstor/branco/Federico/Locomotion")
 # get videos that have not been tracked yet
 videos = files(videos_folder, "FC_*.avi")
 videos = [
-    v
-    for v in videos
-    if "test" not in v.name.lower()
-    and "t_" not in v.name
+    v for v in videos if "test" not in v.name.lower() and "t_" not in v.name
 ]
 
 trackings = [f.name for f in files(tracking_folder, "*.h5")]

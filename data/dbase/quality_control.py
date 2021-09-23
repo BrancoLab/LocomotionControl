@@ -14,21 +14,27 @@ from fcutils.maths.signals import get_onset_offset
 from data.dbase.io import load_bin, get_recording_local_copy
 from data.debug_utils import plot_recording_triggers
 
-def load_or_open(base_path:str, data_type:str, bin_file:Path, idx:int, **kwargs):
-    '''
+
+def load_or_open(
+    base_path: str, data_type: str, bin_file: Path, idx: int, **kwargs
+):
+    """
         Tries to load a previously saved .npy file with some relevant data,
         otherwise it opens a .bin file and saves it to .npy for future use
-    '''
-    savepath = Path(base_path).parent / (Path(base_path).stem + f'_{data_type}_sync.npy')
+    """
+    savepath = Path(base_path).parent / (
+        Path(base_path).stem + f"_{data_type}_sync.npy"
+    )
     if savepath.exists():
-        logger.debug('Loading previously extracted signal from .npy')
+        logger.debug("Loading previously extracted signal from .npy")
         return np.load(savepath)
     else:
-        logger.debug('Opening binary and saving to numpy')
+        logger.debug("Opening binary and saving to numpy")
         binary = load_bin(str(bin_file), **kwargs)
         signal = binary[:, idx].copy()
         np.save(savepath, signal)
         return signal
+
 
 def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
     """
@@ -44,7 +50,9 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
     def _get_triggers(nsigs=4):
         # load analog
         analog = load_bin(ai_file_path, nsigs=nsigs)
-        logger.debug(f'Getting triggers with: {nsigs} signals in .bin file | analog shape {analog.shape}')
+        logger.debug(
+            f"Getting triggers with: {nsigs} signals in .bin file | analog shape {analog.shape}"
+        )
 
         # check that the number of frames is correct
         frame_trigger_times = get_onset_offset(analog[:, 0], 4.5)[0]
@@ -56,9 +64,9 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
     # load video and get metadata
     try:
         nframes, w, h, fps, _ = get_video_params(video_file_path)
-    except ValueError: 
-        logger.warning('Could not open video file')
-        return False, 0, 0, 0, 0, 0, 'couldnt_open_video'
+    except ValueError:
+        logger.warning("Could not open video file")
+        return False, 0, 0, 0, 0, 0, "couldnt_open_video"
 
     if fps != 60:
         raise ValueError("Expected video FPS: 60")
@@ -69,10 +77,12 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         logger.warning(
             f"While validating bonsai for {name} could not open binary file {ai_file_path}:\n''{e}''"
         )
-        return False, 0, 0, 0, 0, 0, 'no_bonsai_file_to_open'
+        return False, 0, 0, 0, 0, 0, "no_bonsai_file_to_open"
 
     if len(frame_trigger_times) - nframes:
-        logger.debug(f'Extracting frame stims with 4 signals in .bin file found the wrong number of triggers ({len(frame_trigger_times)} triggers instead of {nframes} frames)')
+        logger.debug(
+            f"Extracting frame stims with 4 signals in .bin file found the wrong number of triggers ({len(frame_trigger_times)} triggers instead of {nframes} frames)"
+        )
         if abs(nframes - len(frame_trigger_times)) > 100:
             try:
                 nsigs = 3
@@ -83,10 +93,20 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
                 logger.warning(
                     f"session: {name} - found {nframes} video frames and {len(frame_trigger_times)} trigger times in analog input"
                 )
-                return False, nsigs, 0, 0, 0, 0, f'wrong_number_of_triggers_and_frames_{len(frame_trigger_times)}vs{nframes}'
+                return (
+                    False,
+                    nsigs,
+                    0,
+                    0,
+                    0,
+                    0,
+                    f"wrong_number_of_triggers_and_frames_{len(frame_trigger_times)}vs{nframes}",
+                )
         else:
-            logger.warning('Something went very wrong, couldnt figure out the right number of triggers')
-            return False, 4, 0, 0, 0, 0, 'wrong_number_of_triggers_and_frames'
+            logger.warning(
+                "Something went very wrong, couldnt figure out the right number of triggers"
+            )
+            return False, 4, 0, 0, 0, 0, "wrong_number_of_triggers_and_frames"
     else:
         nsigs = 4
         logger.debug(
@@ -112,7 +132,7 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         nframes,
         frame_trigger_times[0],
         frame_trigger_times[1],
-        'nothing'
+        "nothing",
     )
 
 
@@ -127,13 +147,19 @@ def get_onsets_offsets(bonsai_probe_sync, ephys_probe_sync, sampling_rate):
 
     # do some preliminary checks
     if len(bonsai_probe_sync) - len(ephys_probe_sync) > 20 * sampling_rate:
-        logger.warning('The sync signals have very different lengths, this cant be!')
+        logger.warning(
+            "The sync signals have very different lengths, this cant be!"
+        )
         is_ok = False
     if is_ok and abs(np.mean(bonsai_probe_sync) - 2.5) > 1:
-        logger.warning('Bonsai signal mean very far from exected average, cant be!')
+        logger.warning(
+            "Bonsai signal mean very far from exected average, cant be!"
+        )
         is_ok = False
     if is_ok and abs(np.mean(ephys_probe_sync) - 30.0) > 6:
-        logger.warning('Ephys signal mean very far from exected average, cant be!')
+        logger.warning(
+            "Ephys signal mean very far from exected average, cant be!"
+        )
         is_ok = False
 
     # get pulses onsets
@@ -216,35 +242,36 @@ def validate_recording(
             ephys_ap_data_path: str. Path to .bin with AP ephys data.
     """
 
-
     name = Path(ai_file_path).name
     logger.debug(f"\nRunning validate RECORDING on {name}")
 
     # load analog from bonsai
     bonsai_probe_sync = load_or_open(
-        ephys_ap_data_path, 'bonsai', ai_file_path, 3
+        ephys_ap_data_path, "bonsai", ai_file_path, 3
     )
 
     # load data from ephys (from local file if possible)
     ephys_probe_sync = load_or_open(
         ephys_ap_data_path,
-        'ephys',
+        "ephys",
         get_recording_local_copy(ephys_ap_data_path),
         -1,
-        order="F", dtype="int16", nsigs=385
+        order="F",
+        dtype="int16",
+        nsigs=385,
     )
 
     # check for aberrant signals in bonsai
-    errors = np.where((bonsai_probe_sync < -0.1) & (bonsai_probe_sync > 5.1))[0]
+    errors = np.where((bonsai_probe_sync < -0.1) & (bonsai_probe_sync > 5.1))[
+        0
+    ]
     if len(errors):
         logger.info(
             f"Found {len(errors)} samples with too high values in bonsai probe signal"
         )
         if len(errors) > 1000:
-            logger.warning(
-                f"This value seems to long, retuirning gailure"
-            )
-            return False, 0, 0, 'too_many_errors_in_behavior_sync_signal'
+            logger.warning(f"This value seems to long, retuirning gailure")
+            return False, 0, 0, "too_many_errors_in_behavior_sync_signal"
     bonsai_probe_sync[errors] = bonsai_probe_sync[errors - 1]
 
     # check for aberrant signals in ephys
@@ -254,7 +281,7 @@ def validate_recording(
             f"Found {len(errors)} samples with too high values in probe signal"
         )
         if len(errors) > 1000:
-            return False, 0, 0, 'too_many_errors_in_ephys_sync_signal'
+            return False, 0, 0, "too_many_errors_in_ephys_sync_signal"
     ephys_probe_sync[errors] = ephys_probe_sync[errors - 1]
 
     # find probe sync pulses in both
@@ -286,7 +313,7 @@ def validate_recording(
         )
         # plt.show()
 
-    return is_ok, ephys_sync_onsets[0], time_scaling_factor, 'nothing'
+    return is_ok, ephys_sync_onsets[0], time_scaling_factor, "nothing"
 
 
 if __name__ == "__main__":

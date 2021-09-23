@@ -1,0 +1,16 @@
+# -------------------------------- RNN design -------------------------------- #
+n_inputs: 2
+n_outputs: 2
+
+
+
+# -------------------------------- task design ------------------------------- #
+n_msec_future: 100  # RNN receive target state X ms in the future
+n_msec_update: 5  # the RNN inputs/outputs are computed every 5 ms
+
+# ------------------------------- tracking data ------------------------------ #
+max_bout_duration: 12  # seconds
+fps: 60
+tracking_data_path: '/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/simulations/complete_bouts.h5'
+gpos_start: .15  # how far along the track to bouts need to start
+gpos_end: .85  # how far along the track to bouts need to end

@@ -13,5 +13,5 @@ from tpd import recorder
 
 try:
     recorder.start(base_folder=".", name="logs", timestamp=False)
-except  PermissionError:
+except PermissionError:
     recorder.start(base_folder=".", name="logs", timestamp=True)

@@ -120,7 +120,9 @@ if have_dj:
             recorded_sessions = pd.read_excel(
                 self.recordings_metadata_path, engine="odf"
             )
-            recorded_sessions = recorded_sessions.loc[recorded_sessions['USE?'] == 'yes']
+            recorded_sessions = recorded_sessions.loc[
+                recorded_sessions["USE?"] == "yes"
+            ]
             for i, session in recorded_sessions.iterrows():
                 if session["bonsai filename"] not in in_table:
                     raise ValueError(
@@ -207,19 +209,22 @@ if have_dj:
         ]
 
         def mark_failed_validation(self, key, reason, nsigs, failed):
-                key = (Session & key).fetch1()
-                key['__REASON'] = reason
-                key['nsigs'] = nsigs
-                key['__IS_RECORDING'] = Session.has_recording(key["name"])
-                failed[key['name']] = key
-                to_yaml('data/dbase/validation_failed.yaml', failed)
+            key = (Session & key).fetch1()
+            key["__REASON"] = reason
+            key["nsigs"] = nsigs
+            key["__IS_RECORDING"] = Session.has_recording(key["name"])
+            failed[key["name"]] = key
+            to_yaml("data/dbase/validation_failed.yaml", failed)
 
         def make(self, key):
             # check if this session has previously failed validatoin
-            failed = from_yaml('data/dbase/validation_failed.yaml')
-            if failed is None: failed = {}
-            if key['name'] in failed.keys():
-                logger.warning(f'Skipping because {key["name"]} previously failed validation')
+            failed = from_yaml("data/dbase/validation_failed.yaml")
+            if failed is None:
+                failed = {}
+            if key["name"] in failed.keys():
+                logger.warning(
+                    f'Skipping because {key["name"]} previously failed validation'
+                )
                 return
 
             # fetch data
@@ -267,15 +272,19 @@ if have_dj:
                     n_frames,
                     bonsai_cut_start,
                     bonsai_cut_end,
-                    reason
+                    reason,
                 ) = qc.validate_behavior(
                     session["video_file_path"],
                     session["ai_file_path"],
                     self.analog_sampling_rate,
                 )
                 if not is_ok:
-                    self.mark_failed_validation(key, reason, analog_nsigs, failed)
-                    logger.warning(f"Session failed to pass BEHAVIOR validation: {key}")
+                    self.mark_failed_validation(
+                        key, reason, analog_nsigs, failed
+                    )
+                    logger.warning(
+                        f"Session failed to pass BEHAVIOR validation: {key}"
+                    )
                     return
                 else:
                     logger.info(f"Session passed BEHAVIOR validation")
@@ -299,7 +308,9 @@ if have_dj:
                     logger.warning(
                         f"Session failed to pass RECORDING validation: {key}"
                     )
-                    self.mark_failed_validation(key, reason, analog_nsigs, failed)
+                    self.mark_failed_validation(
+                        key, reason, analog_nsigs, failed
+                    )
                     return
                 else:
                     logger.info(f"Session passed RECORDING validation")
@@ -468,6 +479,7 @@ if have_dj:
             and a sub table is used for each body part.
         
         """
+
         likelihood_threshold = 0.95
         cm_per_px = 60 / 830
         bparts = (
@@ -519,13 +531,15 @@ if have_dj:
                 return
 
             if Session.is_too_early(key["name"]):
-                logger.info(f'Skipping session {key["name"]} because its too early - bad tracking')
+                logger.info(
+                    f'Skipping session {key["name"]} because its too early - bad tracking'
+                )
                 return
 
             # get tracking data file
             tracking_file = Session.get_session_tracking_file(key["name"])
             if tracking_file is None:
-                logger.warning('No tracking file found')
+                logger.warning("No tracking file found")
                 return
 
             # get number of frames in session
@@ -562,7 +576,10 @@ if have_dj:
             if Session.on_hairpin(key["name"]):
                 hp = HairpinTrace()
                 lin_key = _key.copy()
-                lin_key["segment"], lin_key["global_coord"] = hp.assign_tracking(
+                (
+                    lin_key["segment"],
+                    lin_key["global_coord"],
+                ) = hp.assign_tracking(
                     bparts_keys["body"]["x"], bparts_keys["body"]["y"]
                 )
                 self.Linearized.insert1(lin_key)
@@ -607,7 +624,7 @@ if have_dj:
         min_peak_speed = (
             15  # cm/s - each bout must reach this speed at some point
         )
-        max_pause: float = .5  # (s) if paused for < than this its one contiuous locomotion bout
+        max_pause: float = 0.5  # (s) if paused for < than this its one contiuous locomotion bout
         min_duration: float = 2  # (s) keep only outs that last at least this long
 
         min_gcoord_delta: float = 0.25  # the global coordinates must change of at least this during bout
@@ -1040,7 +1057,6 @@ if __name__ == "__main__":
     # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
-
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

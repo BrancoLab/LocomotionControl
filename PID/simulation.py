@@ -12,6 +12,7 @@ recorder.start(base_folder="./logs", name="pid_sim", timestamp=False)
 
 from myterial import salmon, blue_grey_dark
 from fcutils.progress import track
+from fcutils.maths.signals import convolve_with_gaussian
 
 from data.dbase.hairpin_trace import HairpinTrace
 
@@ -47,58 +48,62 @@ class History:
 
 
 class Simulation:
-    def __init__(self, dt: float = 0.001, look_ahead: int = 3):
+    def __init__(
+        self,
+        angle_pid: PID,
+        speed_pid: PID,
+        dt: float = 0.001,
+        look_ahead: int = 3,
+    ):
         self.dt = dt
         self.look_ahead = look_ahead
 
-        # initialize controllers
-        angle_pid = PID(
-            proportional_gain=1e-5,
-            integral_gain=0,
-            derivative_gain=1e-5,
-            dt=dt,
-        )
-        speed_pid = PID(1e-2, 0, 1e-4, dt=dt)
-
         # get track
-        self.hp_trace = HairpinTrace()
-        self.hp_trace.trace_orientation = np.radians(
-            self.hp_trace.trace_orientation
-        )
-        self.hp_trace.trace_orientation[0] = self.hp_trace.trace_orientation[1]
+        self.prepare_trace()
 
         # initialize robot
         initial_state = State(
-            self.hp_trace.trace[0, 0],
-            self.hp_trace.trace[0, 1],
-            self.hp_trace.trace_orientation[0],
+            self.trace[0, 0], self.trace[0, 1], self.trace_orientation[0],
         )
         self.robot = Robot(initial_state, angle_pid, speed_pid, dt)
 
         # other variables
         self.history = History()
 
+    def prepare_trace(self):
+        hp_trace = HairpinTrace()
+        x = convolve_with_gaussian(hp_trace.trace[:, 0], 101)
+        y = convolve_with_gaussian(hp_trace.trace[:, 1], 101)
+        theta = convolve_with_gaussian(hp_trace.trace_orientation, 101)
+
+        x = x[50:-50]
+        y = y[50:-50]
+        theta = theta[50:-50]
+
+        self.trace = np.vstack([x, y]).T
+        self.trace_orientation = np.radians(theta)
+
     def _get_next_goal(self) -> Tuple[int, State]:
         """
             Get the closest point on the trace and look ahad a bit
         """
         point = np.array([self.robot.state.x, self.robot.state.y])
-        dist = np.linalg.norm(self.hp_trace.trace - point, axis=1)
+        dist = np.linalg.norm(self.trace - point, axis=1)
         goal_idx = np.argmin(dist) + self.look_ahead
 
-        if goal_idx + self.look_ahead >= len(self.hp_trace.trace):
+        if goal_idx + self.look_ahead >= len(self.trace):
             return None, None
         else:
             return (
                 goal_idx,
                 State(
-                    self.hp_trace.trace[goal_idx, 0],
-                    self.hp_trace.trace[goal_idx, 1],
-                    self.hp_trace.trace_orientation[goal_idx],
+                    self.trace[goal_idx, 0],
+                    self.trace[goal_idx, 1],
+                    self.trace_orientation[goal_idx],
                 ),
             )
 
-    def run(self, duration: float = 3):
+    def run(self, duration: float = 1):
         n_steps = int(duration / self.dt)
         logger.info(f"Running simulation for {duration}s ({n_steps} steps)")
 
@@ -133,15 +138,12 @@ class Simulation:
         )
 
         axes["A"].plot(
-            self.hp_trace.trace[:, 0],
-            self.hp_trace.trace[:, 1],
-            lw=2,
-            color=blue_grey_dark,
+            self.trace[:, 0], self.trace[:, 1], lw=2, color=blue_grey_dark,
         )
         axes["A"].scatter(
-            self.hp_trace.trace[::2, 0],
-            self.hp_trace.trace[::2, 1],
-            c=self.hp_trace.trace_orientation[::2],
+            self.trace[::2, 0],
+            self.trace[::2, 1],
+            c=self.trace_orientation[::2],
             cmap="bwr",
             vmin=0,
             vmax=6.28,
@@ -157,14 +159,16 @@ class Simulation:
         axes["B"].legend()
 
         axes["F"].plot(self.history.goal_idx)
-
-        axes["C"].plot(self.hp_trace.trace_orientation)
+        axes["C"].plot(self.trace_orientation)
 
         axes["E"].plot(self.history.angle_error, label="angle")
         axes["E"].plot(self.history.speed_error, label="speed")
         axes["E"].legend()
 
+        axes["A"].set(xlim=[-5, 45], ylim=[-5, 65])
+
         plt.show()
+        plt.close(f)
 
 
 if __name__ == "__main__":

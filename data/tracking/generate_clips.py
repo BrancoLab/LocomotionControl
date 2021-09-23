@@ -47,13 +47,17 @@ for video in track(raw_videos):
         continue
 
     # get when mouse is going fast
-    tracking = Tracking.get_session_tracking(video.stem.split('_video')[0], body_only=True, movement=True)
+    tracking = Tracking.get_session_tracking(
+        video.stem.split("_video")[0], body_only=True, movement=True
+    )
 
     if tracking.empty:
-        print('Skippy because no tracking')
+        print("Skippy because no tracking")
         continue
 
-    clips_starts = sorted(choices(np.where(tracking.walking ==1)[0], k=N_clips_per_vid))
+    clips_starts = sorted(
+        choices(np.where(tracking.walking == 1)[0], k=N_clips_per_vid)
+    )
     for n, start_frame in enumerate(clips_starts):
         save_path = dlc_folder / "videos" / (video.stem + f"_{n}.avi")
         if save_path.exists():
