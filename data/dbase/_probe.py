@@ -64,8 +64,12 @@ def place_probe_recording_sites(
             return
 
         if abs(probe_metadata["implanted_depth"] * 1000 - len(points)) > 100:
+            delta =abs(probe_metadata["implanted_depth"] * 1000 - len(points))
             logger.warning(
-                "The reconstructed probe should have one point for every um of inserted probe - too large delta"
+                f"""
+                    The reconstructed probe should have one point for every um of inserted probe - too large delta: {delta}
+                    Skipping probe recontruction for: {name} - {rec_file}
+                """
             )
             return
 

@@ -23,8 +23,6 @@ from data.dbase._tables import (
     insert_entry_in_table,
     print_table_content_to_file,
 )
-
-
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
 from data.dbase import (
@@ -36,9 +34,10 @@ from data.dbase import (
     _triggers,
     _recording,
     _locomotion_bouts,
+    _opto,
 )
 from data.dbase.hairpin_trace import HairpinTrace
-from data.dbase.io import get_probe_metadata
+from data.dbase.io import get_probe_metadata, get_opto_metadata, load_bin
 from data import data_utils
 
 
@@ -418,19 +417,22 @@ if have_dj:
             speaker = (Behavior & key).fetch1("speaker")
 
             # get tone onsets/offsets times
-            (
-                key["tone_onsets"],
-                key["tone_offsets"],
-            ) = data_utils.get_event_times(
-                speaker,
-                kernel_size=211,
-                th=0.005,
-                abs_val=True,
-                debug=False,
-                shift=1,
-            )
-
-            self.insert1(key)
+            try:
+                (
+                    key["tone_onsets"],
+                    key["tone_offsets"],
+                ) = data_utils.get_event_times(
+                    speaker,
+                    kernel_size=211,
+                    th=0.005,
+                    abs_val=True,
+                    debug=False,
+                    shift=1,
+                )
+            except:
+                logger.warning(f'Failed to get TONES data for session: {key}')
+            else:
+                self.insert1(key)
 
     # ---------------------------------------------------------------------------- #
     #                           COMMON COORDINATES MATRIX                          #
@@ -487,8 +489,10 @@ if have_dj:
             orientation:            longblob  # orientation in deg
             angular_velocity:       longblob  # angular velocityi in deg/sec
             speed:                  longblob  # body speed in cm/sec
+            acceleration:           longblob  # in cm/s^2
             direction_of_movement:  longblob  # angle towards where the mouse is moving next
             dmov_velocity:          longblob  # rate of change of the direction of movement
+            dmov_acceleration:      loongblob # in deg/s^2
         """
 
         class BodyPart(dj.Part):
@@ -601,6 +605,7 @@ if have_dj:
             complete:           varchar(32)    # True if its form reward to trigger ROIs
             start_roi:          int
             end_roi:            int
+            gcoord_delta        flaot  # the change in global coordinates during the bout
         """
 
         speed_th: float = 10  # cm/s
@@ -705,6 +710,98 @@ if have_dj:
 
             self.insert1(key)
 
+
+
+    # ---------------------------------------------------------------------------- #
+    #                                 OPTOGENETICS                                 #
+    # ---------------------------------------------------------------------------- #
+
+    @schema
+    class OptoImplant(dj.Imported):
+        definition = """
+            # metadata about opto experiment surgeries
+            -> Mouse
+            ---
+            skull_coordinates:                              longblob  # AP, ML from bregma in mm
+            implanted_depth:                                longblob  # Z axis of stereotax in mm from brain surface
+            injected_depth:                                 longblob  # Z axis of injection
+            virus_1:                                        varchar(128)  # name of virus
+            virus_2:                                        varchar(128)  # name of second virus
+            injection_volume:                               int  # in nL
+            target:                                         varchar(128)  # eg "MOs" or "CUN/GRN"
+        """
+
+        opto_surgery_metadata_file = Path(r"W:\swc\branco\Federico\Locomotion\raw\opto_surgery_metadata.ods")
+
+        def make(self, key):
+            metadata = get_opto_metadata(key["mouse_id"], self.opto_surgery_metadata_file)
+            if metadata is None:
+                return
+            else:
+                key = {**key, **metadata}
+                self.insert1(key)
+
+    @schema
+    class OptoSession(dj.Manual):
+        definition = """
+            # metadata about experiments with OPTO stimulation
+            -> ValidatedSession
+            ---
+            roi_1:                int  # 1 if used, 0 otherwise
+            roi_2:                int  # 1 if used, 0 otherwise
+            roi_3:                int  # 1 if used, 0 otherwise
+            roi_4:                int  # 1 if used, 0 otherwise
+            roi_5:                int  # 1 if used, 0 otherwise
+        """
+
+        opto_session_metadata_file = Path(r'W:\swc\branco\Federico\Locomotion\raw\opto_metadata.ods')
+
+        def fill(self):
+            _opto.fill_opto_table(self, Session)
+            
+    @schema
+    class OptoStimuli(dj.Imported):
+        definition = """
+            # collects the time stamps of each laser stimulation
+            -> OptoSession
+            ---
+            stim_onsets:            longblob  # stimuli start times in frame number
+            stim_offsets:           longblob  # stimuli start times in frame number
+            stim_roi:               longblob  # ROI number, based on tracking data
+            stim_power:             longblob  # stim power in mW # TODO make conversion factor
+        """
+
+        def make(self, key):
+            # get AI of opto stim from bin file
+            session = (Session * ValidatedSession & key).fetch1()
+            opto_signal = load_bin(session["ai_file_path"], nsig=session["n_analog_channels"])[:, -1]
+
+            logger.warning("OptoStimuli does not currently extract STIM_ROI info from tracking")
+
+            # extract stim times
+            try:
+                (
+                    key["stim_onsets"],
+                    key["stim_offsets"],
+                ) = data_utils.get_event_times(
+                    opto_signal,
+                    kernel_size=211,
+                    th=0.005,
+                    abs_val=False,
+                    debug=True,
+                    shift=1,
+                )
+
+                key["stim_ROI"] = np.ones(len(key["stim_onsets"]))  # ! this needs implementing
+            except:
+                logger.warning(f'Failed to get TONES data for session: {key}')
+            else:
+                self.insert1(key)
+
+
+
+
+
     # ---------------------------------------------------------------------------- #
     #                                  ephys data                                  #
     # ---------------------------------------------------------------------------- #
@@ -712,7 +809,7 @@ if have_dj:
     @schema
     class Probe(dj.Imported):
         definition = """
-            # relevant probe information
+            # relevant probe information + surgery metadata
             -> Mouse
             ---
             skull_coordinates:                              longblob  # AP, ML from bregma in mm
@@ -720,6 +817,7 @@ if have_dj:
             reconstructed_track_filepath:                   varchar(256)
             angle_ml:                                       longblob
             angle_ap:                                       longblob
+            target:                                         varchar(128)  # eg "MOs" or "CUN/GRN"
         """
 
         class RecordingSite(dj.Part):
@@ -799,7 +897,7 @@ if have_dj:
 
     @schema
     class Unit(dj.Imported):
-        precomputed_firing_rate_windows = [33, 100, 150, 250]
+        precomputed_firing_rate_windows = [33, 100]  # in ms - I think
 
         definition = """
             # a single unit's spike sorted data
@@ -991,7 +1089,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Tracking().drop()
+    # Probe().drop()
     # LocomotionBouts().drop()
     # Movement().drop()
     # sys.exit()
@@ -1011,7 +1109,7 @@ if __name__ == "__main__":
     # Session().fill()
 
     logger.info("#####    Filling Validated Session")
-    ValidatedSession().populate(display_progress=True)
+    # ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
@@ -1025,11 +1123,19 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
 
     logger.info("#####    Filling LocomotionBouts")
-    LocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
 
     logger.info("#####    Filling Movemnt")
-    Movement().populate(display_progress=True)
+    # Movement().populate(display_progress=True)
 
+    # ? OPTO
+    logger.info('#####    Filling OPTO data')
+    # OptoImplant.populate(display_progress=True)
+    # OptoSession.fill()
+    # OptoStimuli.populate(display_progress=True)
+
+
+    # ? EPHYS
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
 
@@ -1037,38 +1143,47 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=True)
 
     logger.info("#####    Filling Unit")
-    # Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
-    # FiringRate().check_complete()
+    Unit().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
+    FiringRate().check_complete()
 
+    # TODO probe electrodes assignment should assign MB to closest region
+
+
+    # TODO check and debug Opto TABLES
+    # TODO make code that takes a locomotion bout that includes a given frame (e.g. to get bouts with opto stim)
+    # TODO make clips that show the effects of opto stimulation
+    # TODO OptoStimuli should xtract ROI of each stimulus based on tracking data.
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
-    TABLES = [
-        Mouse,
-        Session,
-        pd.DataFrame((Session & "is_recording=1").fetch()),
-        ValidatedSession,
-        Behavior,
-        Recording,
-        Probe,
-        Probe.RecordingSite,
-        Unit,
-        LocomotionBouts,
-        Movement,
-    ]
-    NAMES = [
-        "Mouse",
-        "Session",
-        "RecordingsSessions",
-        "ValidatedSession",
-        "Behavior",
-        "Recording",
-        "Probe",
-        "RecordingSite",
-        "Unit",
-        "LocomotionBouts",
-        "Movement",
-    ]
-    for tb, name in zip(TABLES, NAMES):
-        print_table_content_to_file(tb, name)
+    # TABLES = [
+    #     Mouse,
+    #     Session,
+    #     pd.DataFrame((Session & "is_recording=1").fetch()),
+    #     ValidatedSession,
+    #     Behavior,
+    #     Recording,
+    #     Probe,
+    #     Probe.RecordingSite,
+    #     Unit,
+    #     LocomotionBouts,
+    #     Movement,
+    #     OptoSession,
+    # ]
+    # NAMES = [
+    #     "Mouse",
+    #     "Session",
+    #     "RecordingsSessions",
+    #     "ValidatedSession",
+    #     "Behavior",
+    #     "Recording",
+    #     "Probe",
+    #     "RecordingSite",
+    #     "Unit",
+    #     "LocomotionBouts",
+    #     "Movement",
+    #     "OptoSession",
+    # ]
+    # for tb, name in zip(TABLES, NAMES):
+    #     print_table_content_to_file(tb, name)

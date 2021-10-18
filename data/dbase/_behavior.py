@@ -45,8 +45,8 @@ def load_session_data(session: dict, key: dict, sampling_rate: int):
         key[name] = frames_values
 
     # load csv data
-    logger.debug(f"Loading CSV file ({size(session['csv_file_path'])})")
     try:
+        logger.debug(f"Loading CSV file ({size(session['csv_file_path'])})")
         data = pd.read_csv(session["csv_file_path"])
     except Exception:
         logger.warning(f'Failed to open csv for {session["name"]}')

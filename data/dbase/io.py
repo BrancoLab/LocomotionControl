@@ -14,6 +14,29 @@ from data.paths import (
 )
 
 
+def get_opto_metadata(mouse:str, metadata_file:Path):
+    metadata = pd.read_excel(metadata_file, engine="odf")
+    
+    # checl of there's an entry for this mouse
+    mouse_id = int(mouse[-3:])
+    metadata = metadata.loc[metadata["Unnamed: 1"] == mouse_id]
+    if metadata.empty:
+        logger.debug(f"No probe implant metadata found for mouse: {mouse_id}")
+        return None
+
+    # get clean metadata
+    try:
+        raise NotImplementedError("fix metadata cleaning")
+        cleaned_data = dict(
+            
+        )
+    except TypeError:
+        logger.debug(
+            f"Incomplete opto implant metadata found for mouse: {mouse_id}"
+        )
+        return None
+    return cleaned_data
+
 def get_probe_metadata(mouse: str):
     metadata = pd.read_excel(probes_surgeries_metadata, engine="odf")
 
@@ -26,14 +49,15 @@ def get_probe_metadata(mouse: str):
     try:
         cleaned_data = dict(
             skull_coordinates=np.array(
-                [metadata["ADJUSTED coordinates"], metadata["Unnamed: 7"]]
+                [metadata["ADJUSTED coordinates"], metadata["Unnamed: 9"]]
             ),
             angle_ap=metadata["angles"].iloc[0],
-            angle_ml=metadata["Unnamed: 10"].iloc[0],
+            angle_ml=metadata["Unnamed: 12"].iloc[0],
             implanted_depth=metadata["inserted probe"].iloc[0] / 1000,
             reconstructed_track_filepath=metadata[
                 "reconstructed probe file path"
             ].iloc[0],
+            target=metadata['Unnamed: 3'].iloc[0]
         )
     except TypeError:
         logger.debug(

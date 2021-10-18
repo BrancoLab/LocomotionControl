@@ -57,3 +57,4 @@ def plot_n_units_per_channel(rname, units, rsites, TARGETS):
     axes[1].set(xlabel="# units per channel", ylim=[0, 8000])
 
     clean_axes(f)
+

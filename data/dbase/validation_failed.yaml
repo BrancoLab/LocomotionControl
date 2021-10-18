@@ -166,6 +166,20 @@ FC_210710_AAA1110750_d24_r1_d:
     name: FC_210710_AAA1110750_d24_r1_d
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210710_AAA1110750_d24_r1_d_video.avi
+FC_210712_AAA1110750_r2_openaarena:
+    __IS_RECORDING: 0
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210712_AAA1110750_r2_openaarena_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210712_AAA1110750_r2_openaarena_data.csv
+    date: '210712'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: AAA1110750
+    name: FC_210712_AAA1110750_r2_openaarena
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210712_AAA1110750_r2_openaarena_video.avi
 FC_210712_AAA1110750_r2_openarena:
     __IS_RECORDING: 0
     __REASON: wrong_number_of_triggers_and_frames
@@ -180,6 +194,20 @@ FC_210712_AAA1110750_r2_openarena:
     name: FC_210712_AAA1110750_r2_openarena
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210712_AAA1110750_r2_openarena_video.avi
+FC_210714_AAA1110750_r4_openaarena:
+    __IS_RECORDING: 0
+    __REASON: no_bonsai_file_to_open
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210714_AAA1110750_r4_openaarena_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210714_AAA1110750_r4_openaarena_data.csv
+    date: '210714'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: AAA1110750
+    name: FC_210714_AAA1110750_r4_openaarena
+    nsigs: 0
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210714_AAA1110750_r4_openaarena_video.avi
 FC_210714_AAA1110750_r4_openarena:
     __IS_RECORDING: 1
     __REASON: no_bonsai_file_to_open
@@ -208,6 +236,48 @@ FC_210723_AAA1110750_escape:
     name: FC_210723_AAA1110750_escape
     nsigs: 3
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210723_AAA1110750_escape_video.avi
+FC_210723_AAA1110750_escape_t4:
+    __IS_RECORDING: 0
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210723_AAA1110750_escape_t4_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210723_AAA1110750_escape_t4_data.csv
+    date: '210723'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: AAA1110750
+    name: FC_210723_AAA1110750_escape_t4
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210723_AAA1110750_escape_t4_video.avi
+FC_210723_AAA1110750_escape_t5:
+    __IS_RECORDING: 0
+    __REASON: no_bonsai_file_to_open
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210723_AAA1110750_escape_t5_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210723_AAA1110750_escape_t5_data.csv
+    date: '210723'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: AAA1110750
+    name: FC_210723_AAA1110750_escape_t5
+    nsigs: 0
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210723_AAA1110750_escape_t5_video.avi
+FC_210723_AAA1110750_escape_t6:
+    __IS_RECORDING: 0
+    __REASON: no_bonsai_file_to_open
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210723_AAA1110750_escape_t6_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210723_AAA1110750_escape_t6_data.csv
+    date: '210723'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: AAA1110750
+    name: FC_210723_AAA1110750_escape_t6
+    nsigs: 0
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210723_AAA1110750_escape_t6_video.avi
 FC_210802_BAA1110279:
     __IS_RECORDING: 0
     __REASON: wrong_number_of_triggers_and_frames
@@ -236,6 +306,20 @@ FC_210802_BAA1110279_training_d0:
     name: FC_210802_BAA1110279_training_d0
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210802_BAA1110279_training_d0_video.avi
+FC_210813_BAA1110282_training_d3:
+    __IS_RECORDING: 0
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210813_BAA1110282_training_d3_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210813_BAA1110282_training_d3_data.csv
+    date: '210813'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA1110282
+    name: FC_210813_BAA1110282_training_d3
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210813_BAA1110282_training_d3_video.avi
 FC_210821_BAA1110281_hairpin:
     __IS_RECORDING: 1
     __REASON: nothing
@@ -250,6 +334,34 @@ FC_210821_BAA1110281_hairpin:
     name: FC_210821_BAA1110281_hairpin
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210821_BAA1110281_hairpin_video.avi
+FC_210831_BAA1110281_openarena:
+    __IS_RECORDING: 1
+    __REASON: nothing
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210831_BAA1110281_openarena_analog.bin
+    arena: openarena
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210831_BAA1110281_openarena_data.csv
+    date: '210831'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210831_281_longcol_intref_openarena_g0\210831_281_longcol_intref_openarena_g0_imec0\210831_281_longcol_intref_openarena_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210831_281_longcol_intref_openarena_g0\210831_281_longcol_intref_openarena_g0_imec0\210831_281_longcol_intref_openarena_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA1110281
+    name: FC_210831_BAA1110281_openarena
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210831_BAA1110281_openarena_video.avi
+FC_210911_BAA1110279_hairpin:
+    __IS_RECORDING: 0
+    __REASON: no_bonsai_file_to_open
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210911_BAA1110279_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210911_BAA1110279_hairpin_data.csv
+    date: '210911'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA1110279
+    name: FC_210911_BAA1110279_hairpin
+    nsigs: 0
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210911_BAA1110279_hairpin_video.avi
 FC_210915_BAA1110279_hairpin:
     __IS_RECORDING: 1
     __REASON: wrong_number_of_triggers_and_frames

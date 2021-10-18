@@ -50,9 +50,10 @@ for probe_n in range(n_probes):
     rsites = probes.loc[probes.mouse_id == mouse]
 
     # plot
-    plot_probe_electrodes(rsites, axes[probe_n], TARGETS, annotate_every=1)
+    plot_probe_electrodes(rsites, axes[probe_n], TARGETS, annotate_every=5)
     axes[probe_n].set(title=mouse)
 
 clean_axes(f)
-plt.show()
 recorder.add_figures(svg=False)
+plt.show()
+

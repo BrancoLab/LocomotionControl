@@ -212,11 +212,12 @@ class Inspector:
 
 
 if __name__ == "__main__":
-    insp = Inspector(
-        "FC_210714_AAA1110750_r4_hairpin",
-        firing_rate_window=250,
-        events_window_s=5,
-    )
-    insp.plot(
-        tracking=False, probe=False, unit="all", firing_rate=False, show=False
-    )
+    for rec in Recording().fetch("name"):
+        insp = Inspector(`
+            rec,
+            firing_rate_window=250,
+            events_window_s=5,
+        )
+        insp.plot(
+            tracking=False, probe=False, unit="all", firing_rate=False, show=False
+        )`
