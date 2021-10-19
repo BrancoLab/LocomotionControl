@@ -723,7 +723,7 @@ if have_dj:
             -> Mouse
             ---
             skull_coordinates:                              longblob  # AP, ML from bregma in mm
-            implanted_depth:                                longblob  # Z axis of stereotax in mm from brain surface
+            implanted_depth:                                longblob  # Z axis of stereotax in um from brain surface
             injected_depth:                                 longblob  # Z axis of injection
             virus_1:                                        varchar(128)  # name of virus
             virus_2:                                        varchar(128)  # name of second virus
@@ -808,12 +808,17 @@ if have_dj:
 
     @schema
     class Probe(dj.Imported):
+        _skip = ['AAA1110751']
+        _tips = {
+            'AAA1110750': 400,
+        }
+        possible_configurations = ['b0', 'longcolumn']
         definition = """
             # relevant probe information + surgery metadata
             -> Mouse
             ---
             skull_coordinates:                              longblob  # AP, ML from bregma in mm
-            implanted_depth:                                longblob  # Z axis of stereotax in mm from brain surface
+            implanted_depth:                                longblob  # reconstructed implanted epth in brain in um
             reconstructed_track_filepath:                   varchar(256)
             angle_ml:                                       longblob
             angle_ap:                                       longblob
@@ -825,6 +830,7 @@ if have_dj:
                 # metadata about recording sites locations
                 -> Probe
                 site_id:                        int
+                probe_configuration:            varchar(128)  # b_0, longcol...
                 ---
                 registered_brain_coordinates:   blob  # in um, in atlas space
                 probe_coordinates:              int   # position in um along probe
@@ -834,29 +840,38 @@ if have_dj:
             """
 
         @staticmethod
-        def get_session_sites(mouse: str) -> pd.DataFrame:
+        def get_session_sites(mouse: str, configuration: str = 'intref') -> pd.DataFrame:
             return pd.DataFrame(
-                (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"').fetch()
+                (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"' & f'probe_configuration="{configuration}"').fetch()
             )
 
         def make(self, key):
-            logger.info(
-                f'Getting reconstructed probe position for mouse {key["mouse_id"]}'
-            )
+            if key['mouse_id'] in self._skip:
+                return
+                
             metadata = get_probe_metadata(key["mouse_id"])
             if metadata is None:
                 return
             probe_key = {**key, **metadata}
 
-            recording_sites = _probe.place_probe_recording_sites(metadata)
-            if recording_sites is None:
-                return
+            logger.info(
+                f'\n\================    Getting reconstructed probe position for mouse {key["mouse_id"]}'
+            )
 
             # insert into main table
             self.insert1(probe_key)
-            for rsite in recording_sites:
-                rsite_key = {**key, **rsite}
-                self.RecordingSite.insert1(rsite_key)
+
+            # get recording sites in each possible configuration
+            tip = self._tips[key['mouse_id']] if key['mouse_id'] in self._tips.keys() else 175
+            for configuration in self.possible_configurations:
+                recording_sites = _probe.place_probe_recording_sites(metadata, configuration, tip=tip)
+                if recording_sites is None:
+                    continue
+
+                for rsite in recording_sites:
+                    rsite_key = {**key, **rsite}
+                    rsite_key['probe_configuration'] = configuration
+                    self.RecordingSite.insert1(rsite_key)
 
     @schema
     class Recording(dj.Imported):
@@ -868,6 +883,8 @@ if have_dj:
             spike_sorting_params_file_path:     varchar(256)  # PRM file with spike sorting paramters
             spike_sorting_spikes_file_path:     varchar(256)  # CSV files with spikes times
             spike_sorting_clusters_file_path:   varchar(256)  # MAT file with clusters IDs
+            recording_probe_configuration:                varchar(256)  # longcol, b_0 ...
+            reference:                          varchar(256)  # interf, extref
         """
         recordings_folder = Path(
             r"W:\swc\branco\Federico\Locomotion\raw\recordings"
@@ -888,7 +905,7 @@ if have_dj:
                 (Session & key).fetch1("ephys_ap_data_path")
             ).parent.parent.name
 
-            # get paths
+            # get paths and other metadata
             key = _recording.get_recording_filepaths(
                 key, rec_metadata, self.recordings_folder, rec_folder
             )
@@ -920,12 +937,14 @@ if have_dj:
         @staticmethod
         def get_session_units(
             session_name: str,
+            probe_configuration: str,
             spikes: bool = False,
             firing_rate: bool = False,
             frate_window: int = 50,
         ) -> pd.DataFrame:
+
             # query
-            query = Unit * Probe.RecordingSite & f"name='{session_name}'"
+            query = Unit * Probe.RecordingSite & f"name='{session_name}'" & f'probe_configuration="{probe_configuration}"'
             if spikes:
                 query = query * Unit.Spikes
 
@@ -966,6 +985,7 @@ if have_dj:
 
             # check if the main unit's site is a target
             main_site = (Probe * Probe.RecordingSite & unit).fetch1()
+            raise NotImplementedError('this should respect the fact that differentrecordings have different probe configurations')
             if main_site["brain_region"] in targets:
                 return True, True, main_site["brain_region"]
 
@@ -983,10 +1003,12 @@ if have_dj:
         def get_unit_sites(
             mouse: str, session_name: str, unit_id: int
         ) -> pd.DataFrame:
+
             rsites = Probe.get_session_sites(mouse)
             unit_sites = (
                 Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
             ).fetch1("secondary_sites_ids")
+            raise NotImplementedError('Double check that this respects probe configurations')
 
             rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
             return rsites
@@ -1016,6 +1038,7 @@ if have_dj:
                 )
             else:
                 pre_cut, post_cut = None, None
+                
             # fill in units
             for nu, unit in enumerate(units):
                 logger.debug(f"processing unit {nu+1}/{len(units)}")
@@ -1024,6 +1047,7 @@ if have_dj:
                 unit_key["unit_id"] = unit["unit_id"]
                 unit_key["site_id"] = unit["recording_site_id"]
                 unit_key["secondary_sites_ids"] = unit["secondary_sites_ids"]
+                unit_key['probe_configuration'] = recording['recording_probe_configuration']  # select the right rec site
 
                 # get adjusted spike times
                 unit_spikes = _recording.get_unit_spike_times(
@@ -1053,7 +1077,7 @@ if have_dj:
         def make(self, key):
             unit = (Unit * Unit.Spikes & key).fetch1()
             triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
-            logger.info(f"Processing: {unit}")
+            logger.info(f"Processing: {unit['name']} - unit: {unit['unit_id']}")
 
             # get firing rates
             for frate_window in Unit.precomputed_firing_rate_windows:
@@ -1070,6 +1094,7 @@ if have_dj:
                 del frate_key["secondary_sites_ids"]
                 del frate_key["spikes"]
                 del frate_key["spikes_ms"]
+                del frate_key["probe_configuration"]
 
                 self.insert1(frate_key)
                 # time.sleep(5)
@@ -1090,10 +1115,11 @@ if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
     # Probe().drop()
+    
     # LocomotionBouts().drop()
     # Movement().drop()
     # sys.exit()
-
+ 
     # -------------------------------- sorti filex ------------------------------- #
 
     # logger.info('#####    Sorting FILES')
@@ -1119,35 +1145,26 @@ if __name__ == "__main__":
     # Behavior().populate(display_progress=True)
     # Tones().populate(display_progress=True)
 
+    # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-
-    logger.info("#####    Filling LocomotionBouts")
     # LocomotionBouts().populate(display_progress=True)
-
-    logger.info("#####    Filling Movemnt")
     # Movement().populate(display_progress=True)
 
     # ? OPTO
     logger.info('#####    Filling OPTO data')
-    # OptoImplant.populate(display_progress=True)
+    # OptoImplant.populate(display_progress=True)6
     # OptoSession.fill()
     # OptoStimuli.populate(display_progress=True)
 
-
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=True)
 
-    logger.info("#####    Filling Recording")
-    # Recording().populate(display_progress=True)
-
-    logger.info("#####    Filling Unit")
     Unit().populate(display_progress=True)
     FiringRate().populate(display_progress=True)
     FiringRate().check_complete()
-
-    # TODO probe electrodes assignment should assign MB to closest region
 
 
     # TODO check and debug Opto TABLES

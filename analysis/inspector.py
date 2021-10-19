@@ -93,6 +93,7 @@ class Inspector:
         # get locomotion bouts
         logger.info("Fetching locomotion bouts")
         self.bouts = LocomotionBouts.get_session_bouts(self.session_name)
+        logger.info(f'Found {len(self.bouts)} bouts')
         self.out_bouts = self.bouts.loc[self.bouts.direction == "outbound"]
         self.in_bouts = self.bouts.loc[self.bouts.direction == "inbound"]
 
@@ -107,15 +108,17 @@ class Inspector:
         )
 
         # get units and recording sites
-        recording = (Recording & f'name="{self.session_name}"').fetch()
+        recording = (Recording & f'name="{self.session_name}"').fetch(as_dict=True)[0]
+        cf = recording['recording_probe_configuration']
         logger.info("Fetching ephys data")
         self.units = Unit.get_session_units(
             self.session_name,
+            cf,
             spikes=True,
             firing_rate=True,
             frate_window=self.firing_rate_window,
         )
-        self.rsites = pd.DataFrame((Probe.RecordingSite & recording).fetch())
+        self.rsites = pd.DataFrame((Probe.RecordingSite & recording & f'probe_configuration="{cf}"').fetch())
         logger.debug(f"Found {len(self.units)} units")
 
         ids = "\n".join(
@@ -141,6 +144,8 @@ class Inspector:
         firing_rate: bool = False,
         show: bool = True,
     ):
+        logger.warning('Inspector should plot firing rate vs heading direction and heading ang vel not ang vel')
+        
         # tracking
         if tracking:
             logger.info("Plotting TRACKING")
@@ -162,15 +167,16 @@ class Inspector:
         # probe
         if probe:
             logger.info("Plotting PROBE")
+            (self.base_folder / 'probe').mkdir(exist_ok=True)
             plot_n_units_per_channel(
                 self.session_name, self.units, self.rsites, TARGETS
             )
-            render_probe_3d(
-                self.rsites, self.base_folder / self.session_name, TARGETS
-            )
-            render_probe_regions_slices(
-                self.rsites, self.base_folder / self.session_name, TARGETS
-            )
+            # render_probe_3d(
+            #     self.rsites, self.base_folder / 'probe' / self.session_name, TARGETS
+            # )
+            # render_probe_regions_slices(
+            #     self.rsites, self.base_folder / 'probe' / self.session_name, TARGETS
+            # )
 
         # unit ephys
         if unit is not None:
@@ -213,11 +219,22 @@ class Inspector:
 
 if __name__ == "__main__":
     for rec in Recording().fetch("name"):
-        insp = Inspector(`
-            rec,
-            firing_rate_window=250,
-            events_window_s=5,
-        )
-        insp.plot(
-            tracking=False, probe=False, unit="all", firing_rate=False, show=False
-        )`
+        if "open" in rec:
+            continue
+        
+        try:
+            insp = Inspector(
+                rec,
+                firing_rate_window=33,
+                events_window_s=5,
+            )
+
+            insp.plot(
+                tracking=False, probe=True, unit=None, firing_rate=False, show=True,
+            )
+
+            # breakq
+
+        except Exception as e:
+            # logger.warning(e)
+            raise ValueError(e)

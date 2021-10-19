@@ -76,6 +76,8 @@ def get_recording_filepaths(
             logger.warning(f'Cant find file for "{name}" in session "{key["name"]}" - maybe not spike sorted yet?')
             return None
 
+    # get probe configuration
+    key['recording_probe_configuration'], key['reference'] = metadata['probe config'].split('_')
     return key
 
 
@@ -248,7 +250,7 @@ def get_units_firing_rate(
     else:
         units_list = [unit for i, unit in units.iterrows()]
 
-    # define gaussian kernel
+    # define gaussian kernel with unit area under the curve
     norm = stats.norm(0, frate_window)
     X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), frate_window)
     kernel = norm.pdf(X)

@@ -53,11 +53,11 @@ def get_probe_metadata(mouse: str):
             ),
             angle_ap=metadata["angles"].iloc[0],
             angle_ml=metadata["Unnamed: 12"].iloc[0],
-            implanted_depth=metadata["inserted probe"].iloc[0] / 1000,
+            implanted_depth=metadata["inserted probe"].iloc[0],
             reconstructed_track_filepath=metadata[
                 "reconstructed probe file path"
             ].iloc[0],
-            target=metadata['Unnamed: 3'].iloc[0]
+            target=metadata['Unnamed: 3'].iloc[0],
         )
     except TypeError:
         logger.debug(

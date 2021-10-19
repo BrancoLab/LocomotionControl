@@ -6,6 +6,7 @@ video.mp4
 .vscode/settings.json
 proj/secrets.py
 workspace.py
+logs_*
 
 .vscode/*
 .vscode/
