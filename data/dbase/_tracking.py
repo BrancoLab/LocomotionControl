@@ -56,10 +56,11 @@ def process_body_part(
     x, y = np.array(list(xy["x"].values())), np.array(list(xy["y"].values()))
 
     # median filter pass
-    x = data_utils.convolve_with_gaussian(x, kernel_width=11)
-    y = data_utils.convolve_with_gaussian(y, kernel_width=11)
+    x = data_utils.convolve_with_gaussian(x, kernel_width=5)
+    y = data_utils.convolve_with_gaussian(y, kernel_width=5)
 
     # flip data on X axis
+    raise NotImplementedError("Dont flip on X, flip Y")
     x = x - np.min(x)
     x_mean = np.mean(x, axis=0)
     x = (x_mean - x) + x_mean
@@ -67,7 +68,7 @@ def process_body_part(
     # compute speed
     speed = (
         data_utils.convolve_with_gaussian(
-            get_speed_from_xy(x, y), kernel_width=11
+            get_speed_from_xy(x, y), kernel_width=5
         )
         * 60
     )  # speed in cm / s
