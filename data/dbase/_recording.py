@@ -18,11 +18,22 @@ def get_recording_filepaths(
     recordings_folder: Path,
     rec_folder: str,
 ) -> dict:
+    
+    # check if recording has been validated
+    metadata = rec_metadata.loc[
+        rec_metadata["recording folder"] == rec_folder
+    ].iloc[0]
+
+    if metadata.Validated != "yes" or metadata['USE?'] != 'yes':
+        logger.debug(f'Recording for {key["name"]} was not validated - skipping.')
+        return
+
+    if metadata['spike sorted'] != 'yes':
+        logger.info(f'Recording for {key["name"]} not yet spike sorted - skipping.')
+        return
 
     # Check if it's a concatenated recording
-    concat_filepath = rec_metadata.loc[
-        rec_metadata["recording folder"] == rec_folder
-    ]["concatenated recording file"].iloc[0]
+    concat_filepath = metadata["concatenated recording file"]
     if isinstance(concat_filepath, str):
         # it was concatenated
         rec_name = concat_filepath
@@ -31,7 +42,7 @@ def get_recording_filepaths(
 
         if not rec_path.is_dir() or not files(rec_path):
             logger.warning(
-                f'Invalid rec path: {rec_path} for session {key["name"]}'
+                f'Invalid rec folder: {rec_path} for session {key["name"]} - empty or not existant rec folder.'
             )
             return None
 
@@ -62,9 +73,11 @@ def get_recording_filepaths(
         "spike_sorting_clusters_file_path",
     ):
         if not Path(key[name]).exists():
-            logger.warning(f'Cant file for "{name}" in session {key["name"]}')
+            logger.warning(f'Cant find file for "{name}" in session "{key["name"]}" - maybe not spike sorted yet?')
             return None
 
+    # get probe configuration
+    key['recording_probe_configuration'], key['reference'] = metadata['probe config'].split('_')
     return key
 
 
@@ -237,7 +250,7 @@ def get_units_firing_rate(
     else:
         units_list = [unit for i, unit in units.iterrows()]
 
-    # define gaussian kernel
+    # define gaussian kernel with unit area under the curve
     norm = stats.norm(0, frate_window)
     X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), frate_window)
     kernel = norm.pdf(X)

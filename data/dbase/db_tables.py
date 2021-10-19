@@ -21,10 +21,8 @@ sys.path.append("./")
 from data.dbase import schema
 from data.dbase._tables import (
     insert_entry_in_table,
-    print_table_content_to_file,
+    # print_table_content_to_file,
 )
-
-
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
 from data.dbase import (
@@ -36,9 +34,10 @@ from data.dbase import (
     _triggers,
     _recording,
     _locomotion_bouts,
+    _opto,
 )
 from data.dbase.hairpin_trace import HairpinTrace
-from data.dbase.io import get_probe_metadata
+from data.dbase.io import get_probe_metadata, get_opto_metadata, load_bin
 from data import data_utils
 
 
@@ -429,19 +428,22 @@ if have_dj:
             speaker = (Behavior & key).fetch1("speaker")
 
             # get tone onsets/offsets times
-            (
-                key["tone_onsets"],
-                key["tone_offsets"],
-            ) = data_utils.get_event_times(
-                speaker,
-                kernel_size=211,
-                th=0.005,
-                abs_val=True,
-                debug=False,
-                shift=1,
-            )
-
-            self.insert1(key)
+            try:
+                (
+                    key["tone_onsets"],
+                    key["tone_offsets"],
+                ) = data_utils.get_event_times(
+                    speaker,
+                    kernel_size=211,
+                    th=0.005,
+                    abs_val=True,
+                    debug=False,
+                    shift=1,
+                )
+            except:
+                logger.warning(f"Failed to get TONES data for session: {key}")
+            else:
+                self.insert1(key)
 
     # ---------------------------------------------------------------------------- #
     #                           COMMON COORDINATES MATRIX                          #
@@ -499,8 +501,10 @@ if have_dj:
             orientation:            longblob  # orientation in deg
             angular_velocity:       longblob  # angular velocityi in deg/sec
             speed:                  longblob  # body speed in cm/sec
+            acceleration:           longblob  # in cm/s^2
             direction_of_movement:  longblob  # angle towards where the mouse is moving next
             dmov_velocity:          longblob  # rate of change of the direction of movement
+            dmov_acceleration:      loongblob # in deg/s^2
         """
 
         class BodyPart(dj.Part):
@@ -618,6 +622,7 @@ if have_dj:
             complete:           varchar(32)    # True if its form reward to trigger ROIs
             start_roi:          int
             end_roi:            int
+            gcoord_delta        flaot  # the change in global coordinates during the bout
         """
 
         speed_th: float = 10  # cm/s
@@ -723,20 +728,124 @@ if have_dj:
             self.insert1(key)
 
     # ---------------------------------------------------------------------------- #
+    #                                 OPTOGENETICS                                 #
+    # ---------------------------------------------------------------------------- #
+
+    @schema
+    class OptoImplant(dj.Imported):
+        definition = """
+            # metadata about opto experiment surgeries
+            -> Mouse
+            ---
+            skull_coordinates:                              longblob  # AP, ML from bregma in mm
+            implanted_depth:                                longblob  # Z axis of stereotax in um from brain surface
+            injected_depth:                                 longblob  # Z axis of injection
+            virus_1:                                        varchar(128)  # name of virus
+            virus_2:                                        varchar(128)  # name of second virus
+            injection_volume:                               int  # in nL
+            target:                                         varchar(128)  # eg "MOs" or "CUN/GRN"
+        """
+
+        opto_surgery_metadata_file = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\opto_surgery_metadata.ods"
+        )
+
+        def make(self, key):
+            metadata = get_opto_metadata(
+                key["mouse_id"], self.opto_surgery_metadata_file
+            )
+            if metadata is None:
+                return
+            else:
+                key = {**key, **metadata}
+                self.insert1(key)
+
+    @schema
+    class OptoSession(dj.Manual):
+        definition = """
+            # metadata about experiments with OPTO stimulation
+            -> ValidatedSession
+            ---
+            roi_1:                int  # 1 if used, 0 otherwise
+            roi_2:                int  # 1 if used, 0 otherwise
+            roi_3:                int  # 1 if used, 0 otherwise
+            roi_4:                int  # 1 if used, 0 otherwise
+            roi_5:                int  # 1 if used, 0 otherwise
+        """
+
+        opto_session_metadata_file = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\opto_metadata.ods"
+        )
+
+        def fill(self):
+            _opto.fill_opto_table(self, Session)
+
+    @schema
+    class OptoStimuli(dj.Imported):
+        definition = """
+            # collects the time stamps of each laser stimulation
+            -> OptoSession
+            ---
+            stim_onsets:            longblob  # stimuli start times in frame number
+            stim_offsets:           longblob  # stimuli start times in frame number
+            stim_roi:               longblob  # ROI number, based on tracking data
+            stim_power:             longblob  # stim power in mW # TODO make conversion factor
+        """
+
+        def make(self, key):
+            # get AI of opto stim from bin file
+            session = (Session * ValidatedSession & key).fetch1()
+            opto_signal = load_bin(
+                session["ai_file_path"], nsig=session["n_analog_channels"]
+            )[:, -1]
+
+            logger.warning(
+                "OptoStimuli does not currently extract STIM_ROI info from tracking"
+            )
+
+            # extract stim times
+            try:
+                (
+                    key["stim_onsets"],
+                    key["stim_offsets"],
+                ) = data_utils.get_event_times(
+                    opto_signal,
+                    kernel_size=211,
+                    th=0.005,
+                    abs_val=False,
+                    debug=True,
+                    shift=1,
+                )
+
+                key["stim_ROI"] = np.ones(
+                    len(key["stim_onsets"])
+                )  # ! this needs implementing
+            except:
+                logger.warning(f"Failed to get TONES data for session: {key}")
+            else:
+                self.insert1(key)
+
+    # ---------------------------------------------------------------------------- #
     #                                  ephys data                                  #
     # ---------------------------------------------------------------------------- #
 
     @schema
     class Probe(dj.Imported):
+        _skip = ["AAA1110751"]
+        _tips = {
+            "AAA1110750": 400,
+        }
+        possible_configurations = ["b0", "longcolumn"]
         definition = """
-            # relevant probe information
+            # relevant probe information + surgery metadata
             -> Mouse
             ---
             skull_coordinates:                              longblob  # AP, ML from bregma in mm
-            implanted_depth:                                longblob  # Z axis of stereotax in mm from brain surface
+            implanted_depth:                                longblob  # reconstructed implanted epth in brain in um
             reconstructed_track_filepath:                   varchar(256)
             angle_ml:                                       longblob
             angle_ap:                                       longblob
+            target:                                         varchar(128)  # eg "MOs" or "CUN/GRN"
         """
 
         class RecordingSite(dj.Part):
@@ -744,6 +853,7 @@ if have_dj:
                 # metadata about recording sites locations
                 -> Probe
                 site_id:                        int
+                probe_configuration:            varchar(128)  # b_0, longcol...
                 ---
                 registered_brain_coordinates:   blob  # in um, in atlas space
                 probe_coordinates:              int   # position in um along probe
@@ -753,29 +863,50 @@ if have_dj:
             """
 
         @staticmethod
-        def get_session_sites(mouse: str) -> pd.DataFrame:
+        def get_session_sites(
+            mouse: str, configuration: str = "intref"
+        ) -> pd.DataFrame:
             return pd.DataFrame(
-                (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"').fetch()
+                (
+                    Probe * Probe.RecordingSite
+                    & f'mouse_id="{mouse}"'
+                    & f'probe_configuration="{configuration}"'
+                ).fetch()
             )
 
         def make(self, key):
-            logger.info(
-                f'Getting reconstructed probe position for mouse {key["mouse_id"]}'
-            )
+            if key["mouse_id"] in self._skip:
+                return
+
             metadata = get_probe_metadata(key["mouse_id"])
             if metadata is None:
                 return
             probe_key = {**key, **metadata}
 
-            recording_sites = _probe.place_probe_recording_sites(metadata)
-            if recording_sites is None:
-                return
+            logger.info(
+                f'\n\================    Getting reconstructed probe position for mouse {key["mouse_id"]}'
+            )
 
             # insert into main table
             self.insert1(probe_key)
-            for rsite in recording_sites:
-                rsite_key = {**key, **rsite}
-                self.RecordingSite.insert1(rsite_key)
+
+            # get recording sites in each possible configuration
+            tip = (
+                self._tips[key["mouse_id"]]
+                if key["mouse_id"] in self._tips.keys()
+                else 175
+            )
+            for configuration in self.possible_configurations:
+                recording_sites = _probe.place_probe_recording_sites(
+                    metadata, configuration, tip=tip
+                )
+                if recording_sites is None:
+                    continue
+
+                for rsite in recording_sites:
+                    rsite_key = {**key, **rsite}
+                    rsite_key["probe_configuration"] = configuration
+                    self.RecordingSite.insert1(rsite_key)
 
     @schema
     class Recording(dj.Imported):
@@ -787,6 +918,8 @@ if have_dj:
             spike_sorting_params_file_path:     varchar(256)  # PRM file with spike sorting paramters
             spike_sorting_spikes_file_path:     varchar(256)  # CSV files with spikes times
             spike_sorting_clusters_file_path:   varchar(256)  # MAT file with clusters IDs
+            recording_probe_configuration:                varchar(256)  # longcol, b_0 ...
+            reference:                          varchar(256)  # interf, extref
         """
         recordings_folder = Path(
             r"W:\swc\branco\Federico\Locomotion\raw\recordings"
@@ -807,7 +940,7 @@ if have_dj:
                 (Session & key).fetch1("ephys_ap_data_path")
             ).parent.parent.name
 
-            # get paths
+            # get paths and other metadata
             key = _recording.get_recording_filepaths(
                 key, rec_metadata, self.recordings_folder, rec_folder
             )
@@ -816,7 +949,7 @@ if have_dj:
 
     @schema
     class Unit(dj.Imported):
-        precomputed_firing_rate_windows = [33, 100, 150, 250]
+        precomputed_firing_rate_windows = [33, 100]  # in ms - I think
 
         definition = """
             # a single unit's spike sorted data
@@ -839,12 +972,18 @@ if have_dj:
         @staticmethod
         def get_session_units(
             session_name: str,
+            probe_configuration: str,
             spikes: bool = False,
             firing_rate: bool = False,
             frate_window: int = 50,
         ) -> pd.DataFrame:
+
             # query
-            query = Unit * Probe.RecordingSite & f"name='{session_name}'"
+            query = (
+                Unit * Probe.RecordingSite
+                & f"name='{session_name}'"
+                & f'probe_configuration="{probe_configuration}"'
+            )
             if spikes:
                 query = query * Unit.Spikes
 
@@ -885,6 +1024,9 @@ if have_dj:
 
             # check if the main unit's site is a target
             main_site = (Probe * Probe.RecordingSite & unit).fetch1()
+            raise NotImplementedError(
+                "this should respect the fact that differentrecordings have different probe configurations"
+            )
             if main_site["brain_region"] in targets:
                 return True, True, main_site["brain_region"]
 
@@ -902,10 +1044,14 @@ if have_dj:
         def get_unit_sites(
             mouse: str, session_name: str, unit_id: int
         ) -> pd.DataFrame:
+
             rsites = Probe.get_session_sites(mouse)
             unit_sites = (
                 Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
             ).fetch1("secondary_sites_ids")
+            raise NotImplementedError(
+                "Double check that this respects probe configurations"
+            )
 
             rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
             return rsites
@@ -935,6 +1081,7 @@ if have_dj:
                 )
             else:
                 pre_cut, post_cut = None, None
+
             # fill in units
             for nu, unit in enumerate(units):
                 logger.debug(f"processing unit {nu+1}/{len(units)}")
@@ -943,6 +1090,9 @@ if have_dj:
                 unit_key["unit_id"] = unit["unit_id"]
                 unit_key["site_id"] = unit["recording_site_id"]
                 unit_key["secondary_sites_ids"] = unit["secondary_sites_ids"]
+                unit_key["probe_configuration"] = recording[
+                    "recording_probe_configuration"
+                ]  # select the right rec site
 
                 # get adjusted spike times
                 unit_spikes = _recording.get_unit_spike_times(
@@ -972,7 +1122,9 @@ if have_dj:
         def make(self, key):
             unit = (Unit * Unit.Spikes & key).fetch1()
             triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
-            logger.info(f"Processing: {unit}")
+            logger.info(
+                f"Processing: {unit['name']} - unit: {unit['unit_id']}"
+            )
 
             # get firing rates
             for frate_window in Unit.precomputed_firing_rate_windows:
@@ -989,6 +1141,7 @@ if have_dj:
                 del frate_key["secondary_sites_ids"]
                 del frate_key["spikes"]
                 del frate_key["spikes_ms"]
+                del frate_key["probe_configuration"]
 
                 self.insert1(frate_key)
                 # time.sleep(5)
@@ -1008,7 +1161,8 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Tracking().drop()
+    # Probe().drop()
+
     # LocomotionBouts().drop()
     # Movement().drop()
     # sys.exit()
@@ -1028,7 +1182,7 @@ if __name__ == "__main__":
     # Session().fill()
 
     logger.info("#####    Filling Validated Session")
-    ValidatedSession().populate(display_progress=True)
+    # ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
@@ -1038,53 +1192,61 @@ if __name__ == "__main__":
     # Behavior().populate(display_progress=True)
     # Tones().populate(display_progress=True)
 
+    # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
+    # Movement().populate(display_progress=True)
 
-    logger.info("#####    Filling LocomotionBouts")
-    LocomotionBouts().populate(display_progress=True)
+    # ? OPTO
+    logger.info("#####    Filling OPTO data")
+    # OptoImplant.populate(display_progress=True)6
+    # OptoSession.fill()
+    # OptoStimuli.populate(display_progress=True)
 
-    logger.info("#####    Filling Movemnt")
-    Movement().populate(display_progress=True)
-
+    # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=True)
 
-    logger.info("#####    Filling Recording")
-    # Recording().populate(display_progress=True)
+    Unit().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
+    FiringRate().check_complete()
 
-    logger.info("#####    Filling Unit")
-    # Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
-    # FiringRate().check_complete()
+    # TODO check and debug Opto TABLES
+    # TODO make code that takes a locomotion bout that includes a given frame (e.g. to get bouts with opto stim)
+    # TODO make clips that show the effects of opto stimulation
+    # TODO OptoStimuli should xtract ROI of each stimulus based on tracking data.
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
-    TABLES = [
-        Mouse,
-        Session,
-        pd.DataFrame((Session & "is_recording=1").fetch()),
-        ValidatedSession,
-        Behavior,
-        Recording,
-        Probe,
-        Probe.RecordingSite,
-        Unit,
-        LocomotionBouts,
-        Movement,
-    ]
-    NAMES = [
-        "Mouse",
-        "Session",
-        "RecordingsSessions",
-        "ValidatedSession",
-        "Behavior",
-        "Recording",
-        "Probe",
-        "RecordingSite",
-        "Unit",
-        "LocomotionBouts",
-        "Movement",
-    ]
-    for tb, name in zip(TABLES, NAMES):
-        print_table_content_to_file(tb, name)
+    # TABLES = [
+    #     Mouse,
+    #     Session,
+    #     pd.DataFrame((Session & "is_recording=1").fetch()),
+    #     ValidatedSession,
+    #     Behavior,
+    #     Recording,
+    #     Probe,
+    #     Probe.RecordingSite,
+    #     Unit,
+    #     LocomotionBouts,
+    #     Movement,
+    #     OptoSession,
+    # ]
+    # NAMES = [
+    #     "Mouse",
+    #     "Session",
+    #     "RecordingsSessions",
+    #     "ValidatedSession",
+    #     "Behavior",
+    #     "Recording",
+    #     "Probe",
+    #     "RecordingSite",
+    #     "Unit",
+    #     "LocomotionBouts",
+    #     "Movement",
+    #     "OptoSession",
+    # ]
+    # for tb, name in zip(TABLES, NAMES):
+    #     print_table_content_to_file(tb, name)

@@ -67,7 +67,7 @@ def process_body_part(
     # compute speed
     speed = (
         data_utils.convolve_with_gaussian(
-            get_speed_from_xy(x, y), kernel_width=15
+            get_speed_from_xy(x, y), kernel_width=11
         )
         * 60
     )  # speed in cm / s
@@ -115,12 +115,14 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results["dmov_velocity"] = (
         calc_angular_velocity(results["direction_of_movement"]) * 60
     )
+    logger.warning("Check that this makes sense")
 
-    results["dmov_velocity"] = data_utils.remove_outlier_values(
-        results["dmov_velocity"],
-        50,
-        errors_calculation_array=np.abs(derivative(results["dmov_velocity"])),
-    )
+    results["direction_of_movement"][
+        np.where(results["speed"] < 6)[0]
+    ] = np.nan  # no dir of mvmt when there is no mvmt
+    results["dmov_velocity"][
+        np.where(results["speed"] < 6)[0]
+    ] = np.nan  # no dir of mvmt when there is no mvmt
 
     results["direction_of_movement"][
         np.where(results["speed"] < 2)[0]

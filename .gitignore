@@ -8,6 +8,7 @@ rnn_cache
 .vscode/settings.json
 proj/secrets.py
 workspace.py
+logs_*
 
 .vscode/*
 .vscode/

@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
+from myterial import blue_grey
+
 br.settings.SHOW_AXES = False
 
 
@@ -16,15 +18,18 @@ def render_probe_3d(
 
     # add probe track
     track = np.vstack(rsites.registered_brain_coordinates.values)
-    scene.add(br.actors.Points(track, colors="k", radius=80))
+    colors = [color if region in targets else (blue_grey if region not in ('unknown', 'OUT') else 'k')
+                 for color, region in zip(rsites.color.values, rsites.brain_region.values)]
+    pts = scene.add(br.actors.Points(track, colors=colors, radius=15))
+    scene.add_silhouette(pts, lw=2)
 
     # add brain regions
     for region in rsites.brain_region.unique():
         if region in targets:
-            alpha = 0.7
+            alpha = 0.4
             targets.pop(targets.index(region))
         else:
-            alpha = 0.05
+            alpha = 0.01
         scene.add_brain_region(region, alpha=alpha)
 
     # add remainning targets
@@ -156,9 +161,8 @@ if __name__ == "__main__":
     )
 
     rsites = pd.DataFrame(
-        (Probe.RecordingSite & 'mouse_id="AAA1110750"').fetch()
+        (Probe.RecordingSite & 'mouse_id="BAA1110281"' & f'probe_configuration="longcol"').fetch()
     )
 
-    # render_probe_3d(rsites, targets=TARGETS)
-
-    render_probe_regions_slices(rsites, targets=TARGETS)
+    render_probe_3d(rsites, targets=TARGETS)
+    # render_probe_regions_slices(rsites, targets=TARGETS)

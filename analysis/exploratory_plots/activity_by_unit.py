@@ -52,8 +52,6 @@ for i, recording in recordings.iterrows():
     # get probe
     rsites = pd.DataFrame((Probe.RecordingSite & dict(recording)).fetch())
 
-    # TODO improbe plots
-    # TODO bin spikes by e.g. speed bin
 
     for n, unit in units.iterrows():
         x, y, speed = (

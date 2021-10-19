@@ -108,7 +108,6 @@ def get_event_times(
 ) -> Tuple[list, list]:
     """
         Given a 1D time serires it gets all the times there's a new 'stimulus' (signal going > threshold).
-        It only keeps events that are at least 'min_pause' frames apart
     """
     original = data.copy()
     if abs_val:
