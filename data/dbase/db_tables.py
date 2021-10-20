@@ -810,7 +810,7 @@ if have_dj:
     class Probe(dj.Imported):
         _skip = ['AAA1110751']
         _tips = {
-            'AAA1110750': 400,
+            'AAA1110750': 450,
         }
         possible_configurations = ['b0', 'longcolumn']
         definition = """
@@ -840,7 +840,7 @@ if have_dj:
             """
 
         @staticmethod
-        def get_session_sites(mouse: str, configuration: str = 'intref') -> pd.DataFrame:
+        def get_session_sites(mouse: str, configuration: str = 'longcol') -> pd.DataFrame:
             return pd.DataFrame(
                 (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"' & f'probe_configuration="{configuration}"').fetch()
             )
@@ -1001,15 +1001,15 @@ if have_dj:
 
         @staticmethod
         def get_unit_sites(
-            mouse: str, session_name: str, unit_id: int
+            mouse: str, session_name: str, unit_id: int, configuration: str = 'longcol'
         ) -> pd.DataFrame:
-
-            rsites = Probe.get_session_sites(mouse)
+            '''
+                Gets the recording sites that a unit's spikes are detected on (based on the probe configuration used)
+            '''
+            rsites = Probe.get_session_sites(mouse, configuration=configuration)
             unit_sites = (
                 Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
             ).fetch1("secondary_sites_ids")
-            raise NotImplementedError('Double check that this respects probe configurations')
-
             rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
             return rsites
 
@@ -1115,7 +1115,6 @@ if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
     # Probe().drop()
-    
     # LocomotionBouts().drop()
     # Movement().drop()
     # sys.exit()

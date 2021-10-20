@@ -118,6 +118,7 @@ class Inspector:
             firing_rate=True,
             frate_window=self.firing_rate_window,
         )
+        self.units['probe_configuration'] = [cf] * len(self.units)
         self.rsites = pd.DataFrame((Probe.RecordingSite & recording & f'probe_configuration="{cf}"').fetch())
         logger.debug(f"Found {len(self.units)} units")
 
@@ -126,7 +127,7 @@ class Inspector:
                 f'unit: {unit.unit_id} in "{unit.brain_region}"'
                 for i, unit in self.units.iterrows()
             ]
-        )
+        ) 
         logger.debug(f"Available units: \n{ids}")
 
         # get tone onsets
@@ -222,19 +223,19 @@ if __name__ == "__main__":
         if "open" in rec:
             continue
         
-        try:
-            insp = Inspector(
-                rec,
-                firing_rate_window=33,
-                events_window_s=5,
-            )
+        # try:
+        insp = Inspector(
+            rec,
+            firing_rate_window=33,
+            events_window_s=5,
+        )
 
-            insp.plot(
-                tracking=False, probe=True, unit=None, firing_rate=False, show=True,
-            )
+        insp.plot(
+            tracking=False, probe=False, unit=1237, firing_rate=False, show=True,
+        )
 
-            # breakq
+        break
 
-        except Exception as e:
-            # logger.warning(e)
-            raise ValueError(e)
+        # except Exception as e:
+        #     # logger.warning(e)
+        #     raise ValueError(e)

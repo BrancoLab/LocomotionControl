@@ -97,11 +97,11 @@ def plot_unit(
             zorder=11,
         )
 
-        axes["C"].plot(tracking.angular_velocity, color=blue_grey, lw=2)
+        axes["C"].plot(tracking.dmov_velocity, color=blue_grey, lw=2)
         axes["C"].scatter(
             unit.spikes,
-            unit_tracking.angular_velocity,
-            color=colors.angular_velocity,
+            unit_tracking.dmov_velocity,
+            color=colors.dmov_velocity,
             s=5,
             zorder=11,
         )
@@ -184,16 +184,16 @@ def plot_unit(
         visuals.plot_bin_x_by_y(
             tracking,
             "firing_rate",
-            "angular_velocity",
+            "dmov_velocity",
             axes["V"],
-            colors=colors.angular_velocity,
+            colors=colors.dmov_velocity,
             bins=10,
             min_count=10,
             s=50,
         )
         visuals.plot_heatmap_2d(
             tracking,
-            x_key="angular_velocity",
+            x_key="dmov_velocity",
             y_key="firing_rate",
             ax=axes["V"],
             vmax=None,
@@ -208,7 +208,7 @@ def plot_unit(
         # plot probe electrodes in which there is the unit
         visuals.plot_probe_electrodes(
             db_tables.Unit.get_unit_sites(
-                mouse_id, session_name, unit["unit_id"]
+                mouse_id, session_name, unit["unit_id"], unit['probe_configuration']
             ),
             axes["Z"],
             annotate_every=1,
@@ -226,7 +226,7 @@ def plot_unit(
         # plot heatmap of firing rate vs speed by ang vel heatmap (during bouts)
         trk = dict(
             speed=tracking.speed[tracking.walking == 1],
-            angular_velocity=tracking.angular_velocity[tracking.walking == 1],
+            dmov_velocity=tracking.dmov_velocity[tracking.walking == 1],
             firing_rate=tracking.firing_rate[tracking.walking == 1],
         )
         visuals.plot_heatmap_2d(
@@ -234,7 +234,7 @@ def plot_unit(
             key="firing_rate",
             ax=axes["Y"],
             x_key="speed",
-            y_key="angular_velocity",
+            y_key="dmov_velocity",
             vmax=None,
         )
 
@@ -295,16 +295,16 @@ def plot_unit(
         visuals.plot_bin_x_by_y(
             in_bouts_stacked,
             "firing_rate",
-            "angular_velocity",
+            "dmov_velocity",
             axes["H"],
-            colors=colors.angular_velocity,
+            colors=colors.dmov_velocity,
             bins=10,
             min_count=10,
             s=50,
         )
         visuals.plot_heatmap_2d(
             in_bouts_stacked,
-            x_key="angular_velocity",
+            x_key="dmov_velocity",
             y_key="firing_rate",
             ax=axes["H"],
             vmax=None,
@@ -372,16 +372,16 @@ def plot_unit(
         visuals.plot_bin_x_by_y(
             out_bouts_stacked,
             "firing_rate",
-            "angular_velocity",
+            "dmov_velocity",
             axes["O"],
-            colors=colors.angular_velocity,
+            colors=colors.dmov_velocity,
             bins=10,
             min_count=10,
             s=50,
         )
         visuals.plot_heatmap_2d(
             out_bouts_stacked,
-            x_key="angular_velocity",
+            x_key="dmov_velocity",
             y_key="firing_rate",
             ax=axes["O"],
             vmax=None,
@@ -393,7 +393,6 @@ def plot_unit(
         )
         axes["H"].axvline(0, ls=":", lw=2, color=[0.2, 0.2, 0.2], zorder=101)
 
-        # TODO add visualization of speeds distributions to tracking figure
 
         # ----------------------------- cleanup and save ----------------------------- #
         clean_axes(f)

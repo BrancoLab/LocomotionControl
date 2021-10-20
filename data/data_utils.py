@@ -20,6 +20,7 @@ KEYS = (
     "angular_velocity",
     "spikes",
     "firing_rate",
+    "dmov_velocity",
 )
 
 def remove_outlier_values(data:np.ndarray, threshold:Union[Tuple[float, float], float], errors_calculation_array:np.ndarray=None) -> np.ndarray:

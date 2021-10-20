@@ -16,6 +16,8 @@ from myterial import (
 
 speed = amber
 angular_velocity = indigo_light
+dmov_velocity = indigo_light
+
 global_coord = green
 
 # movements

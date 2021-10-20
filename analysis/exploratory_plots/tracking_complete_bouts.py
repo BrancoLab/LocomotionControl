@@ -142,9 +142,6 @@ for i, bout in bouts.iterrows():
         data[k].extend(list(v))
 
     # plot tracking
-
-
-
     # plot speed and ang vel
     # time = np.linspace(0, 1, len(speed))
     # axes["B"].scatter(coord, speed, color=colors.speed, s=20, alpha=.1)
@@ -229,4 +226,34 @@ for i, bout in bouts.iterrows():
 
 trials = pd.DataFrame(trials)
 trials.to_hdf(r'D:\Dropbox (UCL)\Rotation_vte\Locomotion\rnn_simulations\bouts.h5', key='hdf')
+# %%
+
+f, ax = plt.subplots(figsize=(8, 12))
+# plot fastest bouts
+
+from pathlib import Path
+fld = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\control")
+
+fasts = bouts.sort_values('duration').iloc[2:10]
+for i, bout in fasts.iterrows():
+    trk = tracking[bout["name"]]
+
+    ax.scatter(
+        trk['x'][bout.start_frame:bout.end_frame], 
+        trk['y'][bout.start_frame:bout.end_frame], 
+        c=trk['orientation'][bout.start_frame:bout.end_frame],
+        vmin=0, vmax=360, cmap='bwr'
+        )
+
+    pd.DataFrame(
+        dict(
+            x=trk['x'][bout.start_frame:bout.end_frame], 
+            y=trk['y'][bout.start_frame:bout.end_frame], 
+            theta=trk['direction_of_movement'][bout.start_frame:bout.end_frame],
+            speed=trk['speed'][bout.start_frame:bout.end_frame],
+
+        )
+    ).to_hdf(fld / f'fast_bout_{i}.h5', key='hdf')
+
+
 # %%

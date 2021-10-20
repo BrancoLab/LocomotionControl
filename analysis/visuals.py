@@ -244,7 +244,7 @@ def plot_raster(
         It assumes that all event and spike times are in frames and framerate is 60
     """
     half_window = window / 2
-    yticks_step = int(len(events) / 8)
+    yticks_step = int(np.ceil(len(events) / 8)) if len(events) > 8 else 2
     X = []
     for n, event in enumerate(events):
         event_spikes = (
