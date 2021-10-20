@@ -163,18 +163,30 @@ def plot_heatmap_2d(
     **kwargs,
 ):
     # bin data in 2d
-    ax.hexbin(
-        data[x_key],
-        data[y_key],
-        data[key] if key is not None else None,
-        cmap=cmap,
-        gridsize=gridsize,
-        vmin=vmin,
-        vmax=vmax,
-        mincnt=mincnt,
-        **kwargs,
-    )
-
+    try:
+        ax.hexbin(
+            data[x_key],
+            data[y_key],
+            data[key] if key is not None else None,
+            cmap=cmap,
+            gridsize=gridsize,
+            vmin=vmin,
+            vmax=vmax,
+            mincnt=mincnt,
+            **kwargs,
+        )
+    except ValueError:  # likely the data was nested arrays
+        ax.hexbin(
+            np.hstack(data[x_key]),
+            np.hstack(data[y_key]),
+            np.hstack(data[key]) if key is not None else None,
+            cmap=cmap,
+            gridsize=gridsize,
+            vmin=vmin,
+            vmax=vmax,
+            mincnt=mincnt,
+            **kwargs,
+        )
 
 # ---------------------------------------------------------------------------- #
 #                                     EPHSY                                    #

@@ -624,10 +624,14 @@ if have_dj:
             x:              longblob
             y:              longblob
             speed:          longblob
-            direction_of_movement:           longblob
+            acceleration:   longblob
+            theta:           longblob
+            thetadot:  longblob
+            thetadotdot:  longblob
+
         """
 
-        max_duration = 5   # roi crossing must last <= this
+        max_duration = 8   # roi crossing must last <= this
         def make(self, key):
             if not Session.on_hairpin(key["name"]):
                 return 
@@ -1255,7 +1259,7 @@ if __name__ == "__main__":
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    # Tracking().populate(display_progress=True)
+    Tracking().populate(display_progress=True)
     # LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
     ROICrossing().populate(display_progress=True)

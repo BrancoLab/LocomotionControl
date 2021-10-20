@@ -54,7 +54,11 @@ def get_rois_crossings(
             x = tracking.x[start:end],
             y = tracking.y[start:end],
             speed = tracking.speed[start:end],
-            direction_of_movement = tracking.direction_of_movement[start:end],
+            theta = tracking.direction_of_movement[start:end],
+            thetadot = tracking.dmov_velocity[start:end],
+            thetadotdot = tracking.dmov_acceleration[start:end],
+            acceleration  = tracking.acceleration[start:end],
+
         ))
 
     return results
