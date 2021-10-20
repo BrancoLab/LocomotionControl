@@ -407,8 +407,8 @@ if __name__ == "__main__":
     ):
         tracking = pd.read_hdf(fp, key="hdf")
         tracking.x = 20 - tracking.x + 20
-        # draw.Tracking.scatter(ax, tracking.x, tracking.y, c=tracking.theta, vmin=0, vmax=360, cmap='bwr', lw=1, ec='k')
-        draw.Tracking(ax, tracking.x, tracking.y, alpha=0.7)
+        # draw.Tracking.scatter(tracking.x, tracking.y, c=tracking.theta, vmin=0, vmax=360, cmap='bwr', lw=1, ec='k')
+        draw.Tracking(tracking.x, tracking.y, alpha=0.7)
 
     # draw hairpin arena
     draw.Hairpin(ax)
@@ -416,9 +416,9 @@ if __name__ == "__main__":
     # draw waypoints
     wps = Waypoints()
     for wp in wps:
-        draw.Arrow(ax, wp.x, wp.y, wp.theta, 2, width=4, color="g")
+        draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color="g")
 
     # fit dubin path
     dubin = DubinPath(wps).fit()
-    draw.Tracking(ax, dubin.x, dubin.y, lw=2, color="k")
+    draw.Tracking(dubin.x, dubin.y, lw=2, color="k")
     plt.show()

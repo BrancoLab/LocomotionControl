@@ -57,7 +57,7 @@ if __name__ == "__main__":
     ):
         tracking = pd.read_hdf(fp, key="hdf")
         tracking.x = 20 - tracking.x + 20
-        draw.Tracking(ax, tracking.x, tracking.y, alpha=0.7)
+        draw.Tracking(tracking.x, tracking.y, alpha=0.7)
 
     # draw hairpin arena
     draw.Hairpin(ax)
@@ -65,15 +65,15 @@ if __name__ == "__main__":
     # draw waypoints
     wps = Waypoints(use="spline")
     for wp in wps:
-        draw.Arrow(ax, wp.x, wp.y, wp.theta, 2, width=4, color="g")
+        draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color="g")
 
     # fit splines
     spline = interpolate_b_spline_path(wps.x, wps.y, degree=3)
-    draw.Tracking(ax, spline.x, spline.y, lw=4, color="k", label="spline")
+    draw.Tracking(spline.x, spline.y, lw=4, color="k", label="spline")
 
     # fit and draw dubin path
     dubin = DubinPath(Waypoints()).fit()
-    draw.Tracking(ax, dubin.x, dubin.y, color="r", label="dubin")
+    draw.Tracking(dubin.x, dubin.y, color="r", label="dubin")
 
     ax.legend()
     plt.show()

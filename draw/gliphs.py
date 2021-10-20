@@ -11,7 +11,6 @@ class Arrow:
 
     def __init__(
         self,
-        ax: plt.Axes,
         x: float,
         y: float,
         theta: float,  # in degrees
@@ -19,7 +18,10 @@ class Arrow:
         width: float = 4,
         color: str = blue_grey_dark,
         zorder: int = 100,
+        ax: plt.Axes = None,
     ):
+        ax = ax or plt.gca()
+
         theta = np.radians(theta)
         angle = np.deg2rad(30)
         d = 0.5 * L
@@ -61,6 +63,47 @@ class Arrow:
             linewidth=width,
             zorder=zorder,
         )
+
+
+class Car:
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        theta: float,  # in degrees
+        w: int = 1.5,
+        L: int = 3,
+        ax: plt.Axes = None,
+    ):
+        ax = ax or plt.gca()
+
+        theta = np.radians(theta)
+        theta_B = np.pi + theta
+
+        xB = x + L / 4 * np.cos(theta_B)
+        yB = y + L / 4 * np.sin(theta_B)
+
+        theta_BL = theta_B + np.pi / 2
+        theta_BR = theta_B - np.pi / 2
+
+        x_BL = xB + w / 2 * np.cos(theta_BL)  # Bottom-Left vertex
+        y_BL = yB + w / 2 * np.sin(theta_BL)
+        x_BR = xB + w / 2 * np.cos(theta_BR)  # Bottom-Right vertex
+        y_BR = yB + w / 2 * np.sin(theta_BR)
+
+        x_FL = x_BL + L * np.cos(theta)  # Front-Left vertex
+        y_FL = y_BL + L * np.sin(theta)
+        x_FR = x_BR + L * np.cos(theta)  # Front-Right vertex
+        y_FR = y_BR + L * np.sin(theta)
+
+        ax.plot(
+            [x_BL, x_BR, x_FR, x_FL, x_BL],
+            [y_BL, y_BR, y_FR, y_FL, y_BL],
+            linewidth=1,
+            color="black",
+        )
+
+        Arrow(x, y, np.degrees(theta), L / 2, color="black")
 
 
 if __name__ == "__main__":

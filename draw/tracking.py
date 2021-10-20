@@ -11,10 +11,13 @@ class Hairpin:
 
     _img_path = "draw/hairpin.png"
 
-    def __init__(self, ax: plt.Axes, w_extent: int = 40, h_extent: int = 60):
+    def __init__(
+        self, ax: plt.Axes = None, w_extent: int = 40, h_extent: int = 60
+    ):
         """
             Renders an image of the hairpin maze on a matplotlib axis
         """
+        ax = ax or plt.gca()
         image = plt.imread(self._img_path)
         ax.imshow(
             image,
@@ -29,7 +32,10 @@ class Tracking:
         Renders tracking as a 2D trace
     """
 
-    def __init__(self, ax: plt.Axes, x: np.ndarray, y: np.ndarray, **kwargs):
+    def __init__(
+        self, x: np.ndarray, y: np.ndarray, ax: plt.Axes = None, **kwargs
+    ):
+        ax = ax or plt.gca()
         ax.plot(
             x, y, color=kwargs.pop("color", grey), **kwargs,
         )
@@ -37,13 +43,14 @@ class Tracking:
     @classmethod
     def scatter(
         cls,
-        ax: plt.Axes,
         x: np.ndarray,
         y: np.ndarray,
         s: np.ndarray = None,
         c: np.ndarray = None,
+        ax: plt.Axes = None,
         **kwargs,
     ):
+        ax = ax or plt.gca()
         ax.scatter(x, y, s=s, c=c, **kwargs)
 
 
