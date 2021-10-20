@@ -206,21 +206,31 @@ def get_bout_start_end_times(
 
     return precise_start, precise_end
 
-def is_quiet(tracking: tuple, bstart: int, bend: int, duration: int, shift:int=5, th:float=5) -> bool:
-    '''
+
+def is_quiet(
+    tracking: tuple,
+    bstart: int,
+    bend: int,
+    duration: int,
+    shift: int = 5,
+    th: float = 5,
+) -> bool:
+    """
         Checks if the speed of all paws is law enough before and after the 
         the bout which means the mouse wasnt mooving to much.
-    '''
-    speeds = np.vstack([
-        tracking.right_fl.bp_speed,
-        tracking.left_fl.bp_speed,
-        tracking.right_hl.bp_speed,
-        tracking.left_hl.bp_speed,
-    ])
+    """
+    speeds = np.vstack(
+        [
+            tracking.right_fl.bp_speed,
+            tracking.left_fl.bp_speed,
+            tracking.right_hl.bp_speed,
+            tracking.left_hl.bp_speed,
+        ]
+    )
 
-    if np.mean(speeds[:, bstart-duration-shift:bstart-shift]) > th:
+    if np.mean(speeds[:, bstart - duration - shift : bstart - shift]) > th:
         return False
-    elif np.mean(speeds[:, bend+shift:bend+shift+duration]) > th:
+    elif np.mean(speeds[:, bend + shift : bend + shift + duration]) > th:
         return False
     return True
 
@@ -280,7 +290,11 @@ def get_session_bouts(
 
     # get when the mouse is moving
     is_moving = get_when_moving(
-        data_utils.convolve_with_gaussian(tracking.body.speed, 21), speed_th, max_pause, min_duration, min_peak_speed
+        data_utils.convolve_with_gaussian(tracking.body.speed, 21),
+        speed_th,
+        max_pause,
+        min_duration,
+        min_peak_speed,
     )
     # plot_speeds(tracking.body.speed, is_moving=is_moving)
 

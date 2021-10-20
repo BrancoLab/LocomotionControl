@@ -21,7 +21,7 @@ sys.path.append("./")
 from data.dbase import schema
 from data.dbase._tables import (
     insert_entry_in_table,
-    print_table_content_to_file,
+    # print_table_content_to_file,
 )
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
@@ -119,7 +119,9 @@ if have_dj:
             recorded_sessions = pd.read_excel(
                 self.recordings_metadata_path, engine="odf"
             )
-            recorded_sessions = recorded_sessions.loc[recorded_sessions['USE?'] == 'yes']
+            recorded_sessions = recorded_sessions.loc[
+                recorded_sessions["USE?"] == "yes"
+            ]
             for i, session in recorded_sessions.iterrows():
                 if session["bonsai filename"] not in in_table:
                     raise ValueError(
@@ -206,19 +208,22 @@ if have_dj:
         ]
 
         def mark_failed_validation(self, key, reason, nsigs, failed):
-                key = (Session & key).fetch1()
-                key['__REASON'] = reason
-                key['nsigs'] = nsigs
-                key['__IS_RECORDING'] = Session.has_recording(key["name"])
-                failed[key['name']] = key
-                to_yaml('data/dbase/validation_failed.yaml', failed)
+            key = (Session & key).fetch1()
+            key["__REASON"] = reason
+            key["nsigs"] = nsigs
+            key["__IS_RECORDING"] = Session.has_recording(key["name"])
+            failed[key["name"]] = key
+            to_yaml("data/dbase/validation_failed.yaml", failed)
 
         def make(self, key):
             # check if this session has previously failed validatoin
-            failed = from_yaml('data/dbase/validation_failed.yaml')
-            if failed is None: failed = {}
-            if key['name'] in failed.keys():
-                logger.warning(f'Skipping because {key["name"]} previously failed validation')
+            failed = from_yaml("data/dbase/validation_failed.yaml")
+            if failed is None:
+                failed = {}
+            if key["name"] in failed.keys():
+                logger.warning(
+                    f'Skipping because {key["name"]} previously failed validation'
+                )
                 return
 
             # fetch data
@@ -266,15 +271,19 @@ if have_dj:
                     n_frames,
                     bonsai_cut_start,
                     bonsai_cut_end,
-                    reason
+                    reason,
                 ) = qc.validate_behavior(
                     session["video_file_path"],
                     session["ai_file_path"],
                     self.analog_sampling_rate,
                 )
                 if not is_ok:
-                    self.mark_failed_validation(key, reason, analog_nsigs, failed)
-                    logger.warning(f"Session failed to pass BEHAVIOR validation: {key}")
+                    self.mark_failed_validation(
+                        key, reason, analog_nsigs, failed
+                    )
+                    logger.warning(
+                        f"Session failed to pass BEHAVIOR validation: {key}"
+                    )
                     return
                 else:
                     logger.info(f"Session passed BEHAVIOR validation")
@@ -298,7 +307,9 @@ if have_dj:
                     logger.warning(
                         f"Session failed to pass RECORDING validation: {key}"
                     )
-                    self.mark_failed_validation(key, reason, analog_nsigs, failed)
+                    self.mark_failed_validation(
+                        key, reason, analog_nsigs, failed
+                    )
                     return
                 else:
                     logger.info(f"Session passed RECORDING validation")
@@ -430,7 +441,7 @@ if have_dj:
                     shift=1,
                 )
             except:
-                logger.warning(f'Failed to get TONES data for session: {key}')
+                logger.warning(f"Failed to get TONES data for session: {key}")
             else:
                 self.insert1(key)
 
@@ -470,6 +481,7 @@ if have_dj:
             and a sub table is used for each body part.
         
         """
+
         likelihood_threshold = 0.95
         cm_per_px = 60 / 830
         bparts = (
@@ -523,13 +535,15 @@ if have_dj:
                 return
 
             if Session.is_too_early(key["name"]):
-                logger.info(f'Skipping session {key["name"]} because its too early - bad tracking')
+                logger.info(
+                    f'Skipping session {key["name"]} because its too early - bad tracking'
+                )
                 return
 
             # get tracking data file
             tracking_file = Session.get_session_tracking_file(key["name"])
             if tracking_file is None:
-                logger.warning('No tracking file found')
+                logger.warning("No tracking file found")
                 return
 
             # get number of frames in session
@@ -566,7 +580,10 @@ if have_dj:
             if Session.on_hairpin(key["name"]):
                 hp = HairpinTrace()
                 lin_key = _key.copy()
-                lin_key["segment"], lin_key["global_coord"] = hp.assign_tracking(
+                (
+                    lin_key["segment"],
+                    lin_key["global_coord"],
+                ) = hp.assign_tracking(
                     bparts_keys["body"]["x"], bparts_keys["body"]["y"]
                 )
                 self.Linearized.insert1(lin_key)
@@ -612,7 +629,7 @@ if have_dj:
         min_peak_speed = (
             15  # cm/s - each bout must reach this speed at some point
         )
-        max_pause: float = .5  # (s) if paused for < than this its one contiuous locomotion bout
+        max_pause: float = 0.5  # (s) if paused for < than this its one contiuous locomotion bout
         min_duration: float = 2  # (s) keep only outs that last at least this long
 
         min_gcoord_delta: float = 0.25  # the global coordinates must change of at least this during bout
@@ -710,8 +727,6 @@ if have_dj:
 
             self.insert1(key)
 
-
-
     # ---------------------------------------------------------------------------- #
     #                                 OPTOGENETICS                                 #
     # ---------------------------------------------------------------------------- #
@@ -731,10 +746,14 @@ if have_dj:
             target:                                         varchar(128)  # eg "MOs" or "CUN/GRN"
         """
 
-        opto_surgery_metadata_file = Path(r"W:\swc\branco\Federico\Locomotion\raw\opto_surgery_metadata.ods")
+        opto_surgery_metadata_file = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\opto_surgery_metadata.ods"
+        )
 
         def make(self, key):
-            metadata = get_opto_metadata(key["mouse_id"], self.opto_surgery_metadata_file)
+            metadata = get_opto_metadata(
+                key["mouse_id"], self.opto_surgery_metadata_file
+            )
             if metadata is None:
                 return
             else:
@@ -754,11 +773,13 @@ if have_dj:
             roi_5:                int  # 1 if used, 0 otherwise
         """
 
-        opto_session_metadata_file = Path(r'W:\swc\branco\Federico\Locomotion\raw\opto_metadata.ods')
+        opto_session_metadata_file = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\opto_metadata.ods"
+        )
 
         def fill(self):
             _opto.fill_opto_table(self, Session)
-            
+
     @schema
     class OptoStimuli(dj.Imported):
         definition = """
@@ -774,9 +795,13 @@ if have_dj:
         def make(self, key):
             # get AI of opto stim from bin file
             session = (Session * ValidatedSession & key).fetch1()
-            opto_signal = load_bin(session["ai_file_path"], nsig=session["n_analog_channels"])[:, -1]
+            opto_signal = load_bin(
+                session["ai_file_path"], nsig=session["n_analog_channels"]
+            )[:, -1]
 
-            logger.warning("OptoStimuli does not currently extract STIM_ROI info from tracking")
+            logger.warning(
+                "OptoStimuli does not currently extract STIM_ROI info from tracking"
+            )
 
             # extract stim times
             try:
@@ -792,15 +817,13 @@ if have_dj:
                     shift=1,
                 )
 
-                key["stim_ROI"] = np.ones(len(key["stim_onsets"]))  # ! this needs implementing
+                key["stim_ROI"] = np.ones(
+                    len(key["stim_onsets"])
+                )  # ! this needs implementing
             except:
-                logger.warning(f'Failed to get TONES data for session: {key}')
+                logger.warning(f"Failed to get TONES data for session: {key}")
             else:
                 self.insert1(key)
-
-
-
-
 
     # ---------------------------------------------------------------------------- #
     #                                  ephys data                                  #
@@ -808,11 +831,15 @@ if have_dj:
 
     @schema
     class Probe(dj.Imported):
-        _skip = ['AAA1110751']
+        _skip = ["AAA1110751"]
         _tips = {
+<<<<<<< HEAD
             'AAA1110750': 450,
+=======
+            "AAA1110750": 400,
+>>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
         }
-        possible_configurations = ['b0', 'longcolumn']
+        possible_configurations = ["b0", "longcolumn"]
         definition = """
             # relevant probe information + surgery metadata
             -> Mouse
@@ -840,15 +867,25 @@ if have_dj:
             """
 
         @staticmethod
+<<<<<<< HEAD
         def get_session_sites(mouse: str, configuration: str = 'longcol') -> pd.DataFrame:
+=======
+        def get_session_sites(
+            mouse: str, configuration: str = "intref"
+        ) -> pd.DataFrame:
+>>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
             return pd.DataFrame(
-                (Probe * Probe.RecordingSite & f'mouse_id="{mouse}"' & f'probe_configuration="{configuration}"').fetch()
+                (
+                    Probe * Probe.RecordingSite
+                    & f'mouse_id="{mouse}"'
+                    & f'probe_configuration="{configuration}"'
+                ).fetch()
             )
 
         def make(self, key):
-            if key['mouse_id'] in self._skip:
+            if key["mouse_id"] in self._skip:
                 return
-                
+
             metadata = get_probe_metadata(key["mouse_id"])
             if metadata is None:
                 return
@@ -862,15 +899,21 @@ if have_dj:
             self.insert1(probe_key)
 
             # get recording sites in each possible configuration
-            tip = self._tips[key['mouse_id']] if key['mouse_id'] in self._tips.keys() else 175
+            tip = (
+                self._tips[key["mouse_id"]]
+                if key["mouse_id"] in self._tips.keys()
+                else 175
+            )
             for configuration in self.possible_configurations:
-                recording_sites = _probe.place_probe_recording_sites(metadata, configuration, tip=tip)
+                recording_sites = _probe.place_probe_recording_sites(
+                    metadata, configuration, tip=tip
+                )
                 if recording_sites is None:
                     continue
 
                 for rsite in recording_sites:
                     rsite_key = {**key, **rsite}
-                    rsite_key['probe_configuration'] = configuration
+                    rsite_key["probe_configuration"] = configuration
                     self.RecordingSite.insert1(rsite_key)
 
     @schema
@@ -944,7 +987,11 @@ if have_dj:
         ) -> pd.DataFrame:
 
             # query
-            query = Unit * Probe.RecordingSite & f"name='{session_name}'" & f'probe_configuration="{probe_configuration}"'
+            query = (
+                Unit * Probe.RecordingSite
+                & f"name='{session_name}'"
+                & f'probe_configuration="{probe_configuration}"'
+            )
             if spikes:
                 query = query * Unit.Spikes
 
@@ -985,7 +1032,9 @@ if have_dj:
 
             # check if the main unit's site is a target
             main_site = (Probe * Probe.RecordingSite & unit).fetch1()
-            raise NotImplementedError('this should respect the fact that differentrecordings have different probe configurations')
+            raise NotImplementedError(
+                "this should respect the fact that differentrecordings have different probe configurations"
+            )
             if main_site["brain_region"] in targets:
                 return True, True, main_site["brain_region"]
 
@@ -1010,6 +1059,13 @@ if have_dj:
             unit_sites = (
                 Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
             ).fetch1("secondary_sites_ids")
+<<<<<<< HEAD
+=======
+            raise NotImplementedError(
+                "Double check that this respects probe configurations"
+            )
+
+>>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
             rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
             return rsites
 
@@ -1038,7 +1094,7 @@ if have_dj:
                 )
             else:
                 pre_cut, post_cut = None, None
-                
+
             # fill in units
             for nu, unit in enumerate(units):
                 logger.debug(f"processing unit {nu+1}/{len(units)}")
@@ -1047,7 +1103,9 @@ if have_dj:
                 unit_key["unit_id"] = unit["unit_id"]
                 unit_key["site_id"] = unit["recording_site_id"]
                 unit_key["secondary_sites_ids"] = unit["secondary_sites_ids"]
-                unit_key['probe_configuration'] = recording['recording_probe_configuration']  # select the right rec site
+                unit_key["probe_configuration"] = recording[
+                    "recording_probe_configuration"
+                ]  # select the right rec site
 
                 # get adjusted spike times
                 unit_spikes = _recording.get_unit_spike_times(
@@ -1077,7 +1135,9 @@ if have_dj:
         def make(self, key):
             unit = (Unit * Unit.Spikes & key).fetch1()
             triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
-            logger.info(f"Processing: {unit['name']} - unit: {unit['unit_id']}")
+            logger.info(
+                f"Processing: {unit['name']} - unit: {unit['unit_id']}"
+            )
 
             # get firing rates
             for frate_window in Unit.precomputed_firing_rate_windows:
@@ -1115,10 +1175,14 @@ if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
     # Probe().drop()
+<<<<<<< HEAD
+=======
+
+>>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
     # LocomotionBouts().drop()
     # Movement().drop()
     # sys.exit()
- 
+
     # -------------------------------- sorti filex ------------------------------- #
 
     # logger.info('#####    Sorting FILES')
@@ -1151,7 +1215,7 @@ if __name__ == "__main__":
     # Movement().populate(display_progress=True)
 
     # ? OPTO
-    logger.info('#####    Filling OPTO data')
+    logger.info("#####    Filling OPTO data")
     # OptoImplant.populate(display_progress=True)6
     # OptoSession.fill()
     # OptoStimuli.populate(display_progress=True)
@@ -1164,7 +1228,6 @@ if __name__ == "__main__":
     Unit().populate(display_progress=True)
     FiringRate().populate(display_progress=True)
     FiringRate().check_complete()
-
 
     # TODO check and debug Opto TABLES
     # TODO make code that takes a locomotion bout that includes a given frame (e.g. to get bouts with opto stim)

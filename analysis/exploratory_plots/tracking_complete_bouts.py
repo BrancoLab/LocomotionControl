@@ -15,17 +15,18 @@ from fcutils.plot.elements import plot_mean_and_error
 from fcutils.progress import track
 from fcutils.maths import derivative
 
-from data import colors
+
 from data.dbase import db_tables
-from data import data_utils
 
 from analysis.visuals import plot_heatmap_2d
-
 
 # get bouts
 bouts = pd.DataFrame(
     (
-        db_tables.LocomotionBouts & 'complete="true"' & 'direction="outbound"' & 'duration<8'
+        db_tables.LocomotionBouts
+        & 'complete="true"'
+        & 'direction="outbound"'
+        & "duration<8"
     ).fetch()
 )
 logger.info(f"Found {len(bouts)} complete bouts")
@@ -56,14 +57,14 @@ def align_in_space(
     bins = np.linspace(0, 1, 201)
     delta = np.mean(np.diff(bins))
 
-    for variable in ("speed", "angular_velocity", 'dmov_velocity'):
-        logger.info(f'Aligning {variable}')
+    for variable in ("speed", "angular_velocity", "dmov_velocity"):
+        logger.info(f"Aligning {variable}")
         aligned = {n: [] for n in bins}
 
         for i, bout in bouts.iterrows():
             variable_data = tracking[bout["name"]][variable][
                 bout.start_frame : bout.end_frame
-            ]       
+            ]
             coord = tracking[bout["name"]]["global_coord"][
                 bout.start_frame : bout.end_frame
             ]
@@ -106,14 +107,7 @@ f._save_name = "complete_bouts"
 f.suptitle("complete bouts")
 
 aligned = {n: [] for n in np.linspace(0, 1, 101)}
-data = dict(
-    x=[],
-    y=[],
-    speed=[],
-    accel=[],
-    avel=[],
-    angacc=[],
-)
+data = dict(x=[], y=[], speed=[], accel=[], avel=[], angacc=[],)
 
 for i, bout in bouts.iterrows():
     trk = tracking[bout["name"]]
@@ -122,11 +116,13 @@ for i, bout in bouts.iterrows():
     y = trk["y"][bout.start_frame : bout.end_frame].copy()
     speed = trk["speed"][bout.start_frame : bout.end_frame].copy()
     avel = trk["dmov_velocity"][bout.start_frame : bout.end_frame].copy()
-    dmov = trk["direction_of_movement"][bout.start_frame : bout.end_frame].copy()
+    dmov = trk["direction_of_movement"][
+        bout.start_frame : bout.end_frame
+    ].copy()
     coord = trk["global_coord"][bout.start_frame : bout.end_frame].copy()
 
-    avel[speed < 12] = np.nan 
-    dmov[speed < 12] = np.nan 
+    avel[speed < 12] = np.nan
+    dmov[speed < 12] = np.nan
 
     _data = dict(
         x=x,
@@ -134,14 +130,16 @@ for i, bout in bouts.iterrows():
         speed=speed,
         accel=derivative(speed),
         avel=avel,
-
-
-        angacc=derivative(avel)
+        angacc=derivative(avel),
     )
-    for k,v in _data.items():
+    for k, v in _data.items():
         data[k].extend(list(v))
 
     # plot tracking
+<<<<<<< HEAD
+=======
+
+>>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
     # plot speed and ang vel
     # time = np.linspace(0, 1, len(speed))
     # axes["B"].scatter(coord, speed, color=colors.speed, s=20, alpha=.1)
@@ -151,19 +149,19 @@ for i, bout in bouts.iterrows():
     # axes['E'].scatter(speed, abs(avel), color='k', alpha=.01)
 
 # TODO: get accelerations registered to stuff
-# TODO: plot velocity vector in egocentric coordinats over time 
+# TODO: plot velocity vector in egocentric coordinats over time
 # TODO: plot accelerations against each other
 
 
-plot_heatmap_2d(data, 'speed', axes['V'], vmin=None)
-plot_heatmap_2d(data, 'accel', axes['Q'], vmin=-2.5, vmax=2.5, cmap='bwr')
-plot_heatmap_2d(data, 'avel', axes['A'], cmap="bwr", vmin=-400, vmax=400)
-plot_heatmap_2d(data, 'angacc', axes['M'], vmin=-50, vmax=50, cmap="bwr")
+plot_heatmap_2d(data, "speed", axes["V"], vmin=None)
+plot_heatmap_2d(data, "accel", axes["Q"], vmin=-2.5, vmax=2.5, cmap="bwr")
+plot_heatmap_2d(data, "avel", axes["A"], cmap="bwr", vmin=-400, vmax=400)
+plot_heatmap_2d(data, "angacc", axes["M"], vmin=-50, vmax=50, cmap="bwr")
 
-axes['V'].set(xticks=[], yticks=[], title='speed')
-axes['Q'].set(xticks=[], yticks=[], title='acceleration')
-axes['M'].set(xticks=[], yticks=[], title='ang. accel.')
-axes['A'].set(xticks=[], yticks=[], title='a.vel.')
+axes["V"].set(xticks=[], yticks=[], title="speed")
+axes["Q"].set(xticks=[], yticks=[], title="acceleration")
+axes["M"].set(xticks=[], yticks=[], title="ang. accel.")
+axes["A"].set(xticks=[], yticks=[], title="a.vel.")
 
 axes["C"].axhline(0, lw=2, ls="--", color=[0.3, 0.3, 0.3], zorder=-1)
 
@@ -184,27 +182,45 @@ plot_mean_and_error(
 )
 
 from fcutils.maths import derivative
-axes['D'].scatter(aligned_tracking.speed, aligned_tracking.dmov_velocity, c=derivative(np.abs(aligned_tracking.dmov_velocity)), lw=1, ec='k', s=100, cmap='bwr', alpha=.5)
-axes['E'].scatter(aligned_tracking.speed, aligned_tracking.dmov_velocity, c=derivative(aligned_tracking.speed), lw=1, ec='k', s=100, cmap='bwr', alpha=.5)
 
-for ax, Y in zip('BC', (0, -600)):
-    axes[ax].scatter(np.linspace(0, 1, 250), np.ones(250)  * Y, c=np.linspace(0, 1, 250), cmap='tab10', zorder=100)
+axes["D"].scatter(
+    aligned_tracking.speed,
+    aligned_tracking.dmov_velocity,
+    c=derivative(np.abs(aligned_tracking.dmov_velocity)),
+    lw=1,
+    ec="k",
+    s=100,
+    cmap="bwr",
+    alpha=0.5,
+)
+axes["E"].scatter(
+    aligned_tracking.speed,
+    aligned_tracking.dmov_velocity,
+    c=derivative(aligned_tracking.speed),
+    lw=1,
+    ec="k",
+    s=100,
+    cmap="bwr",
+    alpha=0.5,
+)
+
+for ax, Y in zip("BC", (0, -600)):
+    axes[ax].scatter(
+        np.linspace(0, 1, 250),
+        np.ones(250) * Y,
+        c=np.linspace(0, 1, 250),
+        cmap="tab10",
+        zorder=100,
+    )
 
 # histogram of bouts durations
 # _ = axes["D"].hist(bouts.duration, bins=20, color=[0.3, 0.3, 0.3])
 
-# 
+#
 axes["B"].set(xlim=[0, 1])
 _ = axes["C"].set(xlim=[0, 1], ylim=[-1000, 1000])
 
 # %%
-%matplotlib inline
-
-plt.figure(figsize=(20, 20))
-plt.plot(aligned_tracking.speed, aligned_tracking.dmov_velocity, color=[.3, .3, .3])
-plt.scatter(aligned_tracking.speed, aligned_tracking.dmov_velocity, c=time, zorder=2, cmap='tab10', lw=1, ec='k', s=600)
-
-
 
 
 # plt.scatter(np.diff(aligned_tracking.speed), np.abs(np.diff(aligned_tracking.dmov_velocity)))
@@ -217,15 +233,26 @@ trials = dict(x=[], y=[], speed=[], dmov=[], dmov_velocity=[], gcoord=[])
 for i, bout in bouts.iterrows():
     trk = tracking[bout["name"]]
 
-    trials['x'].append(trk["x"][bout.start_frame : bout.end_frame].copy())
-    trials['y'].append(trk["y"][bout.start_frame : bout.end_frame].copy())
-    trials['speed'].append(trk["speed"][bout.start_frame : bout.end_frame].copy())
-    trials['dmov_velocity'].append(trk["dmov_velocity"][bout.start_frame : bout.end_frame].copy())
-    trials['dmov'].append(trk["direction_of_movement"][bout.start_frame : bout.end_frame].copy())
-    trials['gcoord'].append(trk["global_coord"][bout.start_frame : bout.end_frame].copy())
+    trials["x"].append(trk["x"][bout.start_frame : bout.end_frame].copy())
+    trials["y"].append(trk["y"][bout.start_frame : bout.end_frame].copy())
+    trials["speed"].append(
+        trk["speed"][bout.start_frame : bout.end_frame].copy()
+    )
+    trials["dmov_velocity"].append(
+        trk["dmov_velocity"][bout.start_frame : bout.end_frame].copy()
+    )
+    trials["dmov"].append(
+        trk["direction_of_movement"][bout.start_frame : bout.end_frame].copy()
+    )
+    trials["gcoord"].append(
+        trk["global_coord"][bout.start_frame : bout.end_frame].copy()
+    )
 
 trials = pd.DataFrame(trials)
-trials.to_hdf(r'D:\Dropbox (UCL)\Rotation_vte\Locomotion\rnn_simulations\bouts.h5', key='hdf')
+trials.to_hdf(
+    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\rnn_simulations\bouts.h5",
+    key="hdf",
+)
 # %%
 
 f, ax = plt.subplots(figsize=(8, 12))

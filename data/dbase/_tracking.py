@@ -56,10 +56,11 @@ def process_body_part(
     x, y = np.array(list(xy["x"].values())), np.array(list(xy["y"].values()))
 
     # median filter pass
-    x = data_utils.convolve_with_gaussian(x, kernel_width=11)
-    y = data_utils.convolve_with_gaussian(y, kernel_width=11)
+    x = data_utils.convolve_with_gaussian(x, kernel_width=5)
+    y = data_utils.convolve_with_gaussian(y, kernel_width=5)
 
     # flip data on X axis
+    raise NotImplementedError("Dont flip on X, flip Y")
     x = x - np.min(x)
     x_mean = np.mean(x, axis=0)
     x = (x_mean - x) + x_mean
@@ -67,7 +68,7 @@ def process_body_part(
     # compute speed
     speed = (
         data_utils.convolve_with_gaussian(
-            get_speed_from_xy(x, y), kernel_width=11
+            get_speed_from_xy(x, y), kernel_width=5
         )
         * 60
     )  # speed in cm / s
@@ -91,10 +92,11 @@ def calc_angular_velocity(angles: np.ndarray) -> np.ndarray:
     diff = derivative(rad)
     return np.rad2deg(diff)
 
+
 def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
-    '''
+    """
         For some things like orientation average across body parts to reduce noise
-    '''
+    """
     # import matplotlib.pyplot as plt
     def unwrap(x):
         return np.degrees(np.unwrap(np.radians(x)))
@@ -105,34 +107,42 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
         axis=0
     )
 
-    # get speed 
-    results = dict(speed = body.bp_speed.values.copy())
-    results['speed'] = medfilt(results['speed'], 11)
+    # get speed
+    results = dict(speed=body.bp_speed.values.copy())
+    results["speed"] = medfilt(results["speed"], 11)
 
     # get direction of movement
-    results['direction_of_movement'] = get_dir_of_mvmt_from_xy(body.x, body.y)
-    results['dmov_velocity'] = calc_angular_velocity(results['direction_of_movement']) * 60
-    
-    results['dmov_velocity'] = data_utils.remove_outlier_values(
-        results['dmov_velocity'], 50, errors_calculation_array=np.abs(derivative(results['dmov_velocity']))
+    results["direction_of_movement"] = get_dir_of_mvmt_from_xy(body.x, body.y)
+    results["dmov_velocity"] = (
+        calc_angular_velocity(results["direction_of_movement"]) * 60
     )
-    logger.warning('Check that this makes sense')
+    logger.warning("Check that this makes sense")
 
-    results['direction_of_movement'][np.where(results['speed'] < 6)[0]] = np.nan # no dir of mvmt when there is no mvmt
-    results['dmov_velocity'][np.where(results['speed'] < 6)[0]] = np.nan # no dir of mvmt when there is no mvmt
+    results["direction_of_movement"][
+        np.where(results["speed"] < 6)[0]
+    ] = np.nan  # no dir of mvmt when there is no mvmt
+    results["dmov_velocity"][
+        np.where(results["speed"] < 6)[0]
+    ] = np.nan  # no dir of mvmt when there is no mvmt
 
+    results["direction_of_movement"][
+        np.where(results["speed"] < 2)[0]
+    ] = np.nan  # no dir of mvmt when there is no mvmt
+    results["dmov_velocity"][
+        np.where(results["speed"] < 2)[0]
+    ] = np.nan  # no dir of mvmt when there is no mvmt
 
     # compute orientation of each body part
-    results['orientation'] = get_orientation(
+    results["orientation"] = get_orientation(
         tail_base.x, tail_base.y, body.x, body.y
     )
 
     # compute angular velocity in deg/s
-    avel = calc_angular_velocity(results['orientation']) * 60
-    results['angular_velocity'] = data_utils.remove_outlier_values(
+    avel = calc_angular_velocity(results["orientation"]) * 60
+    results["angular_velocity"] = data_utils.remove_outlier_values(
         avel.copy(), 600, errors_calculation_array=np.abs(avel)
     )
-    
+
     return results
 
 
@@ -163,12 +173,9 @@ def process_tracking_data(
         for k, bp in body_parts_tracking.items()
     }
 
-
     # compute orientation, angular velocity and speed
     logger.debug("      computing body orientation")
-    velocites = compute_averaged_quantities(
-        body_parts_tracking
-    )
+    velocites = compute_averaged_quantities(body_parts_tracking)
 
     # make sure all tracking start at (x,y)=(0, 0)
     x0 = np.nanmin(body_parts_tracking["body"]["x"])
@@ -186,7 +193,7 @@ def process_tracking_data(
 
     key.update(velocites)
 
-    return key, body_parts_tracking, len(key['orientation'])
+    return key, body_parts_tracking, len(key["orientation"])
 
 
 def get_movements(

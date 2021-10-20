@@ -1,6 +1,5 @@
 import numpy as np
 from dataclasses import dataclass
-from math import sqrt
 import matplotlib.pyplot as plt
 
 from myterial import (
@@ -27,6 +26,7 @@ from fcutils.maths.geometry import (
 
 from data.data_utils import convolve_with_gaussian
 
+
 @dataclass
 class Segment:
     p0: tuple  # start point
@@ -38,7 +38,7 @@ class Segment:
 
     @property
     def length(self):
-        return  np.linalg.norm(np.array(self.p0) - np.array(self.p1))
+        return np.linalg.norm(np.array(self.p0) - np.array(self.p1))
 
     def interpolate(self, n_points: int):
         """
@@ -226,7 +226,6 @@ class HairpinTrace:
 
         # get the orientation of each segment
         self.trace_orientation = get_dir_of_mvmt_from_xy(
-
             self.trace[:, 0], self.trace[:, 1]
         )
 
@@ -242,8 +241,13 @@ class HairpinTrace:
         for segment in self.segments:
             segment.draw(ax)
 
-        ax.scatter(self.trace[:, 0], self.trace[:, 1], s=20, zorder=101, color=[.4, .4,.4])
-
+        ax.scatter(
+            self.trace[:, 0],
+            self.trace[:, 1],
+            s=20,
+            zorder=101,
+            color=[0.4, 0.4, 0.4],
+        )
 
         # draw tracking data
         if tracking is not None:
@@ -267,15 +271,16 @@ if __name__ == "__main__":
 
     try:
         import sys
-        sys.path.append('./')
+
+        sys.path.append("./")
         from data.dbase.db_tables import Tracking
 
-        trk = Tracking.get_session_tracking('FC_210413_AAA1110750_d11', body_only=True)
+        trk = Tracking.get_session_tracking(
+            "FC_210413_AAA1110750_d11", body_only=True
+        )
     except:
         trk = None
 
-
     tr.draw(tracking=trk)
-
 
     plt.show()

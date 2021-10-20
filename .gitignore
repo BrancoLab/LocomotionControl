@@ -2,6 +2,8 @@
 *.pt
 video.mp4
 
+rnn_cache
+
 */secrets.py
 .vscode/settings.json
 proj/secrets.py
