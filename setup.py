@@ -25,7 +25,6 @@ requirements = [
     "celluloid",
     "odfpy",
     "datajoint==0.12.6",
-    "scipy==1.5.2",
 ]
 
 setup(
