@@ -136,10 +136,6 @@ for i, bout in bouts.iterrows():
         data[k].extend(list(v))
 
     # plot tracking
-<<<<<<< HEAD
-=======
-
->>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
     # plot speed and ang vel
     # time = np.linspace(0, 1, len(speed))
     # axes["B"].scatter(coord, speed, color=colors.speed, s=20, alpha=.1)
@@ -268,8 +264,9 @@ for i, bout in fasts.iterrows():
     ax.scatter(
         trk['x'][bout.start_frame:bout.end_frame], 
         trk['y'][bout.start_frame:bout.end_frame], 
-        c=trk['orientation'][bout.start_frame:bout.end_frame],
-        vmin=0, vmax=360, cmap='bwr'
+        c=trk['global_coord'][bout.start_frame:bout.end_frame],
+        # vmin=0, vmax=360, 
+        cmap='tab10'
         )
 
     pd.DataFrame(

@@ -91,21 +91,39 @@ class Segment:
         )
 
 
+# POINTS = [  # hand defined points along the track
+#     (20, 40),  # start
+#     (18, 2),  # end of first corridor
+#     (30, 2),  # first bend
+#     (29, 47),  # end of second corridor
+#     (10, 47),  # end of second bend
+#     (12, 2),  # end of third corridor
+#     (1, 2),  # end of third bend
+#     (2, 50),  # end of fourth corridor
+#     (12, 57),  # end of fourth bend
+#     (28, 57),  # end of fifth corridor
+#     (38, 50),  # end of fifth bend
+#     (38, 2),  # goal location
+#     (20, 35),  # end of reward trigger area
+#     (38, 7),  # start of goal location
+# ]
+
+
 POINTS = [  # hand defined points along the track
     (20, 40),  # start
-    (18, 2),  # end of first corridor
-    (30, 2),  # first bend
-    (29, 47),  # end of second corridor
-    (10, 47),  # end of second bend
-    (12, 2),  # end of third corridor
-    (1, 2),  # end of third bend
-    (2, 50),  # end of fourth corridor
-    (12, 57),  # end of fourth bend
-    (28, 57),  # end of fifth corridor
-    (38, 50),  # end of fifth bend
-    (38, 2),  # goal location
+    (22, 2),  # end of first corridor
+    (10, 2),  # first bend
+    (10, 47),  # end of second corridor
+    (29, 47),  # end of second bend
+    (28, 2),  # end of third corridor
+    (38, 2),  # end of third bend
+    (38, 50),  # end of fourth corridor
+    (28, 57),  # end of fourth bend
+    (12, 57),  # end of fifth corridor
+    (2, 50),  # end of fifth bend
+    (2, 2),  # goal location
     (20, 35),  # end of reward trigger area
-    (38, 7),  # start of goal location
+    (2, 7),  # start of goal location
 ]
 
 
@@ -269,18 +287,24 @@ class HairpinTrace:
 if __name__ == "__main__":
     tr = HairpinTrace()
 
-    try:
-        import sys
+    import sys
 
-        sys.path.append("./")
-        from data.dbase.db_tables import Tracking
+    sys.path.append("./")
 
-        trk = Tracking.get_session_tracking(
-            "FC_210413_AAA1110750_d11", body_only=True
-        )
-    except:
-        trk = None
+    # try:
 
-    tr.draw(tracking=trk)
+    #     from data.dbase.db_tables import Tracking
+
+    #     trk = Tracking.get_session_tracking(
+    #         "FC_210413_AAA1110750_d11", body_only=True
+    #     )
+    # except:
+    #     trk = None
+
+    import draw
+
+    tr.draw()
+
+    draw.Hairpin()
 
     plt.show()

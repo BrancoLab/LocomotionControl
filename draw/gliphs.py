@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Rectangle as Rectangle_patch
 
 from myterial import blue_grey_dark
 
@@ -104,6 +105,19 @@ class Car:
         )
 
         Arrow(x, y, np.degrees(theta), L / 2, color="black")
+
+class Rectangle:
+    def __init__(self, x_0, x_1, y_0, y_1, ax: plt.Axes=None, color=blue_grey_dark, **kwargs):
+        ax = ax or plt.gca()
+        rect= Rectangle_patch(
+                    (x_0,y_0),
+                    x_1-x_0,
+                    y_1-y_0, 
+                    color=color,
+                    **kwargs
+                    )
+        ax.add_patch(rect)
+
 
 
 if __name__ == "__main__":

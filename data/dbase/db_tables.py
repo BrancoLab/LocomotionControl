@@ -35,11 +35,12 @@ from data.dbase import (
     _recording,
     _locomotion_bouts,
     _opto,
+    _roi,
 )
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata, get_opto_metadata, load_bin
 from data import data_utils
-
+from data import arena
 
 DO_RECORDINGS_ONLY = False
 
@@ -504,7 +505,7 @@ if have_dj:
             acceleration:           longblob  # in cm/s^2
             direction_of_movement:  longblob  # angle towards where the mouse is moving next
             dmov_velocity:          longblob  # rate of change of the direction of movement
-            dmov_acceleration:      loongblob # in deg/s^2
+            dmov_acceleration:      longblob # in deg/s^2
         """
 
         class BodyPart(dj.Part):
@@ -609,6 +610,64 @@ if have_dj:
     #                                  locomotion bouts                            #
     # ---------------------------------------------------------------------------- #
     @schema
+    class ROICrossing(dj.Imported):
+        definition = """
+            # when the mouse enters a ROI
+            -> ValidatedSession
+            roi:  varchar(64)
+            start_frame:    int
+            end_frame:      int
+            ---
+            mouse_exits: int  # 1 if the mouse exists the ROI in time
+            duration: float
+            gcoord:         longblob
+            x:              longblob
+            y:              longblob
+            speed:          longblob
+            direction_of_movement:           longblob
+        """
+
+        max_duration = 5   # roi crossing must last <= this
+        def make(self, key):
+            if not Session.on_hairpin(key["name"]):
+                return 
+                
+            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+                logger.debug(
+                    f'Skipping {key["name"]} because it doesnt have a recording'
+                )
+                return
+
+            # get tracking data
+            tracking = Tracking.get_session_tracking(
+                key["name"], body_only=True, movement=False
+            )
+            if tracking.empty:
+                logger.warning(
+                    f'Failed to get tracking data for session {key["name"]}'
+                )
+                return
+            else:
+                logger.info(
+                    f'Getting ROI crossings for session {key["name"]}'
+                )
+
+            # get bouts
+            crossings = []
+            for ROI in arena.ROIs:
+                crossings.extend(_roi.get_rois_crossings(
+                        tracking,
+                        ROI,
+                        int(self.max_duration * 60),
+                    )
+            )
+
+            # insert in table
+            for cross in crossings:
+                self.insert1({**key, **cross})
+
+
+    @schema
     class LocomotionBouts(dj.Imported):
         definition = """
             # identified bouts of continous locomotion
@@ -622,7 +681,7 @@ if have_dj:
             complete:           varchar(32)    # True if its form reward to trigger ROIs
             start_roi:          int
             end_roi:            int
-            gcoord_delta        flaot  # the change in global coordinates during the bout
+            gcoord_delta:       float  # the change in global coordinates during the bout
         """
 
         speed_th: float = 10  # cm/s
@@ -833,11 +892,7 @@ if have_dj:
     class Probe(dj.Imported):
         _skip = ["AAA1110751"]
         _tips = {
-<<<<<<< HEAD
-            'AAA1110750': 450,
-=======
             "AAA1110750": 400,
->>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
         }
         possible_configurations = ["b0", "longcolumn"]
         definition = """
@@ -867,13 +922,9 @@ if have_dj:
             """
 
         @staticmethod
-<<<<<<< HEAD
-        def get_session_sites(mouse: str, configuration: str = 'longcol') -> pd.DataFrame:
-=======
         def get_session_sites(
             mouse: str, configuration: str = "intref"
         ) -> pd.DataFrame:
->>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
             return pd.DataFrame(
                 (
                     Probe * Probe.RecordingSite
@@ -1059,13 +1110,10 @@ if have_dj:
             unit_sites = (
                 Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
             ).fetch1("secondary_sites_ids")
-<<<<<<< HEAD
-=======
             raise NotImplementedError(
                 "Double check that this respects probe configurations"
             )
 
->>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
             rsites = rsites.loc[rsites.site_id.isin(unit_sites)]
             return rsites
 
@@ -1174,13 +1222,10 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Probe().drop()
-<<<<<<< HEAD
-=======
-
->>>>>>> cd44b46d53c727e5fe1b4d5f726522177dd8a06b
+    # Tracking().drop()
     # LocomotionBouts().drop()
     # Movement().drop()
+    # ROICrossing.drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1213,6 +1258,7 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
     # LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
+    ROICrossing().populate(display_progress=True)
 
     # ? OPTO
     logger.info("#####    Filling OPTO data")
@@ -1222,12 +1268,12 @@ if __name__ == "__main__":
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
-    Recording().populate(display_progress=True)
+    # Probe().populate(display_progress=True)
+    # Recording().populate(display_progress=True)
 
-    Unit().populate(display_progress=True)
-    FiringRate().populate(display_progress=True)
-    FiringRate().check_complete()
+    # Unit().populate(display_progress=True)
+    # FiringRate().populate(display_progress=True)
+    # FiringRate().check_complete()
 
     # TODO check and debug Opto TABLES
     # TODO make code that takes a locomotion bout that includes a given frame (e.g. to get bouts with opto stim)

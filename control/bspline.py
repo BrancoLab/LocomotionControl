@@ -52,7 +52,8 @@ if __name__ == "__main__":
     from fcutils.path import files
 
     for fp in files(
-        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/control/",
+        # "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/control/",
+        r'D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\control',
         "*.h5",
     ):
         tracking = pd.read_hdf(fp, key="hdf")

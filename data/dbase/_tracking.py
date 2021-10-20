@@ -60,10 +60,15 @@ def process_body_part(
     y = data_utils.convolve_with_gaussian(y, kernel_width=5)
 
     # flip data on X axis
-    raise NotImplementedError("Dont flip on X, flip Y")
-    x = x - np.min(x)
-    x_mean = np.mean(x, axis=0)
-    x = (x_mean - x) + x_mean
+    # x = x - np.min(x)
+    # x_mean = np.mean(x, axis=0)
+    # x = (x_mean - x) + x_mean
+
+    # # flip data on Y axis
+    # y = y - np.min(y)
+    # y_mean = np.mean(y, ayis=0)
+    # y = (y_mean - y) + y_mean
+
 
     # compute speed
     speed = (
@@ -111,24 +116,25 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results = dict(speed=body.bp_speed.values.copy())
     results["speed"] = medfilt(results["speed"], 11)
 
+    logger.warning('When new tracking becomes available I should review this process plis')
+
+    results['acceleration'] = derivative(results["speed"])
+
     # get direction of movement
     results["direction_of_movement"] = get_dir_of_mvmt_from_xy(body.x, body.y)
     results["dmov_velocity"] = (
         calc_angular_velocity(results["direction_of_movement"]) * 60
     )
-    logger.warning("Check that this makes sense")
+    results["dmov_acceleration"] = calc_angular_velocity(results["dmov_velocity"])
 
-    results["direction_of_movement"][
-        np.where(results["speed"] < 6)[0]
-    ] = np.nan  # no dir of mvmt when there is no mvmt
-    results["dmov_velocity"][
-        np.where(results["speed"] < 6)[0]
-    ] = np.nan  # no dir of mvmt when there is no mvmt
 
     results["direction_of_movement"][
         np.where(results["speed"] < 2)[0]
     ] = np.nan  # no dir of mvmt when there is no mvmt
     results["dmov_velocity"][
+        np.where(results["speed"] < 2)[0]
+    ] = np.nan  # no dir of mvmt when there is no mvmt
+    results["dmov_acceleration"][
         np.where(results["speed"] < 2)[0]
     ] = np.nan  # no dir of mvmt when there is no mvmt
 
