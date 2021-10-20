@@ -31,12 +31,20 @@ class Tracking:
 
     def __init__(self, ax: plt.Axes, x: np.ndarray, y: np.ndarray, **kwargs):
         ax.plot(
-            x,
-            y,
-            lw=kwargs.pop("lw", 1),
-            color=kwargs.pop("color", grey),
-            alpha=kwargs.pop("alpha", 1),
+            x, y, color=kwargs.pop("color", grey), **kwargs,
         )
+
+    @classmethod
+    def scatter(
+        cls,
+        ax: plt.Axes,
+        x: np.ndarray,
+        y: np.ndarray,
+        s: np.ndarray = None,
+        c: np.ndarray = None,
+        **kwargs,
+    ):
+        ax.scatter(x, y, s=s, c=c, **kwargs)
 
 
 if __name__ == "__main__":

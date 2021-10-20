@@ -1,8 +1,6 @@
 from math import sin, cos, atan2, sqrt, pi, hypot, acos
 import numpy as np
 from scipy.spatial.transform import Rotation as Rot
-from dataclasses import dataclass
-
 
 import sys
 
@@ -10,6 +8,7 @@ sys.path.append("./")
 
 
 from control.utils import mod2pi, pi_2_pi
+from control.waypoints import Waypoints, Waypoint
 
 """
     Code adapted from: https://github.com/zhm-real/CurvesGenerator
@@ -47,63 +46,6 @@ def interpolate(ind, l, m, maxc, ox, oy, oyaw, px, py, pyaw, directions):
         directions[ind] = -1
 
     return px, py, pyaw, directions
-
-
-# ---------------------------------------------------------------------------- #
-#                                   WAYPOINTS                                  #
-# ---------------------------------------------------------------------------- #
-@dataclass
-class Waypoint:
-    x: int
-    y: int
-    theta: int
-
-
-class Waypoints:
-    waypoints = [
-        Waypoint(20, 40, 270),  # start
-        Waypoint(20, 10, 270),  # 1st bend
-        Waypoint(12, 8, 110),  # 1st bend
-        Waypoint(12, 35, 90),  # 2nd bend
-        Waypoint(20, 45, 0),  # 2nd bend - halfway
-        Waypoint(28, 35, 270),  # 2nd bend
-        Waypoint(28, 12, 270),  # 3nd bend
-        Waypoint(36, 10, 90),  # 3nd bend
-        Waypoint(36, 46, 90),  # 4nd bend
-        Waypoint(28, 55, 180),  # 4nd bend - halfway
-        Waypoint(15, 55, 180),  # 4nd bend - halfway
-        Waypoint(6, 46, 270),  # 4nd bend
-        Waypoint(6, 4, 270),  # end
-    ]
-    _idx = 0
-
-    @property
-    def x(self) -> np.ndarray:
-        return np.array([wp.x for wp in self.waypoints])
-
-    @property
-    def y(self) -> np.ndarray:
-        return np.array([wp.y for wp in self.waypoints])
-
-    @property
-    def theta(self) -> np.ndarray:
-        return np.array([wp.theta for wp in self.waypoints])
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self._idx < len(self.waypoints):
-            self._idx += 1
-            return self.waypoints[self._idx - 1]
-        else:
-            raise StopIteration
-
-    def __len__(self):
-        return len(self.waypoints)
-
-    def __getitem__(self, item):
-        return self.waypoints[item]
 
 
 # ---------------------------------------------------------------------------- #
@@ -288,7 +230,7 @@ class LRL(Planner):
 
 
 class DubinPath:
-    def __init__(self, waypoints: Waypoints, max_curvature: float = 0.25):
+    def __init__(self, waypoints: Waypoints, max_curvature: float = 0.2):
         self.waypoints = waypoints
         self.max_curvature = max_curvature
 
@@ -450,18 +392,31 @@ if __name__ == "__main__":
     sys.path.append("./")
 
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     import draw
 
     f, ax = plt.subplots(figsize=(7, 10))
 
+    # load and draw tracking data
+    from fcutils.path import files
+
+    for fp in files(
+        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/control/",
+        "*.h5",
+    ):
+        tracking = pd.read_hdf(fp, key="hdf")
+        tracking.x = 20 - tracking.x + 20
+        # draw.Tracking.scatter(ax, tracking.x, tracking.y, c=tracking.theta, vmin=0, vmax=360, cmap='bwr', lw=1, ec='k')
+        draw.Tracking(ax, tracking.x, tracking.y, alpha=0.7)
+
     # draw hairpin arena
-    # draw.Hairpin(ax)
+    draw.Hairpin(ax)
 
     # draw waypoints
     wps = Waypoints()
     for wp in wps:
-        draw.Arrow(ax, wp.x, wp.y, wp.theta, 2, width=4, color="r")
+        draw.Arrow(ax, wp.x, wp.y, wp.theta, 2, width=4, color="g")
 
     # fit dubin path
     dubin = DubinPath(wps).fit()
