@@ -1,20 +1,19 @@
 """
-LQR and PID Controller
-author: huiming zhou
+    Code adapted from: https://github.com/zhm-real/MotionPlanning
+    zhm-real shared code to create different types of paths under an MIT license.
+    The logic of the code is left un-affected here, I've just refactored it.
 """
 
 import sys
 import math
 import numpy as np
-from enum import Enum
+from typing import Tuple
 import matplotlib.pyplot as plt
 
 sys.path.append("./")
 
 from control.config import (
     wheelbase,
-    l_f,
-    l_r,
     dt,
     max_iteration,
     eps,
@@ -28,101 +27,103 @@ from control.config import (
 from control.paths.utils import pi_2_pi
 
 
-class Gear(Enum):
-    GEAR_DRIVE = 1
-    GEAR_REVERSE = 2
+class Vehicle:
+    """
+        Represents the car and its current state
+    """
 
-
-class VehicleState:
-    def __init__(self, x=0.0, y=0.0, theta=0.0, v=0.0, gear=Gear.GEAR_DRIVE):
+    def __init__(
+        self,
+        x: float = 0.0,
+        y: float = 0.0,
+        theta: float = 0.0,
+        speed: float = 0.0,
+    ):
         self.x = x
         self.y = y
-        self.theta = theta
-        self.v = v
-        self.e_cg = 0.0
-        self.theta_e = 0.0
-
-        self.gear = gear
+        self.theta = np.radians(theta)
+        self.speed = speed
+        self.lateral_error = 0.0
+        self.theta_error = 0.0
         self.steer = 0.0
 
-    def UpdateVehicleState(
-        self, delta, a, e_cg, theta_e, gear=Gear.GEAR_DRIVE
+    def update_state(
+        self,
+        steering_angle: float,
+        acceleration: float,
+        lateral_error: float,
+        theta_error: float,
     ):
         """
         update states of vehicle
-        :param theta_e: theta error to ref trajectory
-        :param e_cg: lateral error to ref trajectory
-        :param delta: steering angle [rad]
+        :param theta_error: theta error to ref trajectory
+        :param lateral_error: lateral error to ref trajectory
+        :param steering_angle: steering angle [rad]
         :param a: acceleration [m / s^2]
-        :param gear: gear mode [GEAR_DRIVE / GEAR/REVERSE]
         """
 
-        wheelbase_ = l_r + l_f
-        delta, a = self.RegulateInput(delta, a)
+        steering_angle, acceleration = self.normalize_input(
+            steering_angle, acceleration
+        )
 
-        self.gear = gear
-        self.steer = delta
-        self.x += self.v * math.cos(self.theta) * dt
-        self.y += self.v * math.sin(self.theta) * dt
-        self.theta += self.v / wheelbase_ * math.tan(delta) * dt
-        self.e_cg = e_cg
-        self.theta_e = theta_e
+        self.steer = steering_angle
+        self.x += self.speed * math.cos(self.theta) * dt
+        self.y += self.speed * math.sin(self.theta) * dt
+        self.theta += self.speed / wheelbase * math.tan(steering_angle) * dt
+        self.lateral_error = lateral_error
+        self.theta_error = theta_error
 
-        if gear == Gear.GEAR_DRIVE:
-            self.v += a * dt
-        else:
-            self.v += -1.0 * a * dt
-
-        self.v = self.RegulateOutput(self.v)
+        self.speed += acceleration * dt
+        self.speed = self.normalize_output(self.speed)
 
     @staticmethod
-    def RegulateInput(delta, a):
+    def normalize_input(
+        steering: float, acceleration: float
+    ) -> Tuple[float, float]:
         """
-        regulate delta to : - max_steer_angle ~ max_steer_angle
-        regulate a to : - max_acceleration ~ max_acceleration
-        :param delta: steering angle [rad]
-        :param a: acceleration [m / s^2]
-        :return: regulated delta and acceleration
+        regulate steering to : - max_steer_angle ~ max_steer_angle
+        regulate acceleration to : - max_acceleration ~ max_acceleration
+        :param steering: steering angle [rad]
+        :param acceleration: acceleration [m / s^2]
+        :return: regulated steering and acceleration
         """
 
-        if delta < -1.0 * max_steer_angle:
-            delta = -1.0 * max_steer_angle
+        if steering < -1.0 * max_steer_angle:
+            steering = -1.0 * max_steer_angle
 
-        if delta > 1.0 * max_steer_angle:
-            delta = 1.0 * max_steer_angle
+        if steering > 1.0 * max_steer_angle:
+            steering = 1.0 * max_steer_angle
 
-        if a < -1.0 * max_acceleration:
-            a = -1.0 * max_acceleration
+        if acceleration < -1.0 * max_acceleration:
+            acceleration = -1.0 * max_acceleration
 
-        if a > 1.0 * max_acceleration:
-            a = 1.0 * max_acceleration
+        if acceleration > 1.0 * max_acceleration:
+            acceleration = 1.0 * max_acceleration
 
-        return delta, a
+        return steering, acceleration
 
     @staticmethod
-    def RegulateOutput(v):
+    def normalize_output(speed: float):
         """
         regulate v to : -max_speed ~ max_speed
         :param v: calculated speed [m / s]
         :return: regulated speed
         """
 
-        max_speed_ = max_speed
+        if speed < -1.0 * max_speed:
+            speed = -1.0 * max_speed
 
-        if v < -1.0 * max_speed_:
-            v = -1.0 * max_speed_
+        if speed > 1.0 * max_speed:
+            speed = 1.0 * max_speed
 
-        if v > 1.0 * max_speed_:
-            v = 1.0 * max_speed_
-
-        return v
+        return speed
 
 
 class TrajectoryAnalyzer:
     def __init__(self, x, y, theta, k):
         self.x_ = x
         self.y_ = y
-        self.theta_ = theta
+        self.theta_ = np.radians(theta)
         self.k_ = k
 
         self.ind_old = 0
@@ -133,7 +134,7 @@ class TrajectoryAnalyzer:
         errors to trajectory frame
         theta_e = theta_vehicle - theta_ref_path
         e_cg = lateral distance of center of gravity (cg) in frenet frame
-        :param vehicle_state: vehicle state (class VehicleState)
+        :param vehicle_state: vehicle state (class Vehicle)
         :return: theta_e, e_cg, theta_ref, k_ref
         """
 
@@ -187,9 +188,8 @@ class LatController:
         :return: steering angle (optimal u), theta_e, e_cg
         """
 
-        ts_ = dt
-        e_cg_old = vehicle_state.e_cg
-        theta_e_old = vehicle_state.theta_e
+        e_cg_old = vehicle_state.lateral_error
+        theta_e_old = vehicle_state.theta_error
 
         theta_e, e_cg, theta_ref, k_ref = ref_trajectory.ToTrajectoryFrame(
             vehicle_state
@@ -206,9 +206,9 @@ class LatController:
         )
 
         matrix_state_[0][0] = e_cg
-        matrix_state_[1][0] = (e_cg - e_cg_old) / ts_
+        matrix_state_[1][0] = (e_cg - e_cg_old) / dt
         matrix_state_[2][0] = theta_e
-        matrix_state_[3][0] = (theta_e - theta_e_old) / ts_
+        matrix_state_[3][0] = (theta_e - theta_e_old) / dt
 
         steer_angle_feedback = -(matrix_k_ @ matrix_state_)[0][0]
 
@@ -294,24 +294,21 @@ class LatController:
         :return: A, b
         """
 
-        ts_ = dt
-        wheelbase_ = l_f + l_r
-
-        v = vehicle_state.v
+        v = vehicle_state.speed
 
         matrix_ad_ = np.zeros(
             (state_size, state_size)
         )  # time discrete A matrix
 
         matrix_ad_[0][0] = 1.0
-        matrix_ad_[0][1] = ts_
+        matrix_ad_[0][1] = dt
         matrix_ad_[1][2] = v
         matrix_ad_[2][2] = 1.0
-        matrix_ad_[2][3] = ts_
+        matrix_ad_[2][3] = dt
 
         # b = [0.0, 0.0, 0.0, v / L].T
         matrix_bd_ = np.zeros((state_size, 1))  # time discrete b matrix
-        matrix_bd_[3][0] = v / wheelbase_
+        matrix_bd_[3][0] = v / wheelbase
 
         return matrix_ad_, matrix_bd_
 
@@ -331,17 +328,12 @@ class LonController:
         :return: control command (acceleration) [m / s^2]
         """
 
-        if vehicle_state.gear == Gear.GEAR_DRIVE:
-            direct = 1.0
-        else:
-            direct = -1.0
-
-        a = 0.3 * (target_speed - direct * vehicle_state.v)
+        a = 0.3 * (target_speed - vehicle_state.speed)
 
         if dist < 10.0:
-            if vehicle_state.v > 2.0:
+            if vehicle_state.speed > 2.0:
                 a = -3.0
-            elif vehicle_state.v < -2:
+            elif vehicle_state.speed < -2:
                 a = -1.0
 
         return a
@@ -353,15 +345,18 @@ def main():
 
     sys.path.append("./")
 
+    from myterial import purple, indigo_dark, salmon_dark
+
     import draw
     import control
     from geometry import GrowingPath
+    import geometry.vector_analysis as va
 
     from fcutils.progress import track
 
     # get path
-    wps = control.paths.Waypoints()
-    path = control.paths.DubinPath(wps).fit()
+    wps = control.paths.Waypoints(use="spline")
+    path = control.paths.BSpline(wps.x, wps.y, degree=3)
 
     # draw path and waypoints
     f, ax = plt.subplots(figsize=(6, 10))
@@ -369,18 +364,13 @@ def main():
     draw.Arrows(wps.x, wps.y, wps.theta, L=2)
     draw.Tracking(path.x, path.y)
 
-    # draw normal vector
-    draw.Arrows(
-        path.x[::10],
-        path.y[::10],
-        path.normal_angle[::10],
-        L=2,
-        color="salmon",
-        label="normal",
-    )
+    # plt.plot(path.curvature)
+    # draw.Arrows(path.x[::10], path.y[::10], path.theta[::10], L=2, color='red')
+    # plt.show()
+    # raise ValueError
 
     # initialize car
-    maxTime = 100.0
+    maxTime = 10.0
 
     # initialize controllers
     lat_controller = LatController()
@@ -390,50 +380,67 @@ def main():
     ref_trajectory = TrajectoryAnalyzer(
         path.x, path.y, path.theta, path.curvature
     )
-    vehicle_state = VehicleState(
-        x=path.x[0], y=path.y[0], theta=path.theta[0], v=path.speed[0],
+    vehicle = Vehicle(
+        x=path.x[0], y=path.y[0], theta=path.theta[0], speed=path.speed[0],
     )
 
     trajectory = GrowingPath()
     for t in track(np.arange(0, maxTime, dt)):
         # compute error
-        dist = math.hypot(
-            vehicle_state.x - path.x[-1], vehicle_state.y - path.y[-1]
-        )
+        dist = math.hypot(vehicle.x - path.x[-1], vehicle.y - path.y[-1])
         target_speed = 25.0 / 3.6
         if dist <= 0.5:
             break
 
         # use controllers
         delta_opt, theta_e, e_cg = lat_controller.ComputeControlCommand(
-            vehicle_state, ref_trajectory
+            vehicle, ref_trajectory
         )
         a_opt = lon_controller.ComputeControlCommand(
-            target_speed, vehicle_state, dist
+            target_speed, vehicle, dist
         )
 
         # update vehicle
-        vehicle_state.UpdateVehicleState(delta_opt, a_opt, e_cg, theta_e)
+        vehicle.update_state(delta_opt, a_opt, e_cg, theta_e)
 
         # store trajectory
-        trajectory.update(
-            vehicle_state.x, vehicle_state.y, np.degrees(vehicle_state.theta)
-        )
+        trajectory.update(vehicle.x, vehicle.y, np.degrees(vehicle.theta))
 
         plt.cla()
+        # draw track
         draw.Tracking(path.x, path.y, lw=3)
-        draw.Tracking(trajectory.x, trajectory.y, lw=1.5, color="salmon")
+
+        # draw car trajectory
+        draw.Tracking(trajectory.x, trajectory.y, lw=1.5, color=salmon_dark)
         draw.ControlCar(
-            vehicle_state.x,
-            vehicle_state.y,
-            vehicle_state.theta,
-            -vehicle_state.steer,
+            vehicle.x, vehicle.y, vehicle.theta, -vehicle.steer,
         )
+
+        # draw car velocity and acceleration vectors
+        if len(trajectory.x) > 5:
+            velocity, _, _, acceleration, _, _ = va.compute_vectors(
+                trajectory.x[:-3], trajectory.y[:-3]
+            )
+
+            draw.Arrow(
+                vehicle.x,
+                vehicle.y,
+                velocity.angle[-1],
+                L=velocity.magnitude[-1],
+                color=indigo_dark,
+            )
+            draw.Arrow(
+                vehicle.x,
+                vehicle.y,
+                acceleration.angle[-1],
+                L=acceleration.magnitude[-1] * 10,
+                color=purple,
+            )
 
         plt.axis("equal")
 
         plt.title(
-            "LQR (Kinematic): v=" + str(vehicle_state.v * 3.6)[:4] + "km/h"
+            "LQR (Kinematic): v=" + str(vehicle.speed * 3.6)[:4] + "km/h"
         )
         plt.gcf().canvas.mpl_connect(
             "key_release_event",

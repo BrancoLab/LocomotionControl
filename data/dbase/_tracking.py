@@ -69,7 +69,6 @@ def process_body_part(
     # y_mean = np.mean(y, ayis=0)
     # y = (y_mean - y) + y_mean
 
-
     # compute speed
     speed = (
         data_utils.convolve_with_gaussian(
@@ -102,7 +101,11 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     """
         For some things like orientation average across body parts to reduce noise
     """
+
+    raise ValueError("Use geometry.vector_analysis to do this stuff")
+
     # import matplotlib.pyplot as plt
+
     def unwrap(x):
         return np.degrees(np.unwrap(np.radians(x)))
 
@@ -116,17 +119,20 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results = dict(speed=body.bp_speed.values.copy())
     results["speed"] = medfilt(results["speed"], 11)
 
-    logger.warning('When new tracking becomes available I should review this process plis')
+    logger.warning(
+        "When new tracking becomes available I should review this process plis"
+    )
 
-    results['acceleration'] = derivative(results["speed"])
+    results["acceleration"] = derivative(results["speed"])
 
     # get direction of movement
     results["direction_of_movement"] = get_dir_of_mvmt_from_xy(body.x, body.y)
     results["dmov_velocity"] = (
         calc_angular_velocity(results["direction_of_movement"]) * 60
     )
-    results["dmov_acceleration"] = calc_angular_velocity(results["dmov_velocity"])
-
+    results["dmov_acceleration"] = calc_angular_velocity(
+        results["dmov_velocity"]
+    )
 
     results["direction_of_movement"][
         np.where(results["speed"] < 2)[0]

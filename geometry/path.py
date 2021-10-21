@@ -1,7 +1,6 @@
 from typing import Union
 import numpy as np
 
-
 import geometry.vector_analysis as va
 
 
@@ -20,7 +19,6 @@ class Path:
 
         self.x = x
         self.y = y
-        self.theta = theta
 
         # compute useful vectors
         (
@@ -32,19 +30,9 @@ class Path:
             self.curvature,
         ) = va.compute_vectors(x, y)
 
-        # compute vectors angles
-        self.velocity_angle = va.vector_angle(
-            self.velocity[:, 1], self.velocity[:, 0]
-        )
-        self.acceleration_angle = va.vector_angle(
-            self.acceleration[:, 1], self.acceleration[:, 0]
-        )
-        self.tangent_angle = va.vector_angle(
-            self.tangent[:, 1], self.tangent[:, 0]
-        )
-        self.normal_angle = va.vector_angle(
-            self.normal[:, 1], self.normal[:, 0]
-        )
+        if theta is None:
+            theta = self.tangent.angle
+        self.theta = theta
 
         # compute other useful properties
         self.n_steps = len(x)

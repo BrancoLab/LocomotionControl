@@ -14,7 +14,7 @@ from geometry import Path
 """
 
 
-def interpolate_b_spline_path(
+def BSpline(
     x: np.ndarray,
     y: np.ndarray,
     n_path_points: int = 500,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color="g")
 
     # fit splines
-    spline = interpolate_b_spline_path(wps.x, wps.y, degree=3)
+    spline = BSpline(wps.x, wps.y, degree=3)
     draw.Tracking(spline.x, spline.y, lw=4, color="k", label="spline")
 
     # fit and draw dubin path

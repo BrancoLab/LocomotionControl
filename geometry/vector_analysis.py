@@ -1,17 +1,17 @@
 import numpy as np
 from typing import Tuple
 
+import sys
+
+sys.path.append("./")
+
 # ! IMPLEMENT CONSISTENCY FOR NORM SUCH THAT IT ALWAYS STAYS ON THE SAME SIDE
 
 
-def vector_angle(x: np.ndarray, y: np.ndarray):
-    """
-        Returns the angle of a vector given it's X and Y components
-    """
-    return np.degrees(np.arctan2(y, x))
+from geometry.vector import Vector
 
 
-def compute_vectors(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray]:
+def compute_vectors(x: np.ndarray, y: np.ndarray) -> Tuple[Vector, np.ndarray]:
     """
         Given the X and Y position at each frame -
 
@@ -72,7 +72,14 @@ def compute_vectors(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray]:
 
     acceleration = t_component * tangent + n_component * normal
 
-    return velocity, tangent, normal, acceleration, ds_dt, curvature
+    return (
+        Vector(velocity),
+        Vector(tangent),
+        Vector(normal),
+        Vector(acceleration),
+        ds_dt,
+        curvature,
+    )
 
 
 if __name__ == "__main__":
@@ -104,7 +111,7 @@ if __name__ == "__main__":
     draw.Arrows(
         x[::7],
         y[::7],
-        vector_angle(tangent[:, 1], tangent[:, 0])[::7],
+        tangent.angle[::7],
         ax=axes[0],
         L=0.25,
         color="r",
@@ -113,7 +120,7 @@ if __name__ == "__main__":
     draw.Arrows(
         x[::7],
         y[::7],
-        vector_angle(normal[:, 1], normal[:, 0])[::7],
+        normal.angle[::7],
         ax=axes[0],
         L=0.25,
         color="g",
@@ -122,7 +129,7 @@ if __name__ == "__main__":
     draw.Arrows(
         x[::7],
         y[::7],
-        vector_angle(acceleration[:, 1], acceleration[:, 0])[::7],
+        acceleration.angle[::7],
         ax=axes[0],
         L=0.25,
         color="m",
