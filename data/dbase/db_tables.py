@@ -21,7 +21,7 @@ sys.path.append("./")
 from data.dbase import schema
 from data.dbase._tables import (
     insert_entry_in_table,
-    # print_table_content_to_file,
+    print_table_content_to_file,
 )
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
@@ -76,6 +76,43 @@ if have_dj:
                 insert_entry_in_table(
                     mouse["mouse_id"], "mouse_id", mouse, self
                 )
+
+    @schema
+    class Surgery(dj.Imported):
+        opto_surgery_metadata_file = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\opto_surgery_metadata.ods"
+        )
+        definition = """
+            # notes when a mouse had a surgery
+            -> Mouse
+            date:  varchar(256)
+            --- 
+            type: varchar(256)
+            target: varchar(256)
+        """
+
+        def make(self, key):
+            # see if mouse was implanted with a neuropixel probe
+            metadata = get_probe_metadata(key["mouse_id"])
+            if metadata is not None:
+                key['type'] = 'neuropixel'
+                key['date'] = metadata['date']
+                key['target'] = metadata['target']
+                self.insert1(key)
+                return
+
+            # see if the mouse was implanted with optic cannula
+            logger.warning('Implement Surgery for Opto')
+            # metadata = get_opto_metadata(
+            #     key["mouse_id"], self.opto_surgery_metadata_file
+            # )
+            # if metadata is not None:
+            #     key['type'] = 'optogenetics'
+            #     key['date'] = metadata['date']
+            #     key['target'] = metadata['target']
+            #     self.insert1(key)
+            #     return
+
 
     # ---------------------------------------------------------------------------- #
     #                                   sessions                                   #
@@ -184,6 +221,34 @@ if have_dj:
                 )
                 return True
 
+  
+    @schema
+    class SessionCondition(dj.Imported):
+        definition = """
+            # stores the conditions (e.g. control, implanted) of an experimental sessoin
+            -> Session
+            condition:  varchar(256)
+        """
+
+        def make(self, key):
+            '''
+                Use Surgery to see if the mouse had surgery by this date and update the key accordingly.
+                TODO: add a spreadsheet for nothing special conditions
+            '''
+            session_date = int((Session & key).fetch1('date'))
+            # get surgery metadata
+            mouse = key['mouse_id']
+            try:
+                surgery_date = int((Surgery & f'mouse_id="{mouse}"').fetch1('date'))
+                if session_date > surgery_date:
+                    key['condition'] = 'implanted'
+                else:
+                    key['condition'] = 'naive'
+            except:
+                key['condition'] = 'naive'
+        
+            self.insert1(key)
+    
     # ---------------------------------------------------------------------------- #
     #                              validated sessions                              #
     # ---------------------------------------------------------------------------- #
@@ -503,9 +568,9 @@ if have_dj:
             angular_velocity:       longblob  # angular velocityi in deg/sec
             speed:                  longblob  # body speed in cm/sec
             acceleration:           longblob  # in cm/s^2
-            direction_of_movement:  longblob  # angle towards where the mouse is moving next
-            dmov_velocity:          longblob  # rate of change of the direction of movement
-            dmov_acceleration:      longblob # in deg/s^2
+            theta:                  longblob  # angle towards where the mouse is moving next
+            thetadot:               longblob  # rate of change of the direction of movement
+            thetadotdot:            longblob # in deg/s^2
         """
 
         class BodyPart(dj.Part):
@@ -513,9 +578,9 @@ if have_dj:
                 -> Tracking
                 bpname:  varchar(64)
                 ---
-                x:                      longblob  # body position in cm
-                y:                      longblob  # body position in cm
-                bp_speed:                  longblob  # body speed in cm/s
+                x:                          longblob  # body position in cm
+                y:                          longblob  # body position in cm
+                bp_speed:                   longblob  # body speed in cm/s
             """
 
         class Linearized(dj.Part):
@@ -611,45 +676,52 @@ if have_dj:
     # ---------------------------------------------------------------------------- #
     @schema
     class ROICrossing(dj.Imported):
+        min_speed = 20  # cm/s, only roi enters with this speed are considered
+        max_duration = 8   # roi crossing must last <= this
+
         definition = """
             # when the mouse enters a ROI
             -> ValidatedSession
+            -> SessionCondition
             roi:  varchar(64)
             start_frame:    int
             end_frame:      int
+            crossing_id:    int
             ---
             mouse_exits: int  # 1 if the mouse exists the ROI in time
             duration: float
-            gcoord:         longblob
-            x:              longblob
-            y:              longblob
-            speed:          longblob
-            acceleration:   longblob
-            theta:           longblob
-            thetadot:  longblob
-            thetadotdot:  longblob
-
+            gcoord:             longblob
+            x:                  longblob
+            y:                  longblob
+            speed:              longblob
+            acceleration:       longblob
+            theta:              longblob
+            thetadot:           longblob
+            thetadotdot:        longblob
         """
 
-        max_duration = 8   # roi crossing must last <= this
+        class InitialCondition(dj.Part):
+            definition = """
+                # stores the conditions at the time of enter
+                -> ROICrossing
+                ---
+                x_init:               float
+                y_init:               float
+                speed_init:           float
+                acceleration_init:    float
+                theta_init:           float
+                thetadot_init:        float
+            """
+
         def make(self, key):
             if not Session.on_hairpin(key["name"]):
                 return 
                 
-            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
-                logger.debug(
-                    f'Skipping {key["name"]} because it doesnt have a recording'
-                )
-                return
-
             # get tracking data
             tracking = Tracking.get_session_tracking(
                 key["name"], body_only=True, movement=False
             )
             if tracking.empty:
-                logger.warning(
-                    f'Failed to get tracking data for session {key["name"]}'
-                )
                 return
             else:
                 logger.info(
@@ -663,13 +735,41 @@ if have_dj:
                         tracking,
                         ROI,
                         int(self.max_duration * 60),
+                        min_speed=self.min_speed,
                     )
             )
 
             # insert in table
             for cross in crossings:
+                cross['crossing_id'] = len(self) + 1
                 self.insert1({**key, **cross})
 
+            # insert in part table
+            for cross in crossings:
+                part_key = key.copy()
+                for k in ('roi', 'start_frame', 'end_frame', 'crossing_id'):
+                    part_key[k] = cross[k]
+
+                for k in ('x', 'y', 'speed', 'acceleration', 'theta', 'thetadot'):
+                    part_key[k+'_init'] = cross[k][0]
+                self.InitialCondition.insert1(part_key)
+
+    @schema
+    class RoiCrossingsTwins(dj.Imported):
+        definition = """
+            # for each roi crossing, find a twin crossing with same initial conditions
+            -> ROICrossing
+            twin_id:  int  # ID of ROICrossing thin to the selected one.
+        """
+        def make(self, key):
+            # get all crossings from the same session
+            session = key['name']
+            crossings = pd.DataFrame(ROICrossing * ROICrossing.InitialCondition & f'name="{session}"')
+
+            key['twin_id'] = _roi.select_twin_crossing(crossings, key['crossing_id'])
+            if key['twin_id']:
+                self.insert1(key)
+            
 
     @schema
     class LocomotionBouts(dj.Imported):
@@ -945,6 +1045,7 @@ if have_dj:
             if metadata is None:
                 return
             probe_key = {**key, **metadata}
+            del probe_key['date']
 
             logger.info(
                 f'\n\================    Getting reconstructed probe position for mouse {key["mouse_id"]}'
@@ -1229,10 +1330,10 @@ if __name__ == "__main__":
     # Tracking().drop()
     # LocomotionBouts().drop()
     # Movement().drop()
-    # ROICrossing.drop()
+    # SessionCondition.drop()
     # sys.exit()
 
-    # -------------------------------- sorti filex ------------------------------- #
+    # -------------------------------- sorti filex -----------------------q-------- #
 
     # logger.info('#####    Sorting FILES')
     # from data.dbase.io import sort_files
@@ -1244,7 +1345,9 @@ if __name__ == "__main__":
     # Mouse().fill()
 
     logger.info("#####    Filling Session")
+    # Surgery().populate(display_progress=True)
     # Session().fill()
+    # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
     # ValidatedSession().populate(display_progress=True)
@@ -1259,10 +1362,11 @@ if __name__ == "__main__":
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    Tracking().populate(display_progress=True)
+    # Tracking().populate(display_progress=True)
     # LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
     ROICrossing().populate(display_progress=True)
+    RoiCrossingsTwins().populate(display_progress=True)
 
     # ? OPTO
     logger.info("#####    Filling OPTO data")
@@ -1286,33 +1390,20 @@ if __name__ == "__main__":
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
-    # TABLES = [
-    #     Mouse,
-    #     Session,
-    #     pd.DataFrame((Session & "is_recording=1").fetch()),
-    #     ValidatedSession,
-    #     Behavior,
-    #     Recording,
-    #     Probe,
-    #     Probe.RecordingSite,
-    #     Unit,
-    #     LocomotionBouts,
-    #     Movement,
-    #     OptoSession,
-    # ]
-    # NAMES = [
-    #     "Mouse",
-    #     "Session",
-    #     "RecordingsSessions",
-    #     "ValidatedSession",
-    #     "Behavior",
-    #     "Recording",
-    #     "Probe",
-    #     "RecordingSite",
-    #     "Unit",
-    #     "LocomotionBouts",
-    #     "Movement",
-    #     "OptoSession",
-    # ]
-    # for tb, name in zip(TABLES, NAMES):
-    #     print_table_content_to_file(tb, name)
+    TABLES = [
+        Mouse,
+        Surgery,
+        Session,
+        SessionCondition,
+        Probe,
+
+    ]
+    NAMES = [
+        "Mouse",
+        "Surgery",
+        "Session",
+        "SessionCondition",
+        "Probe",
+    ]
+    for tb, name in zip(TABLES, NAMES):
+        print_table_content_to_file(tb, name)

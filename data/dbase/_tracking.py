@@ -18,6 +18,8 @@ from fcutils.path import size
 from data.dbase.io import load_dlc_tracking
 from data import data_utils
 
+from geometry import Path
+
 
 def register(x: np.ndarray, y: np.ndarray, M: np.ndarray):
     xy = np.vstack([x, y]).T
@@ -59,25 +61,8 @@ def process_body_part(
     x = data_utils.convolve_with_gaussian(x, kernel_width=5)
     y = data_utils.convolve_with_gaussian(y, kernel_width=5)
 
-    # flip data on X axis
-    # x = x - np.min(x)
-    # x_mean = np.mean(x, axis=0)
-    # x = (x_mean - x) + x_mean
-
-    # # flip data on Y axis
-    # y = y - np.min(y)
-    # y_mean = np.mean(y, ayis=0)
-    # y = (y_mean - y) + y_mean
-
     # compute speed
-    speed = (
-        data_utils.convolve_with_gaussian(
-            get_speed_from_xy(x, y), kernel_width=5
-        )
-        * 60
-    )  # speed in cm / s
-    speed[:5] = speed[6]
-    speed[-5:] = speed[-6]
+    speed = Path(x, y).speed * 60  # in cm/s
 
     # make sure there are no nans
     results = dict(x=x, y=y, bp_speed=speed)
@@ -102,9 +87,7 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
         For some things like orientation average across body parts to reduce noise
     """
 
-    raise ValueError("Use geometry.vector_analysis to do this stuff")
-
-    # import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 
     def unwrap(x):
         return np.degrees(np.unwrap(np.radians(x)))
@@ -115,45 +98,36 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
         axis=0
     )
 
-    # get speed
+    # get speed & acceleration
     results = dict(speed=body.bp_speed.values.copy())
-    results["speed"] = medfilt(results["speed"], 11)
-
-    logger.warning(
-        "When new tracking becomes available I should review this process plis"
-    )
-
     results["acceleration"] = derivative(results["speed"])
 
     # get direction of movement
-    results["direction_of_movement"] = get_dir_of_mvmt_from_xy(body.x, body.y)
-    results["dmov_velocity"] = (
-        calc_angular_velocity(results["direction_of_movement"]) * 60
-    )
-    results["dmov_acceleration"] = calc_angular_velocity(
-        results["dmov_velocity"]
-    )
+    results["theta"] = Path(body.x, body.y).tangent.angle + 180
+    results["thetadot"] = (
+        calc_angular_velocity(results["theta"]) 
+    )  # in deg /s
+    results["thetadotdot"] = calc_angular_velocity(
+        results["thetadot"]
+    )  # in deg / s^2
 
-    results["direction_of_movement"][
+    results["theta"][
         np.where(results["speed"] < 2)[0]
     ] = np.nan  # no dir of mvmt when there is no mvmt
-    results["dmov_velocity"][
+    results["thetadot"][
         np.where(results["speed"] < 2)[0]
     ] = np.nan  # no dir of mvmt when there is no mvmt
-    results["dmov_acceleration"][
+    results["thetadotdot"][
         np.where(results["speed"] < 2)[0]
     ] = np.nan  # no dir of mvmt when there is no mvmt
 
-    # compute orientation of each body part
+    # compute orientation of the body
     results["orientation"] = get_orientation(
         tail_base.x, tail_base.y, body.x, body.y
     )
 
     # compute angular velocity in deg/s
-    avel = calc_angular_velocity(results["orientation"]) * 60
-    results["angular_velocity"] = data_utils.remove_outlier_values(
-        avel.copy(), 600, errors_calculation_array=np.abs(avel)
-    )
+    results["angular_velocity"] = calc_angular_velocity(results["orientation"])    # in deg/s
 
     return results
 

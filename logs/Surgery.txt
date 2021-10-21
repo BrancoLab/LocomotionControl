@@ -1,0 +1,5 @@
+     mouse_id    date        type   target
+0  AAA1110750  210708  neuropixel  CUN/GRN
+1  AAA1110751  210520  neuropixel  CUN/GRN
+2  BAA1110279  210907  neuropixel  CUN/GRN
+3  BAA1110281  210813  neuropixel  CUN/GRN

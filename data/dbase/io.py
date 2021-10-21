@@ -43,7 +43,6 @@ def get_probe_metadata(mouse: str):
     mouse_id = int(mouse[-3:])
     metadata = metadata.loc[metadata["Unnamed: 1"] == mouse_id]
     if metadata.empty:
-        logger.debug(f"No probe implant metadata found for mouse: {mouse_id}")
         return None
 
     try:
@@ -58,6 +57,7 @@ def get_probe_metadata(mouse: str):
                 "reconstructed probe file path"
             ].iloc[0],
             target=metadata['Unnamed: 3'].iloc[0],
+            date = metadata['Unnamed: 0'].iloc[0]
         )
     except TypeError:
         logger.debug(

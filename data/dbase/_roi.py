@@ -10,6 +10,7 @@ def get_rois_crossings(
     tracking: pd.DataFrame,
     ROI: arena.ROI,
     max_duration:float,
+    min_speed:float,
 ) -> dict:
     # get every time the mouse enters the ROI
     enters = sorted([x for x in set(get_onset_offset(tracking.global_coord > ROI.g_0, 0.5)[0]) if x > 0])
@@ -18,6 +19,9 @@ def get_rois_crossings(
     results = []
 
     for start in enters:
+        if tracking.speed[start] < min_speed:
+            continue
+
         # check if anywhere the mouse left the ROI
         gcoord = tracking.global_coord[start:start+max_duration+1]
 
@@ -62,3 +66,17 @@ def get_rois_crossings(
         ))
 
     return results
+
+
+def select_twin_crossing(crossings:pd.DataFrame, selected_id:int) -> int:
+    '''
+        Given a selected ROI crossing (specified by its ID) and a dataframe of 
+        crossings it selects the fastest crossing with similar initial conditoins.
+    '''
+    # get the selected crossing
+    selected = crossings.iloc[selected_id]
+    crossings.drop(selected_id)
+
+
+
+    

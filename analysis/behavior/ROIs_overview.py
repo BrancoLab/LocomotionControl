@@ -56,6 +56,8 @@ for ROI in arena.ROIs_dict.keys():
     visuals.plot_heatmap_2d(crossings, gridsize=25, key='thetadot', ax=axes['C'], vmin=-600, vmax=600, cmap='bwr')
     visuals.plot_heatmap_2d(crossings, gridsize=25, key='thetadotdot', ax=axes['E'], vmin=-25, vmax=25, cmap='bwr')
 
+    # draw histogram of initial X position and initial speed
+    axes['G'].hist([c.x[0] for i,c in crossings.iterrows()], bins=50, color=color)
 
     # draw histogram of duration
     axes['F'].hist(crossings.duration, bins=50, color=color)
@@ -74,7 +76,8 @@ for ROI in arena.ROIs_dict.keys():
 
     recorder.add_data(crossings, f'{ROI}_crossings', fmt='h5')
 
-    # break
+    break
+
 recorder.add_figures(svg=False)
 recorder.describe()
 plt.show()

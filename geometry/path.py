@@ -1,6 +1,8 @@
 from typing import Union
 import numpy as np
 
+np.seterr(all="ignore")
+
 import geometry.vector_analysis as va
 
 

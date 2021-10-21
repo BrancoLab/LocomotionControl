@@ -7,6 +7,7 @@ sys.path.append("./")
 
 # ! IMPLEMENT CONSISTENCY FOR NORM SUCH THAT IT ALWAYS STAYS ON THE SAME SIDE
 
+np.seterr(all="ignore")
 
 from geometry.vector import Vector
 
