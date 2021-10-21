@@ -22,13 +22,13 @@ Iz = 1436.24  # [kg m2]
 # Controller Config
 dt = 0.10  # [s]
 max_iteration = 250
-eps = 0.01
+eps = 0.025
 
 matrix_q = [1.0, 0.0, 1.0, 0.0]
 matrix_r = [1.0]
 
 state_size = 4
 
-max_acceleration = 5.0  # [m / s^2]
+max_acceleration = 15.0  # [m / s^2]
 max_steer_angle = np.deg2rad(40)  # [rad]
-max_speed = 30 / 3.6  # [km/h]
+max_speed = 100 / 3.6  # [km/h]

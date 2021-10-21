@@ -120,31 +120,44 @@ class Vehicle:
 
 
 class TrajectoryAnalyzer:
-    def __init__(self, x, y, theta, k):
-        self.x_ = x
-        self.y_ = y
-        self.theta_ = np.radians(theta)
-        self.k_ = k
+    def __init__(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        theta: np.ndarray,
+        curvature: np.ndarray,
+    ):
+        self.x = x
+        self.y = y
+        self.theta = np.radians(theta)
+        self.curvature = curvature
 
+        # indices to keep track of relevant trajectory segmemt
         self.ind_old = 0
         self.ind_end = len(x)
 
-    def ToTrajectoryFrame(self, vehicle_state):
+    @property
+    def horizon(self):
+        return (
+            self.ind_old + 20
+            if self.ind_old + 20 < self.ind_end
+            else self.ind_end
+        )
+
+    def to_trajectory_frame(self, vehicle: Vehicle) -> Tuple[float]:
         """
         errors to trajectory frame
-        theta_e = theta_vehicle - theta_ref_path
-        e_cg = lateral distance of center of gravity (cg) in frenet frame
-        :param vehicle_state: vehicle state (class Vehicle)
-        :return: theta_e, e_cg, theta_ref, k_ref
+        theta_error = theta_vehicle - theta_ref_path
+        lateral_error = lateral distance of center of gravity (cg) in frenet frame
+        :param vehicle: vehicle state (class Vehicle)
+        :return: theta_error, lateral_error, theta_ref, curvature_ref
         """
 
-        x_cg = vehicle_state.x
-        y_cg = vehicle_state.y
-        theta = vehicle_state.theta
+        theta = vehicle.theta
 
         # calc nearest point in ref path
-        dx = [x_cg - ix for ix in self.x_[self.ind_old : self.ind_end]]
-        dy = [y_cg - iy for iy in self.y_[self.ind_old : self.ind_end]]
+        dx = [vehicle.x - ix for ix in self.x[self.ind_old : self.ind_end]]
+        dy = [vehicle.y - iy for iy in self.y[self.ind_old : self.ind_end]]
 
         ind_add = int(np.argmin(np.hypot(dx, dy)))
         dist = math.hypot(dx[ind_add], dy[ind_add])
@@ -160,19 +173,19 @@ class TrajectoryAnalyzer:
         vec_path_2_cg = np.array([[dx[ind_add]], [dy[ind_add]]])
 
         if np.dot(vec_axle_rot_90.T, vec_path_2_cg) > 0.0:
-            e_cg = 1.0 * dist  # vehicle on the right of ref path
+            lateral_error = 1.0 * dist  # vehicle on the right of ref path
         else:
-            e_cg = -1.0 * dist  # vehicle on the left of ref path
+            lateral_error = -1.0 * dist  # vehicle on the left of ref path
 
-        # calc theta error: theta_e = theta_vehicle - theta_ref
+        # calc theta error: theta_error = theta_vehicle - theta_ref
         self.ind_old += ind_add
-        theta_ref = self.theta_[self.ind_old]
-        theta_e = pi_2_pi(theta - theta_ref)
+        theta_ref = self.theta[self.ind_old]
+        theta_error = pi_2_pi(theta - theta_ref)
 
         # calc ref curvature
-        k_ref = self.k_[self.ind_old]
+        curvature_ref = self.curvature[self.ind_old]
 
-        return theta_e, e_cg, theta_ref, k_ref
+        return theta_error, lateral_error, theta_ref, curvature_ref
 
 
 class LatController:
@@ -191,7 +204,7 @@ class LatController:
         e_cg_old = vehicle_state.lateral_error
         theta_e_old = vehicle_state.theta_error
 
-        theta_e, e_cg, theta_ref, k_ref = ref_trajectory.ToTrajectoryFrame(
+        theta_e, e_cg, theta_ref, k_ref = ref_trajectory.to_trajectory_frame(
             vehicle_state
         )
 
@@ -318,8 +331,9 @@ class LonController:
     Longitudinal Controller using PID.
     """
 
-    @staticmethod
-    def ComputeControlCommand(target_speed, vehicle_state, dist):
+    gain = 0.5
+
+    def ComputeControlCommand(self, target_speed, vehicle_state, dist):
         """
         calc acceleration command using PID.
         :param target_speed: target speed [m / s]
@@ -328,7 +342,7 @@ class LonController:
         :return: control command (acceleration) [m / s^2]
         """
 
-        a = 0.3 * (target_speed - vehicle_state.speed)
+        a = self.gain * (target_speed - vehicle_state.speed)
 
         if dist < 10.0:
             if vehicle_state.speed > 2.0:
@@ -345,14 +359,12 @@ def main():
 
     sys.path.append("./")
 
-    from myterial import purple, indigo_dark, salmon_dark
+    from myterial import purple, indigo_dark, salmon_dark, blue_dark
 
     import draw
     import control
     from geometry import GrowingPath
     import geometry.vector_analysis as va
-
-    from fcutils.progress import track
 
     # get path
     wps = control.paths.Waypoints(use="spline")
@@ -360,6 +372,7 @@ def main():
 
     # draw path and waypoints
     f, ax = plt.subplots(figsize=(6, 10))
+
     draw.Hairpin()
     draw.Arrows(wps.x, wps.y, wps.theta, L=2)
     draw.Tracking(path.x, path.y)
@@ -370,7 +383,7 @@ def main():
     # raise ValueError
 
     # initialize car
-    maxTime = 10.0
+    maxTime = 20.0
 
     # initialize controllers
     lat_controller = LatController()
@@ -381,14 +394,18 @@ def main():
         path.x, path.y, path.theta, path.curvature
     )
     vehicle = Vehicle(
-        x=path.x[0], y=path.y[0], theta=path.theta[0], speed=path.speed[0],
+        x=path.x[0],
+        y=path.y[0],
+        theta=path.theta[0],
+        speed=path.speed[0] * 20,
     )
 
     trajectory = GrowingPath()
-    for t in track(np.arange(0, maxTime, dt)):
+    for t in np.arange(0, maxTime, dt):
+        # ---------------------------------- control --------------------------------- #
         # compute error
         dist = math.hypot(vehicle.x - path.x[-1], vehicle.y - path.y[-1])
-        target_speed = 25.0 / 3.6
+        target_speed = path.speed[ref_trajectory.ind_old] * 20 / 3.6
         if dist <= 0.5:
             break
 
@@ -406,7 +423,9 @@ def main():
         # store trajectory
         trajectory.update(vehicle.x, vehicle.y, np.degrees(vehicle.theta))
 
+        # ----------------------------------- plot ----------------------------------- #
         plt.cla()
+
         # draw track
         draw.Tracking(path.x, path.y, lw=3)
 
@@ -437,10 +456,21 @@ def main():
                 color=purple,
             )
 
-        plt.axis("equal")
+        # draw considred trajectory:
+        draw.Tracking(
+            path.x[ref_trajectory.ind_old : ref_trajectory.horizon],
+            path.y[ref_trajectory.ind_old : ref_trajectory.horizon],
+            lw=3,
+            color=blue_dark,
+        )
 
+        plt.axis("equal")
         plt.title(
-            "LQR (Kinematic): v=" + str(vehicle.speed * 3.6)[:4] + "km/h"
+            "LQR (Kinematic): v="
+            + str(vehicle.speed * 3.6)[:4]
+            + "km/h - target:"
+            + str(target_speed * 3.6)[:4]
+            + "km/h"
         )
         plt.gcf().canvas.mpl_connect(
             "key_release_event",
@@ -448,9 +478,14 @@ def main():
         )
         plt.pause(0.001)
 
-    ax.legend()
-    plt.show()
+    # ax.legend()
+    # plt.show()
 
+
+#  TODO  add gains to controllers
+# TODO refactor controllers
+# TODO add dynamics model
+# TODO REFACTOR simulation code
 
 if __name__ == "__main__":
     main()
