@@ -4,16 +4,14 @@ sys.path.append("./")
 
 import numpy as np
 import scipy.interpolate as scipy_interpolate
-from collections import namedtuple
 
-from control.waypoints import Waypoints
+from control.paths.waypoints import Waypoints
+from geometry import Path
 
 """
     Code adapted from: https://github.com/zhm-real/CurvesGenerator
     zhm-real shared code to create different types of paths under an MIT license.
 """
-
-path = namedtuple("path", "x, y")
 
 
 def interpolate_b_spline_path(
@@ -22,15 +20,18 @@ def interpolate_b_spline_path(
     n_path_points: int = 500,
     degree=3,
     cut: float = 0.06,
-):
+) -> Path:
     ipl_t = np.linspace(0.0, len(x) - 1, len(x))
     spl_i_x = scipy_interpolate.make_interp_spline(ipl_t, x, k=degree)
     spl_i_y = scipy_interpolate.make_interp_spline(ipl_t, y, k=degree)
 
     travel = np.linspace(0.0, len(x) - 1, n_path_points)
 
-    cut = int(cut * n_path_points)
-    return path(spl_i_x(travel)[cut:-cut], spl_i_y(travel)[cut:-cut])
+    if cut:
+        cut = int(cut * n_path_points)
+        return Path(spl_i_x(travel)[cut:-cut], spl_i_y(travel)[cut:-cut])
+    else:
+        return Path(spl_i_x(travel), spl_i_y(travel))
 
 
 if __name__ == "__main__":
@@ -44,7 +45,7 @@ if __name__ == "__main__":
 
     import draw
 
-    from control.dubins_path import DubinPath
+    from control.paths.dubins_path import DubinPath
 
     f, ax = plt.subplots(figsize=(7, 10))
 
@@ -52,8 +53,8 @@ if __name__ == "__main__":
     from fcutils.path import files
 
     for fp in files(
-        # "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/control/",
-        r'D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\control',
+        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/control/",
+        # r'D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\control',
         "*.h5",
     ):
         tracking = pd.read_hdf(fp, key="hdf")

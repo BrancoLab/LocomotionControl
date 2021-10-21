@@ -7,8 +7,9 @@ import sys
 sys.path.append("./")
 
 
-from control.utils import mod2pi, pi_2_pi
-from control.waypoints import Waypoints, Waypoint
+from control.paths.utils import mod2pi, pi_2_pi
+from control.paths.waypoints import Waypoints, Waypoint
+from geometry import Path
 
 """
     Code adapted from: https://github.com/zhm-real/CurvesGenerator
@@ -380,10 +381,10 @@ class DubinPath:
         self.mode.extend(list(mode)[1:-1])
         self.lengths.append(lengths)
 
-    def fit(self):
+    def fit(self) -> Path:
         for i in range(len(self.waypoints) - 1):
             self.fit_segment(self.waypoints[i], self.waypoints[i + 1])
-        return self
+        return Path(self.x, self.y, self.theta)
 
 
 if __name__ == "__main__":

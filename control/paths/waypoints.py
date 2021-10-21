@@ -105,6 +105,12 @@ class Waypoints:
             )
         return cls(waypoints=waypoints)
 
+    @classmethod
+    def from_list(cls, wps: list):
+        waypoints = Waypoints()
+        waypoints.waypoints = wps
+        return waypoints
+
     @property
     def x(self) -> np.ndarray:
         return np.array([wp.x for wp in self.waypoints])

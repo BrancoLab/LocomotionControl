@@ -4,6 +4,16 @@ from matplotlib.patches import Rectangle as Rectangle_patch
 
 from myterial import blue_grey_dark
 
+from control.config import (
+    wheelbase,
+    wheeldist,
+    v_w,
+    r_b,
+    r_f,
+    t_r,
+    t_w,
+)
+
 
 class Arrow:
     """
@@ -20,6 +30,7 @@ class Arrow:
         color: str = blue_grey_dark,
         zorder: int = 100,
         ax: plt.Axes = None,
+        **kwargs,
     ):
         ax = ax or plt.gca()
 
@@ -49,6 +60,7 @@ class Arrow:
             color=color,
             linewidth=width,
             zorder=zorder,
+            **kwargs,
         )
         ax.plot(
             [x_hat_start, x_hat_end_L],
@@ -64,6 +76,25 @@ class Arrow:
             linewidth=width,
             zorder=zorder,
         )
+
+
+class Arrows:
+    """
+        Draws an arrow at a point and angle
+    """
+
+    def __init__(
+        self,
+        x: list,
+        y: list,
+        theta: list,  # in degrees
+        label=None,
+        **kwargs,
+    ):
+        for i in range(len(x)):
+            if i > 0:
+                label = None
+            Arrow(x[i], y[i], theta[i], label=label, **kwargs)
 
 
 class Car:
@@ -106,18 +137,84 @@ class Car:
 
         Arrow(x, y, np.degrees(theta), L / 2, color="black")
 
-class Rectangle:
-    def __init__(self, x_0, x_1, y_0, y_1, ax: plt.Axes=None, color=blue_grey_dark, **kwargs):
-        ax = ax or plt.gca()
-        rect= Rectangle_patch(
-                    (x_0,y_0),
-                    x_1-x_0,
-                    y_1-y_0, 
-                    color=color,
-                    **kwargs
-                    )
-        ax.add_patch(rect)
 
+class ControlCar:
+    def __init__(self, x, y, theta, steer, color="black", ax: plt.Axes = None):
+        ax = ax or plt.gca()
+
+        car = np.array(
+            [
+                [-r_b, -r_b, r_f, r_f, -r_b],
+                [v_w / 2, -v_w / 2, -v_w / 2, v_w / 2, v_w / 2],
+            ]
+        )
+
+        wheel = np.array(
+            [
+                [-t_r, -t_r, t_r, t_r, -t_r],
+                [t_w / 2, -t_w / 2, -t_w / 2, t_w / 2, t_w / 2],
+            ]
+        )
+
+        rlWheel = wheel.copy()
+        rrWheel = wheel.copy()
+        frWheel = wheel.copy()
+        flWheel = wheel.copy()
+
+        Rot1 = np.array(
+            [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
+        )
+
+        Rot2 = np.array(
+            [[np.cos(steer), np.sin(steer)], [-np.sin(steer), np.cos(steer)]]
+        )
+
+        frWheel = np.dot(Rot2, frWheel)
+        flWheel = np.dot(Rot2, flWheel)
+
+        frWheel += np.array([[wheelbase], [-wheeldist / 2]])
+        flWheel += np.array([[wheelbase], [wheeldist / 2]])
+        rrWheel[1, :] -= wheeldist / 2
+        rlWheel[1, :] += wheeldist / 2
+
+        frWheel = np.dot(Rot1, frWheel)
+        flWheel = np.dot(Rot1, flWheel)
+
+        rrWheel = np.dot(Rot1, rrWheel)
+        rlWheel = np.dot(Rot1, rlWheel)
+        car = np.dot(Rot1, car)
+
+        frWheel += np.array([[x], [y]])
+        flWheel += np.array([[x], [y]])
+        rrWheel += np.array([[x], [y]])
+        rlWheel += np.array([[x], [y]])
+        car += np.array([[x], [y]])
+
+        ax.plot(car[0, :], car[1, :], color)
+        ax.plot(frWheel[0, :], frWheel[1, :], color)
+        ax.plot(rrWheel[0, :], rrWheel[1, :], color)
+        ax.plot(flWheel[0, :], flWheel[1, :], color)
+        ax.plot(rlWheel[0, :], rlWheel[1, :], color)
+
+        Arrow(x, y, np.degrees(theta), L=0.8 * wheelbase, color=color, ax=ax)
+
+
+class Rectangle:
+    def __init__(
+        self,
+        x_0,
+        x_1,
+        y_0,
+        y_1,
+        ax: plt.Axes = None,
+        color=blue_grey_dark,
+        **kwargs,
+    ):
+        ax = ax or plt.gca()
+        rect = Rectangle_patch(
+            (x_0, y_0), x_1 - x_0, y_1 - y_0, color=color, **kwargs
+        )
+        ax.add_patch(rect)
 
 
 if __name__ == "__main__":
