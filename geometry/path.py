@@ -47,11 +47,11 @@ class GrowingPath:
     """
         Path to which info can be added all the time
     """
-
-    x = []
-    y = []
-    theta = []
-    speed = []
+    def __init__(self):
+        self.x = []
+        self.y = []
+        self.theta = []
+        self.speed = []
 
     def update(
         self, x: float, y: float, theta: float = None, speed: float = None

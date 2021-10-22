@@ -73,7 +73,7 @@ class T1(Hairpin):
     x_0 = 8
     x_1 = 24
     y_0 = 0
-    y_1 = 25
+    y_1 = 28
 
     def __init__(self, ax: plt.Axes = None, shade=False, **kwargs):
         super().__init__(ax, **kwargs)
@@ -150,7 +150,7 @@ class T4(Hairpin):
     # coordinates to crop the image
     x_0 = 0
     x_1 = 40
-    y_0 = 33
+    y_0 = 30
     y_1 = 60
 
     def __init__(self, ax: plt.Axes = None, shade=False, **kwargs):

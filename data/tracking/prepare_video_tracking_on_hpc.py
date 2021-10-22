@@ -52,7 +52,7 @@ conda activate dlc
 export DLClight=True
 
 echo "running tracking"
-python dlc_on_hpc.py '/nfs/winstor/branco/Federico/Locomotion/dlc/locomotion-fc-2021-09-13/config.yaml' '/VIDEO' '/DEST'
+python dlc_on_hpc.py '/nfs/winstor/branco/Federico/Locomotion/dlc/loco-FC-2021-10-14/config.yaml' '/VIDEO' '/DEST'
 
 """
 

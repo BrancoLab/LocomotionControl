@@ -103,6 +103,7 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results["acceleration"] = derivative(results["speed"])
 
     # get direction of movement
+    raise NotImplementedError("Should this have a * 60  in there?")
     results["theta"] = Path(body.x, body.y).tangent.angle + 180
     results["thetadot"] = (
         calc_angular_velocity(results["theta"]) 

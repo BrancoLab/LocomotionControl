@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle as Rectangle_patch
+from matplotlib.patches import Polygon as Polygon_patch
+
 from typing import Union
 
-from myterial import blue_grey_dark
+from myterial import blue_grey_dark, grey_dark
 
 from control.config import (
     wheelbase,
@@ -263,6 +265,22 @@ class Rectangle:
         )
         ax.add_patch(rect)
 
+
+class Polygon:
+    def __init__(self, *points,         
+        ax: plt.Axes = None,
+        color=grey_dark,
+        **kwargs,):
+        '''
+            Given a list of tuples/lists of XY coordinates of each point, 
+            this class draws a polygon
+        '''
+        ax = ax or plt.gca()
+
+        xy = np.vstack(points)
+
+        patch =Polygon_patch(xy, color=color, **kwargs)
+        ax.add_patch(patch)
 
 if __name__ == "__main__":
     from numpy.random import uniform

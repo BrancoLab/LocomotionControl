@@ -2,15 +2,16 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 from celluloid import Camera
-import pathlib
 import numpy as np
+from loguru import logger
 
 sys.path.append("./")
 
 from myterial import blue, pink
 from fcutils.progress import track
 
-from data import colors
+from data import colors, paths
+# from data.dbase.db_tables import ROICrossing
 import draw
 from geometry import Path, GrowingPath
 from geometry.interpolate import interpolate_at_frame
@@ -20,22 +21,20 @@ from geometry.interpolate import interpolate_at_frame
     velocity/acceleration vectors
 """
 
+# TODO add body tracking once it's of good enough quality
+# TODO save iages with whole bout
 
-def animate_roi_crossing(ROI: str, crossing_id: int, FPS: int):
-    # ---------------------------------- params ---------------------------------- #
-    ROI = "T1"
-    crossing_id = 1
-    save_folder = pathlib.Path(
-        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/roi_crossings_animations"
-    )
-    FPS = 10
+def animate_one(ROI: str, crossing_id: int, FPS: int):
+    save_folder = paths.analysis_folder / 'behavior' / "roi_crossings_animations"
 
     # ----------------------------------- prep ----------------------------------- #
     # load tracking
     bouts = pd.read_hdf(
-        f"/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/roi_crossings/{ROI}_crossings.h5"
+        paths.analysis_folder / 'behavior' / "roi_crossings" / f"{ROI}_crossings.h5"
     )
     bout = bouts.sort_values("duration").iloc[crossing_id]
+    logger.info(f'Animating bout {crossing_id} - {round(bout.duration, 2)}s')
+    # tracking: dict = ROICrossing.get_crossing_tracking(bout.crossing_id)
 
     # generate a path from tracking
     path = Path(bout.x, bout.y)
@@ -114,8 +113,7 @@ def animate_roi_crossing(ROI: str, crossing_id: int, FPS: int):
             axes["A"].set(title=f"{ROI} - crossing: {crossing_id}")
             axes["B"].set(xlabel="time (s)", ylabel="speed (cm/s)")
             camera.snap()
-        # if frame > 10:
-        #     break
+
 
     # ------------------------------- video creation ------------------------------- #
     print("Saving")
@@ -123,17 +121,20 @@ def animate_roi_crossing(ROI: str, crossing_id: int, FPS: int):
     animation.save(save_folder / f"{ROI}_{crossing_id}.mp4", fps=FPS)
     print("Done!")
 
+    plt.cla()
+    plt.close(f)
+
 
 def animate_all(ROI: str, FPS: int):
     """
         Creates an amimation for each bout in a ROI
     """
     bouts = pd.read_hdf(
-        f"/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/roi_crossings/{ROI}_crossings.h5"
+        paths.analysis_folder / 'behavior' / "roi_crossings" / f"{ROI}_crossings.h5"
     )
 
     for bout_n in range(len(bouts)):
-        animate_roi_crossing(ROI, bout_n, FPS)
+        animate_one(ROI, bout_n, FPS)
 
 
 if __name__ == "__main__":

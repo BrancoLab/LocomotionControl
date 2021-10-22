@@ -559,6 +559,10 @@ if have_dj:
             "left_hl",
             "right_fl",
             "right_hl",
+            "left_shoulder",
+            "left_hip",
+            "right_shoulder",
+            "right_hip",
         )
 
         definition = """
@@ -715,7 +719,6 @@ if have_dj:
             """
 
         def make(self, key):
-            raise ValueError("Extend ROIs even more!")
             if not Session.on_hairpin(key["name"]):
                 return
 
@@ -762,6 +765,21 @@ if have_dj:
                     part_key[k + "_init"] = cross[k][0]
                 self.InitialCondition.insert1(part_key)
 
+        @staticmethod
+        def get_crossing_tracking(crossing_id:int) -> dict:
+            '''
+                Returns a dictionary with tracking cut to the start/end of the locomotion bout
+            '''
+            crossing = (ROICrossing & f'crossing_id={crossing_id}').fetch1()
+            session_tracking = Tracking.get_session_tracking(crossing['name'], movement=False, body_only=False)
+
+            columns = ('x', 'y', 'bp_speed')
+            results = {bp:{k:[] for k in columns} for bp in session_tracking.bpname.values}
+
+            for bp in results.keys():
+                for col in columns:
+                    results[bp][col] = session_tracking.loc[session_tracking.bpname==bp][col].iloc[0][crossing['start_frame']:crossing['end_frame']]
+            return results
     @schema
     class RoiCrossingsTwins(dj.Imported):
         definition = """
@@ -1348,7 +1366,7 @@ if __name__ == "__main__":
     # Tracking().drop()
     # LocomotionBouts().drop()
     # Movement().drop()
-    # SessionCondition.drop()
+    # ROICrossing.drop()
     # sys.exit()
 
     # -------------------------------- sorti filex -----------------------q-------- #
@@ -1384,7 +1402,7 @@ if __name__ == "__main__":
     # LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
     ROICrossing().populate(display_progress=True)
-    RoiCrossingsTwins().populate(display_progress=True)
+    # RoiCrossingsTwins().populate(display_progress=True)
 
     # ? OPTO
     logger.info("#####    Filling OPTO data")

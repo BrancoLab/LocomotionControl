@@ -58,9 +58,9 @@ def get_rois_crossings(
             x = tracking.x[start:end],
             y = tracking.y[start:end],
             speed = tracking.speed[start:end],
-            theta = tracking.direction_of_movement[start:end],
-            thetadot = tracking.dmov_velocity[start:end],
-            thetadotdot = tracking.dmov_acceleration[start:end],
+            theta = tracking.theta[start:end],
+            thetadot = tracking.thetadot[start:end],
+            thetadotdot = tracking.thetadotdot[start:end],
             acceleration  = tracking.acceleration[start:end],
 
         ))
@@ -77,6 +77,8 @@ def select_twin_crossing(crossings:pd.DataFrame, selected_id:int) -> int:
     selected = crossings.iloc[selected_id]
     crossings.drop(selected_id)
 
+    # TODO find the closest twin crossing
+    raise NotImplementedError
 
 
-    
+
