@@ -34,14 +34,18 @@ class Arrow:
         zorder: int = 100,
         ax: plt.Axes = None,
         outline: bool = False,  # draw a larger darker arrow under the main one
+        label: str = None,
+        alpha: float = 1,
         **kwargs,
     ):
         if outline:
             widths = [width + 1, width]
             colors = ["k", color]
+            labels = [None, label]
         else:
             widths = [width]
             colors = [color]
+            labels = [label]
 
         ax = ax or plt.gca()
 
@@ -67,13 +71,15 @@ class Arrow:
         y_hat_end_R = y_hat_start + d * np.sin(theta_hat_R)
 
         # draw
-        for width, color in zip(widths, colors):
+        for width, color, label in zip(widths, colors, labels):
             ax.plot(
                 [x_start, x_end],
                 [y_start, y_end],
                 color=color,
                 linewidth=width,
                 zorder=zorder,
+                label=label,
+                alpha=alpha,
                 **kwargs,
             )
             ax.plot(
@@ -82,6 +88,7 @@ class Arrow:
                 color=color,
                 linewidth=width,
                 zorder=zorder,
+                alpha=alpha,
             )
             ax.plot(
                 [x_hat_start, x_hat_end_R],
@@ -89,6 +96,7 @@ class Arrow:
                 color=color,
                 linewidth=width,
                 zorder=zorder,
+                alpha=alpha,
             )
 
 
@@ -267,20 +275,20 @@ class Rectangle:
 
 
 class Polygon:
-    def __init__(self, *points,         
-        ax: plt.Axes = None,
-        color=grey_dark,
-        **kwargs,):
-        '''
+    def __init__(
+        self, *points, ax: plt.Axes = None, color=grey_dark, **kwargs,
+    ):
+        """
             Given a list of tuples/lists of XY coordinates of each point, 
             this class draws a polygon
-        '''
+        """
         ax = ax or plt.gca()
 
         xy = np.vstack(points)
 
-        patch =Polygon_patch(xy, color=color, **kwargs)
+        patch = Polygon_patch(xy, color=color, **kwargs)
         ax.add_patch(patch)
+
 
 if __name__ == "__main__":
     from numpy.random import uniform

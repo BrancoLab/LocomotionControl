@@ -11,6 +11,10 @@ probes_surgeries_metadata = Path(
 
 
 if sys.platform == "win32":
-    analysis_folder = Path(r'D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis')
+    analysis_folder = Path(
+        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis"
+    )
 else:
-    analysis_folder = Path('"/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis')
+    analysis_folder = Path(
+        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis"
+    )

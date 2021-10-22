@@ -20,6 +20,7 @@ def BSpline(
     n_path_points: int = 500,
     degree=3,
     cut: float = 0.06,
+    fps: int = 60,
 ) -> Path:
     ipl_t = np.linspace(0.0, len(x) - 1, len(x))
     spl_i_x = scipy_interpolate.make_interp_spline(ipl_t, x, k=degree)
@@ -29,9 +30,11 @@ def BSpline(
 
     if cut:
         cut = int(cut * n_path_points)
-        return Path(spl_i_x(travel)[cut:-cut], spl_i_y(travel)[cut:-cut])
+        return Path(
+            spl_i_x(travel)[cut:-cut], spl_i_y(travel)[cut:-cut], fps=fps
+        )
     else:
-        return Path(spl_i_x(travel), spl_i_y(travel))
+        return Path(spl_i_x(travel), spl_i_y(travel), fps=fps)
 
 
 if __name__ == "__main__":

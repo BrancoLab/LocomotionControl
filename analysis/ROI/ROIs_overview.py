@@ -18,7 +18,9 @@ from analysis._visuals import move_figure
 from analysis import visuals
 
 folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior")
-recorder.start(base_folder=folder, folder_name="roi_crossings", timestamp=False)
+recorder.start(
+    base_folder=folder, folder_name="roi_crossings", timestamp=False
+)
 
 
 # TODO save with tracking data from all body parts for animation making
@@ -41,7 +43,11 @@ for ROI in arena.ROIs_dict.keys():
 
     # fetch from database
     crossings = pd.DataFrame(
-        (ROICrossing * ROICrossing.InitialCondition & f'roi="{ROI}"' & "mouse_exits=1").fetch()
+        (
+            ROICrossing * ROICrossing.InitialCondition
+            & f'roi="{ROI}"'
+            & "mouse_exits=1"
+        ).fetch()
     )
     logger.info(f"Loaded {len(crossings)} crossings")
 
@@ -78,8 +84,8 @@ for ROI in arena.ROIs_dict.keys():
         gridsize=25,
         key="thetadot",
         ax=axes["C"],
-        vmin=- 20,
-        vmax= 20,
+        vmin=-20,
+        vmax=20,
         cmap="bwr",
     )
     visuals.plot_heatmap_2d(
@@ -93,12 +99,8 @@ for ROI in arena.ROIs_dict.keys():
     )
 
     # draw histogram of initial X position and initial speed
-    axes["G"].hist(
-        crossings.x_init, bins=50, color=color
-    )
-    axes["H"].hist(
-        crossings.speed_init, bins=50, color=color
-    )    
+    axes["G"].hist(crossings.x_init, bins=50, color=color)
+    axes["H"].hist(crossings.speed_init, bins=50, color=color)
 
     # draw histogram of duration
     axes["F"].hist(crossings.duration, bins=50, color=blue_grey_dark)
@@ -110,8 +112,8 @@ for ROI in arena.ROIs_dict.keys():
     axes["D"].set(title="acceleration", xticks=[], yticks=[])
     axes["C"].set(title="ang. vel.", xticks=[], yticks=[])
     axes["E"].set(title="ang. acc.", xticks=[], yticks=[])
-    axes['G'].set(title='Initial X position', xlabel='x (cm)')
-    axes['H'].set(title='Initial speed', xlabel='speed (cm/s)')
+    axes["G"].set(title="Initial X position", xlabel="x (cm)")
+    axes["H"].set(title="Initial speed", xlabel="speed (cm/s)")
 
     f.tight_layout()
     move_figure(f, 50, 50)

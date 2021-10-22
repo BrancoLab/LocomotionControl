@@ -10,6 +10,8 @@ from myterial import (
     indigo_dark,
     blue_dark,
     purple,
+    blue,
+    pink,
 )
 
 # variables
@@ -17,6 +19,8 @@ from myterial import (
 speed = amber
 angular_velocity = indigo_light
 dmov_velocity = indigo_light
+velocity = blue
+acceleration = pink
 
 global_coord = green
 

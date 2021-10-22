@@ -22,7 +22,8 @@ from control.config import (
     state_size,
 )
 from control.vehicle import Vehicle
-from control._lqr import TrajectoryAnalyzer, LongitudinalController
+from control._control import LongitudinalController
+from control.trajectory import TrajectoryAnalyzer
 
 
 class LatController:
@@ -182,13 +183,10 @@ class KinematicsLQR:
 
         # initialize vehicle
         self.vehicle = Vehicle(
-            x=path.x[0],
-            y=path.y[0],
-            theta=path.theta[0],
-            speed=path.speed[0] * 20,
+            x=path.x[0], y=path.y[0], theta=path.theta[0], speed=path.speed[0],
         )
 
-    def step(self) -> float:
+    def step(self, t: FloatingPointError) -> float:
         """
             Solves planning and LQR and steps the vehicle
         """
@@ -196,9 +194,7 @@ class KinematicsLQR:
         dist = math.hypot(
             self.vehicle.x - self.path.x[-1], self.vehicle.y - self.path.y[-1]
         )
-        target_speed = (
-            self.path.speed[self.target_trajectory.ind_old] * 20 / 3.6
-        )
+        target_speed = self.path.speed[self.target_trajectory.ind_old]
 
         # use controllers
         (
