@@ -95,14 +95,14 @@ if have_dj:
             # see if mouse was implanted with a neuropixel probe
             metadata = get_probe_metadata(key["mouse_id"])
             if metadata is not None:
-                key['type'] = 'neuropixel'
-                key['date'] = metadata['date']
-                key['target'] = metadata['target']
+                key["type"] = "neuropixel"
+                key["date"] = metadata["date"]
+                key["target"] = metadata["target"]
                 self.insert1(key)
                 return
 
             # see if the mouse was implanted with optic cannula
-            logger.warning('Implement Surgery for Opto')
+            logger.warning("Implement Surgery for Opto")
             # metadata = get_opto_metadata(
             #     key["mouse_id"], self.opto_surgery_metadata_file
             # )
@@ -112,7 +112,6 @@ if have_dj:
             #     key['target'] = metadata['target']
             #     self.insert1(key)
             #     return
-
 
     # ---------------------------------------------------------------------------- #
     #                                   sessions                                   #
@@ -221,7 +220,6 @@ if have_dj:
                 )
                 return True
 
-  
     @schema
     class SessionCondition(dj.Imported):
         definition = """
@@ -231,24 +229,26 @@ if have_dj:
         """
 
         def make(self, key):
-            '''
+            """
                 Use Surgery to see if the mouse had surgery by this date and update the key accordingly.
                 TODO: add a spreadsheet for nothing special conditions
-            '''
-            session_date = int((Session & key).fetch1('date'))
+            """
+            session_date = int((Session & key).fetch1("date"))
             # get surgery metadata
-            mouse = key['mouse_id']
+            mouse = key["mouse_id"]
             try:
-                surgery_date = int((Surgery & f'mouse_id="{mouse}"').fetch1('date'))
+                surgery_date = int(
+                    (Surgery & f'mouse_id="{mouse}"').fetch1("date")
+                )
                 if session_date > surgery_date:
-                    key['condition'] = 'implanted'
+                    key["condition"] = "implanted"
                 else:
-                    key['condition'] = 'naive'
+                    key["condition"] = "naive"
             except:
-                key['condition'] = 'naive'
-        
+                key["condition"] = "naive"
+
             self.insert1(key)
-    
+
     # ---------------------------------------------------------------------------- #
     #                              validated sessions                              #
     # ---------------------------------------------------------------------------- #
@@ -592,6 +592,7 @@ if have_dj:
             """
 
         def make(self, key):
+            logger.warning("Add new body parts to table")
             _key = key.copy()
 
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
@@ -677,7 +678,7 @@ if have_dj:
     @schema
     class ROICrossing(dj.Imported):
         min_speed = 20  # cm/s, only roi enters with this speed are considered
-        max_duration = 8   # roi crossing must last <= this
+        max_duration = 8  # roi crossing must last <= this
 
         definition = """
             # when the mouse enters a ROI
@@ -714,9 +715,10 @@ if have_dj:
             """
 
         def make(self, key):
+            raise ValueError("Extend ROIs even more!")
             if not Session.on_hairpin(key["name"]):
-                return 
-                
+                return
+
             # get tracking data
             tracking = Tracking.get_session_tracking(
                 key["name"], body_only=True, movement=False
@@ -724,34 +726,40 @@ if have_dj:
             if tracking.empty:
                 return
             else:
-                logger.info(
-                    f'Getting ROI crossings for session {key["name"]}'
-                )
+                logger.info(f'Getting ROI crossings for session {key["name"]}')
 
             # get bouts
             crossings = []
             for ROI in arena.ROIs:
-                crossings.extend(_roi.get_rois_crossings(
+                crossings.extend(
+                    _roi.get_rois_crossings(
                         tracking,
                         ROI,
                         int(self.max_duration * 60),
                         min_speed=self.min_speed,
                     )
-            )
+                )
 
             # insert in table
             for cross in crossings:
-                cross['crossing_id'] = len(self) + 1
+                cross["crossing_id"] = len(self) + 1
                 self.insert1({**key, **cross})
 
             # insert in part table
             for cross in crossings:
                 part_key = key.copy()
-                for k in ('roi', 'start_frame', 'end_frame', 'crossing_id'):
+                for k in ("roi", "start_frame", "end_frame", "crossing_id"):
                     part_key[k] = cross[k]
 
-                for k in ('x', 'y', 'speed', 'acceleration', 'theta', 'thetadot'):
-                    part_key[k+'_init'] = cross[k][0]
+                for k in (
+                    "x",
+                    "y",
+                    "speed",
+                    "acceleration",
+                    "theta",
+                    "thetadot",
+                ):
+                    part_key[k + "_init"] = cross[k][0]
                 self.InitialCondition.insert1(part_key)
 
     @schema
@@ -761,15 +769,20 @@ if have_dj:
             -> ROICrossing
             twin_id:  int  # ID of ROICrossing thin to the selected one.
         """
+
         def make(self, key):
             # get all crossings from the same session
-            session = key['name']
-            crossings = pd.DataFrame(ROICrossing * ROICrossing.InitialCondition & f'name="{session}"')
+            session = key["name"]
+            crossings = pd.DataFrame(
+                ROICrossing * ROICrossing.InitialCondition
+                & f'name="{session}"'
+            )
 
-            key['twin_id'] = _roi.select_twin_crossing(crossings, key['crossing_id'])
-            if key['twin_id']:
+            key["twin_id"] = _roi.select_twin_crossing(
+                crossings, key["crossing_id"]
+            )
+            if key["twin_id"]:
                 self.insert1(key)
-            
 
     @schema
     class LocomotionBouts(dj.Imported):
@@ -1045,7 +1058,7 @@ if have_dj:
             if metadata is None:
                 return
             probe_key = {**key, **metadata}
-            del probe_key['date']
+            del probe_key["date"]
 
             logger.info(
                 f'\n\================    Getting reconstructed probe position for mouse {key["mouse_id"]}'
@@ -1206,12 +1219,17 @@ if have_dj:
 
         @staticmethod
         def get_unit_sites(
-            mouse: str, session_name: str, unit_id: int, configuration: str = 'longcol'
+            mouse: str,
+            session_name: str,
+            unit_id: int,
+            configuration: str = "longcol",
         ) -> pd.DataFrame:
-            '''
+            """
                 Gets the recording sites that a unit's spikes are detected on (based on the probe configuration used)
-            '''
-            rsites = Probe.get_session_sites(mouse, configuration=configuration)
+            """
+            rsites = Probe.get_session_sites(
+                mouse, configuration=configuration
+            )
             unit_sites = (
                 Unit & f'name="{session_name}"' & f"unit_id={unit_id}"
             ).fetch1("secondary_sites_ids")
@@ -1396,7 +1414,6 @@ if __name__ == "__main__":
         Session,
         SessionCondition,
         Probe,
-
     ]
     NAMES = [
         "Mouse",

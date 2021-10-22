@@ -5,6 +5,11 @@ import math
 from control.vehicle import Vehicle
 from control.paths.utils import pi_2_pi
 
+"""
+    Trajectory analyzer and longitudinal PID controller for LQR based
+    control scripts
+"""
+
 
 class TrajectoryAnalyzer:
     def __init__(

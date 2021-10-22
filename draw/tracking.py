@@ -22,11 +22,19 @@ class Tracking:
         if isinstance(x, pd.Series):
             for i in np.arange(len(x)):
                 ax.plot(
-                    x[i], y[i], color=kwargs.pop("color", grey_dark), **kwargs,
+                    x[i],
+                    y[i],
+                    color=kwargs.pop("color", grey_dark),
+                    solid_joinstyle="round",
+                    **kwargs,
                 )
         else:
             ax.plot(
-                x, y, color=kwargs.pop("color", grey_dark), **kwargs,
+                x,
+                y,
+                color=kwargs.pop("color", grey_dark),
+                solid_joinstyle="round",
+                **kwargs,
             )
 
     @classmethod

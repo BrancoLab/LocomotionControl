@@ -17,10 +17,12 @@ class Path:
         x: Union[list, np.ndarray],
         y: Union[list, np.ndarray],
         theta: Union[list, np.ndarray] = None,
+        fps: int = 60,
     ):
 
         self.x = x
         self.y = y
+        self.fps = fps
 
         # compute useful vectors
         (
@@ -30,7 +32,7 @@ class Path:
             self.acceleration,
             self.speed,
             self.curvature,
-        ) = va.compute_vectors(x, y)
+        ) = va.compute_vectors(x, y, fps=fps)
 
         if theta is None:
             theta = self.tangent.angle
@@ -49,11 +51,15 @@ class GrowingPath:
     x = []
     y = []
     theta = []
+    speed = []
 
-    def update(self, x: float, y: float, theta: float):
+    def update(
+        self, x: float, y: float, theta: float = None, speed: float = None
+    ):
         self.x.append(x)
         self.y.append(y)
         self.theta.append(theta)
+        self.speed.append(speed)
 
     def finalize(self) -> Path:
         return Path(self.x, self.y, self.theta)

@@ -39,4 +39,4 @@ class Vector:  # 2D vector
         else:
             # compute norm of each vector
             vec = np.vstack([self.x, self.y]).T
-            return np.apply_along_axis(np.linalg.norm, 0, vec)
+            return np.apply_along_axis(np.linalg.norm, 1, vec)

@@ -38,12 +38,15 @@ class LatController:
         :return: steering angle (optimal u), theta_e, e_cg
         """
 
-        e_cg_old = vehicle_state.lateral_error
-        theta_e_old = vehicle_state.theta_error
+        lateral_error_old = vehicle_state.lateral_error
+        theta_error_old = vehicle_state.theta_error
 
-        theta_e, e_cg, theta_ref, k_ref = ref_trajectory.to_trajectory_frame(
-            vehicle_state
-        )
+        (
+            theta_error,
+            lateral_error,
+            theta_ref,
+            curvature_reference,
+        ) = ref_trajectory.to_trajectory_frame(vehicle_state)
 
         matrix_ad_, matrix_bd_ = self.UpdateMatrix(vehicle_state)
 
@@ -55,18 +58,18 @@ class LatController:
             matrix_ad_, matrix_bd_, matrix_q_, matrix_r_, eps, max_iteration
         )
 
-        matrix_state_[0][0] = e_cg
-        matrix_state_[1][0] = (e_cg - e_cg_old) / dt
-        matrix_state_[2][0] = theta_e
-        matrix_state_[3][0] = (theta_e - theta_e_old) / dt
+        matrix_state_[0][0] = lateral_error
+        matrix_state_[1][0] = (lateral_error - lateral_error_old) / dt
+        matrix_state_[2][0] = theta_error
+        matrix_state_[3][0] = (theta_error - theta_error_old) / dt
 
         steer_angle_feedback = -(matrix_k_ @ matrix_state_)[0][0]
 
-        steer_angle_feedforward = self.ComputeFeedForward(k_ref)
+        steer_angle_feedforward = self.ComputeFeedForward(curvature_reference)
 
         steer_angle = steer_angle_feedback + steer_angle_feedforward
 
-        return steer_angle, theta_e, e_cg
+        return steer_angle, theta_error, lateral_error
 
     @staticmethod
     def ComputeFeedForward(ref_curvature):
@@ -223,6 +226,4 @@ class KinematicsLQR:
 
 
 #  TODO  add gains to controllers
-# TODO refactor controllers
 # TODO add dynamics model
-# TODO REFACTOR simulation code

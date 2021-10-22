@@ -4,46 +4,65 @@ import matplotlib.pyplot as plt
 
 sys.path.append("./")
 
-from myterial import green
+from myterial import blue, pink
 
 import draw
-import control
+from geometry import Path
 
+
+"""
+    Plot a few ROI crossings with vectors overlayed
+"""
+
+ROI = "T1"
 
 # load tracking
 bouts = pd.read_hdf(
-    "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/roi_crossings/T2_crossings.h5"
+    f"/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/roi_crossings/{ROI}_crossings.h5"
 )
-bout = bouts.iloc[20]
+selected_bouts = bouts.sample(6).reset_index()
 
-# get waypoints
-wps = control.paths.Waypoints.from_list(
-    [
-        control.paths.Waypoint(x=10, y=25, theta=100, speed=64,),
-        control.paths.Waypoint(x=10, y=25, theta=100, speed=64,),
-        control.paths.Waypoint(x=11, y=40, theta=75, speed=64,),
-        control.paths.Waypoint(x=20.0, y=47, theta=0, speed=49,),
-        control.paths.Waypoint(x=28.0, y=40, theta=280, speed=49,),
-        control.paths.Waypoint(x=29, y=28, theta=270, speed=55,),
-        control.paths.Waypoint(x=29, y=28, theta=270, speed=55,),
-    ]
-)
-
-# fit bspline
-spline = control.paths.interpolate_b_spline_path(wps.x, wps.y, cut=0.2)
 
 # draw stuff
-f, ax = plt.subplots(figsize=(5, 5))
+f, axes = plt.subplots(figsize=(18, 12), ncols=3, nrows=2)
+axes = axes.flatten()
 
-# draw arena and tracking
-draw.T2(set_ax=True, shade=True)
-draw.Tracking(bouts.x, bouts.y, alpha=0.5)
-draw.Tracking(bout.x, bout.y, color="k")
+for i, bout in selected_bouts.iterrows():
+    # generate a path from tracking
+    path = Path(bout.x, bout.y)
 
-# draw waypoints
-draw.Arrows(wps.x, wps.y, wps.theta, L=2, color="salmon")
+    ax = axes[i]
 
-# draw spline
-draw.Tracking(spline.x, spline.y, lw=3, color=green, alpha=0.75)
+    # draw arena and tracking
+    draw.ROI(ROI, set_ax=True, shade=False, ax=ax)
+    # draw.Tracking(bouts.x, bouts.y, alpha=0.5)
 
+    # draw bout tracking and velocity/acceleration vectors
+    # draw.Tracking.scatter(path.x, path.y, c=path.tangent.angle, cmap='bwr', vmin=-180, vmax=180)
+    draw.Tracking(path.x, path.y, color=[0.6, 0.6, 0.6], lw=5, ax=ax)
+
+    draw.Arrows(
+        path.x,
+        path.y,
+        path.velocity.angle,
+        L=path.velocity.magnitude,
+        color=blue,
+        step=2,
+        outline=True,
+        width=2,
+        ax=ax,
+    )
+    draw.Arrows(
+        path.x,
+        path.y,
+        path.acceleration.angle,
+        L=path.acceleration.magnitude * 2,
+        color=pink,
+        step=2,
+        outline=True,
+        width=2,
+        ax=ax,
+    )
+
+f.tight_layout()
 plt.show()

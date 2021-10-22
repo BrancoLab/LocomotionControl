@@ -12,7 +12,9 @@ np.seterr(all="ignore")
 from geometry.vector import Vector
 
 
-def compute_vectors(x: np.ndarray, y: np.ndarray) -> Tuple[Vector, np.ndarray]:
+def compute_vectors(
+    x: np.ndarray, y: np.ndarray, fps: int = 1
+) -> Tuple[Vector, np.ndarray]:
     """
         Given the X and Y position at each frame -
 
@@ -31,7 +33,9 @@ def compute_vectors(x: np.ndarray, y: np.ndarray) -> Tuple[Vector, np.ndarray]:
     # compute velocity vector
     dx_dt = np.gradient(x)
     dy_dt = np.gradient(y)
-    velocity = np.array([[dx_dt[i], dy_dt[i]] for i in range(dx_dt.size)])
+    velocity = (
+        np.array([[dx_dt[i], dy_dt[i]] for i in range(dx_dt.size)]) * fps
+    )
 
     # compute scalr speed vector
     ds_dt = np.sqrt(dx_dt * dx_dt + dy_dt * dy_dt)
@@ -78,7 +82,7 @@ def compute_vectors(x: np.ndarray, y: np.ndarray) -> Tuple[Vector, np.ndarray]:
         Vector(tangent),
         Vector(normal),
         Vector(acceleration),
-        ds_dt,
+        ds_dt * fps,
         curvature,
     )
 

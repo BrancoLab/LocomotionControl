@@ -12,6 +12,6 @@ logger.configure(
 from tpd import recorder
 
 try:
-    recorder.start(base_folder=".", name="logs", timestamp=False)
+    recorder.start(base_folder=".", folder_name="logs", timestamp=False)
 except PermissionError:
-    recorder.start(base_folder=".", name="logs", timestamp=True)
+    recorder.start(base_folder=".", folder_name="logs", timestamp=True)

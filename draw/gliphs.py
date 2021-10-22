@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle as Rectangle_patch
+from typing import Union
 
 from myterial import blue_grey_dark
 
@@ -25,15 +26,24 @@ class Arrow:
         x: float,
         y: float,
         theta: float,  # in degrees
-        L: float = 0.1,  # length
+        L: float = 1,  # length
         width: float = 4,
         color: str = blue_grey_dark,
         zorder: int = 100,
         ax: plt.Axes = None,
+        outline: bool = False,  # draw a larger darker arrow under the main one
         **kwargs,
     ):
+        if outline:
+            widths = [width + 1, width]
+            colors = ["k", color]
+        else:
+            widths = [width]
+            colors = [color]
+
         ax = ax or plt.gca()
 
+        # compute arrow position
         theta = np.radians(theta)
         angle = np.deg2rad(30)
         d = 0.5 * L
@@ -54,28 +64,30 @@ class Arrow:
         y_hat_end_L = y_hat_start + d * np.sin(theta_hat_L)
         y_hat_end_R = y_hat_start + d * np.sin(theta_hat_R)
 
-        ax.plot(
-            [x_start, x_end],
-            [y_start, y_end],
-            color=color,
-            linewidth=width,
-            zorder=zorder,
-            **kwargs,
-        )
-        ax.plot(
-            [x_hat_start, x_hat_end_L],
-            [y_hat_start, y_hat_end_L],
-            color=color,
-            linewidth=width,
-            zorder=zorder,
-        )
-        ax.plot(
-            [x_hat_start, x_hat_end_R],
-            [y_hat_start, y_hat_end_R],
-            color=color,
-            linewidth=width,
-            zorder=zorder,
-        )
+        # draw
+        for width, color in zip(widths, colors):
+            ax.plot(
+                [x_start, x_end],
+                [y_start, y_end],
+                color=color,
+                linewidth=width,
+                zorder=zorder,
+                **kwargs,
+            )
+            ax.plot(
+                [x_hat_start, x_hat_end_L],
+                [y_hat_start, y_hat_end_L],
+                color=color,
+                linewidth=width,
+                zorder=zorder,
+            )
+            ax.plot(
+                [x_hat_start, x_hat_end_R],
+                [y_hat_start, y_hat_end_R],
+                color=color,
+                linewidth=width,
+                zorder=zorder,
+            )
 
 
 class Arrows:
@@ -89,12 +101,47 @@ class Arrows:
         y: list,
         theta: list,  # in degrees
         label=None,
+        step: int = 1,  # draw arrow every step
+        L: Union[list, np.ndarray, float] = 1,
+        color: Union[str, list] = "k",
         **kwargs,
     ):
+
+        # make sure L and color are iterable
+        if isinstance(L, (int, float)):
+            L = [L] * len(x)
+        if isinstance(color, str):
+            color = [color] * len(x)
+
+        # draw each arrow
         for i in range(len(x)):
             if i > 0:
                 label = None
-            Arrow(x[i], y[i], theta[i], label=label, **kwargs)
+            if i % step == 0:
+                Arrow(
+                    x[i],
+                    y[i],
+                    theta[i],
+                    label=label,
+                    L=L[i],
+                    color=color[i],
+                    **kwargs,
+                )
+
+
+class Dot:
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        ax: plt.Axes = None,
+        zorder=100,
+        s=100,
+        color="k",
+        **kwargs,
+    ):
+        ax = ax or plt.gca()
+        ax.scatter(x, y, zorder=zorder, s=s, color=color, **kwargs)
 
 
 class Car:
@@ -191,12 +238,12 @@ class ControlCar:
         car += np.array([[x], [y]])
 
         ax.plot(car[0, :], car[1, :], color)
-        ax.plot(frWheel[0, :], frWheel[1, :], color)
-        ax.plot(rrWheel[0, :], rrWheel[1, :], color)
-        ax.plot(flWheel[0, :], flWheel[1, :], color)
-        ax.plot(rlWheel[0, :], rlWheel[1, :], color)
+        ax.plot(frWheel[0, :], frWheel[1, :], color, lw=4)
+        ax.plot(rrWheel[0, :], rrWheel[1, :], color, lw=4)
+        ax.plot(flWheel[0, :], flWheel[1, :], color, lw=4)
+        ax.plot(rlWheel[0, :], rlWheel[1, :], color, lw=4)
 
-        Arrow(x, y, np.degrees(theta), L=0.8 * wheelbase, color=color, ax=ax)
+        Arrow(x, y, np.degrees(theta), L=0.5 * wheelbase, color=color, ax=ax)
 
 
 class Rectangle:
