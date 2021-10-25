@@ -132,10 +132,11 @@ def animate_one(ROI: str, crossing_id: int, FPS: int):
             camera.snap()
 
     # ------------------------------- video creation ------------------------------- #
-    print("Saving")
+    save_path = save_folder / f"{ROI}_{bout.crossing_id}.mp4"
+    logger.info(f"Saving animation @: '{save_path}'")
     animation = camera.animate(interval=1000 / FPS)
-    animation.save(save_folder / f"{ROI}_{bout.crossing_id}.mp4", fps=FPS)
-    print("Done!")
+    animation.save(save_path, fps=FPS)
+    logger.info("Done!")
 
     plt.cla()
     plt.close(f)
@@ -170,9 +171,9 @@ if __name__ == "__main__":
         timestamp=False,
     )
 
-    ROI = "S2"
-    FPS = 100
-    BOUT_ID = 0
+    ROI = "T2"
+    FPS = 10
+    BOUT_ID = 2
 
     animate_one(ROI, BOUT_ID, FPS)
     # animate_all(ROI, FPS)

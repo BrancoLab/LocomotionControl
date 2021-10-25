@@ -75,26 +75,28 @@ for ROI in arena.ROIs_dict.keys():
         gridsize=25,
         key="acceleration",
         ax=axes["D"],
-        vmin=-5,
-        vmax=5,
+        vmin=-4,
+        vmax=4,
         cmap="bwr",
     )
+
     visuals.plot_heatmap_2d(
         crossings,
         gridsize=25,
         key="thetadot",
         ax=axes["C"],
-        vmin=-20,
-        vmax=20,
+        vmin=-400,
+        vmax=400,
         cmap="bwr",
     )
+
     visuals.plot_heatmap_2d(
         crossings,
         gridsize=25,
         key="thetadotdot",
         ax=axes["E"],
-        vmin=-1,
-        vmax=1,
+        vmin=-50,
+        vmax=50,
         cmap="bwr",
     )
 

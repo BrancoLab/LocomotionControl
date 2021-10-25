@@ -27,15 +27,18 @@ class Hairpin:
     y_0 = 0
     y_1 = 60
 
-    def __init__(self, ax: plt.Axes = None, set_ax=False, **kwargs):
+    def __init__(self, ax: plt.Axes = None, set_ax=False, img_path:str=None,  **kwargs):
         """
             Renders an image of the hairpin maze on a matplotlib axis
         """
         ax = ax or plt.gca()
-        try:
-            image = plt.imread(self._img_path_local)
-        except FileNotFoundError:
-            image = plt.imread(self._img_path)
+        if img_path is not None:
+            image = plt.imread(img_path)
+        else:
+            try:
+                image = plt.imread(self._img_path_local)
+            except FileNotFoundError:
+                image = plt.imread(self._img_path)
 
         # raise ValueError(image.shape[1] / 40, image.shape[0] / 60)
         image = image[

@@ -62,7 +62,7 @@ def process_body_part(
     y = data_utils.convolve_with_gaussian(y, kernel_width=5)
 
     # compute speed
-    speed = Path(x, y).speed * 60  # in cm/s
+    speed = Path(x, y, fps=60).speed  # in cm/s
 
     # make sure there are no nans
     results = dict(x=x, y=y, bp_speed=speed)
@@ -76,7 +76,8 @@ def process_body_part(
 def calc_angular_velocity(angles: np.ndarray) -> np.ndarray:
     # convert to radians and take derivative
     rad = np.unwrap(np.deg2rad(angles))
-    rad = data_utils.convolve_with_gaussian(rad, 25)
+    rad = medfilt(rad, 11)
+    rad = data_utils.convolve_with_gaussian(rad, 11)
 
     diff = derivative(rad)
     return np.rad2deg(diff)
@@ -103,24 +104,15 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results["acceleration"] = derivative(results["speed"])
 
     # get direction of movement
-    raise NotImplementedError("Should this have a * 60  in there?")
-    results["theta"] = Path(body.x, body.y).tangent.angle + 180
+    results["theta"] = 180 - Path(
+        data_utils.convolve_with_gaussian(body.x, kernel_width=15), 
+        data_utils.convolve_with_gaussian(body.y, kernel_width=15)).tangent.angle
     results["thetadot"] = (
         calc_angular_velocity(results["theta"]) 
-    )  # in deg /s
+    )  * 60 # in deg /s
     results["thetadotdot"] = calc_angular_velocity(
         results["thetadot"]
     )  # in deg / s^2
-
-    results["theta"][
-        np.where(results["speed"] < 2)[0]
-    ] = np.nan  # no dir of mvmt when there is no mvmt
-    results["thetadot"][
-        np.where(results["speed"] < 2)[0]
-    ] = np.nan  # no dir of mvmt when there is no mvmt
-    results["thetadotdot"][
-        np.where(results["speed"] < 2)[0]
-    ] = np.nan  # no dir of mvmt when there is no mvmt
 
     # compute orientation of the body
     results["orientation"] = get_orientation(
@@ -128,7 +120,7 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     )
 
     # compute angular velocity in deg/s
-    results["angular_velocity"] = calc_angular_velocity(results["orientation"])    # in deg/s
+    results["angular_velocity"] = calc_angular_velocity(results["orientation"]) * 60    # in deg/s
 
     return results
 

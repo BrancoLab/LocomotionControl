@@ -596,7 +596,6 @@ if have_dj:
             """
 
         def make(self, key):
-            logger.warning("Add new body parts to table")
             _key = key.copy()
 
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
@@ -780,6 +779,9 @@ if have_dj:
                 for col in columns:
                     results[bp][col] = session_tracking.loc[session_tracking.bpname==bp][col].iloc[0][crossing['start_frame']:crossing['end_frame']]
             return results
+
+
+            
     @schema
     class RoiCrossingsTwins(dj.Imported):
         definition = """
@@ -1398,9 +1400,9 @@ if __name__ == "__main__":
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    # Tracking().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
-    # Movement().populate(display_progress=True)
+    Tracking().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
+    Movement().populate(display_progress=True)
     ROICrossing().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
 

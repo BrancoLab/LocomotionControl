@@ -23,7 +23,21 @@ KEYS = (
     "dmov_velocity",
 )
 
-
+def register_in_time(trials, n_samples):
+    '''
+        Given a list of 1d numpy arrays of different length,
+        this function returns an array of shape (n_samples, n_trials) so
+        that each trial has the same number of samples and can thus be averaged
+        nicely
+    '''
+    target = np.zeros((n_samples, len(trials)))
+    for trial_n, trial in enumerate(trials):
+        n = len(trial)
+        for i in range(n_samples):
+            idx = int(np.floor(n * (i / n_samples)))
+            target[i, trial_n] = trial[idx]
+    return target
+    
 def remove_outlier_values(
     data: np.ndarray,
     threshold: Union[Tuple[float, float], float],
@@ -62,11 +76,11 @@ def convolve_with_gaussian(
     norm = stats.norm(0, kernel_width)
     X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), kernel_width)
 
-    _kernnel = norm.pdf(X)
-    kernel = _kernnel / np.sum(_kernnel)
+    _kernel = norm.pdf(X)
+    kernel = _kernel / np.sum(_kernel)
 
-    padded = np.pad(data, kernel_width, mode="edge")
-    return np.convolve(padded, kernel, mode="same")[kernel_width:-kernel_width]
+    padded = np.pad(data, 2*kernel_width, mode="edge")
+    return np.convolve(padded, kernel, mode="same")[2*kernel_width:-2*kernel_width]
 
 
 def get_bouts_tracking_stacked(

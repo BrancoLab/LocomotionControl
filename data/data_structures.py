@@ -10,11 +10,14 @@ class TrackingData:
     x: np.ndarray
     y: np.ndarray
     bp_speed: np.ndarray
-    direction_of_movement: np.ndarray
-    dmov_velocity: np.ndarray
     speed: np.ndarray = None
+    acceleration: np.ndarray = None
     orientation: np.ndarray = None
     angular_velocity: np.ndarray = None
+    angular_acceleration: np.ndarray = None
+    theta: np.ndarray = None
+    thetadot: np.ndarray = None
+    thetadotdot: np.ndarray = None
     segment: np.ndarray = None
     global_coord: np.ndarray = None
     _columns: list = None

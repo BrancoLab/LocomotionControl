@@ -242,7 +242,7 @@ def check_gcoord_delta(
         tracking.body.global_coord[bstart],
         tracking.body.global_coord[bend],
     )
-    return abs(gend - gstart) >= min_gcoord_delta
+    return abs(gend - gstart) >= min_gcoord_delta, abs(gend - gstart)
 
 
 def get_bout_direction(tracking: tuple, bstart: int, bend: int) -> str:
@@ -321,9 +321,10 @@ def get_session_bouts(
 
         if is_hairpin:
             # check there's enough change in global coordinate
-            if not check_gcoord_delta(
+            okay, gdelta = check_gcoord_delta(
                 tracking, bstart, bend, min_gcoord_delta
-            ):
+            )
+            if not okay:
                 continue
 
             # get bout direction of movement if hairpin
@@ -336,6 +337,7 @@ def get_session_bouts(
         else:
             direction, complete = "none", "none"
             start_roi, end_roi = -1, -1
+            gdelta = -1
 
         if bstart in [b["start_frame"] for b in bouts]:
             continue
@@ -354,6 +356,8 @@ def get_session_bouts(
         bout["complete"] = complete
         bout["start_roi"] = start_roi
         bout["end_roi"] = end_roi
+        bout["gcoord_delta"] = gdelta
+
         bouts.append(bout)
 
     n_complete = len([b for b in bouts if b["complete"] == "true"])

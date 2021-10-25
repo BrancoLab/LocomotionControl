@@ -19,7 +19,7 @@ def get_rois_crossings(
     results = []
 
     for start in enters:
-        if tracking.speed[start] < min_speed:
+        if tracking.speed[start] < min_speed or start < 60:
             continue
 
         # check if anywhere the mouse left the ROI
