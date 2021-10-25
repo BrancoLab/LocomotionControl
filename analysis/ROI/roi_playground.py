@@ -106,20 +106,20 @@ axes = f.subplot_mosaic(
 
 
 for i, cross in bouts.iterrows():
-    # path = Path(cross.x, cross.y)
-    Path(
-        convolve_with_gaussian(cross.x, kernel_width=11),
-        convolve_with_gaussian(cross.y, kernel_width=11)
-        )
+    path = Path(cross.x, cross.y)
+    # Path(
+    #     convolve_with_gaussian(cross.x, kernel_width=31),
+    #     convolve_with_gaussian(cross.y, kernel_width=31)
+    #     )
     # draw.Tracking(path.x, path.y, ax=axes['A'])
 
-    for G in np.arange(0.70, 0.90, 0.025):
+    for n, G in enumerate(np.arange(0.65, 0.90, 0.025)):
         at_G = np.where(cross.gcoord >= G)[0][0]
         # draw.Arrow(path.x[at_G], path.y[at_G], path.velocity.angle[at_G], ax=axes['A'], color='salmon', outline=True, alpha=.5)
         # draw.Arrow(path.x[at_G]+2, path.y[at_G], path.acceleration.angle[at_G], ax=axes['A'], color='blue', outline=True, alpha=.5)
-        draw.Arrow(0, 0, path.velocity.angle[at_G], ax=axes['A'], color='salmon', outline=True, alpha=.5)
-        draw.Arrow(2, 0, path.acceleration.angle[at_G], ax=axes['A'], color='blue', outline=True, alpha=.5)
-        draw.Arrow(4, 0, path.acceleration.angle[at_G] - path.acceleration.angle[at_G+1], ax=axes['A'], color='green', outline=True, alpha=.5)
+        draw.Arrow(0, 2 * n, path.velocity.angle[at_G], ax=axes['A'], color='salmon', outline=True, alpha=.5)
+        draw.Arrow(2, 2 * n, path.acceleration.angle[at_G], ax=axes['A'], color='blue', outline=True, alpha=.5)
+        draw.Arrow(4, 2 * n, path.acceleration.angle[at_G] - path.acceleration.angle[at_G+1], ax=axes['A'], color='green', outline=True, alpha=.5)
 
-        break
-    # break
+        # break
+    break
