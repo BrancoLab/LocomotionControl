@@ -48,8 +48,6 @@ if __name__ == "__main__":
 
     import draw
 
-    from control.paths.dubins_path import DubinPath
-
     f, ax = plt.subplots(figsize=(7, 10))
 
     # load and draw tracking data
@@ -69,16 +67,16 @@ if __name__ == "__main__":
 
     # draw waypoints
     wps = Waypoints(use="spline")
-    for wp in wps:
-        draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color="g")
+    # for wp in wps:
+    #     draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color="g")
 
     # fit splines
     spline = BSpline(wps.x, wps.y, degree=3)
     draw.Tracking(spline.x, spline.y, lw=4, color="k", label="spline")
 
     # fit and draw dubin path
-    dubin = DubinPath(Waypoints()).fit()
-    draw.Tracking(dubin.x, dubin.y, color="r", label="dubin")
+    # dubin = DubinPath(Waypoints()).fit()
+    # draw.Tracking(dubin.x, dubin.y, color="r", label="dubin")
 
     ax.legend()
     plt.show()
