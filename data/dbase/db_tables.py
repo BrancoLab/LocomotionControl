@@ -743,6 +743,7 @@ if have_dj:
                 )
 
             # insert in table
+            logger.debug(f'Foun {len(crossings)} crossings')
             for cross in crossings:
                 cross["crossing_id"] = len(self) + 1
                 self.insert1({**key, **cross})
@@ -761,7 +762,7 @@ if have_dj:
                     "theta",
                     "thetadot",
                 ):
-                    part_key[k + "_init"] = cross[k][0]
+                    part_key[k + "_init"] = cross[k][0] if not np.isnan(cross[k][0]) else 0
                 self.InitialCondition.insert1(part_key)
 
         @staticmethod
@@ -780,6 +781,23 @@ if have_dj:
                     results[bp][col] = session_tracking.loc[session_tracking.bpname==bp][col].iloc[0][crossing['start_frame']:crossing['end_frame']]
             return results
 
+    @schema
+    class ROICrossingTracking(dj.Imported):
+        definition = """
+            -> ROICrossing
+            bpname:  varchar(64)
+            ---
+            x:                          longblob  # body position in cm
+            y:                          longblob  # body position in cm
+            bp_speed:                   longblob  # body speed in cm/s
+        """
+
+        def make(self, key):
+            tracking = ROICrossing.get_crossing_tracking(key['crossing_id'])
+            for bp, bp_tracking in tracking.items():
+                bpkey = {**key, **bp_tracking}
+                bpkey['bpname'] = bp
+                self.insert1(bpkey)
 
             
     @schema
@@ -1371,7 +1389,7 @@ if __name__ == "__main__":
     # ROICrossing.drop()
     # sys.exit()
 
-    # -------------------------------- sorti filex -----------------------q-------- #
+    # -------------------------------- sorti filex ------------------------------- #
 
     # logger.info('#####    Sorting FILES')
     # from data.dbase.io import sort_files
@@ -1400,15 +1418,16 @@ if __name__ == "__main__":
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    Tracking().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
-    Movement().populate(display_progress=True)
+    # Tracking().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
+    # Movement().populate(display_progress=True)
     ROICrossing().populate(display_progress=True)
+    ROICrossingTracking().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
 
     # ? OPTO
     logger.info("#####    Filling OPTO data")
-    # OptoImplant.populate(display_progress=True)6
+    # OptoImplant.populate(display_progress=True)
     # OptoSession.fill()
     # OptoStimuli.populate(display_progress=True)
 
