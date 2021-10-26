@@ -42,11 +42,15 @@ class Path:
         self.n_steps = len(x)
         self.distance = np.sum(self.speed)
 
+    def __len__(self):
+        return len(self.x)
+
 
 class GrowingPath:
     """
         Path to which info can be added all the time
     """
+
     def __init__(self):
         self.x = []
         self.y = []
