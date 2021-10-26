@@ -1,7 +1,5 @@
-from myterial import pink_light, pink, purple_light, purple
-
-
 from myterial import (
+    purple_light,
     pink_light,
     blue_light,
     blue_grey_dark,
@@ -24,8 +22,16 @@ angular_velocity = indigo_light
 dmov_velocity = indigo_light
 velocity = blue
 acceleration = pink
-
 global_coord = green
+
+variables = dict(
+    speed=speed,
+    angular_velocity=angular_velocity,
+    dmov_velocity=dmov_velocity,
+    velocity=velocity,
+    acceleration=acceleration,
+    global_coord=global_coord,
+)
 
 # movements
 moving = orange
@@ -42,8 +48,6 @@ movements = dict(
     tone_on=tone_on,
 )
 
-# body parts colors
-
 
 # hairpin moving direction
 outbound = pink_light
@@ -57,7 +61,7 @@ bout_direction_colors = {
     "none": blue_grey_dark,
 }
 
-
+# body parts colors
 snout = "#C7D3E6"
 neck = "#7D95BA"
 body = "#5071A5"

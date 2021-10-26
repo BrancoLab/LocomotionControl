@@ -4,6 +4,7 @@ import numpy as np
 np.seterr(all="ignore")
 
 import geometry.vector_analysis as va
+from geometry.vector import Vector
 
 
 class Path:
@@ -44,6 +45,15 @@ class Path:
 
     def __len__(self):
         return len(self.x)
+
+    def __getitem__(self, item: Union[str, int]) -> Union[Vector, np.ndarray]:
+        if isinstance(item, int):
+            raise NotImplementedError(
+                "Int indexing should return a slice of the path"
+            )
+
+        elif isinstance(item, str):
+            return self.__dict__[item]
 
 
 class GrowingPath:
