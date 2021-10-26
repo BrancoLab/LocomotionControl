@@ -22,7 +22,10 @@ recorder.start(
     base_folder=folder, folder_name="roi_crossings", timestamp=False
 )
 
-
+'''
+    Plots an overview of ROI crossings for each ROI and saves
+    the data as a .h5 file for further analysis
+'''
 # TODO save with tracking data from all body parts for animation making
 
 for ROI in arena.ROIs_dict.keys():
@@ -66,12 +69,13 @@ for ROI in arena.ROIs_dict.keys():
             )
             draw.Tracking(cross.x, cross.y, ax=axes["A"], alpha=0.7)
 
-    # draw heatmaps for speed and acceleration
+    # draw heatmaps for speed and acceleration for fastest crossings
+    fast_crossings = crossings.sort_values('duration').iloc[:250]
     visuals.plot_heatmap_2d(
-        crossings, gridsize=25, key="speed", ax=axes["B"],
+        fast_crossings, gridsize=25, key="speed", ax=axes["B"],
     )
     visuals.plot_heatmap_2d(
-        crossings,
+        fast_crossings,
         gridsize=25,
         key="acceleration",
         ax=axes["D"],
@@ -81,7 +85,7 @@ for ROI in arena.ROIs_dict.keys():
     )
 
     visuals.plot_heatmap_2d(
-        crossings,
+        fast_crossings,
         gridsize=25,
         key="thetadot",
         ax=axes["C"],
@@ -91,7 +95,7 @@ for ROI in arena.ROIs_dict.keys():
     )
 
     visuals.plot_heatmap_2d(
-        crossings,
+        fast_crossings,
         gridsize=25,
         key="thetadotdot",
         ax=axes["E"],
@@ -106,6 +110,7 @@ for ROI in arena.ROIs_dict.keys():
 
     # draw histogram of duration
     axes["F"].hist(crossings.duration, bins=50, color=blue_grey_dark)
+    axes['F'].axvline(fast_crossings.duration.iloc[-1], ls='--', color='k', lw=2, zorder=10)
 
     # clean up
     axes["A"].set(ylabel=ROI)
