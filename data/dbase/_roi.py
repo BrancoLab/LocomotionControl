@@ -11,19 +11,6 @@ from geometry.vector_utils import smooth_path_vectors
 from geometry import Path
 
 
-def cleanup_path(x:np.ndarray, y:np.ndarray) -> Tuple[np.ndarray]:
-    '''
-        It time-bins the tangent, velocity and acceleration vectors
-        of the path to get cleaner data.
-        For the accelration it take the dot product with the tangent vector
-        to get the +/- acceleration
-    '''
-    path = Path(x, y)
-
-    wnd = 5
-    velocity, acceleration, tangent = smooth_path_vectors(path, window=wnd)
-
-    return x[wnd:], y[wnd:], velocity.magnitude[wnd:], acceleration.dot(tangent)[wnd:], tangent.angle[wnd:] + 180
 
 def get_rois_crossings(
     tracking: pd.DataFrame,
@@ -71,10 +58,6 @@ def get_rois_crossings(
         if end <= start:
             continue
 
-        # get cleaner tracking vectors
-        x, y, speed, acceleration, theta = cleanup_path(tracking.x[start:end], tracking.y[start:end])
-        thetadot = calc_angular_velocity(theta) * 60
-        thetadotdot = calc_angular_velocity(thetadot)
 
         # get data
         results.append(dict(
@@ -84,13 +67,13 @@ def get_rois_crossings(
             duration = (end - start) / 60,
             mouse_exits = 1 if exit else -1,
             gcoord = tracking.global_coord[start:end],
-            x = x,
-            y = y,
-            speed = speed,
-            theta = theta,
-            thetadot = thetadot,
-            thetadotdot = thetadotdot,
-            acceleration  = acceleration,
+            x = tracking.x[start:end]+0.5,
+            y = tracking.y[start:end]+0.5,
+            speed = tracking.speed[start:end],
+            theta = tracking.theta[start:end],
+            thetadot = tracking.thetadot[start:end],
+            thetadotdot = tracking.thetadotdot[start:end],
+            acceleration  = tracking.acceleration[start:end],
         ))
 
     return results

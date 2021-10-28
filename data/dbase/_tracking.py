@@ -156,9 +156,12 @@ def process_tracking_data(
     logger.debug("      computing body orientation")
     velocites = compute_averaged_quantities(body_parts_tracking)
 
-    # make sure all tracking start at (x,y)=(0, 0)
-    x0 = np.nanmin(body_parts_tracking["body"]["x"])
-    y0 = np.nanmin(body_parts_tracking["body"]["y"])
+    # # make sure all tracking start at (x,y)=(0, 0) and ends at (x,y)=(40, 60)
+    limits = dict(
+        x = (np.percentile(body_parts_tracking["body"]["x"], .001), np.percentile(body_parts_tracking["body"]["x"], 99.999), 2, 38.5),
+        y = (np.percentile(body_parts_tracking["body"]["y"], .001), np.percentile(body_parts_tracking["body"]["y"], 99.999), 2, 58.5),
+    )
+
 
     # merge dictionaries
     body_parts_tracking = {
@@ -167,9 +170,20 @@ def process_tracking_data(
     }
     for bp in body_parts_tracking.keys():
         body_parts_tracking[bp]["bpname"] = bp
-        body_parts_tracking[bp]["x"] = body_parts_tracking[bp]["x"] - x0
-        body_parts_tracking[bp]["y"] = body_parts_tracking[bp]["y"] - y0
 
+        if bp == 'body':
+            a = 1
+
+        for coord in 'xy':
+            at_zero = body_parts_tracking[bp][coord] - limits[coord][0]
+            scaled = at_zero / (limits[coord][1] - limits[coord][0]) * (limits[coord][3] - limits[coord][2])
+            body_parts_tracking[bp][coord] = scaled + limits[coord][2]
+
+    logger.info(f'''
+        Coordinates bounds: 
+            x: {np.min(body_parts_tracking['body']['x'])} -> {np.max(body_parts_tracking['body']['x'])}
+            y: {np.min(body_parts_tracking['body']['y'])} -> {np.max(body_parts_tracking['body']['y'])}
+        ''')
     key.update(velocites)
 
     return key, body_parts_tracking, len(key["orientation"])
