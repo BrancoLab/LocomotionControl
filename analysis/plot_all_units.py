@@ -34,6 +34,8 @@ sessions = (db_tables.ValidatedSession * db_tables.Session & 'is_recording=1').f
 logger.info(f'Found {len(sessions)} recordings')
 
 for session in track(sessions):
+    if 'open' in session:
+        continue
     logger.info('Fetching tracking')
     tracking = db_tables.Tracking.get_session_tracking(session, movement=False)
     if tracking.empty:
@@ -79,9 +81,9 @@ tracking["firing_rate"] = unit.firing_rate
 axes_lookup = {  # give names to axes
     'tracking': 'A',
     'vel':'B',
-    'acc':'B',
-    'avel':'B',
-    'aacc':'B',
+    'acc':'C',
+    'avel':'D',
+    'aacc':'E',
 }
 
 
@@ -95,7 +97,7 @@ _axes = f.subplot_mosaic(
 )
 axes = {lk:_axes[name] for lk, name in axes_lookup.items()}
 
-
+draw.Tracking.scatter(unit_tracking.x, unit_tracking.y, ax=axes['tracking'])
 
 # draw tracking
 visuals.plot_bin_x_by_y(
@@ -109,12 +111,34 @@ visuals.plot_bin_x_by_y(
     s=250,
 )
 
+visuals.plot_bin_x_by_y(
+    tracking,
+    "firing_rate",
+    "acceleration",
+    axes["acc"],
+    colors='k',
+    bins=20,
+    min_count=2,
+    s=250,
+)
 
 visuals.plot_bin_x_by_y(
     tracking,
     "firing_rate",
-    "speed",
-    axes["vel"],
+    "thetadot",
+    axes["avel"],
+    colors='k',
+    bins=20,
+    min_count=2,
+    s=250,
+)
+
+
+visuals.plot_bin_x_by_y(
+    tracking,
+    "firing_rate",
+    "thetadotdot",
+    axes["aacc"],
     colors='k',
     bins=20,
     min_count=2,
@@ -132,7 +156,7 @@ f, ax = plt.subplots(figsize=(16, 8))
 
 
 ax.vlines(unit.spikes, ymin=0, ymax=1, alpha=.5, lw=2, color='k')
-ax.plot(unit.firing_rate * 33.380967, lw=2, color='salmon')
+ax.plot(unit.firing_rate, lw=2, color='salmon')
 
 ax.plot([x_0, x_0 + 60 * 100 / 1000], [-.1, -.1], lw=3, color='k')
 
@@ -144,33 +168,3 @@ n_bins = int(n_seconds * 10)
 
 plt.hist(unit.spikes, bins=n_bins)
 
-
-# %%
-from scipy import stats
-frate_window = 25
-
-
-norm = stats.norm(0, frate_window)
-X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), frate_window)
-kernel = norm.pdf(X)
-kernel /= np.sum(kernel)  # normalize area under the curve to 1
-kernel = kernel * 1/np.max(kernel)
-
-spikes = np.zeros(100)
-
-
-spikes[22] = 1
-spikes[23] = 1
-spikes[50] = 1
-spikes[75] = 2
-
-
-fr = np.convolve(spikes, kernel, mode='same')
-plt.vlines(np.where(spikes==1), ymin=0, ymax=1, alpha=.5, lw=2, color='k')
-
-plt.plot(kernel)
-
-plt.hist([22, 23, 50, 75, 75])
-
-plt.plot(fr)
-# %%
