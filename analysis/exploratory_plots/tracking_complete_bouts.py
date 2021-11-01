@@ -95,7 +95,7 @@ aligned_tracking = align_in_space(bouts, tracking)
 # %%
 # make figure
 
-
+raise NotImplementedError("Use code saved to h5 LocomotionBout cleaned stuff")
 f = plt.figure(figsize=(24, 8))
 axes = f.subplot_mosaic(
     """

@@ -255,6 +255,7 @@ def get_units_firing_rate(
     X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), frate_window)
     kernel = norm.pdf(X)
     kernel /= np.sum(kernel)  # normalize area under the curve to 1
+    kernel = kernel * 1/np.max(kernel)  # ensure peak at 1
 
     # define number of bins
     # n_bins = int(n_ms / frate_window)

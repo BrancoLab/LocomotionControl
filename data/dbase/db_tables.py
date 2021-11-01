@@ -598,6 +598,10 @@ if have_dj:
         def make(self, key):
             _key = key.copy()
 
+            if '_t' in key['name'] and 'training' not in key['name']:
+                logger.warning(f'Skipping session {key["name"]} because its a test session')
+                return
+
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
                 logger.info(
                     f'Skipping {key["name"]} because its not a recording'
@@ -1385,8 +1389,8 @@ if __name__ == "__main__":
     # ! careful: this is to delete stuff
     # Tracking().drop()
     # LocomotionBouts().drop()
-    # Movement().drop()
-    # ROICrossing.drop()
+    # Unit().drop()
+    # FiringRate.drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1419,10 +1423,10 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
-    ROICrossing().populate(display_progress=True)
-    ROICrossingTracking().populate(display_progress=True)
+    # ROICrossing().populate(display_progress=True)
+    # ROICrossingTracking().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
 
     # ? OPTO
@@ -1436,9 +1440,9 @@ if __name__ == "__main__":
     # Probe().populate(display_progress=True)
     # Recording().populate(display_progress=True)
 
-    # Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
-    # FiringRate().check_complete()
+    Unit().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
+    FiringRate().check_complete()
 
     # TODO check and debug Opto TABLES
     # TODO make code that takes a locomotion bout that includes a given frame (e.g. to get bouts with opto stim)
@@ -1453,6 +1457,7 @@ if __name__ == "__main__":
         Session,
         SessionCondition,
         Probe,
+        Recording
     ]
     NAMES = [
         "Mouse",
@@ -1460,6 +1465,7 @@ if __name__ == "__main__":
         "Session",
         "SessionCondition",
         "Probe",
+        'Recording'
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)

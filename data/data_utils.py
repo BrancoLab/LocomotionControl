@@ -21,6 +21,10 @@ KEYS = (
     "spikes",
     "firing_rate",
     "dmov_velocity",
+    'acceleration',
+    'theta',
+    'thetadot',
+    'thetadotdot'
 )
 
 def register_in_time(trials, n_samples):
