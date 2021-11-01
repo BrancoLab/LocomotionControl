@@ -394,6 +394,7 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     import pandas as pd
+    from myterial import pink
 
     import draw
 
@@ -417,7 +418,7 @@ if __name__ == "__main__":
     # draw waypoints
     wps = Waypoints()
     for wp in wps:
-        draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color="g")
+        draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color=pink, outline=True)
 
     # fit dubin path
     dubin = DubinPath(wps).fit()

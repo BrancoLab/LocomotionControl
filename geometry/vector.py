@@ -35,16 +35,30 @@ class Vector:  # 2D vector
         else:
             return 1
 
-    def __getitem__(self, item) -> Vector:
-        if self.single_vec:
-            raise IndexError("Cannot index vector")
+    def __getitem__(self, item: Union[int, str]) -> Vector:
+        if isinstance(item, str):
+            return self.__dict__[item]
         else:
-            return Vector(self.x[item], self.y[item])
+            if self.single_vec:
+                raise IndexError("Cannot index vector")
+            else:
+                return Vector(self.x[item], self.y[item])
 
     def to_polar(self) -> Tuple[Union[np.ndarray, float]]:
         rho = np.hypot(self.x, self.y)
         phi = np.degrees(np.arctan2(self.y, self.x))
         return rho, phi
+
+    def to_unit_vector(self) -> Vector:
+        x = self.x / self.magnitude
+        y = self.y / self.magnitude
+        return Vector(x, y)
+
+    def as_array(self) -> np.ndarray:
+        if self.single_vec:
+            return np.array([self.x, self.y])
+        else:
+            return np.vstack([self.x, self.y]).T
 
     @classmethod
     def from_list(cls, vecs: List[Vector]) -> Vector:
@@ -52,7 +66,7 @@ class Vector:  # 2D vector
 
     @property
     def single_vec(self):
-        return isinstance(self.x, float)
+        return isinstance(self.x, (float, int))
 
     @property
     def angle(self) -> Union[np.ndarray, float]:
@@ -89,3 +103,40 @@ class Vector:  # 2D vector
             return _dot / other.magnitude
         else:
             return _dot
+
+    def angle_with(self, other: Vector) -> Union[float, np.ndarray]:
+        if self.single_vec != other.single_vec:
+            raise NotImplementedError(
+                "This doesnt work yet, need some sort of broadcasting"
+            )
+
+        _self = self.to_unit_vector().as_array()
+        _other = other.to_unit_vector().as_array()
+
+        if self.single_vec:
+            return np.degrees(
+                np.arccos(np.clip(np.dot(_self, _other), -1.0, 1.0))
+            )
+        else:
+            return np.degrees(
+                [
+                    np.arccos(
+                        np.clip(np.dot(_self[i, :], _other[i, :]), -1.0, 1.0)
+                    )
+                    for i in range(len(self))
+                ]
+            )
+
+
+if __name__ == "__main__":
+    v1 = Vector(0, 10)
+    v2 = Vector(10, 0)
+    v3 = Vector(10, -10)
+
+    print(v1.angle_with(v2))
+    print(v1.angle_with(v3))
+
+    v4 = Vector(np.zeros(5), np.ones(5))
+    v5 = Vector(np.ones(5), np.ones(5))
+
+    print(v4.angle_with(v5))

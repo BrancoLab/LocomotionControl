@@ -13,6 +13,7 @@ from myterial import (
     purple,
     blue,
     pink,
+    indigo,
 )
 
 # variables
@@ -22,6 +23,7 @@ angular_velocity = indigo_light
 dmov_velocity = indigo_light
 velocity = blue
 acceleration = pink
+angular_acceleration = indigo
 global_coord = green
 
 variables = dict(

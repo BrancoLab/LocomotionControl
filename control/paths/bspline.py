@@ -45,6 +45,7 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     import pandas as pd
+    from myterial import pink
 
     import draw
 
@@ -67,16 +68,23 @@ if __name__ == "__main__":
 
     # draw waypoints
     wps = Waypoints(use="spline")
-    # for wp in wps:
-    #     draw.Arrow(wp.x, wp.y, wp.theta, 2, width=4, color="g")
+    for wp in wps:
+        draw.Arrow(
+            wp.x, wp.y, wp.theta, 2.5, width=4, color=pink, outline=True,
+        )
 
     # fit splines
     spline = BSpline(wps.x, wps.y, degree=3)
     draw.Tracking(spline.x, spline.y, lw=4, color="k", label="spline")
 
-    # fit and draw dubin path
-    # dubin = DubinPath(Waypoints()).fit()
-    # draw.Tracking(dubin.x, dubin.y, color="r", label="dubin")
-
     ax.legend()
+
+    from fcutils.plot.figure import save_figure
+
+    save_figure(
+        f,
+        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Presentations/Presentations/Fiete lab/tracking_directoins",
+        svg=True,
+    )
+
     plt.show()

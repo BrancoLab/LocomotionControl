@@ -29,8 +29,8 @@ def smooth_path_vectors(path: Path, window: int = 5) -> List[Vector]:
             vectors_mean(*[path.tangent[i] for i in np.arange(t_0, t_1)])
         )
 
-    velocity = Vector.from_list(velocity_means)
-    acceleration = Vector.from_list(accel_means)
-    tangent = Vector.from_list(tangent_means)
+    velocity = Vector.from_list(velocity_means[window:])
+    acceleration = Vector.from_list(accel_means[window:])
+    tangent = Vector.from_list(tangent_means[window:])
 
     return velocity, acceleration, tangent

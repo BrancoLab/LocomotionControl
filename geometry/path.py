@@ -35,8 +35,10 @@ class Path:
             self.curvature,
         ) = va.compute_vectors(x, y, fps=fps)
 
+        self.acceleration_mag = self.acceleration.dot(self.tangent)
+
         if theta is None:
-            theta = self.tangent.angle
+            theta = 180 - self.tangent.angle
         self.theta = theta
 
         # compute other useful properties

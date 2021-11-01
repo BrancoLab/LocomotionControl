@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-
+from loguru import logger
 import sys
 
 sys.path.append("./")
@@ -27,7 +27,9 @@ class Hairpin:
     y_0 = 0
     y_1 = 60
 
-    def __init__(self, ax: plt.Axes = None, set_ax=False, img_path:str=None,  **kwargs):
+    def __init__(
+        self, ax: plt.Axes = None, set_ax=False, img_path: str = None, **kwargs
+    ):
         """
             Renders an image of the hairpin maze on a matplotlib axis
         """
@@ -37,8 +39,17 @@ class Hairpin:
         else:
             try:
                 image = plt.imread(self._img_path_local)
-            except FileNotFoundError:
-                image = plt.imread(self._img_path)
+            except FileNotFoundError:  # use complete path when working in a notebook
+                try:
+                    if sys.platform == "darwin":
+                        image = plt.imread(
+                            "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
+                        )
+                    else:
+                        raise NotImplementedError("set up on windows")
+                except FileNotFoundError:
+                    logger.warning("Could not draw ROI image")
+                    return
 
         # raise ValueError(image.shape[1] / 40, image.shape[0] / 60)
         image = image[

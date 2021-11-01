@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from data import paths
-from data.data_utils import convolve_with_gaussian
 from draw import colors
 from analysis.fixtures import PAWS
 
@@ -18,7 +17,11 @@ from geometry import Path
 
 
 def plot_roi_crossing(
-    crossing: pd.Series, tracking: dict, step: int = 5, highlight: str = None, arrow_scale=.5,
+    crossing: pd.Series,
+    tracking: dict = None,
+    step: int = 5,
+    highlight: str = None,
+    arrow_scale=0.5,
 ) -> plt.Figure:
     """
         Plots an entire ROI crossing, tracking, vectors and mouse
@@ -31,10 +34,9 @@ def plot_roi_crossing(
         v_alpha, a_alpha = 1, 1
 
     # path = Path(
-    #     convolve_with_gaussian(crossing.x, kernel_width=11), 
+    #     convolve_with_gaussian(crossing.x, kernel_width=11),
     #     convolve_with_gaussian(crossing.y, kernel_width=11))
     path = Path(crossing.x, crossing.y)
-
 
     f = plt.figure(figsize=(20, 10))
     axes = f.subplot_mosaic(
@@ -82,27 +84,41 @@ def plot_roi_crossing(
     )
 
     draw.Tracking.scatter(
-        path.x[::step],
-        path.y[::step],
-        color='k',
-        ax=axes["A"],
-        zorder=200,
+        path.x[::step], path.y[::step], color="k", ax=axes["A"], zorder=200,
     )
 
     # draw speed traces
     time = np.arange(len(path.speed)) / 60
     axes["B"].fill_between(time, 0, path.speed, alpha=0.5, color=colors.speed)
-    axes["B"].plot(time, path.speed, lw=4, color=colors.speed,)
+    axes["B"].plot(
+        time, path.speed, lw=4, color=colors.speed,
+    )
 
-    for bp in PAWS:
-        axes['C'].plot(tracking[bp]['bp_speed'], color=colors.bodyparts[bp], label=bp)
-    axes['C'].plot(tracking['body']['bp_speed'], color=colors.bodyparts['body'], label='body')
-    axes['C'].plot(np.mean(np.vstack([tracking[bp]['bp_speed'] for bp in PAWS if 'h' in bp]), 0), color='k', label='mean')
+    if tracking is not None:
+        for bp in PAWS:
+            axes["C"].plot(
+                tracking[bp]["bp_speed"], color=colors.bodyparts[bp], label=bp
+            )
+        axes["C"].plot(
+            tracking["body"]["bp_speed"],
+            color=colors.bodyparts["body"],
+            label="body",
+        )
+        axes["C"].plot(
+            np.mean(
+                np.vstack(
+                    [tracking[bp]["bp_speed"] for bp in PAWS if "h" in bp]
+                ),
+                0,
+            ),
+            color="k",
+            label="mean",
+        )
 
     # clean plots
     axes["A"].legend()
     axes["B"].set(xlabel="time (s)", ylabel="speed (cm/s)")
-    axes['C'].legend()
+    axes["C"].legend()
     f.tight_layout()
 
     return f
@@ -111,22 +127,27 @@ def plot_roi_crossing(
 if __name__ == "__main__":
     from data.dbase.db_tables import ROICrossing
 
-    bouts = pd.read_hdf(
-        paths.analysis_folder
-        / "behavior"
-        / "roi_crossings"
-        / f"T3_crossings.h5"
-    ).sort_values('duration').sample(10)
-    
+    bouts = (
+        pd.read_hdf(
+            paths.analysis_folder
+            / "behavior"
+            / "roi_crossings"
+            / f"T3_crossings.h5"
+        )
+        .sort_values("duration")
+        .sample(10)
+    )
+
     # bout = bouts.loc[bouts.crossing_id == 2638].iloc[0]
 
     for n, (i, bout) in enumerate(bouts.iterrows()):
-        if n > 3: break
+        if n > 3:
+            break
 
         tracking = ROICrossing.get_crossing_tracking(bout.crossing_id)
 
         # plot_roi_crossing(bout, tracking, step=2)
-        plot_roi_crossing(bout, tracking, step=2, highlight='acceleration')
+        plot_roi_crossing(bout, tracking, step=2, highlight="acceleration")
 
         break
 

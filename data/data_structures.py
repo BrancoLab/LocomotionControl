@@ -3,6 +3,11 @@ from dataclasses import dataclass
 import numpy as np
 from collections import namedtuple
 
+from typing import Tuple, List
+
+from geometry import Path, Vector
+from geometry.vector_utils import smooth_path_vectors
+
 
 @dataclass
 class TrackingData:
@@ -50,3 +55,78 @@ class TrackingData:
             raise ValueError
         else:
             return {c: getattr(self, c) for c in self._columns}
+
+
+class LocomotionBout:
+    """
+        Represents a continuous bit of locomotion in the hairpin.
+        It cleans up the tracking a bit by averaging vector quantities
+        over a small window.
+    """
+
+    window = 4
+
+    def __init__(self, crossing: pd.Series):
+        path: Path = Path(crossing.x.copy(), crossing.y.copy())
+        (
+            self.velocity,
+            self.acceleration_vec,
+            self.tangent,
+        ) = smooth_path_vectors(
+            path, window=self.window
+        )  # type: Vector
+
+        self.path: Path = Path(
+            crossing.x[self.window :], crossing.y[self.window :]
+        )
+
+        self.x: np.ndarray = self.path.x
+        self.y: np.ndarrray = self.path.y
+        self.speed: np.ndarray = self.velocity.magnitude
+        self.acceleration: np.ndarray = self.acceleration_vec.dot(self.tangent)
+
+        self.gcoord: np.ndarray = crossing.gcoord[self.window :]
+        self.theta: np.ndarray = crossing.theta[self.window :]
+        self.thetadot: np.ndarray = crossing.thetadot[self.window :]
+        self.thetadotdot: np.ndarray = crossing.thetadotdot[self.window :]
+        self.duration: float = crossing.duration
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, item: str):
+        return self.__dict__[item]
+
+
+def merge_locomotion_bouts(bouts: List[LocomotionBout]) -> Tuple[np.ndarray]:
+    """
+        It concats scalar quantities across individual bouts
+        X -> x pos
+        Y -> y pos
+        S -> speed
+        A -> acceleration
+        T -> theta/orientation
+        AV -> angular velocity
+        AA -> angular acceleration
+    """
+    X, Y, S, A, T, AV, AA = [], [], [], [], [], [], []
+
+    for bout in bouts:
+        start = np.where(bout.speed > 10)[0][0]
+        X.append(bout.x[start:])
+        Y.append(bout.y[start:])
+        S.append(bout.speed[start:])
+        A.append(bout.acceleration[start:])
+        T.append(bout.theta[start:])
+        AV.append(bout.thetadot[start:])
+        AA.append(bout.thetadotdot[start:])
+
+    return (
+        np.hstack(X),
+        np.hstack(Y),
+        np.hstack(S),
+        np.hstack(A),
+        np.hstack(T),
+        np.hstack(AV),
+        np.hstack(AA),
+    )

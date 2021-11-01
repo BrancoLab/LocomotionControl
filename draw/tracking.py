@@ -2,13 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from typing import Union
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from myterial import grey_dark
 
 
 class Tracking:
     """
-        Renders tracking as a 2D trace
+        Renders tracking as a 2D trace (by default) or, 
+        alternatively, as a scatter or heatmap visualization
     """
 
     def __init__(
@@ -54,3 +56,26 @@ class Tracking:
                 ax.scatter(x[i], y[i], s=s, c=c, **kwargs)
         else:
             ax.scatter(x, y, s=s, c=c, **kwargs)
+
+    @classmethod
+    def heatmap(
+        cls,
+        x: np.ndarray,
+        y: np.ndarray,
+        c: np.ndarray = None,  # the variable to heatmap, if None XY occupancy
+        ax: plt.Axes = None,
+        colorbar: bool = False,
+        **kwargs,
+    ):
+        ax = ax or plt.gca()
+
+        if isinstance(x, pd.Series):
+            raise ValueError("Heatmapt plotting cannot accept a pandas Series")
+        else:
+            H = ax.hexbin(x, y, c, **kwargs)
+
+            if colorbar:
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("bottom", size="5%", pad=0.05)
+
+                ax.figure.colorbar(H, cax=cax, orientation="horizontal")

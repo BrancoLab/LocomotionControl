@@ -9,27 +9,32 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 from data import paths
+from data.data_structures import LocomotionBout
 
 from draw import colors
 
 import draw
 from geometry import Path, Vector
 from geometry.vector_utils import vectors_mean
+from geometry.vector_utils import smooth_path_vectors
 
 # %%
 ROI = "T2"
-bouts = (
-    pd.read_hdf(
-        paths.analysis_folder
-        / "behavior"
-        / "roi_crossings"
-        / f"{ROI}_crossings.h5"
-    )
-    .sort_values("duration")
-    .iloc[0:200]
-)
+bouts = pd.read_hdf(
+    paths.analysis_folder / "behavior" / "saved_data" / f"{ROI}_crossings.h5"
+).sort_values("duration")
+bouts = bouts.loc[bouts.duration < 1.5].iloc[:200]
+print(f"Kept {len(bouts)} bouts")
+
+
+# %%
+# get clean paths
+
+crosses = []
+
+for i, cross in bouts.iterrows():
+    crosses.append(LocomotionBout(cross))
 
 
 # %%
@@ -40,7 +45,6 @@ axes = f.subplot_mosaic(
         AAACCEEFFF
     """
 )
-
 
 draw.ROI(
     ROI,
@@ -57,45 +61,42 @@ draw.ROI(
     img_path="/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png",
 )
 
-for i, cross in bouts.iterrows():
-    path = Path(cross.x, cross.y)
-
-    time = np.linspace(0, cross.duration, len(path))
+for cross in crosses:
+    time = cross.gcoord
 
     axes["B"].plot(time, cross.speed, color="k", alpha=0.2)
     axes["C"].plot(time, cross.acceleration, color="r", alpha=0.2)
 
-    axes["D"].plot(cross.thetadot, color="m", alpha=0.2)
-    axes["E"].plot(cross.thetadotdot, color="m", alpha=0.2)
+    axes["D"].plot(time, cross.thetadot, color="m", alpha=0.2)
+    axes["E"].plot(time, cross.thetadotdot, color="m", alpha=0.2)
 
     draw.Tracking.scatter(
-        path.x,
-        path.y,
+        cross.path.x,
+        cross.path.y,
         c=cross.acceleration,
         cmap="bwr",
-        vmin=-8,
-        vmax=8,
+        vmin=-5,
+        vmax=5,
         ax=axes["A"],
     )
     draw.Tracking.scatter(
-        path.x[0], path.y[0], color="k", zorder=200, ax=axes["A"]
+        cross.path.x[0], cross.path.y[0], color="k", zorder=200, ax=axes["A"]
     )
 
     draw.Tracking.scatter(
-        path.x,
-        path.y,
+        cross.path.x,
+        cross.path.y,
         c=cross.thetadotdot,
         cmap="PiYG",
         vmin=-50,
         vmax=50,
         ax=axes["F"],
     )
-    draw.Tracking.scatter(
-        path.x[0], path.y[0], color="k", zorder=200, ax=axes["F"]
-    )
+    # draw.Tracking.scatter(
+    #     path.x[0], path.y[0], color="k", zorder=200, ax=axes["F"]
+    # )
 _ = axes["C"].axhline(0)
 
-# TODO expand ROIs until acc > 0
 # TODO get when acc < 0
 # TODO compute averages of e.g. speed, accell...
 
@@ -103,7 +104,7 @@ _ = axes["C"].axhline(0)
 
 
 # %%
-# attempt at a vector field visualizatoin
+# attempt at a vector field visualization
 
 f, axes = plt.subplots(figsize=(20, 10), ncols=2)
 
@@ -125,8 +126,6 @@ for vn, (vec_name, xy_vectors) in enumerate(all_xy_vectors.items()):
     ax = axes[vn]
 
     for n, (i, cross) in enumerate(bouts.iterrows()):
-        if n > 200:
-            break
 
         path = Path(cross.x, cross.y)
 
@@ -144,17 +143,18 @@ for vn, (vec_name, xy_vectors) in enumerate(all_xy_vectors.items()):
 
     # draw stuff
     for (x, y), vecs in xy_vectors.items():
-        ax.scatter(x, y, s=10, color="k", zorder=500)
-        x = [x + 0.5] * len(vecs)
-        y = [y + 0.5] * len(vecs)
+
+        x = x + 0.5
+        y = y + 0.5
 
         vectors = Vector.from_list(vecs)
         mean_vector = vectors_mean(*vecs)
 
+        ax.scatter(x, y, s=10, color="k", zorder=500)
         # draw.Arrows(x, y, vectors.angle, L=0.5, width=0.75, alpha=0.5, color='k', ax=ax)
         draw.Arrow(
-            x[0],
-            y[0],
+            x,
+            y,
             mean_vector.angle,
             L=mean_vector.magnitude * scale_factor[vec_name],
             width=2,
@@ -167,5 +167,19 @@ for vn, (vec_name, xy_vectors) in enumerate(all_xy_vectors.items()):
 
 
 # %%
+
+f = plt.figure(figsize=(16, 6))
+ax = f.add_subplot(111, projection="polar")
+cross = bouts.iloc[7]
+path = Path(cross.x, cross.y)
+
+
+# get angle between velocity and acceleration vector
+angle = path.velocity.angle_with(path.acceleration)
+# ax.scatter(angle)
+
+velocity, acceleration, tangent = smooth_path_vectors(path, window=4)
+angle = velocity.angle_with(acceleration)
+_ = ax.plot(np.radians(angle), np.arange(len(angle)) - 2)
 
 # %%
