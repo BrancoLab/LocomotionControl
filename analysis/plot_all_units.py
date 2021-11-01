@@ -97,7 +97,7 @@ _axes = f.subplot_mosaic(
 )
 axes = {lk:_axes[name] for lk, name in axes_lookup.items()}
 
-draw.Tracking.scatter(unit_tracking.x, unit_tracking.y, ax=axes['tracking'])
+draw.Tracking.heatmap(unit_tracking.x, unit_tracking.y, ax=axes['tracking'])
 
 # draw tracking
 visuals.plot_bin_x_by_y(
@@ -147,24 +147,3 @@ visuals.plot_bin_x_by_y(
 
 
 # %%
-# plot firing rate vs spikes vs spikes kde
-import numpy as np
-x_0 = 50 * 60
-x_range = 5 * 60 + x_0
-f, ax = plt.subplots(figsize=(16, 8))
-
-
-
-ax.vlines(unit.spikes, ymin=0, ymax=1, alpha=.5, lw=2, color='k')
-ax.plot(unit.firing_rate, lw=2, color='salmon')
-
-ax.plot([x_0, x_0 + 60 * 100 / 1000], [-.1, -.1], lw=3, color='k')
-
-ax.set(xlim=[x_0, x_range], xticks=np.arange(x_0, x_range, 250), xticklabels=(np.arange(x_0, x_range, 250)/60).round(0), xlabel='time (s)', ylim=[-1, 6])
-# %%
-n_seconds = len(tracking.x)/60
-n_bins = int(n_seconds * 10)
-
-
-plt.hist(unit.spikes, bins=n_bins)
-

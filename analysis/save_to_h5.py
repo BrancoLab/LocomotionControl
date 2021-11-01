@@ -12,9 +12,10 @@ from data.dbase.db_tables import ROICrossing, LocomotionBouts, Tracking
 from data import arena
 
 
-
-
-
+recorder.start(
+    base_folder = r'D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior',
+    folder_name='saved_data', timestamp=False
+)
 
 # # save roi crossings
 for ROI in arena.ROIs_dict.keys():
