@@ -38,18 +38,10 @@ class Hairpin:
             image = plt.imread(img_path)
         else:
             try:
-                image = plt.imread(self._img_path_local)
+                image = plt.imread(self.get_image_path())
             except FileNotFoundError:  # use complete path when working in a notebook
-                try:
-                    if sys.platform == "darwin":
-                        image = plt.imread(
-                            "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
-                        )
-                    else:
-                        raise NotImplementedError("set up on windows")
-                except FileNotFoundError:
-                    logger.warning("Could not draw ROI image")
-                    return
+                logger.warning("Could not draw ROI image")
+                return
 
         # raise ValueError(image.shape[1] / 40, image.shape[0] / 60)
         image = image[
@@ -76,6 +68,15 @@ class Hairpin:
             )
         clean_axes(ax.figure)
         ax.axis("equal")
+
+    def get_image_path(self):
+        if Path(self._img_path_local).exists():
+            return self._img_path_local
+        else:
+            if sys.platform == "darwin":
+                return "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
+            else:
+                raise NotImplementedError("set up on windows")
 
 
 class T1(Hairpin):

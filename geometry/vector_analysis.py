@@ -5,7 +5,6 @@ import sys
 
 sys.path.append("./")
 
-# ! IMPLEMENT CONSISTENCY FOR NORM SUCH THAT IT ALWAYS STAYS ON THE SAME SIDE
 
 np.seterr(all="ignore")
 
@@ -42,6 +41,9 @@ def compute_vectors(
 
     # get unit tangent vector
     tangent = np.array([1 / ds_dt] * 2).transpose() * velocity
+    unit_tangent = tangent / np.apply_along_axis(
+        np.linalg.norm, 1, tangent
+    ).reshape(len(tangent), 1)
 
     # get unit normal vector
     tangent_x = tangent[:, 0]
@@ -80,7 +82,9 @@ def compute_vectors(
     return (
         Vector(velocity),
         Vector(tangent),
-        Vector(normal),
+        Vector(
+            -unit_tangent[:, 1], unit_tangent[:, 0]
+        ),  # normal as rotated tangent
         Vector(acceleration),
         ds_dt * fps,
         curvature,
