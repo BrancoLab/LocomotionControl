@@ -99,7 +99,3 @@ data = data.loc[(data.speed > 20)&(data.spikes == 1)&(data.direction > 0)]
 draw.Tracking.scatter(data.x.values, data.y.values)
 
 
-
-# %%
-
-plt.hist(data.speed)
