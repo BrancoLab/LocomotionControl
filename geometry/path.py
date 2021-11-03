@@ -51,6 +51,7 @@ class Path:
         # compute other useful properties
         self.n_steps = len(x)
         self.distance = np.sum(self.speed) / self.fps
+        self.comulative_distance = np.cumsum(self.speed) / self.fps
 
         self.points = np.array([self.x, self.y]).T
 
@@ -63,6 +64,12 @@ class Path:
 
         elif isinstance(item, str):
             return self.__dict__[item]
+
+    def path_distance_to_point(self, point_idx: int) -> float:
+        """
+            Computes the distance travelled until a given point is reached
+        """
+        return np.sum(self.speed[:point_idx]) / self.fps
 
     def interpolate(self, spacing: float = 1) -> Path:
         """

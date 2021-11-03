@@ -149,7 +149,10 @@ if __name__ == "__main__":
         right_to_track,
         control_points,
     ) = extract_track_from_image(
-        points_spacing=points_spacing, k=K, restrict_extremities=True
+        points_spacing=points_spacing,
+        k=K,
+        restrict_extremities=True,
+        apply_extra_spacing=True,
     )
 
     min_len_trace_path, min_len_trace_to_track = fit_best_trace(

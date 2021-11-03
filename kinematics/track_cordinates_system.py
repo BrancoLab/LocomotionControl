@@ -47,4 +47,4 @@ def path_to_track_coordinates_system(track: Path, path: Path) -> Path:
         X.append(x)
         Y.append(y)
 
-    return Path(X, Y)
+    return Path(np.array(X), np.array(Y))

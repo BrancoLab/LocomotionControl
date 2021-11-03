@@ -5,10 +5,11 @@ import sys
 sys.path.append("./")
 from pathlib import Path
 import os
-from draw.gliphs import Rectangle
 
 from fcutils.plot.figure import clean_axes
 from myterial import salmon, blue_light, red_light, green, indigo, teal
+
+from draw.gliphs import Rectangle
 
 
 class Hairpin:

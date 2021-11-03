@@ -41,7 +41,9 @@ K = 11  # number of control points
     center_to_track,
     right_to_track,
     control_points,
-) = tp.extract_track_from_image(points_spacing=2, k=K)
+) = tp.extract_track_from_image(
+    points_spacing=2, k=K, apply_extra_spacing=True, restrict_extremities=True
+)
 
 
 # ? plot
