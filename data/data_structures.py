@@ -74,7 +74,7 @@ class LocomotionBout:
             self.tangent,
         ) = smooth_path_vectors(
             path, window=self.window
-        )  # type: Vector
+        ) 
 
         self.path: Path = Path(
             crossing.x[self.window :], crossing.y[self.window :]
@@ -90,6 +90,9 @@ class LocomotionBout:
         self.thetadot: np.ndarray = crossing.thetadot[self.window :]
         self.thetadotdot: np.ndarray = crossing.thetadotdot[self.window :]
         self.duration: float = crossing.duration
+
+        self.start_frame = crossing.start_frame
+        self.end_frame = crossing.end_frame
 
     def __len__(self):
         return len(self.x)

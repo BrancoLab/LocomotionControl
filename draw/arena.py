@@ -46,7 +46,9 @@ class Hairpin:
                             "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
                         )
                     else:
-                        raise NotImplementedError("set up on windows")
+                        image = plt.imread(
+                            r"C:\Users\Federico\Documents\GitHub\pysical_locomotion\draw\hairpin.png"
+                        )
                 except FileNotFoundError:
                     logger.warning("Could not draw ROI image")
                     return

@@ -65,6 +65,7 @@ class Tracking:
         c: np.ndarray = None,  # the variable to heatmap, if None XY occupancy
         ax: plt.Axes = None,
         colorbar: bool = False,
+        gridsize:int = 30,
         **kwargs,
     ):
         ax = ax or plt.gca()
@@ -72,7 +73,7 @@ class Tracking:
         if isinstance(x, pd.Series):
             raise ValueError("Heatmapt plotting cannot accept a pandas Series")
         else:
-            H = ax.hexbin(x, y, c, **kwargs)
+            H = ax.hexbin(x, y, c, gridsize=gridsize, **kwargs)
 
             if colorbar:
                 divider = make_axes_locatable(ax)

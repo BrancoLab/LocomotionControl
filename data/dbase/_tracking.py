@@ -158,8 +158,8 @@ def process_tracking_data(
 
     # # make sure all tracking start at (x,y)=(0, 0) and ends at (x,y)=(40, 60)
     limits = dict(
-        x = (np.percentile(body_parts_tracking["body"]["x"], .001), np.percentile(body_parts_tracking["body"]["x"], 99.999), 2, 38.5),
-        y = (np.percentile(body_parts_tracking["body"]["y"], .001), np.percentile(body_parts_tracking["body"]["y"], 99.999), 2, 58.5),
+        x = (np.percentile(body_parts_tracking["body"]["x"], .001), np.percentile(body_parts_tracking["body"]["x"], 99.999), 2, 39),
+        y = (np.percentile(body_parts_tracking["body"]["y"], .001), np.percentile(body_parts_tracking["body"]["y"], 99.999), 1.5, 57.5),
     )
 
 

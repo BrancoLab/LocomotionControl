@@ -56,6 +56,28 @@ class Path:
 
         elif isinstance(item, str):
             return self.__dict__[item]
+        
+
+    def __matmul__(self, other:np.ndarray):
+        '''
+            Override @ operator to filter path at timestamps
+            (e.g. at spike times)
+        '''
+        path = Path(self.x, self.y)
+        path.x = path.x[other]
+        path.y = path.y[other]
+        path.velocity = path.velocity[other]
+        path.tangent = path.tangent[other]
+        path.normal = path.normal[other]
+        path.acceleration = path.acceleration[other]
+        path.speed = path.speed[other]
+        path.curvature = path.curvature[other]
+        path.acceleration_mag = path.acceleration_mag[other]
+        path.theta = path.theta[other]
+
+        path.n_steps = len(path.x)
+
+        return path
 
 
 class GrowingPath:

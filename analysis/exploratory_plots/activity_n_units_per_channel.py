@@ -72,3 +72,32 @@ def plot_n_units_per_channel(rname, units, rsites, TARGETS):
 
     clean_axes(f)
 
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.append('./')
+    from data.dbase import db_tables
+    import pandas as pd
+
+
+    # ----------------------------- load probe/units ----------------------------- #
+    session = 'FC_210721_AAA1110750_hairpin'
+    recording = (db_tables.Recording & f'name="{session}"').fetch(as_dict=True)[0]
+    cf = recording['recording_probe_configuration']
+    logger.info("Fetching ephys data")
+    units = db_tables.Unit.get_session_units(
+        session,
+        cf,
+        spikes=True,
+        firing_rate=True,
+        frate_window=100,
+    )
+    units['probe_configuration'] = [cf] * len(units)
+    rsites = pd.DataFrame((db_tables.Probe.RecordingSite & recording & f'probe_configuration="{cf}"').fetch())
+    logger.info(f'Found {len(units)} units')
+
+
+    plot_n_units_per_channel(recording, units, rsites, ['CUN'])
+    
+    plt.show()

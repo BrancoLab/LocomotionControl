@@ -60,6 +60,9 @@ for session in track(sessions):
 
     # loop over units
     for i, unit in units.iterrows():
+        if unit.brain_region != 'CUN':
+            continue
+        
         save_name = f'{unit.brain_region}_{unit.mouse_id}_{unit.name}_{unit.unit_id}'
         if (folder / 'all_units' / (save_name + '.png')).exists():
             continue
@@ -97,7 +100,7 @@ _axes = f.subplot_mosaic(
 )
 axes = {lk:_axes[name] for lk, name in axes_lookup.items()}
 
-draw.Tracking.heatmap(unit_tracking.x, unit_tracking.y, ax=axes['tracking'])
+draw.Tracking.heatmap(unit_tracking.x, unit_tracking.y, ax=axes['tracking'], bins='log')
 
 # draw tracking
 visuals.plot_bin_x_by_y(
