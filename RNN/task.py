@@ -1,113 +1,137 @@
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import pandas as pd
+import sys
+sys.path.append('./')
 
-# import torch
-# import torch.utils.data as data
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import sys
+from typing import List
+from sklearn.preprocessing import MinMaxScaler
+import torch
+import torch.utils.data as data
 
-# from fcutils.path import from_yaml
-# from fcutils.progress import track
-# from fcutils.maths.coordinates import cart2pol
+from fcutils.progress import track
+from fcutils.path import from_yaml
 
-# """
-#     Locomotion task.
-#         The RNN receives 2 inputs:
-#             - position X  milliseconds in the future
-#             - orientation X  milliseconds in the future
-
-#         and has to produce two outputs:
-#             - speed
-#             - avel
-
-#         In the experiment design both inputs go to MOs while the outputs
-#         come out of CUN and GRN respectively.
-
-#         The outputs have to match those of actual mice.
-# """
-
-# is_win = sys.platform == "win32"
+from RNN.prepare_data import load_bouts, get_IO_from_bout
 
 
-# class ThreeBitDataset(data.Dataset):
-#     """
-#     creates a pytorch dataset for loading
-#     the data during training.
-#     """
 
-#     def __init__(self):
-#         self.params = from_yaml('./RNN/params.yaml')
+"""
+    Locomotion task.
+        The RNN receives 3 inputs:
+            - distance X  milliseconds in the future
+            - angle  X  milliseconds in the future
+            - orientation X  milliseconds in the future
+            - speed current
+            - avel current
 
-#         self.load_bouts()
-#         self.make_trials()
+        and has to produce two outputs:
+            - speed next
+            - avel next
 
-#     def __len__(self):
-#         return self.dataset_length
+        In the experiment design both inputs go to MOs while the outputs
+        come out of CUN and GRN respectively.
 
-#     def __getitem__(self, item):
-#         X_batch, Y_batch = self.items[item]
-#         return X_batch, Y_batch
+        The outputs have to match those of actual mice.
+"""
 
-#     def load_bouts(self):
-#         '''
-#             Loads tracking data from file
-#         '''
-#         self.bouts = pd.read_hdf(self.params['tracking_data_path'])
-#         self.bouts = self.bouts.loc[self.bouts.duration <= self.params['max_bout_duration']]
-
-#         self.dataset_length = len(self.bouts)
-#         self.sequence_length = self.params['max_bout_duration'] * self.params['fps']
-
-#     def make_trials(self):
-#         """
-#         Generate the set of trials to be used fpr traomomg
-#         """
-#         seq_len = self.sequence_length
-#         dset_len = self.dataset_length
-
-#         self.items = {}
-#         for i in track(
-#             range(dset_len),
-#             description="Generating data...",
-#             total=dset_len,
-#             transient=True,
-#         ):
-
-#             # get bout
-#             bout = self.bouts.iloc[i]
-
-#             # get start and end points
-#             start = np.where(bout.global_coord >= self.params['gpos_start'])[0][0]
-#             end = np.where(bout.global_coord >= self.params['gpos_end'])[0][0]
-#             duration = (start - end)
-
-#             # initialize empty arrays
-#             X_batch = torch.zeros((duration, 2))  # distance, angle in polar coordinates
-#             # Y_batch = torch.zeros((duration, 2))  # speed, avel
-
-#             # # loop and get inputs/outputs every X ms
-#             # for step, frame in enumerate(np.arange(start, end, self.params['n_msec_update']/1000*self.params['fps'])):
-#             #     # get future frame
-#             #     future = frame + int(self.params['n_msec_future'] * self.params['fps'])
-
-#             #     # get position/orientation X ms in the future in polar coordinates
-#             #     delta_x = bout.x[future] - bout.x[frame]
-#             #     delta_y = bout.y[future] - bout.y[frame]
-#             #     X_batch[step, 0], X_batch[step, 1] = cart2pol(delta_x, delta_y)
-
-#             #     # get speed/avel right now
-#             #     Y_batch[step, 0] = bout.speed[frame]
-#                 Y_batch[step, 1] = bout.angular_velocity[frame]
+is_win = sys.platform == "win32"
 
 
-#             # # RNN input: batch size * seq len * n_input
-#             # X = X.reshape(1, seq_len, 1)
+class LocomotionDataset(data.Dataset):
+    """
+    creates a pytorch dataset for loading
+    the data during training.
+    """
 
-#             # # out shape = (batch, seq_len, num_directions * hidden_size)
-#             # Y = Y.reshape(1, seq_len, 1)
+    def __init__(self):
+        self.params = from_yaml('./RNN/params.yaml')
 
-#             # X_batch[:, m] = X.squeeze()
-#             # Y_batch[:, m] = Y.squeeze()
-#             self.items[i] = (X_batch, Y_batch)
+        self.bouts = load_bouts(keep=5)  # ! for speed, remove whe ready
+        self.dataset_length = len(self.bouts)
+        self.sequence_length = max([len(b) for b in self.bouts])
+        self.make_trials()
+
+    def __len__(self):
+        return self.dataset_length
+
+    def __getitem__(self, item):
+        X_batch, Y_batch = self.items[item]
+        return X_batch, Y_batch
+
+
+    def make_trials(self):
+        """
+        Generate the set of trials to be used fpr traomomg
+        """
+        seq_len = self.sequence_length
+        dset_len = self.dataset_length
+
+        self.items = {}
+        X, Y = [], []
+        for i in track(
+            range(dset_len),
+            description="Fetching data...",
+            total=dset_len,
+            transient=True,
+        ):
+            # get bout
+            bout = self.bouts[i]
+            IO = get_IO_from_bout(bout)
+
+            # initialize empty arrays
+            X_batch = np.zeros((len(bout), 5))  # distance, angle in polar coordinates
+            Y_batch = np.zeros((len(bout), 2))  # speed, avel
+
+            X_batch[:, 0] = IO['rho']
+            X_batch[:, 1] = IO['phi']
+            X_batch[:, 2] = IO['theta']
+            X_batch[:, 3] = IO['speed']
+            X_batch[:, 4] = IO['avel']
+            
+            Y_batch[:, 0] = IO['target_speed']
+            Y_batch[:, 1] = IO['target_avel']
+
+            X.append(X_batch)
+            Y.append(Y_batch)
+
+        # normalize data
+        X_norm, Y_norm = self.normalize(X, Y)
+
+
+        # get items 
+        for i, (X_batch, Y_batch) in enumerate(zip(X_norm, Y_norm)):
+            # # RNN input: batch size * seq len * n_input
+            # X = X.reshape(1, seq_len, 1)
+
+            # # out shape = (batch, seq_len, num_directions * hidden_size)
+            # Y = Y.reshape(1, seq_len, 1)
+
+            # X_batch[:, m] = X.squeeze()
+            # Y_batch[:, m] = Y.squeeze()
+            self.items[i] = (X_batch, Y_batch)
+
+    def normalize(self, X:List[np.ndarray], Y:List[np.ndarray]) -> List[np.ndarray]:
+        # stack each variable
+        RHO = np.hstack([x[:, 0] for x in X])
+
+
+        # fit minmax scaler
+        rho_scaler = MinMaxScaler(feature_range=(-1, 1)).fit(RHO)
+
+        # transform
+        X_norm, Y_norm = [], []
+        for X_batch, Y_batch in zip(X, Y):
+            X_batch_norm = np.zeros_like(X_batch)
+            Y_batch_norm = np.zeros_like(Y_batch)
+
+            X_batch_norm[:, 0] = rho_scaler.transform(X_batch[:, 0])
+
+            X_norm.append(X_batch_norm)
+            Y_norm.append(Y_batch_norm)
+
+        return X_norm, Y_norm
 
 
 # def make_batch(seq_len):

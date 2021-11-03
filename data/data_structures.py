@@ -63,6 +63,25 @@ class TrackingData:
             return {c: getattr(self, c) for c in self._columns}
 
 
+
+@dataclass
+class SnapShot:
+    '''
+        Kinematics variables at a moment in time
+    '''
+    x: float
+    y: float
+    xy: Vector
+    v: Vector
+    s: float
+    a_mag: float
+    a: Vector
+    tangent: Vector
+    theta: float
+    thetadot: float
+    thetadotdot: float
+
+
 class LocomotionBout:
     """
         Represents a continuous bit of locomotion in the hairpin.
@@ -109,6 +128,25 @@ class LocomotionBout:
 
     def __getitem__(self, item: str):
         return self.__dict__[item]
+
+    def at(self, frame:int) -> SnapShot:
+        '''
+            Returns the kinematics variables at a frame
+        '''
+
+        return SnapShot(
+            x=self.x[frame],
+            y=self.y[frame],
+            xy = Vector(self.x[frame], self.y[frame]),
+            v=self.velocity[frame],
+            s=self.speed[frame],
+            a_mag=self.acceleration[frame],
+            a=self.acceleration_vec[frame],
+            tangent=self.tangent[frame],
+            theta=self.theta[frame],
+            thetadot=self.thetadot[frame],
+            thetadotdot=self.thetadotdot[frame],
+        )
 
 
 def merge_locomotion_bouts(bouts: List[LocomotionBout]) -> Tuple[np.ndarray]:
