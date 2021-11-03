@@ -25,8 +25,8 @@ from data.data_structures import LocomotionBout
     This code implements the maths from: Pham et al 2017 (human locomotion paper) which
     is inspired by work from Tovote on hand movements and control theory.
 """
-
-
+from loguru import logger
+logger.warning('See "https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathPlanning/QuinticPolynomialsPlanner/quintic_polynomials_planner.py" for another implementatoin')
 class MSDUnivar:
     def __init__(
         self,
@@ -142,8 +142,8 @@ class MSD:
             self.path[var][end],  # x_1
             self.path.velocity[start][var],  # v_0
             self.path.velocity[end][var],  # v_1
-            -self.path.acceleration_vec[var][start],  # a_0
-            -self.path.acceleration_vec[var][end],  # a_1
+            -self.path.acceleration[var][start],  # a_0
+            -self.path.acceleration[var][end],  # a_1
         )
 
     def fit(self):
@@ -219,7 +219,7 @@ class MSD:
             zorder=100,
         )
 
-        axes["C"].plot(self.path.acceleration_vec.x, color=blue_grey)
+        axes["C"].plot(self.path.acceleration.x, color=blue_grey)
         axes["C"].plot(time[1:], trajectory.acceleration.x, color="salmon")
         axes["C"].scatter(
             [time[0], time[-1]],
@@ -229,7 +229,7 @@ class MSD:
             zorder=100,
         )
 
-        axes["E"].plot(self.path.acceleration_vec.y, color=blue_grey)
+        axes["E"].plot(self.path.acceleration.y, color=blue_grey)
         axes["E"].plot(time[1:], trajectory.acceleration.y, color="salmon")
         axes["E"].scatter(
             [time[0], time[-1]],

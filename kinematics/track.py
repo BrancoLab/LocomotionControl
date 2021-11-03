@@ -13,7 +13,7 @@ from geometry import Path, Vector
 from geometry import interpolate
 from kinematics import track_cordinates_system as TCS
 from data.data_utils import convolve_with_gaussian
-
+from draw.arena import Hairpin
 
 """
     Code to reconstruct a track made of a center line and two side
@@ -50,7 +50,7 @@ def get_skeleton() -> Tuple[np.ndarray, np.ndarray]:
     """
     # load arena image & threshold
     img = Image.open(
-        "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
+        Hairpin.image_local_path()
     )
     new_width = 40
     new_height = 60

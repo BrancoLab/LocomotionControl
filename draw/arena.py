@@ -74,11 +74,14 @@ class Hairpin:
         if Path(self._img_path_local).exists():
             return self._img_path_local
         else:
-            if sys.platform == "darwin":
-                return "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
-            else:
-                return r"C:\Users\Federico\Documents\GitHub\pysical_locomotion\draw\hairpin.png"
+            return Hairpin.image_local_path()
 
+    @staticmethod
+    def image_local_path():
+        if sys.platform == "darwin":
+            return "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
+        else:
+            return r"C:\Users\Federico\Documents\GitHub\pysical_locomotion\draw\hairpin.png"
 
 class T1(Hairpin):
     """

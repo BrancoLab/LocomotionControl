@@ -2,14 +2,13 @@ import numpy as np
 from typing import List
 
 from geometry.vector import Vector
-from geometry.path import Path
 
 
 def vectors_mean(*vectors: List[Vector]):
     return Vector(*np.mean([[v.x, v.y] for v in vectors], 0))
 
 
-def smooth_path_vectors(path: Path, window: int = 5) -> List[Vector]:
+def smooth_path_vectors(path, window: int = 5) -> List[Vector]:
     """
         Smooths vectors of a path by binning them and
         taking the average vector

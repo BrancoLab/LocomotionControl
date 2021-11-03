@@ -32,10 +32,10 @@ rc("text", usetex=False)
 
 # %%
 # ------------------------------- load tracking ------------------------------ #
-MIN_DUR = 6.5
+MIN_DUR = 4
 
 _bouts = []
-for roi in ('T3',): #, 'T2', 'T3', 'T4'):
+for roi in ('T2',): #, 'T2', 'T3', 'T4'):
     _bouts.append(pd.read_hdf(
         paths.analysis_folder / "behavior" / "saved_data" / f"{roi}_crossings.h5"
     ))
@@ -148,3 +148,67 @@ draw.Raster(unit.spikes, starts, ends)
 
 
 
+
+# %%
+'''
+    Plot firing rate vs speed as mouse goes around a bend
+'''
+from kinematics import time
+from geometry.utils import resample_linear_1d
+
+registered_bouts = time.time_rescale([bout.path.smooth(21) for bout in bouts])
+
+
+# cut firing rates
+frate = convolve_with_gaussian(unit.firing_rate, kernel_width=11)
+frates = [frate[locbout.start_frame:locbout.end_frame] for locbout in bouts]
+
+n_frames = np.min([len(fr) for fr in frates])
+resampled_frates = [resample_linear_1d(fr, n_frames) for fr in frates]
+
+# %%
+f = plt.figure(figsize=(20, 12), constrained_layout=True)
+f.suptitle(f'{unit.brain_region} - {unit.unit_id}')
+
+unit = units.loc[units.unit_id == 1036].iloc[0]
+frate = convolve_with_gaussian(unit.firing_rate)
+
+f.suptitle(f'{unit.brain_region} - {unit.unit_id}')
+
+axes = f.subplot_mosaic(
+    '''
+        AABBCC
+        AADDEE
+    '''
+)
+
+
+draw.ROI(roi, ax=axes['A'])
+
+for bout in bouts:
+    draw.Tracking(bout.x, bout.y-2, ax=axes['A'])
+
+    bout_spikes = unit.spikes[(unit.spikes > bout.start_frame)&(unit.spikes < bout.end_frame)] - bout.start_frame
+    bout_spikes = bout_spikes[bout_spikes < len(bout.x)]
+    draw.Tracking.scatter(bout.x[bout_spikes], bout.y[bout_spikes]-2, ax=axes['A'], color='r', zorder=100, alpha=.2)
+
+
+
+for n, bout in enumerate(registered_bouts):
+    locbout = bouts[n]
+
+    axes['B'].plot(bout.speed, lw=.5, color='k')
+    axes['C'].plot(bout.acceleration_mag, lw=.5, color='k')
+    axes['D'].plot(resampled_frates[n], lw=.5, color='k')
+
+
+axes['B'].plot(np.mean(np.vstack([b.speed for b in registered_bouts]), 0), lw=3, color='r')
+axes['C'].plot(np.mean(np.vstack([b.acceleration_mag for b in registered_bouts]), 0), lw=3, color='r')
+axes['D'].plot(np.mean(np.vstack(resampled_frates), 0), lw=3, color='r')
+
+
+# %%
+plt.plot(bout.acceleration_mag)
+sm = bout.smooth(20)
+
+plt.plot(sm.acceleration_mag)

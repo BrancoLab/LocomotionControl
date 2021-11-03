@@ -75,14 +75,10 @@ class LocomotionBout:
     ):
         self.window = window  # size of smoothing window
 
-        path: Path = Path(crossing.x.copy(), crossing.y.copy())
-        (
-            self.velocity,
-            self.acceleration_vec,
-            self.tangent,
-        ) = smooth_path_vectors(
-            path, window=self.window
-        ) 
+        self.path: Path = Path(crossing.x.copy(), crossing.y.copy()).smooth(window)
+        self.velocity = self.path.velocity
+        self.acceleration_vec = self.path.acceleration
+        self.tangent = self.path.tangent
 
         self.path: Path = Path(
             crossing.x[self.window :], crossing.y[self.window :]

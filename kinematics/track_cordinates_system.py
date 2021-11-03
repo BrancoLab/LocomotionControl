@@ -1,6 +1,8 @@
 import numpy as np
 from typing import Tuple
 
+import fcutils.progress
+
 from geometry import Path, Vector
 
 """
@@ -33,7 +35,7 @@ def point_to_track_coordinates_system(
     return path_length, normal_distance
 
 
-def path_to_track_coordinates_system(track: Path, path: Path) -> Path:
+def path_to_track_coordinates_system(track: Path, path: Path, progress:bool=False) -> Path:
     """
         Given a Path representing e.g. the shortest path through the arena
         and another Path with e.g. tracking from a mouse, this function returns
@@ -42,7 +44,15 @@ def path_to_track_coordinates_system(track: Path, path: Path) -> Path:
         the distance away (orthogonal) to the track
     """
     X, Y = [], []
-    for n in range(len(path)):
+    def empty_track(*args):
+        return args
+
+    if progress:
+        track = fcutils.progress.track
+    else:
+        track = empty_track
+
+    for n in track(range(len(path))):
         x, y = point_to_track_coordinates_system(track, path[n])
         X.append(x)
         Y.append(y)
