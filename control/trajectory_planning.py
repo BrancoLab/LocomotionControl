@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     # ---------------------------------- COMPUTE --------------------------------- #
     K = 11
-    points_spacing = 2
+    points_spacing = 3
 
     (
         left_line,
@@ -148,17 +148,19 @@ if __name__ == "__main__":
         center_to_track,
         right_to_track,
         control_points,
-    ) = extract_track_from_image(points_spacing=points_spacing, k=K)
+    ) = extract_track_from_image(
+        points_spacing=points_spacing, k=K, restrict_extremities=True
+    )
 
-    # min_len_trace_path, min_len_trace_to_track = fit_best_trace(
-    #     control_points, center_line, K, angle_cost=0, length_cost=1
-    # )
-    # min_ang_trace_path, min_ang_trace_to_track = fit_best_trace(
-    #     control_points, center_line, K, angle_cost=1, length_cost=0
-    # )
-    # mean_trace_path, mean_trace_to_track = fit_best_trace(
-    #     control_points, center_line, K, angle_cost=1, length_cost=.01
-    # )
+    min_len_trace_path, min_len_trace_to_track = fit_best_trace(
+        control_points, center_line, K, angle_cost=0, length_cost=1
+    )
+    min_ang_trace_path, min_ang_trace_to_track = fit_best_trace(
+        control_points, center_line, K, angle_cost=1, length_cost=0
+    )
+    mean_trace_path, mean_trace_to_track = fit_best_trace(
+        control_points, center_line, K, angle_cost=1, length_cost=0.01
+    )
 
     # ----------------------------------- PLOT ----------------------------------- #
     f = plt.figure(figsize=(8, 12))
@@ -186,56 +188,41 @@ if __name__ == "__main__":
             pts.x, pts.y, color=[0.7, 0.7, 0.7], ax=axes["A"], s=25, alpha=0.5
         )
 
-    _ = draw.Hairpin(alpha=1, ax=axes["A"])
-
-    # track tracking in track coord system
-    draw.Tracking(
-        left_to_track.x, left_to_track.y, ax=axes["B"], ls="--", color="k"
-    )
-    draw.Tracking(
-        center_to_track.x, center_to_track.y, ax=axes["B"], lw=2, color="k"
-    )
-    draw.Tracking(
-        right_to_track.x, right_to_track.y, ax=axes["B"], ls="--", color="b"
-    )
+    _ = draw.Hairpin(ax=axes["A"])
 
     # draw best traces
-    # draw.Tracking(
-    #     min_len_trace_path.x,
-    #     min_len_trace_path.y,
-    #     color="salmon",
-    #     ax=axes["A"],
-    #     lw=3,
-    # )
-    # draw.Tracking(
-    #     min_len_trace_to_track.x,
-    #     min_len_trace_to_track.y,
-    #     color="salmon",
-    #     ax=axes["B"],
-    # )
+    draw.Tracking(
+        min_len_trace_path.x,
+        min_len_trace_path.y,
+        color="salmon",
+        ax=axes["A"],
+        lw=3,
+    )
+    draw.Tracking(
+        min_len_trace_to_track.x,
+        min_len_trace_to_track.y,
+        color="salmon",
+        ax=axes["B"],
+    )
 
-    # draw.Tracking(
-    #     min_ang_trace_path.x,
-    #     min_ang_trace_path.y,
-    #     color="green",
-    #     ax=axes["A"],
-    #     lw=3,
-    # )
+    draw.Tracking(
+        min_ang_trace_path.x,
+        min_ang_trace_path.y,
+        color="green",
+        ax=axes["A"],
+        lw=3,
+    )
 
-    # draw.Tracking(
-    #     min_ang_trace_to_track.x,
-    #     min_ang_trace_to_track.y,
-    #     color="green",
-    #     ax=axes["B"],
-    # )
+    draw.Tracking(
+        min_ang_trace_to_track.x,
+        min_ang_trace_to_track.y,
+        color="green",
+        ax=axes["B"],
+    )
 
-    # draw.Tracking(
-    #     mean_trace_path.x,
-    #     mean_trace_path.y,
-    #     color="b",
-    #     ax=axes["A"],
-    #     lw=3,
-    # )
+    draw.Tracking(
+        mean_trace_path.x, mean_trace_path.y, color="b", ax=axes["A"], lw=3,
+    )
 
     _ = axes["B"].set(ylim=[-5, 5])
 

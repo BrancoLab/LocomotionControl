@@ -74,7 +74,11 @@ def get_skeleton() -> Tuple[np.ndarray, np.ndarray]:
     return skeleton, distance
 
 
-def skeleton2path(skeleton: np.ndarray, points_spacing: int) -> Path:
+def skeleton2path(
+    skeleton: np.ndarray,
+    points_spacing: int,
+    apply_extra_spacing: bool = False,  # if true track is padded to look like mice's paths
+) -> Path:
     """
         It finds points on the skeleton and sorts
         them absed on their position.
@@ -101,30 +105,29 @@ def skeleton2path(skeleton: np.ndarray, points_spacing: int) -> Path:
     Y = np.float64([p[1] + 1 for p in pts])[::-1] - 0.5
 
     # adjust coordinates to make it look more like the animals tracking (e.g. because mice have non-zero width)
-    Y[Y < 10] -= 2.5
-    Y[Y > 50] += 1.5
-    Y[(Y > 40) & (Y < 50) & (5 < X) & (X < 33)] += 2
-    X[(X > 8) & (X < 20) & (Y > 40) & (Y < 50)] -= 2
-    X[(X > 20) & (X < 33) & (Y > 40) & (Y < 50)] += 2
-
-    Y[(X > 10) & (X < 15) & (Y > 43) & (Y < 48)] += 2.5
-
-    X[(Y < 18) & (X > 8) & (X < 14)] -= 1
-    X[(Y < 18) & (X > 24) & (X < 32)] -= 1
-    X[(Y < 18) & (X > 16) & (X < 25)] += 1
-    X[(Y < 18) & (X > 32)] += 1
-
-    Y[(X > 30) & (X < 35) & (Y < 5)] += 1
+    if apply_extra_spacing:
+        Y[Y < 10] -= 2.5
+        Y[Y > 50] += 1.5
+        Y[(Y > 40) & (Y < 50) & (5 < X) & (X < 33)] += 2
+        X[(X > 8) & (X < 20) & (Y > 40) & (Y < 50)] -= 2
+        X[(X > 20) & (X < 33) & (Y > 40) & (Y < 50)] += 2
+        Y[(X > 10) & (X < 15) & (Y > 43) & (Y < 48)] += 2.5
+        X[(Y < 18) & (X > 8) & (X < 14)] -= 1
+        X[(Y < 18) & (X > 24) & (X < 32)] -= 1
+        X[(Y < 18) & (X > 16) & (X < 25)] += 1
+        X[(Y < 18) & (X > 32)] += 1
+        Y[(X > 30) & (X < 35) & (Y < 5)] += 1
 
     # smooth
     X = convolve_with_gaussian(X, kernel_width=31)
     Y = convolve_with_gaussian(Y, kernel_width=31)
 
-    return Path(X, Y).downsample(spacing=points_spacing)
+    return Path(X, Y).downsample_euclidean(spacing=points_spacing)
 
 
-def compute_extruded_paths(
-    path: Path, width_at_points: np.ndarray
+def extrude_paths(
+    path: Path,  # path to extrude
+    restrict_extremities: bool = False,  # restrict width at start and end of path
 ) -> Tuple[Path, Path]:
     """
         Computes paths extruded to left and right of original path based on widht
@@ -135,19 +138,24 @@ def compute_extruded_paths(
     for n in range(N):
         theta = np.radians(path.normal.angle[n])
         p = path[n]
-        width = width_at_points[n]
 
         # hardcoded width for certain segments of the arena
-        if n > N * 0.6 and n < N * 0.85:
+        if (n > N * 0.57 and n < N * 0.85) or (0.2 * N < n < 0.45 * N):
+            # inbetween shapr curves and after second sharp
             width = 3
-        elif 0.2 * N < n < 0.45 * N:
-            width = 3
-        elif n > N * 0.90 or n < N * 0.025:
-            width = 0.5
-        elif n > N * 0.85:
-            width = 1.5
         else:
-            width = 2
+            if n > N * 0.90 or n < N * 0.025:
+                if restrict_extremities:
+                    width = 0.5  # start and end segments
+                else:
+                    width = 3
+            elif n > N * 0.85:
+                if restrict_extremities:
+                    width = 1.5  # approaching end
+                else:
+                    width = 3
+            else:
+                width = 2
 
         L["x"].append(p.x + width * np.cos(theta))
         L["y"].append(p.y + width * np.sin(theta))
@@ -164,6 +172,8 @@ def compute_extruded_paths(
 def extract_track_from_image(
     points_spacing: int = 3,  # distance in cm between points along the track
     k: int = 5,  # number of control points for each track point
+    restrict_extremities: bool = False,  # restrict width at start and end of path
+    apply_extra_spacing: bool = False,  # if true track is padded to look like mice's paths
 ) -> Tuple[Path, dict]:
     """
         It loads an image with Hairpin, uses image processing to extract
@@ -177,24 +187,14 @@ def extract_track_from_image(
     skeleton, distance = get_skeleton()
 
     # create path by finding points along the skeleton and smoothing the result
-    center_line = skeleton2path(skeleton, points_spacing)
+    center_line = skeleton2path(
+        skeleton, points_spacing, apply_extra_spacing=apply_extra_spacing
+    )
     l = len(center_line)
 
-    # get the arena width at each point
-    track_width = [
-        distance[int(center_line[n].y), int(center_line[n].x)]
-        for n in range(l)
-    ]
-    width_at_points = [
-        track_width[n] + (0.25 if n > l * 0.5 else 0) for n in range(l)
-    ]
-    # width_at_points = [
-    #     track_width[n] for n in range(l)
-    # ]
-
     # get left/right side paths
-    left_line, right_line = compute_extruded_paths(
-        center_line, width_at_points
+    left_line, right_line = extrude_paths(
+        center_line, restrict_extremities=restrict_extremities
     )
 
     # ? compute control points
@@ -231,3 +231,65 @@ def extract_track_from_image(
         right_to_track,
         control_points,
     )
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    from myterial import blue_grey
+
+    import draw
+
+    # ---------------------------------- COMPUTE --------------------------------- #
+    K = 11
+    points_spacing = 3
+
+    (
+        left_line,
+        center_line,
+        right_line,
+        left_to_track,
+        center_to_track,
+        right_to_track,
+        control_points,
+    ) = extract_track_from_image(
+        points_spacing=points_spacing,
+        k=K,
+        restrict_extremities=False,
+        apply_extra_spacing=True,
+    )
+
+    f = plt.figure(figsize=(8, 12))
+    axes = f.subplot_mosaic(
+        """
+            AAA
+            AAA
+            AAA
+            BBB
+        """
+    )
+
+    # draw tracking 2d
+    draw.Tracking(center_line.x, center_line.y, ax=axes["A"])
+    draw.Tracking.scatter(
+        center_line.x, center_line.y, ax=axes["A"], color=blue_grey
+    )
+    draw.Tracking(left_line.x, left_line.y, ls="--", alpha=0.5, ax=axes["A"])
+    draw.Tracking(
+        right_line.x, right_line.y, ls="--", alpha=0.5, color="b", ax=axes["A"]
+    )
+
+    _ = draw.Hairpin(ax=axes["A"])
+
+    # track tracking in track coord system
+    draw.Tracking(
+        left_to_track.x, left_to_track.y, ax=axes["B"], ls="--", color="k"
+    )
+    draw.Tracking(
+        center_to_track.x, center_to_track.y, ax=axes["B"], lw=2, color="k"
+    )
+    draw.Tracking(
+        right_to_track.x, right_to_track.y, ax=axes["B"], ls="--", color="b"
+    )
+
+    plt.show()

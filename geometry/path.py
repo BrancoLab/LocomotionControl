@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import sys
+
+sys.path.append("./")
+
 from typing import Union
 import numpy as np
 
@@ -85,7 +89,7 @@ class Path:
                     generated["x"].append(p0.x)
                     generated["y"].append(p0.y)
             else:
-                n_new = int(np.ceil(segment.magnitude / spacing))
+                n_new = int(np.floor(segment.magnitude / spacing))
 
                 # create new points
                 for p in np.linspace(0, 1, n_new):
@@ -97,7 +101,33 @@ class Path:
 
     def downsample(self, spacing: float = 1) -> Path:
         """
-            Downsamples the path keeping only points that are spacing apart
+            Downsamples the path keeping only points that are spacing apart.
+            It downsamples the path by selecting points that are spaced
+            along the path: the spacing reflects the path-length between two
+            points along the original path, even though they might be very close in 
+            euclidean terms.
+        """
+        downsampled = dict(x=[], y=[])
+        for n in range(len(self)):
+            if n == 0:
+                downsampled["x"].append(self[0].x)
+                downsampled["y"].append(self[0].y)
+                last_distance = 0
+            else:
+                # get path distance until current point
+                curr_distance = np.sum(self.speed[:n]) / self.fps
+
+                if curr_distance - last_distance > spacing:
+                    downsampled["x"].append(self[n].x)
+                    downsampled["y"].append(self[n].y)
+                    last_distance = curr_distance
+        return Path(downsampled["x"], downsampled["y"])
+
+    def downsample_euclidean(self, spacing: float = 1) -> Path:
+        """
+            Downsamples the path keeping only points that are spacing apart.
+            This function looks at the euclidean distance between points, 
+            ignores the path length distance between them
         """
         downsampled = dict(x=[], y=[])
         for n in range(len(self)):
@@ -105,14 +135,20 @@ class Path:
                 downsampled["x"].append(self[0].x)
                 downsampled["y"].append(self[0].y)
             else:
-                # get current and prev point
                 p0 = Vector(downsampled["x"][-1], downsampled["y"][-1])
                 p1 = self[n]
 
-                # if distance > spacing, keep point
-                if (p1 - p0).magnitude > spacing:
-                    downsampled["x"].append(p1.x)
-                    downsampled["y"].append(p1.y)
+                # if distance > spacing
+                if (p1 - p0).magnitude >= spacing:
+                    # the distance between the two could be > spacing
+                    # get a new point at the right distance
+                    vec = p1 - p0
+                    downsampled["x"].append(
+                        p0.x + spacing * np.cos(np.radians(vec.angle))
+                    )
+                    downsampled["y"].append(
+                        p0.y + spacing * np.sin(np.radians(vec.angle))
+                    )
         return Path(downsampled["x"], downsampled["y"])
 
 
@@ -137,3 +173,44 @@ class GrowingPath:
 
     def finalize(self) -> Path:
         return Path(self.x, self.y, self.theta)
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    import draw
+
+    # x = np.linspace(0, 30, 100)
+    # y = np.sin(x)
+
+    c = np.linspace(0, 1.5 * np.pi, 100)
+    x = c
+    y = np.sin(c)
+
+    path = Path(x, y)
+    downsampled = path.downsample(1)
+    downsampled_eu = path.downsample_euclidean(1)
+    upsampled = downsampled.interpolate(0.25)
+
+    draw.Tracking(path.x, path.y, color="k", alpha=0.5)
+    draw.Tracking.scatter(
+        path.x, path.y, color="k", label="original", alpha=0.5
+    )
+
+    draw.Tracking(downsampled.x, downsampled.y, color="r")
+    draw.Tracking.scatter(
+        downsampled.x, downsampled.y, color="r", label="downsampled"
+    )
+
+    draw.Tracking(upsampled.x, upsampled.y, color="b")
+    draw.Tracking.scatter(
+        upsampled.x, upsampled.y, color="b", label="resampled"
+    )
+
+    draw.Tracking(downsampled_eu.x, downsampled_eu.y, color="g")
+    draw.Tracking.scatter(
+        downsampled_eu.x, downsampled_eu.y, color="g", label="downsampled eucl"
+    )
+
+    plt.legend()
+    plt.show()
