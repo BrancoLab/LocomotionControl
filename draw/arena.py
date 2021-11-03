@@ -5,10 +5,11 @@ import sys
 sys.path.append("./")
 from pathlib import Path
 import os
-from draw.gliphs import Rectangle
 
 from fcutils.plot.figure import clean_axes
 from myterial import salmon, blue_light, red_light, green, indigo, teal
+
+from draw.gliphs import Rectangle
 
 
 class Hairpin:
@@ -38,20 +39,10 @@ class Hairpin:
             image = plt.imread(img_path)
         else:
             try:
-                image = plt.imread(self._img_path_local)
+                image = plt.imread(self.get_image_path())
             except FileNotFoundError:  # use complete path when working in a notebook
-                try:
-                    if sys.platform == "darwin":
-                        image = plt.imread(
-                            "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
-                        )
-                    else:
-                        image = plt.imread(
-                            r"C:\Users\Federico\Documents\GitHub\pysical_locomotion\draw\hairpin.png"
-                        )
-                except FileNotFoundError:
-                    logger.warning("Could not draw ROI image")
-                    return
+                logger.warning("Could not draw ROI image")
+                return
 
         # raise ValueError(image.shape[1] / 40, image.shape[0] / 60)
         image = image[
@@ -78,6 +69,15 @@ class Hairpin:
             )
         clean_axes(ax.figure)
         ax.axis("equal")
+
+    def get_image_path(self):
+        if Path(self._img_path_local).exists():
+            return self._img_path_local
+        else:
+            if sys.platform == "darwin":
+                return "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
+            else:
+                return r"C:\Users\Federico\Documents\GitHub\pysical_locomotion\draw\hairpin.png"
 
 
 class T1(Hairpin):

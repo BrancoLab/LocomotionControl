@@ -37,7 +37,7 @@ recorder.start(
 
 # %%
 # load and clean roi crossings
-ROI = "T3"
+ROI = "T2"
 MIN_DUR = 1.5
 
 _bouts = pd.read_hdf(
@@ -59,14 +59,14 @@ axes = f.subplot_mosaic(
 draw.ROI(ROI, ax=axes["A"])
 
 SKIP = 0
-N = 25
+N = 10
 S, T = np.full((80, N), np.nan), np.full((80, N), np.nan)
 _S, _T = np.full((80, N), np.nan), np.full((80, N), np.nan)
 
 for i in range(N):
     bout = LocomotionBout(_bouts.iloc[i])
     trajectory, time = MSD(
-        bout, skip=SKIP, start_frame=3, end_frame=-3
+        bout, skip=SKIP, start_frame=3, end_frame=23
     ).simulate()
 
     # plot
@@ -85,45 +85,39 @@ for i in range(N):
     T[: len(bout), i] = bout.thetadot
 
     # store simulation results
-    _S[time, i] = trajectory.speed
-    _T[time, i] = calc_angular_velocity(trajectory.theta) * 60
+    _S[time[0] : time[-1], i] = trajectory.speed
+    _T[time[0] : time[-1], i] = calc_angular_velocity(trajectory.theta) * 60
 
-_T[:5, :] = np.nan
+_T[:7, :] = np.nan
 
-plot_mean_and_error(np.nanmean(S, 1), np.nanstd(S, 1), axes["B"])
+plot_mean_and_error(np.nanmedian(S, 1), np.nanstd(S, 1), axes["B"])
 
 plot_mean_and_error(
-    np.nanmean(_S, 1), np.nanstd(_S, 1), axes["B"], color="red"
+    np.nanmedian(_S, 1), np.nanstd(_S, 1), axes["B"], color="red"
 )
 
-plot_mean_and_error(np.nanmean(T, 1), np.nanstd(T, 1), axes["C"])
+plot_mean_and_error(np.nanmedian(T, 1), np.nanstd(T, 1), axes["C"])
 plot_mean_and_error(
-    np.nanmean(_T, 1), np.nanstd(_T, 1), axes["C"], color="red"
+    np.nanmedian(_T, 1), np.nanstd(_T, 1), axes["C"], color="red"
 )
 
 
 # %%
 
-
 # %%
 
+m = MSD(bout, skip=SKIP, start_frame=3, end_frame=23)
+trajectory, _ = m.simulate()
 
-# %%
+# plt.plot(trajectory.x, trajectory.y)
+# plt.scatter(m.fits['x'].x_0, m.fits['y'].x_0)
+# plt.scatter(m.fits['x'].x_1, m.fits['y'].x_1)
 
+# plt.plot(trajectory.velocity.x)
+# plt.scatter(0, m.fits['x'].v_0)
+# plt.scatter(len(trajectory), m.fits['x'].v_1)
 
-# %%
-
-
-# %%
-
-
-# %%
-
-
-# %%
-
-
-# %%
-
-
+plt.plot(trajectory.velocity.y)
+plt.scatter(0, m.fits["y"].v_0)
+plt.scatter(len(trajectory), m.fits["y"].v_1)
 # %%

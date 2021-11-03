@@ -5,8 +5,14 @@ from collections import namedtuple
 
 from typing import Tuple, List
 
+import sys
+
+sys.path.append("./")
+
 from geometry import Path, Vector
 from geometry.vector_utils import smooth_path_vectors
+
+from kinematics import track_cordinates_system as TCS
 
 
 @dataclass
@@ -64,9 +70,11 @@ class LocomotionBout:
         over a small window.
     """
 
-    window = 4
+    def __init__(
+        self, crossing: pd.Series, window: int = 4, linearize_to: Path = None
+    ):
+        self.window = window  # size of smoothing window
 
-    def __init__(self, crossing: pd.Series):
         path: Path = Path(crossing.x.copy(), crossing.y.copy())
         (
             self.velocity,
@@ -93,6 +101,12 @@ class LocomotionBout:
 
         self.start_frame = crossing.start_frame
         self.end_frame = crossing.end_frame
+        
+        # linearize to a reference track
+        if linearize_to is not None:
+            self.linearized: Path = TCS.path_to_track_coordinates_system(
+                linearize_to, self.path
+            )
 
     def __len__(self):
         return len(self.x)

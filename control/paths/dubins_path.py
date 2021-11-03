@@ -360,7 +360,8 @@ class DubinPath:
 
         theta1, theta2 = np.radians(wp1.theta), np.radians(wp2.theta)
 
-        l_rot = Rot.from_euler("z", theta1).as_matrix()[0:2, 0:2]
+        # l_rot = Rot.from_euler("z", theta1).as_matrix()[0:2, 0:2]
+        l_rot = Rot.from_euler("z", theta1).as_dcm()[0:2, 0:2]
         le_xy = np.stack([gx, gy]).T @ l_rot
         le_theta = theta2 - theta1
 
@@ -368,7 +369,8 @@ class DubinPath:
             le_xy[0], le_xy[1], le_theta
         )
 
-        rot = Rot.from_euler("z", -theta1).as_matrix()[0:2, 0:2]
+        # rot = Rot.from_euler("z", -theta1).as_matrix()[0:2, 0:2]
+        rot = Rot.from_euler("z", -theta1).as_dcm()[0:2, 0:2]
         converted_xy = np.stack([lp_x, lp_y]).T @ rot
         x = converted_xy[:, 0] + wp1.x
         y = converted_xy[:, 1] + wp1.y

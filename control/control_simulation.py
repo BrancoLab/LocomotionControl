@@ -12,8 +12,9 @@ import control
 
 import geometry.vector_analysis as va
 
-# from control.lqr_kinematics import KinematicsLQR
-from control.pure_pursuit import PurePursuit
+from control.lqr_kinematics import KinematicsLQR
+
+# from control.pure_pursuit import PurePqursuit
 from control.config import dt
 
 # initialize car
@@ -28,8 +29,8 @@ path = control.paths.BSpline(wps.x, wps.y, fps=10, degree=3)
 f, ax = plt.subplots(figsize=(6, 10))
 
 # get controller
-# MODEL = KinematicsLQR(path)
-MODEL = PurePursuit(path)
+MODEL = KinematicsLQR(path)
+# MODEL = PurePursuit(path)
 
 animation_step = 5
 frame = 0

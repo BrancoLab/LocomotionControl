@@ -44,6 +44,9 @@ class Vector:  # 2D vector
             else:
                 return Vector(self.x[item], self.y[item])
 
+    def __sub__(self, other: Vector):
+        return Vector(self.x - other.x, self.y - other.y)
+
     def to_polar(self) -> Tuple[Union[np.ndarray, float]]:
         rho = np.hypot(self.x, self.y)
         phi = np.degrees(np.arctan2(self.y, self.x))
