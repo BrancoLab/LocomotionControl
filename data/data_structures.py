@@ -64,9 +64,9 @@ class LocomotionBout:
         over a small window.
     """
 
-    window = 4
+    def __init__(self, crossing: pd.Series, window: int = 4):
+        self.window = window  # size of smoothing window
 
-    def __init__(self, crossing: pd.Series):
         path: Path = Path(crossing.x.copy(), crossing.y.copy())
         (
             self.velocity,

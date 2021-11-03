@@ -7,21 +7,31 @@ sys.path.append("/Users/federicoclaudi/Documents/Github/LocomotionControl")
 
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import pathlib
 
 from myterial.utils import make_palette
+from tpd import recorder
 from myterial import pink_dark, blue_dark
 
 from control import trajectory_planning as tp
 import draw
 from data import paths
 from data.data_structures import LocomotionBout
+from data.data_utils import convolve_with_gaussian
+from geometry import Path
+
+
+folder = pathlib.Path(
+    r"/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Presentations/Presentations/Fiete lab"
+)
+recorder.start(
+    base_folder=folder.parent, folder_name=folder.name, timestamp=False
+)
 
 
 # %%
-N = 10  # number of traces
-K = 9  # number of control points
+K = 11  # number of control points
 
 (
     left_line,
@@ -31,14 +41,8 @@ K = 9  # number of control points
     center_to_track,
     right_to_track,
     control_points,
-) = tp.extract_track_from_image(points_spacing=3, k=K)
+) = tp.extract_track_from_image(points_spacing=2, k=K)
 
-min_len_trace_path, min_len_trace_to_track = tp.fit_best_trace(
-    control_points, center_line, K, angle_cost=0, length_cost=1
-)
-min_ang_trace_path, min_ang_trace_to_track = tp.fit_best_trace(
-    control_points, center_line, K, angle_cost=1, length_cost=0
-)
 
 # ? plot
 f, ax = plt.subplots(figsize=(8, 12))
@@ -46,19 +50,23 @@ f, ax = plt.subplots(figsize=(8, 12))
 
 _ = draw.Hairpin()
 
-
-colors = make_palette(pink_dark, blue_dark, N)
-for n, p in enumerate(np.linspace(0, 1, N)):
+P = [0, 0.125, 1]
+colors = make_palette(pink_dark, blue_dark, len(P))
+traces = []
+for n, p in enumerate(P):
     trace, _ = tp.fit_best_trace(
         control_points,
         center_line,
         K,
         angle_cost=p,
-        length_cost=(1 - p) * 2.5e-2,
+        length_cost=(1 - p) * 5e-3,
     )
 
     # draw best trace
-    draw.Tracking(trace.x, trace.y, color=colors[n], lw=3)
+    X = convolve_with_gaussian(trace.x, kernel_width=11)
+    Y = convolve_with_gaussian(trace.y, kernel_width=11)
+    traces.append(Path(X, Y))
+    draw.Tracking(X, Y, color=colors[n], lw=3)
 
 
 # %%
@@ -75,7 +83,15 @@ for i, bout in _bouts.iterrows():
 
 #  %%
 # ----------------------------------- plot ----------------------------------- #
-_ = draw.Hairpin()
+f, ax = plt.subplots(figsize=(8, 12))
+_ = draw.Hairpin(set_ax=True)
+f._save_name = "optimal_trajectory"
 
 for bout in bouts:
-    _ = draw.Tracking(bout.x + 1, bout.y, alpha=0.2)
+    _ = draw.Tracking(bout.x + 0.5, bout.y - 0.5, alpha=0.2)
+
+for trace, color in zip(traces, "brg"):
+    draw.Tracking(trace.x, trace.y, lw=3, color=color)
+
+recorder.add_figures()
+# %%

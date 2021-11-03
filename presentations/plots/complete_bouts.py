@@ -7,7 +7,6 @@ sys.path.append("/Users/federicoclaudi/Documents/Github/LocomotionControl")
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 from pathlib import Path
 
 from tpd import recorder
@@ -132,50 +131,3 @@ axes["C"].set(title=r"$angular velocity -- \frac{deg}{s}$")
 _ = axes["E"].set(title=r"$angular acceleration -- \frac{deg}{s^2}$")
 
 recorder.add_figures()
-
-
-# %%
-# Plot the whole tracking colored just by gcoord
-
-# plot ROI
-f, ax = plt.subplots(figsize=(8, 12))
-f._save_name = "gcoord_tracking"
-draw.Hairpin()
-
-G = []
-for bout in bouts:
-    start = np.where(bout.speed > 10)[0][0]
-    G.append(bout.gcoord[start:])
-G = np.hstack(G)
-
-Y = Y[X < 40]
-G = G[X < 40]
-X = X[X < 40]
-
-
-draw.Tracking.scatter(X[::5], Y[::5], c=G[::5], cmap="bone")
-
-
-recorder.add_figures()
-
-# %%
-# Get distance travelled during bout
-dists = []
-for bout in bouts:
-    dists.append(np.sum(bout.speed) / 60)
-
-f, ax = plt.subplots()
-
-draw.Hist(dists, bins=20)
-
-
-ax.set(xlim=[200, 300])
-# %%
-# draw hist of bouts durations
-
-f, ax = plt.subplots()
-
-draw.Hist([b.duration for b in bouts], bins=20)
-
-
-# %%
