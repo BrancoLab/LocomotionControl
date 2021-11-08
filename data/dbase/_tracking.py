@@ -3,21 +3,13 @@ import numpy as np
 from scipy.signal import medfilt
 import pandas as pd
 
-from fcutils.maths.geometry import (
-    calc_distance_between_points_in_a_vector_2d as get_speed_from_xy,
-)
-from fcutils.maths.geometry import (
-    calc_angle_between_points_of_vector_2d as get_dir_of_mvmt_from_xy,
-)
-from fcutils.maths.geometry import (
-    calc_angle_between_vectors_of_points_2d as get_orientation,
-)
+
 from fcutils.maths import derivative
 from fcutils.path import size
 
 from data.dbase.io import load_dlc_tracking
 from data import data_utils
-
+from geometry.angles import orientation, angular_derivative
 from geometry import Path
 
 
@@ -88,7 +80,7 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
         For some things like orientation average across body parts to reduce noise
     """
 
-    import matplotlib.pyplot as plt
+    # import matplotlib.pyplot as plt
 
     def unwrap(x):
         return np.degrees(np.unwrap(np.radians(x)))
@@ -104,23 +96,20 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results["acceleration"] = derivative(results["speed"])
 
     # get direction of movement
-    results["theta"] = 180 - Path(
-        data_utils.convolve_with_gaussian(body.x, kernel_width=15), 
-        data_utils.convolve_with_gaussian(body.y, kernel_width=15)).tangent.angle
-    results["thetadot"] = (
-        calc_angular_velocity(results["theta"]) 
-    )  * 60 # in deg /s
-    results["thetadotdot"] = calc_angular_velocity(
-        results["thetadot"]
-    )  # in deg / s^2
+    path = Path(body.x, body.y).smooth()
+    results["theta"] = path.theta
+    results["thetadot"] = path.thetadot  # deg/s
+    results["thetadotdot"] = path.thetadotdot  # in deg / s^2
 
     # compute orientation of the body
-    results["orientation"] = get_orientation(
+    results["orientation"] = orientation(
         tail_base.x, tail_base.y, body.x, body.y
     )
 
     # compute angular velocity in deg/s
-    results["angular_velocity"] = calc_angular_velocity(results["orientation"]) * 60    # in deg/s
+    results["angular_velocity"] = (
+        angular_derivative(results["orientation"]) * 60
+    )  # in deg/s
 
     return results
 
@@ -158,10 +147,19 @@ def process_tracking_data(
 
     # # make sure all tracking start at (x,y)=(0, 0) and ends at (x,y)=(40, 60)
     limits = dict(
-        x = (np.percentile(body_parts_tracking["body"]["x"], .001), np.percentile(body_parts_tracking["body"]["x"], 99.999), 2, 39),
-        y = (np.percentile(body_parts_tracking["body"]["y"], .001), np.percentile(body_parts_tracking["body"]["y"], 99.999), 1.5, 57.5),
+        x=(
+            np.percentile(body_parts_tracking["body"]["x"], 0.001),
+            np.percentile(body_parts_tracking["body"]["x"], 99.999),
+            2,
+            39,
+        ),
+        y=(
+            np.percentile(body_parts_tracking["body"]["y"], 0.001),
+            np.percentile(body_parts_tracking["body"]["y"], 99.999),
+            1.5,
+            57.5,
+        ),
     )
-
 
     # merge dictionaries
     body_parts_tracking = {
@@ -170,20 +168,22 @@ def process_tracking_data(
     }
     for bp in body_parts_tracking.keys():
         body_parts_tracking[bp]["bpname"] = bp
-
-        if bp == 'body':
-            a = 1
-
-        for coord in 'xy':
+        for coord in "xy":
             at_zero = body_parts_tracking[bp][coord] - limits[coord][0]
-            scaled = at_zero / (limits[coord][1] - limits[coord][0]) * (limits[coord][3] - limits[coord][2])
+            scaled = (
+                at_zero
+                / (limits[coord][1] - limits[coord][0])
+                * (limits[coord][3] - limits[coord][2])
+            )
             body_parts_tracking[bp][coord] = scaled + limits[coord][2]
 
-    logger.info(f'''
+    logger.info(
+        f"""
         Coordinates bounds: 
             x: {np.min(body_parts_tracking['body']['x'])} -> {np.max(body_parts_tracking['body']['x'])}
             y: {np.min(body_parts_tracking['body']['y'])} -> {np.max(body_parts_tracking['body']['y'])}
-        ''')
+        """
+    )
     key.update(velocites)
 
     return key, body_parts_tracking, len(key["orientation"])

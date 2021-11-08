@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 from loguru import logger
 from scipy import stats
 from scipy.signal import medfilt
@@ -21,27 +21,55 @@ KEYS = (
     "spikes",
     "firing_rate",
     "dmov_velocity",
-    'acceleration',
-    'theta',
-    'thetadot',
-    'thetadotdot'
+    "acceleration",
+    "theta",
+    "thetadot",
+    "thetadotdot",
 )
 
-def register_in_time(trials, n_samples):
-    '''
+
+def resample_linear_1d(original: np.ndarray, target_length: int) -> np.ndarray:
+    """
+        Similar to scipy resample but with no aberration, see:
+            https://stackoverflow.com/questions/20322079/downsample-a-1d-numpy-array
+    """
+    original = np.array(original, dtype=np.float)
+    index_arr = np.linspace(
+        0, len(original) - 1, num=target_length, dtype=np.float
+    )
+    index_floor = np.array(index_arr, dtype=np.int)  # Round down
+    index_ceil = index_floor + 1
+    index_rem = index_arr - index_floor  # Remain
+
+    val1 = original[index_floor]
+    val2 = original[index_ceil % len(original)]
+    interp = val1 * (1.0 - index_rem) + val2 * index_rem
+    assert len(interp) == target_length
+    return interp
+
+
+def register_in_time(
+    arrays: List[np.ndarray], n_samples: int = None
+) -> List[np.ndarray]:
+    """
         Given a list of 1d numpy arrays of different length,
         this function returns an array of shape (n_samples, n_trials) so
         that each trial has the same number of samples and can thus be averaged
         nicely
-    '''
-    target = np.zeros((n_samples, len(trials)))
-    for trial_n, trial in enumerate(trials):
-        n = len(trial)
-        for i in range(n_samples):
-            idx = int(np.floor(n * (i / n_samples)))
-            target[i, trial_n] = trial[idx]
-    return target
-    
+    """
+    n_samples = n_samples or np.min([len(x) for x in arrays])
+    return [resample_linear_1d(x, n_samples) for x in arrays]
+
+
+def mean_and_std(arrays: List[np.ndarray]) -> Tuple[np.ndarray]:
+    """
+        Given a list of 1D arrays of same length, returns the mean
+        and std arrays
+    """
+    X = np.vstack(arrays)
+    return np.mean(X, 0), np.mean(X, 1)
+
+
 def remove_outlier_values(
     data: np.ndarray,
     threshold: Union[Tuple[float, float], float],
@@ -83,29 +111,10 @@ def convolve_with_gaussian(
     _kernel = norm.pdf(X)
     kernel = _kernel / np.sum(_kernel)
 
-    padded = np.pad(data, 2*kernel_width, mode="edge")
-    return np.convolve(padded, kernel, mode="same")[2*kernel_width:-2*kernel_width]
-
-
-def get_bouts_tracking_stacked(
-    tracking: Union[pd.Series, pd.DataFrame], bouts: pd.DataFrame
-) -> pd.DataFrame:
-    """
-        Creates a dataframe with the tracking data of each bout stacked
-    """
-    columns = (
-        tracking.columns
-        if isinstance(tracking, pd.DataFrame)
-        else tracking.index
-    )
-    results = {k: [] for k in KEYS if k in columns}
-
-    for i, bout in bouts.iterrows():
-        for key in results.keys():
-            results[key].extend(
-                list(tracking[key][bout.start_frame : bout.end_frame])
-            )
-    return pd.DataFrame(results)
+    padded = np.pad(data, 2 * kernel_width, mode="edge")
+    return np.convolve(padded, kernel, mode="same")[
+        2 * kernel_width : -2 * kernel_width
+    ]
 
 
 def pd_series_to_df(series: pd.Series) -> pd.DataFrame:

@@ -5,16 +5,18 @@ import sys
 sys.path.append("./")
 
 from typing import Union
-from loguru import logger
 import numpy as np
+
+from fcutils.maths import derivative
 
 np.seterr(all="ignore")
 
 import geometry.vector_analysis as va
 from geometry.vector import Vector
 from geometry import interpolate
-from geometry.utils import resample_linear_1d
+from data.data_utils import resample_linear_1d
 import geometry.vector_utils as vu
+from geometry.angles import angular_derivative
 
 
 class Path:
@@ -23,11 +25,22 @@ class Path:
         relevant stuff on it.
     """
 
+    _kinematics_variables = (
+        "x",
+        "y",
+        "fps",
+        "velocity",
+        "tangent",
+        "normal",
+        "acceleration",
+        "speed",
+        "curvature",
+    )
+
     def __init__(
         self,
         x: Union[list, np.ndarray],
         y: Union[list, np.ndarray],
-        theta: Union[list, np.ndarray] = None,
         fps: int = 60,
     ):
 
@@ -47,9 +60,9 @@ class Path:
 
         self.acceleration_mag = self.acceleration.dot(self.tangent)
 
-        if theta is None:
-            theta = 180 - self.tangent.angle
-        self.theta = theta
+        # compute angular properties
+        self.theta = 180 - self.tangent.angle
+        self._compute_angular_vel_and_acc()
 
         # compute other useful properties
         self.n_steps = len(x)
@@ -68,43 +81,59 @@ class Path:
         elif isinstance(item, str):
             return self.__dict__[item]
 
-    def __matmul__(self, other: np.ndarray):
+    def __matmul__(self, other: np.ndarray) -> Path:
         """
             Override @ operator to filter path at timestamps
             (e.g. at spike times)
         """
-        path = Path(self.x, self.y)
-        path.x = path.x[other]
-        path.y = path.y[other]
-        path.velocity = path.velocity[other]
-        path.tangent = path.tangent[other]
-        path.normal = path.normal[other]
-        path.acceleration = path.acceleration[other]
-        path.speed = path.speed[other]
-        path.curvature = path.curvature[other]
-        path.acceleration_mag = path.acceleration_mag[other]
-        path.theta = path.theta[other]
+        self.x = self.x[other]
+        self.y = self.y[other]
+        self.velocity = self.velocity[other]
+        self.tangent = self.tangent[other]
+        self.normal = self.normal[other]
+        self.acceleration = self.acceleration[other]
+        self.speed = self.speed[other]
+        self.curvature = self.curvature[other]
+        self.acceleration_mag = self.acceleration_mag[other]
 
-        path.n_steps = len(path.x)
+        self.theta = self.theta[other]
+        self.thetadot = self.thetadot[other]
+        self.thetadotdot = self.thetadotdot[other]
 
-        return path
+        self.n_steps = len(self.x)
+
+        return self
+
+    def trim(self, start: int, end: int) -> Path:
+        """
+            Cuts kinematics variables between two time frames
+        """
+        return self @ np.arange(start, end)
+
+    def _compute_angular_vel_and_acc(self):
+        """
+            Given theta, compute angular velocity and acceleration
+        """
+        self.thetadot = angular_derivative(self.theta.angle) * self.fps
+        self.thetadotdot = derivative(self.thetadot)
 
     def smooth(self, window: int = 5) -> Path:
         """
             Time bins it's vectors to smooth the path's velocity/acceleration
             and tangent
         """
-        logger.warning(
-            "smoothing shortest path breaking time sync with ephys!!!"
-        )
         (
             self.velocity,
             self.acceleration,
             self.tangent,
         ) = vu.smooth_path_vectors(self, window=window)
 
+        # compute angular properties
+        self.theta = 180 - self.tangent.angle
+        self._compute_angular_vel_and_acc()
+
         self.speed = self.velocity.magnitude
-        self.acceleration_mag = self.acceleration_mag
+        self.acceleration_mag = self.acceleration.dot(self.tangent)
         return self
 
     def path_distance_to_point(self, point_idx: int) -> float:
@@ -209,6 +238,14 @@ class Path:
             resample_linear_1d(self.x, n_timesteps),
             resample_linear_1d(self.y, n_timesteps),
         )
+
+    @property
+    def frames(self) -> np.ndarray:
+        return np.arange(len(self.x))
+
+    @property
+    def time(self) -> np.ndarray:
+        return self.frames / self.fps
 
 
 class GrowingPath:

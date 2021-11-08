@@ -3,8 +3,6 @@ from __future__ import annotations
 import numpy as np
 from typing import Union, Tuple, List
 
-# TODO define vector addition and scalar multiplication operations
-
 
 class Vector:  # 2D vector
     """
@@ -20,8 +18,8 @@ class Vector:  # 2D vector
         if y is None:
             y, x = x[:, 1], x[:, 0]
 
-        self.x = x
-        self.y = y
+        self.x = np.array(x) if not isinstance(x, (float, int)) else x
+        self.y = np.array(y) if not isinstance(y, (float, int)) else y
 
     def __repr__(self):
         if self.single_vec:
@@ -132,14 +130,9 @@ class Vector:  # 2D vector
 
 
 if __name__ == "__main__":
-    v1 = Vector(0, 10)
-    v2 = Vector(10, 0)
-    v3 = Vector(10, -10)
 
-    print(v1.angle_with(v2))
-    print(v1.angle_with(v3))
+    v1 = Vector(np.zeros(5), np.ones(5))
 
-    v4 = Vector(np.zeros(5), np.ones(5))
-    v5 = Vector(np.ones(5), np.ones(5))
+    v2 = v1[np.arange(3)]
 
-    print(v4.angle_with(v5))
+    print(v1, v2)

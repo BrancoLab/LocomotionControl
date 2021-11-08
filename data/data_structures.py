@@ -70,34 +70,39 @@ class LocomotionBout(Path):
     """
 
     def __init__(
-        self, crossing: pd.Series, window: int = 4, linearize_to: Path = None
+        self,
+        crossing: pd.Series,
+        window: int = 4,
+        linearize_to: Path = None,
+        trim: bool = True,
     ):
         self.window = window  # size of smoothing window
-        super.__init__(self, crossing.x, crossing.y, crossing.theta, fps=60)
+        super().__init__(crossing.x, crossing.y, fps=60)
+
         if window:
             self.smooth(window=window)
 
-        # extract variables from locomotion bout
-        self.gcoord: np.ndarray = crossing.gcoord
-        self.theta: np.ndarray = crossing.theta
-        self.thetadot: np.ndarray = crossing.thetadot
-        self.thetadotdot: np.ndarray = crossing.thetadotdot
-        self.duration: float = crossing.duration
+        if trim:
+            fast = np.where(self.speed > 20)[0]
+            start, end = fast[0], fast[-1]
+            self.trim(start, end)
+        else:
+            start, end = 0, -1
 
-        self.start_frame: int = crossing.start_frame
-        self.end_frame: int = crossing.end_frame
+        # extract variables from locomotion bout
+        self.gcoord: np.ndarray = crossing.gcoord[start:end]
+        self.duration: float = crossing.duration if not end else (
+            end - start
+        ) / 60
+
+        self.start_frame: int = crossing.start_frame + start
+        self.end_frame: int = crossing.end_frame if not end else crossing.end_frame - end
 
         # linearize to a reference track
         if linearize_to is not None:
             self.linearized: Path = TCS.path_to_track_coordinates_system(
                 linearize_to, self
             )
-
-    def __len__(self):
-        return len(self.x)
-
-    def __getitem__(self, item: str):
-        return self.__dict__[item]
 
     def add_ephys(self, unit: pd.DataFrame):
         self.firing_rate = unit.firing_rate[self.start_frame : self.end_frame]
@@ -123,7 +128,7 @@ def merge_locomotion_bouts(bouts: List[LocomotionBout]) -> Tuple[np.ndarray]:
         X.append(bout.x[start:])
         Y.append(bout.y[start:])
         S.append(bout.speed[start:])
-        A.append(bout.acceleration[start:])
+        A.append(bout.acceleration_mag[start:])
         T.append(bout.theta[start:])
         AV.append(bout.thetadot[start:])
         AA.append(bout.thetadotdot[start:])
