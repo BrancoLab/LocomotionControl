@@ -770,13 +770,10 @@ if have_dj:
                 self.InitialCondition.insert1(part_key)
 
         @staticmethod
-        def get_crossing_tracking(crossing_id:int) -> dict:
+        def get_crossing_tracking(crossing:pd.Series, session_tracking:pd.DataFrame) -> dict:
             '''
                 Returns a dictionary with tracking cut to the start/end of the locomotion bout
             '''
-            crossing = (ROICrossing & f'crossing_id={crossing_id}').fetch1()
-            session_tracking = Tracking.get_session_tracking(crossing['name'], movement=False, body_only=False)
-
             columns = ('x', 'y', 'bp_speed')
             results = {bp:{k:[] for k in columns} for bp in session_tracking.bpname.values}
 
@@ -851,6 +848,29 @@ if have_dj:
         min_duration: float = 2  # (s) keep only outs that last at least this long
 
         min_gcoord_delta: float = 0.25  # the global coordinates must change of at least this during bout
+
+        @staticmethod
+        def get_bout_tracking(bout:pd.DataFrame, session_tracking:pd.DataFrame=None) -> pd.DataFrame:
+            '''
+                Returns a dictionary with tracking cut to the start/end of the locomotion bout
+            '''
+            session_tracking = Tracking.get_session_tracking(bout['name'], movement=False, body_only=False) if session_tracking is None else session_tracking
+
+            bps = session_tracking.bpname.values
+            x = [bp+'_x' for bp in bps]
+            y = [bp+'_y' for bp in bps]
+            results = {k:[] for k in x + y}
+            columns = ('x', 'y')
+            results['gcoord'] = []
+
+            for bp in bps:
+                for col in columns:
+                    results[f'{bp}_{col}'] = session_tracking.loc[session_tracking.bpname==bp][col].iloc[0][
+                        bout['start_frame']:bout['end_frame']]
+
+            results[f'gcoord'] = session_tracking.loc[session_tracking.bpname=='body']['global_coord'].iloc[0][
+                bout['start_frame']:bout['end_frame']]
+            return pd.DataFrame(results)
 
         @staticmethod
         def is_locomoting(session_name: str) -> np.ndarray:
