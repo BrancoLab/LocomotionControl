@@ -114,7 +114,7 @@ class Path:
         """
             Given theta, compute angular velocity and acceleration
         """
-        self.thetadot = angular_derivative(self.theta.angle) * self.fps
+        self.thetadot = angular_derivative(self.theta) * self.fps
         self.thetadotdot = derivative(self.thetadot)
 
     def smooth(self, window: int = 5) -> Path:

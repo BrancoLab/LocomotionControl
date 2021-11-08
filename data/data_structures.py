@@ -10,7 +10,7 @@ import sys
 sys.path.append("./")
 
 from geometry import Path, Vector
-
+from analysis.fixtures import BPS
 from kinematics import track_cordinates_system as TCS
 
 
@@ -90,38 +90,58 @@ class LocomotionBout(Path):
 
     def __init__(
         self,
-        crossing: pd.Series,
+        bout: dict,
         window: int = 4,
         linearize_to: Path = None,
         trim: bool = True,
+        bparts_tracking: dict = None,
     ):
         self.window = window  # size of smoothing window
-        super().__init__(crossing.x, crossing.y, fps=60)
+        super().__init__(bout["body_x"], bout["body_y"], fps=60)
 
         if window:
             self.smooth(window=window)
 
         if trim:
             fast = np.where(self.speed > 20)[0]
-            start, end = fast[0], fast[-1]
-            self.trim(start, end)
+            self.trim_start, self.trim_end = fast[0], fast[-1]
+            self.trim(self.trim_start, self.trim_end)
         else:
-            start, end = 0, -1
+            self.trim_start, self.trim_end = 0, -1
 
         # extract variables from locomotion bout
-        self.gcoord: np.ndarray = crossing.gcoord[start:end]
-        self.duration: float = crossing.duration if not end else (
-            end - start
+        self.gcoord: np.ndarray = bout["gcoord"][
+            self.trim_start : self.trim_end
+        ]
+        self.duration: float = bout["duration"] if not self.trim_end else (
+            self.trim_end - self.trim_start
         ) / 60
 
-        self.start_frame: int = crossing.start_frame + start
-        self.end_frame: int = crossing.end_frame if not end else crossing.end_frame - end
+        self.start_frame: int = bout["start_frame"] + self.trim_start
+        self.end_frame: int = bout["end_frame"] if not self.trim_end else bout[
+            "end_frame"
+        ] - self.trim_end
 
         # linearize to a reference track
         if linearize_to is not None:
             self.linearized: Path = TCS.path_to_track_coordinates_system(
                 linearize_to, self
             )
+
+        # add other body parts tracking as a series of Path
+        if bparts_tracking is not None:
+            for bp in BPS:
+                bp_path = Path(
+                    bparts_tracking[bp + "_x"], bparts_tracking[bp + "_x"]
+                ).smooth(window=window)
+                bp_path.trim(self.trim_start, self.trim_end)
+                setattr(self, bp, bp_path)
+
+    def __repr__(self) -> str:
+        return f"Bout ({self.duratoin} s)"
+
+    def __str__(self) -> str:
+        return self.__repr__()
 
     def __len__(self):
         return len(self.x)
