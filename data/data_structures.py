@@ -10,7 +10,6 @@ import sys
 sys.path.append("./")
 
 from geometry import Path, Vector
-from geometry.vector_utils import smooth_path_vectors
 
 from kinematics import track_cordinates_system as TCS
 
@@ -82,7 +81,7 @@ class SnapShot:
     thetadotdot: float
 
 
-class LocomotionBout:
+class LocomotionBout(Path):
     """
         Represents a continuous bit of locomotion in the hairpin.
         It cleans up the tracking a bit by averaging vector quantities
@@ -93,34 +92,24 @@ class LocomotionBout:
         self, crossing: pd.Series, window: int = 4, linearize_to: Path = None
     ):
         self.window = window  # size of smoothing window
+        super.__init__(self, crossing.x, crossing.y, crossing.theta, fps=60)
+        if window:
+            self.smooth(window=window)
 
-        self.path: Path = Path(crossing.x.copy(), crossing.y.copy()).smooth(window)
-        self.velocity = self.path.velocity
-        self.acceleration_vec = self.path.acceleration
-        self.tangent = self.path.tangent
-
-        self.path: Path = Path(
-            crossing.x[self.window :], crossing.y[self.window :]
-        )
-
-        self.x: np.ndarray = self.path.x
-        self.y: np.ndarrray = self.path.y
-        self.speed: np.ndarray = self.velocity.magnitude
-        self.acceleration: np.ndarray = self.acceleration_vec.dot(self.tangent)
-
-        self.gcoord: np.ndarray = crossing.gcoord[self.window :]
-        self.theta: np.ndarray = crossing.theta[self.window :]
-        self.thetadot: np.ndarray = crossing.thetadot[self.window :]
-        self.thetadotdot: np.ndarray = crossing.thetadotdot[self.window :]
+        # extract variables from locomotion bout
+        self.gcoord: np.ndarray = crossing.gcoord
+        self.theta: np.ndarray = crossing.theta
+        self.thetadot: np.ndarray = crossing.thetadot
+        self.thetadotdot: np.ndarray = crossing.thetadotdot
         self.duration: float = crossing.duration
 
-        self.start_frame = crossing.start_frame
-        self.end_frame = crossing.end_frame
-        
+        self.start_frame: int = crossing.start_frame
+        self.end_frame: int = crossing.end_frame
+
         # linearize to a reference track
         if linearize_to is not None:
             self.linearized: Path = TCS.path_to_track_coordinates_system(
-                linearize_to, self.path
+                linearize_to, self
             )
 
     def __len__(self):
@@ -147,6 +136,10 @@ class LocomotionBout:
             thetadot=self.thetadot[frame],
             thetadotdot=self.thetadotdot[frame],
         )
+    def add_ephys(self, unit: pd.DataFrame):
+        self.firing_rate = unit.firing_rate[self.start_frame : self.end_frame]
+        self.spikes = unit.spikes[self.start_frame : self.end_frame]
+        self.unit = unit
 
 
 def merge_locomotion_bouts(bouts: List[LocomotionBout]) -> Tuple[np.ndarray]:

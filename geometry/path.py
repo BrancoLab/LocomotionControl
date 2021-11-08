@@ -67,13 +67,12 @@ class Path:
 
         elif isinstance(item, str):
             return self.__dict__[item]
-        
 
-    def __matmul__(self, other:np.ndarray):
-        '''
+    def __matmul__(self, other: np.ndarray):
+        """
             Override @ operator to filter path at timestamps
             (e.g. at spike times)
-        '''
+        """
         path = Path(self.x, self.y)
         path.x = path.x[other]
         path.y = path.y[other]
@@ -90,38 +89,22 @@ class Path:
 
         return path
 
-    def smooth(self, window:int=5) -> Path:
-        '''
-            Time bins it's vectors to smooth the path
-        '''
-        logger.warning('smoothing shortest path breaking time sync with ephys!!!')
+    def smooth(self, window: int = 5) -> Path:
+        """
+            Time bins it's vectors to smooth the path's velocity/acceleration
+            and tangent
+        """
+        logger.warning(
+            "smoothing shortest path breaking time sync with ephys!!!"
+        )
         (
             self.velocity,
             self.acceleration,
             self.tangent,
-        ) = vu.smooth_path_vectors(
-            self, window=window
-        ) 
+        ) = vu.smooth_path_vectors(self, window=window)
 
-
-        (
-            _,
-            self.tangent,
-            self.normal,
-            _,
-            self.speed,
-            self.curvature,
-        ) = va.compute_vectors(self.x[window :], self.y[window :], fps=self.fps)
-
-        self.acceleration_mag = self.acceleration.dot(self.tangent)
-
-        # compute other useful properties
-        self.n_steps = len(self.x)
-        self.distance = np.sum(self.speed) / self.fps
-        self.comulative_distance = np.cumsum(self.speed) / self.fps
-
-        self.points = np.array([self.x, self.y]).T
-        
+        self.speed = self.velocity.magnitude
+        self.acceleration_mag = self.acceleration_mag
         return self
 
     def path_distance_to_point(self, point_idx: int) -> float:
@@ -217,12 +200,16 @@ class Path:
                     )
         return Path(downsampled["x"], downsampled["y"])
 
-    def downsample_in_time(self, n_timesteps:int) -> Path:
-        '''
+    def downsample_in_time(self, n_timesteps: int) -> Path:
+        """
             It downsamples the X,Y trajectories to have a target number of
             samples
-        '''
-        return Path(resample_linear_1d(self.x,  n_timesteps), resample_linear_1d(self.y,  n_timesteps))
+        """
+        return Path(
+            resample_linear_1d(self.x, n_timesteps),
+            resample_linear_1d(self.y, n_timesteps),
+        )
+
 
 class GrowingPath:
     """
