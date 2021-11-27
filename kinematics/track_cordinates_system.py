@@ -1,7 +1,8 @@
 import numpy as np
 from typing import Tuple
 
-from geometry import Path, Vector
+
+from kino.geometry import Vector, Trajectory
 
 """
     Code to project tracking data to a coordinates system along
@@ -10,12 +11,15 @@ from geometry import Path, Vector
 
 
 def point_to_track_coordinates_system(
-    track: Path, point: Vector
+    track: Trajectory, point: Tuple[tuple, list, Vector]
 ) -> Tuple[float, float]:
     """
-        Given a point it finds the closest point on a Path and it returns the 
-        distance of it along the track and the distance of the point along the track
+        Given a point it finds the closest point on a Trajectory and it returns the 
+        distance of it along the track and the distance of the point from the track along
+        the normal direction at the track's closest point.
     """
+    if isinstance(point, (tuple, list)):
+        point = Vector(point[0], point[1])
     # get closest track point
     dists = np.apply_along_axis(
         np.linalg.norm, 1, track.points - point.as_array()
@@ -33,7 +37,9 @@ def point_to_track_coordinates_system(
     return path_length, normal_distance
 
 
-def path_to_track_coordinates_system(track: Path, path: Path) -> Path:
+def path_to_track_coordinates_system(
+    track: Trajectory, path: Trajectory
+) -> Trajectory:
     """
         Given a Path representing e.g. the shortest path through the arena
         and another Path with e.g. tracking from a mouse, this function returns
@@ -51,4 +57,4 @@ def path_to_track_coordinates_system(track: Path, path: Path) -> Path:
         X.append(x)
         Y.append(y)
 
-    return Path(np.array(X), np.array(Y))
+    return Trajectory(np.array(X), np.array(Y))

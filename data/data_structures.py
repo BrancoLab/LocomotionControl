@@ -9,7 +9,10 @@ import sys
 
 sys.path.append("./")
 
-from geometry import Path, Vector
+from kino.geometry import Vector, Trajectory
+from kino.locomotion import Locomotion
+from kino.animal import mouse
+
 from analysis.fixtures import BPS
 from kinematics import track_cordinates_system as TCS
 
@@ -81,7 +84,7 @@ class SnapShot:
     thetadotdot: float
 
 
-class LocomotionBout(Path):
+class LocomotionBout(Locomotion):
     """
         Represents a continuous bit of locomotion in the hairpin.
         It cleans up the tracking a bit by averaging vector quantities
@@ -90,14 +93,14 @@ class LocomotionBout(Path):
 
     def __init__(
         self,
-        bout: dict,
+        bout: pd.DataFrame,
         window: int = 4,
-        linearize_to: Path = None,
+        linearize_to: Trajectory = None,
         trim: bool = True,
-        bparts_tracking: dict = None,
+        bparts_tracking: pd.DataFrame = None,
     ):
         self.window = window  # size of smoothing window
-        super().__init__(bout["body_x"], bout["body_y"], fps=60)
+        super().__init__(self, mouse, bout, fps=60)
 
         if window:
             self.smooth(window=window)
@@ -124,21 +127,23 @@ class LocomotionBout(Path):
 
         # linearize to a reference track
         if linearize_to is not None:
-            self.linearized: Path = TCS.path_to_track_coordinates_system(
+            self.linearized: Trajectory = TCS.path_to_track_coordinates_system(
                 linearize_to, self
             )
 
         # add other body parts tracking as a series of Path
         if bparts_tracking is not None:
             for bp in BPS:
-                bp_path = Path(
+                bp_path = Trajectory(
                     bparts_tracking[bp + "_x"], bparts_tracking[bp + "_x"]
                 ).smooth(window=window)
                 bp_path.trim(self.trim_start, self.trim_end)
                 setattr(self, bp, bp_path)
 
     def __repr__(self) -> str:
-        return f"Bout ({self.duratoin} s)"
+        return (
+            f"datastructures.LocomotionBout ({self.duration:.3f}s in duration)"
+        )
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -174,7 +179,7 @@ class LocomotionBout(Path):
         self.unit = unit
 
 
-def merge_locomotion_bouts(bouts: List[LocomotionBout]) -> Tuple[np.ndarray]:
+def merge_locomotion_bouts(bouts: List[Locomotion]) -> Tuple[np.ndarray]:
     """
         It concats scalar quantities across individual bouts
         X -> x pos
@@ -188,14 +193,14 @@ def merge_locomotion_bouts(bouts: List[LocomotionBout]) -> Tuple[np.ndarray]:
     X, Y, S, A, T, AV, AA = [], [], [], [], [], [], []
 
     for bout in bouts:
-        start = np.where(bout.speed > 10)[0][0]
-        X.append(bout.x[start:])
-        Y.append(bout.y[start:])
-        S.append(bout.speed[start:])
-        A.append(bout.acceleration_mag[start:])
-        T.append(bout.theta[start:])
-        AV.append(bout.thetadot[start:])
-        AA.append(bout.thetadotdot[start:])
+        start = np.where(bout.body.speed > 10)[0][0]
+        X.append(bout.body.x[start:])
+        Y.append(bout.body.y[start:])
+        S.append(bout.body.speed[start:])
+        A.append(bout.body.acceleration_mag[start:])
+        T.append(bout.body.theta[start:])
+        AV.append(bout.body.thetadot[start:])
+        AA.append(bout.body.thetadotdot[start:])
 
     return (
         np.hstack(X),
@@ -206,3 +211,12 @@ def merge_locomotion_bouts(bouts: List[LocomotionBout]) -> Tuple[np.ndarray]:
         np.hstack(AV),
         np.hstack(AA),
     )
+
+
+if __name__ == "__main__":
+    bouts = pd.read_hdf(
+        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data/complete_bouts.h5",
+        key="hdf",
+    )
+
+    print(LocomotionBout(bouts.iloc[1]))

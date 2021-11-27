@@ -39,6 +39,8 @@ bouts = load_complete_bouts(
     keep=100, duration_max=6, linearize_to=center_line, window=10
 )
 
+# TODO check if length of linearized matches that of actual bout
+
 # %%
 f = plt.figure(figsize=(16, 12))
 axes = f.subplot_mosaic(

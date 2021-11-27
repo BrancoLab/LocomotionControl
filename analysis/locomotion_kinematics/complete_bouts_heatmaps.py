@@ -13,10 +13,10 @@ import draw
 
 """
     Plots complete bouts through the arena, heatmaps
-    of speed and velocity
+    of speed and velocity and angular accelration and velocity
 """
 # load and clean complete bouts
-bouts = load_complete_bouts(keep=5, window=5)
+bouts = load_complete_bouts(window=5)
 
 # merge bouts for heatmaps
 X, Y, S, A, T, AV, AA = merge_locomotion_bouts(bouts)
@@ -42,7 +42,7 @@ for ax in "ABCDE":
 
 # draw tracking traces
 for bout in bouts:
-    draw.Tracking(bout.x + 0.5, bout.y + 0.5, ax=axes["A"])
+    draw.Tracking(bout.body.x + 0.5, bout.body.y + 0.5, ax=axes["A"])
 
 # draw speed heatmap
 draw.Tracking.heatmap(

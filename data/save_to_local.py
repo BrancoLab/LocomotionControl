@@ -4,8 +4,10 @@ import time
 import pandas as pd
 from loguru import logger
 import numpy as np
+from pathlib import Path
 
 from fcutils.progress import track
+from fcutils.path import files, from_json
 
 sys.path.append("./")
 
@@ -14,75 +16,113 @@ from data.dbase.db_tables import ROICrossing, LocomotionBouts, Tracking
 from data import arena
 
 
-recorder.start(
-    base_folder=r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior",
-    folder_name="saved_data",
-    timestamp=False,
+# base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior")
+base_folder = Path(
+    "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
 )
 
-# ---------------------------------------------------------------------------- #
-#                               download tracking                              #
-# ---------------------------------------------------------------------------- #
+recorder.start(
+    base_folder=base_folder, folder_name="saved_data", timestamp=False,
+)
+save_folder = base_folder / "saved_data"
 
-
-tracking = {}
-sessions = list(set(ROICrossing().fetch("name")))
-logger.info(f"Getting tracking data for {len(sessions)} sessions")
-for n, session in track(enumerate(sessions), total=len(sessions)):
-    tracking[session] = Tracking.get_session_tracking(
-        session, movement=False, body_only=False
-    )
-    time.sleep(0.5)
-
-    # if n > 2:
-    #     break
 
 # ---------------------------------------------------------------------------- #
 #                              save roi crossings                              #
 # ---------------------------------------------------------------------------- #
-for ROI in arena.ROIs_dict.keys():
-    # fetch from database
-    crossings = pd.DataFrame(
-        (
-            ROICrossing * ROICrossing.InitialCondition
-            & f'roi="{ROI}"'
-            & "mouse_exits=1"
-        ).fetch()
-    )
-    logger.info(f"Loaded {len(crossings)} crossings for: '{ROI}'")
-
-    roi_crossing_dict = []
-    for i, crossing in track(crossings.iterrows(), total=len(crossings)):
-        crossing_trk = ROICrossing.get_crossing_tracking(
-            crossing, tracking[crossing["name"]]
+def save_rois():
+    tracking = {}
+    for ROI in arena.ROIs_dict.keys():
+        # fetch from database
+        crossings = pd.DataFrame(
+            (
+                ROICrossing * ROICrossing.InitialCondition
+                & f'roi="{ROI}"'
+                & "mouse_exits=1"
+            ).fetch()
         )
-        roi_crossing_dict.append({**crossing.to_dict(), **crossing_trk})
+        logger.info(f"Loaded {len(crossings)} crossings for: '{ROI}'")
 
-    recorder.add_data(crossings, f"{ROI}_crossings", fmt="h5")
-    recorder.add_data(roi_crossing_dict, f"{ROI}_crossings", fmt="json")
+        for i, crossing in track(crossings.iterrows(), total=len(crossings)):
+            save_name = f"crossing_{ROI}_{i}.json"
+            if (save_folder / save_name).exists():
+                continue
+
+            if crossing["name"] not in tracking.keys():
+                tracking[crossing["name"]] = Tracking.get_session_tracking(
+                    crossing["name"], movement=False, body_only=False
+                )
+                time.sleep(1)
+
+            crossing_trk = ROICrossing.get_crossing_tracking(
+                crossing, tracking[crossing["name"]]
+            )
+            roi_crossing_dict = {**crossing.to_dict(), **crossing_trk}
+
+            for k, v in roi_crossing_dict.items():
+                if isinstance(v, np.ndarray):
+                    roi_crossing_dict[k] = list(v)
+
+            recorder.add_data(
+                roi_crossing_dict, f"crossing_{ROI}_{i}", fmt="json"
+            )
+
+        recorder.add_data(crossings, f"{ROI}_crossings", fmt="h5")
 
 
 # ---------------------------------------------------------------------------- #
 #                             save locomotor bouts                             #
 # ---------------------------------------------------------------------------- #
-logger.info("Fetching bouts")
-bouts = pd.DataFrame(
-    (LocomotionBouts & 'complete="true"' & 'direction="outbound"').fetch()
-)
-logger.info(f"Got {len(bouts)} bouts")
+def save_bouts_JSON():
+    tracking = {}
+    logger.info("Fetching bouts")
+    bouts = pd.DataFrame(
+        (LocomotionBouts & 'complete="true"' & 'direction="outbound"').fetch()
+    )
+    logger.info(f"Got {len(bouts)} bouts")
+
+    for i, bout in track(bouts.iterrows(), total=len(bouts)):
+        save_name = f"{i}_complete_bout.json"
+        if (save_folder / save_name).exists():
+            continue
+        else:
+            if bout["name"] not in tracking.keys():
+                tracking[bout["name"]] = Tracking.get_session_tracking(
+                    bout["name"], movement=False, body_only=False
+                )
+                time.sleep(1)
+
+            trk = LocomotionBouts.get_bout_tracking(
+                bout, tracking[bout["name"]]
+            )
+            trk = {
+                bp: np.array(list(v.values()))
+                for bp, v in trk.to_dict().items()
+            }
+
+            bout_dict = {**bout.to_dict(), **trk}
+            for k, v in bout_dict.items():
+                if isinstance(v, np.ndarray):
+                    bout_dict[k] = list(v)
+
+            recorder.add_data(bout_dict, f"{i}_complete_bout", fmt="json")
 
 
-bouts_dicts = []
-for i, bout in track(bouts.iterrows(), total=len(bouts)):
-    trk = LocomotionBouts.get_bout_tracking(bout, tracking[bout["name"]])
-    trk = {bp: np.array(list(v.values())) for bp, v in trk.to_dict().items()}
+def save_bouts_h5():
+    bouts_files = files(save_folder, "*_complete_bout.json",)
+    logger.info(f"Found {len(bouts_files)} bouts JSON files")
 
-    bout_dict = {**bout.to_dict(), **trk}
-    for k, v in bout_dict.items():
-        if isinstance(v, np.ndarray):
-            bout_dict[k] = list(v)
+    # load from json and save as .h5
+    bouts_json = []
+    for bf in track(
+        bouts_files, description="loading bouts JSON", transient=True,
+    ):
+        bouts_json.append(from_json(bf))
 
-    bouts_dicts.append(bout_dict)
+    recorder.add_data(pd.DataFrame(bouts_json), f"complete_bouts", fmt="h5")
 
-recorder.add_data(bouts_dicts, f"complete_bouts", fmt="json")
-recorder.describe()
+
+if __name__ == "__main__":
+    # save_rois()
+    # save_bouts_JSON()
+    save_bouts_h5()

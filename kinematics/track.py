@@ -9,8 +9,8 @@ from skimage.util import invert
 from scipy import signal
 from typing import Tuple
 
-from geometry import Path, Vector
-from geometry import interpolate
+from kino.geometry import Trajectory, Vector
+from kino.geometry.interpolation import lerp
 from kinematics import track_cordinates_system as TCS
 from data.data_utils import convolve_with_gaussian
 from draw.arena import Hairpin
@@ -49,9 +49,7 @@ def get_skeleton() -> Tuple[np.ndarray, np.ndarray]:
         It skeletonizes an image of the hairpin
     """
     # load arena image & threshold
-    img = Image.open(
-        Hairpin.image_local_path()
-    )
+    img = Image.open(Hairpin.image_local_path())
     new_width = 40
     new_height = 60
     img = img.resize((new_width, new_height))
@@ -78,11 +76,11 @@ def skeleton2path(
     skeleton: np.ndarray,
     points_spacing: int,
     apply_extra_spacing: bool = False,  # if true track is padded to look like mice's paths
-) -> Path:
+) -> Trajectory:
     """
         It finds points on the skeleton and sorts
-        them absed on their position.
-        Returns a Path over the skeleton (smoothed)
+        them based on their position.
+        Returns a Trajectory over the skeleton (smoothed)
     """
     y, x = np.where(skeleton)
     points = np.array([x, y]).T
@@ -122,13 +120,15 @@ def skeleton2path(
     X = convolve_with_gaussian(X, kernel_width=31)
     Y = convolve_with_gaussian(Y, kernel_width=31)
 
-    return Path(X, Y).downsample_euclidean(spacing=points_spacing)
+    return Trajectory(
+        X, Y, name="skeleton", fps=60, smoothing_window=1
+    ).downsample_euclidean(spacing=points_spacing)
 
 
 def extrude_paths(
-    path: Path,  # path to extrude
+    path: Trajectory,  # path to extrude
     restrict_extremities: bool = False,  # restrict width at start and end of path
-) -> Tuple[Path, Path]:
+) -> Tuple[Trajectory, Trajectory]:
     """
         Computes paths extruded to left and right of original path based on widht
         of path at each point
@@ -163,8 +163,8 @@ def extrude_paths(
         R["x"].append(p.x - width * np.cos(theta))
         R["y"].append(p.y - width * np.sin(theta))
 
-    left_line = Path(L["x"], L["y"])
-    right_line = Path(R["x"], R["y"])
+    left_line = Trajectory(L["x"], L["y"])
+    right_line = Trajectory(R["x"], R["y"])
 
     return left_line, right_line
 
@@ -174,7 +174,7 @@ def extract_track_from_image(
     k: int = 5,  # number of control points for each track point
     restrict_extremities: bool = False,  # restrict width at start and end of path
     apply_extra_spacing: bool = False,  # if true track is padded to look like mice's paths
-) -> Tuple[Path, dict]:
+) -> Tuple[Trajectory, dict]:
     """
         It loads an image with Hairpin, uses image processing to extract
         a skeleton of the track (midpoint between side walls) and smooth it.
@@ -206,8 +206,8 @@ def extract_track_from_image(
         r = right_line[n]
 
         # create control points as Vector
-        x = [interpolate.linear(l.x, r.x, p) for p in P]
-        y = [interpolate.linear(l.y, r.y, p) for p in P]
+        x = [lerp(l.x, r.x, p) for p in P]
+        y = [lerp(l.y, r.y, p) for p in P]
 
         control_points[n] = Vector(x, y)
 

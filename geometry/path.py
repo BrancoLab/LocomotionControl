@@ -71,6 +71,11 @@ class Path:
 
         self.points = np.array([self.x, self.y]).T
 
+    def __repr__(self):
+        return (
+            f"geometry.Path ({self.distance:.2f}cm long, {self.n_steps} steps)"
+        )
+
     def __len__(self):
         return len(self.x)
 

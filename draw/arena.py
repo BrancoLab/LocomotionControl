@@ -1,10 +1,14 @@
 import matplotlib.pyplot as plt
 from loguru import logger
 import sys
+import numpy as np
 
 sys.path.append("./")
 from pathlib import Path
 import os
+from PIL import Image
+from skimage.util import invert
+
 
 from fcutils.plot.figure import clean_axes
 from myterial import salmon, blue_light, red_light, green, indigo, teal
@@ -35,20 +39,8 @@ class Hairpin:
             Renders an image of the hairpin maze on a matplotlib axis
         """
         ax = ax or plt.gca()
-        if img_path is not None:
-            image = plt.imread(img_path)
-        else:
-            try:
-                image = plt.imread(self.get_image_path())
-            except FileNotFoundError:  # use complete path when working in a notebook
-                logger.warning("Could not draw ROI image")
-                return
 
-        # raise ValueError(image.shape[1] / 40, image.shape[0] / 60)
-        image = image[
-            self.px_per_cm * self.y_0 : self.px_per_cm * self.y_1,
-            self.px_per_cm * self.x_0 : self.px_per_cm * self.x_1,
-        ]
+        image = self.get_image(img_path)
 
         ax.imshow(
             image,
@@ -70,9 +62,26 @@ class Hairpin:
         clean_axes(ax.figure)
         ax.axis("equal")
 
-    def get_image_path(self):
-        if Path(self._img_path_local).exists():
-            return self._img_path_local
+    def get_image(self, img_path: str = None) -> np.ndarray:
+        if img_path is not None:
+            image = plt.imread(img_path)
+        else:
+            try:
+                image = plt.imread(self.get_image_path())
+            except FileNotFoundError:  # use complete path when working in a notebook
+                logger.warning("Could not draw ROI image")
+                return
+
+        image = image[
+            self.px_per_cm * self.y_0 : self.px_per_cm * self.y_1,
+            self.px_per_cm * self.x_0 : self.px_per_cm * self.x_1,
+        ]
+        return image
+
+    @staticmethod
+    def get_image_path():
+        if Path(Hairpin._img_path_local).exists():
+            return Hairpin._img_path_local
         else:
             return Hairpin.image_local_path()
 
@@ -82,6 +91,55 @@ class Hairpin:
             return "/Users/federicoclaudi/Documents/Github/LocomotionControl/draw/hairpin.png"
         else:
             return r"C:\Users\Federico\Documents\GitHub\pysical_locomotion\draw\hairpin.png"
+
+    @staticmethod
+    def to_txt(scale=1, save_folder: Path = None) -> str:
+        """
+            Returns a txt representation of the image with symbols
+            to denote the walls/empty cells for RL training.
+            The scale factor is in cm and it denotes the size of a 'cell'.
+        """
+        if scale != 1:
+            raise NotImplementedError("This case needs checking")
+
+        # load scale and binarize image
+        img = Image.open(Hairpin.image_local_path())
+        new_width = int(40 * 1 / scale)
+        new_height = int(60 * 1 / scale)
+        img = img.resize((new_width, new_height))
+        img = np.array(img)[:, :, 0]
+        img[img > 0] = 1
+        arena = invert(img)
+        arena[arena == 254] = 0
+        arena[arena == 255] = 1
+        arena = arena[::-1, :]
+
+        # define location of start and reward
+        P_loc = (int(20 * (1 / scale)), int(20 * (1 / scale)))
+        G_loc = (int(3 * (1 / scale)), int(56 * (1 / scale)))
+
+        # create text representation
+        arena_txt = np.empty(arena.shape, dtype="object")
+        arena_txt[arena == 0] = "*"
+        arena_txt[arena == 1] = " "
+        arena_txt[P_loc[1], P_loc[0]] = "P"
+        arena_txt[G_loc[1], G_loc[0]] = "G"
+
+        # write to text
+
+        if save_folder is not None:
+            save_path = save_folder / "hairpin.txt"
+        else:
+            save_path = "hairpin.txt"
+
+        with open(save_path, "w") as fout:
+            lines = []
+            for rown in range(arena_txt.shape[0]):
+                lines.append("".join(arena_txt[rown]) + "\n")
+            fout.writelines(lines)
+
+        return arena_txt
+
 
 class T1(Hairpin):
     """
@@ -267,17 +325,10 @@ if __name__ == "__main__":
     #     sess, body_only=True
     # )
 
+    Hairpin.to_txt()
+
     f, ax = plt.subplots(figsize=(7, 10))
 
     Hairpin(ax, alpha=0.5)
 
-    T1()
-    T2()
-    T3()
-    T4()
-    S1()
-    S2()
-
-    ax.set(xlim=[0, 40], ylim=[0, 60])
-
-    plt.show()
+    # plt.show()
