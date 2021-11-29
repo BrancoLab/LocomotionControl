@@ -7,8 +7,7 @@ sys.path.append("/Users/federicoclaudi/Documents/Github/LocomotionControl")
 
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import List, Optional
-from dataclasses import dataclass, field
+from typing import List
 from loguru import logger
 import seaborn as sns
 
@@ -28,6 +27,7 @@ from data.arena import ROIs_dict
 from kinematics import track
 from kinematics import track_cordinates_system as TCS
 from analysis.load import load_complete_bouts
+from data.data_structures import AtPoint
 
 
 """
@@ -40,40 +40,6 @@ from analysis.load import load_complete_bouts
     4. get AtPoint for ROI crossing start and turn Apex + plot speed distributions at the two timepoints
     5. get the start of decelration + plot different metrics
 """
-
-
-@dataclass
-class AtPoint:
-    """
-        Class used to collect kinematics data across different Locomotion traces, for each
-        trace it stores the locomotion data for a single time point (i.e. when the mouse is at
-        a selected point in the arena). Useful to e.g. compare kinematics everytime the mice are
-        at the apex of a turn.
-    """
-
-    color: str
-    name: str
-    frame_idx: list = field(
-        default_factory=list
-    )  # index of the selected frame of each locomotion
-    G: Optional[float] = None  # g_coord value
-    locomotions: list = field(default_factory=list)
-    track_distance: list = field(
-        default_factory=list
-    )  # distance along linearized track at frame
-    G_distance: list = field(default_factory=list)  # gcoord at selected frame
-
-    @property
-    def x(self) -> np.ndarray:
-        return np.array([loc.body.x for loc in self.locomotions])
-
-    @property
-    def y(self) -> np.ndarray:
-        return np.array([loc.body.y for loc in self.locomotions])
-
-    @property
-    def speed(self) -> np.ndarray:
-        return np.array([loc.body.speed for loc in self.locomotions])
 
 
 # get linearized track
@@ -91,23 +57,39 @@ class AtPoint:
 
 
 # %%
+"""
+    Load, trim and filter data to get just nice clean turns
+"""
 # ----------------------------- load data - SLOW ----------------------------- #
 
 # load bouts
-bouts: List[Locomotion] = load_complete_bouts(keep=None, window=5)
+bouts: List[Locomotion] = load_complete_bouts(keep=-1, window=5)
 
 
 # ------------------- cut bouts to the frames withinthe ROI ------------------ #
-ROI = ROIs_dict["T2"]
+ROI = ROIs_dict["T3"]
 
-INITIAL_DECELERATION_CHECK = -0.5  # keep only trials with acc < this at start
-DECELERATION_THRESHOLD = (
-    -1
-)  # cm/s^2 -  the mice are delecerating when the longitudinal acceleration is below this value
+PARAMS = dict(
+    T1=dict(),
+    T2=dict(
+        INITIAL_DECELERATION_CHECK=-0.5,
+        DECELERATION_THRESHOLD=-1,
+        INIT_SPEED_TH=40,
+    ),
+    T3=dict(
+        INITIAL_DECELERATION_CHECK=-0.75,
+        DECELERATION_THRESHOLD=-1,
+        INIT_SPEED_TH=40,
+    ),
+)
 
-START_G = 0.22
-APEX_G = 0.34
-
+INITIAL_DECELERATION_CHECK = PARAMS[ROI.name][
+    "INITIAL_DECELERATION_CHECK"
+]  # keep only trials with acc < this at start
+DECELERATION_THRESHOLD = PARAMS[ROI.name][
+    "DECELERATION_THRESHOLD"
+]  # cm/s^2 -  the mice are delecerating when the longitudinal acceleration is below this value
+INIT_SPEED_TH = PARAMS[ROI.name]["INIT_SPEED_TH"]
 
 turns: List[Locomotion] = []
 for bout in bouts:
@@ -121,41 +103,77 @@ for bout in bouts:
     turn.gcoord = turn.gcoord[in_roi]
 
     # check that at start point the mouse isn't alrady decelerating
-    at_start_index = np.where(turn.gcoord >= START_G)[0][0]
+    at_start_index = np.where(turn.gcoord >= ROI.turn_g_start)[0][0]
     if (
         turn.body.longitudinal_acceleration[at_start_index]
         < INITIAL_DECELERATION_CHECK
     ):
+        logger.debug("Discarded because mouse accelerating at start")
+        continue
+
+    # check that initial speed is sufficiently high
+    if turn.body.speed[at_start_index] < INIT_SPEED_TH:
+        logger.debug("Initial speed too low")
         continue
 
     # check that nowhere the mouse stops
     if np.any(turn.body.speed < 10):
+        logger.debug("Discarded because mouse slows down too much")
         continue
 
     # check that acceleration dips below threshold before apex
-    at_apex_index = np.where(turn.gcoord >= APEX_G)[0][0]
+    at_apex_index = np.where(turn.gcoord >= ROI.turn_g_apex)[0][0]
     try:
         slow_frame_idx = np.where(
             turn.body.longitudinal_acceleration < DECELERATION_THRESHOLD
         )[0][0]
     except IndexError:
+        logger.debug("Discarded because couldnt find decelartion start time")
         continue
-    if slow_frame_idx < at_start_index + 10 or slow_frame_idx > at_apex_index:
+    if slow_frame_idx < at_start_index + 5 or slow_frame_idx > at_apex_index:
+        logger.debug(
+            "Discarded because decelartion start time is out of bounds"
+        )
         continue
 
     turns.append(turn)
 logger.info(f"Kept {len(turns)} turns")
 
 
+# snapshots stores
+start = AtPoint(indigo_dark, "start", G=ROI.turn_g_start)
+apex = AtPoint(light_blue, "apex", G=ROI.turn_g_apex)
+slowing = AtPoint(
+    name="slowing", color=blue_darker
+)  # when they start slowing down
+
+peak_speed = []  # peak speed between start and apex
+at_peak_speed = []
+
+for n, turn in enumerate(turns):
+    # start/apex
+    for point in (start, apex):
+        at_G_index = np.where(turn.gcoord >= point.G)[0][0]
+        point.add(turn, at_G_index)
+
+    # peak speed
+    slowing_trace = turn @ np.arange(start.frame_idx[n], apex.frame_idx[n] + 1)
+    peak_speed.append(np.max(slowing_trace.body.speed))
+    at_peak_speed.append(np.argmax(slowing_trace.body.speed))
+
+    # start of decelaration
+    slow_frame_idx = np.where(
+        turn.body.longitudinal_acceleration < DECELERATION_THRESHOLD
+    )[0][0]
+    slowing.add(turn, slow_frame_idx, center_line=center_line)
+
 # %%
 # ---------------------- speeds distributions histograms --------------------- #
 """
-    Draw histograms of speed values at ROI enter and apex of turn and traces for
-    speed and acceleration.
+    Get tracking @ start and apex of turn and draw tracking traces + speed/acceleration profiles
+    and histograms of the speed at start and apex of turn.
 """
 
-start = AtPoint(indigo_dark, "start", G=START_G)
-apex = AtPoint(light_blue, "apex", G=APEX_G)
 
 f = plt.figure(figsize=(12, 12))
 axes = f.subplot_mosaic(
@@ -171,32 +189,26 @@ axes = f.subplot_mosaic(
 
 draw.ROI(ROI.name, ax=axes["A"], set_ax=True)
 
-# get kinematics at turn start and apex (+ plot)
-for turn in turns:
-    for point in (start, apex):
-        at_G_index = np.where(turn.gcoord >= point.G)[0][0]
-        at_G = turn @ at_G_index
-        point.locomotions.append(at_G)
-        point.frame_idx.append(at_G_index)
+# mark start/apex
+for point in (start, apex):
+    draw.gliphs.Dot(
+        [loc.body.x for loc in point.locomotions],
+        [loc.body.y for loc in point.locomotions],
+        color=point.color,
+        ax=axes["A"],
+        zorder=500,
+    )
 
-        draw.gliphs.Dot(
-            at_G.body.x,
-            at_G.body.y,
-            color=point.color,
-            ax=axes["A"],
-            zorder=500,
-        )
+
+for n, turn in enumerate(turns):
     _ = draw.Tracking(turn.body.x, turn.body.y, ax=axes["A"])
 
-
-peak_speed = []  # peak speed between start and apex
-for n, turn in enumerate(turns):
     # highlight trace from start -> end
     slowing_trace = turn @ np.arange(start.frame_idx[n], apex.frame_idx[n] + 1)
-
     slowing_trace.gcoord = turn.gcoord[
         start.frame_idx[n] : apex.frame_idx[n] + 1
     ]
+
     draw.Tracking(
         slowing_trace.body.x,
         slowing_trace.body.y,
@@ -220,11 +232,9 @@ for n, turn in enumerate(turns):
     )
 
     # get peak speed
-    peak_speed.append(np.max(slowing_trace.body.speed))
-    at_peak = np.argmax(slowing_trace.body.speed)
     draw.Tracking.scatter(
-        slowing_trace.body.x[at_peak],
-        slowing_trace.body.y[at_peak],
+        slowing_trace.body.x[at_peak_speed[n]],
+        slowing_trace.body.y[at_peak_speed[n]],
         color=colors.speed,
         ax=axes["A"],
         zorder=250,
@@ -232,7 +242,7 @@ for n, turn in enumerate(turns):
 
 
 # plot speeds histograms and mark means
-draw.Hist(peak_speed, color=start.color, ax=axes["C"], bins=6)
+draw.Hist(start.speed, color=start.color, ax=axes["C"], bins=6)
 draw.Hist(apex.speed, color=apex.color, ax=axes["C"], bins=6)
 for point in (start, apex):
     axes["C"].axvline(
@@ -266,8 +276,6 @@ f.tight_layout()
 """
 
 
-slowing = AtPoint(name="slowing", color=blue_darker)
-
 f = plt.figure(figsize=(16, 12))
 axes = f.subplot_mosaic(
     """
@@ -280,8 +288,8 @@ axes = f.subplot_mosaic(
 
 draw.ROI(ROI.name, set_ax=True, ax=axes["A"])
 for n, turn in enumerate(turns):
+    _ = draw.Tracking(turn.body.x, turn.body.y, alpha=1, lw=0.2, ax=axes["A"])
     # draw tracking traces colored by longitudinal accelration and normal
-
     draw.Tracking.scatter(
         turn.body.x[start.frame_idx[n] : apex.frame_idx[n]],
         turn.body.y[start.frame_idx[n] : apex.frame_idx[n]],
@@ -292,28 +300,17 @@ for n, turn in enumerate(turns):
         vmin=-4,
         vmax=4,
         ax=axes["A"],
+        zorder=200,
+        lw=0.2,
+        ec="k",
     )
-
-    # get when the mouse starts decelaring
-    slow_frame_idx = np.where(
-        turn.body.longitudinal_acceleration < DECELERATION_THRESHOLD
-    )[0][0]
-    at_slow = turn @ slow_frame_idx
-    slowing.locomotions.append(at_slow)
-    slowing.frame_idx.append(slow_frame_idx)
-    slowing.track_distance.append(
-        TCS.point_to_track_coordinates_system(
-            center_line, (at_slow.body.x, at_slow.body.y)
-        )[0]
-    )
-    slowing.G_distance.append(turn.gcoord[slow_frame_idx])
 
 # mark the position of the mice when they slow down
 _ = draw.Tracking.scatter(
     slowing.x,
     slowing.y,
     c="k",
-    zorder=100,
+    zorder=300,
     ec="k",
     s=125,
     alpha=1,
@@ -369,7 +366,10 @@ _ = axes["C"].set(
     title="deceleration position vs speed",
     xlabel="distance along track (norm)",
     ylabel="speed at slowing start (cm/s)",
-    xlim=[55, 80],
+    xlim=[
+        np.min(slowing.track_distance) - 5,
+        np.max(slowing.track_distance) + 5,
+    ],
 )
 _ = axes["D"].set(
     title="deceleration peak vs speed",
@@ -386,3 +386,6 @@ _ = axes["G"].set(
 
 
 f.tight_layout()
+
+
+# %%

@@ -1,19 +1,17 @@
 import pandas as pd
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 from collections import namedtuple
 
-from typing import Tuple, List
+from typing import Optional
 
 import sys
 
 sys.path.append("./")
 
-from kino.geometry import Vector, Trajectory
+from kino.geometry import Trajectory
 from kino.locomotion import Locomotion
-from kino.animal import mouse
 
-from analysis.fixtures import BPS
 from kinematics import track_cordinates_system as TCS
 
 
@@ -66,157 +64,60 @@ class TrackingData:
 
 
 @dataclass
-class SnapShot:
+class AtPoint:
     """
-        Kinematics variables at a moment in time
-    """
-
-    x: float
-    y: float
-    xy: Vector
-    v: Vector
-    s: float
-    a_mag: float
-    a: Vector
-    tangent: Vector
-    theta: float
-    thetadot: float
-    thetadotdot: float
-
-
-class LocomotionBout(Locomotion):
-    """
-        Represents a continuous bit of locomotion in the hairpin.
-        It cleans up the tracking a bit by averaging vector quantities
-        over a small window.
+        Class used to collect kinematics data across different Locomotion traces, for each
+        trace it stores the locomotion data for a single time point (i.e. when the mouse is at
+        a selected point in the arena). Useful to e.g. compare kinematics everytime the mice are
+        at the apex of a turn.
     """
 
-    def __init__(
+    color: str
+    name: str
+    frame_idx: list = field(
+        default_factory=list
+    )  # index of the selected frame of each locomotion
+    G: Optional[float] = None  # g_coord value
+    locomotions: list = field(default_factory=list)
+    track_distance: list = field(
+        default_factory=list
+    )  # distance along linearized track at frame
+    G_distance: list = field(default_factory=list)  # gcoord at selected frame
+
+    @property
+    def x(self) -> np.ndarray:
+        return np.array([loc.body.x for loc in self.locomotions])
+
+    @property
+    def y(self) -> np.ndarray:
+        return np.array([loc.body.y for loc in self.locomotions])
+
+    @property
+    def speed(self) -> np.ndarray:
+        return np.array([loc.body.speed for loc in self.locomotions])
+
+    def add(
         self,
-        bout: pd.DataFrame,
-        window: int = 4,
-        linearize_to: Trajectory = None,
-        trim: bool = True,
-        bparts_tracking: pd.DataFrame = None,
+        locomotion: Locomotion,
+        frame: int,
+        center_line: Optional[Trajectory] = None,
     ):
-        self.window = window  # size of smoothing window
-        super().__init__(self, mouse, bout, fps=60)
+        """
+            Adds a locomotion trace data to the class' data
+        """
+        # get locomotion at frame
+        at_frame = locomotion @ frame
 
-        if window:
-            self.smooth(window=window)
+        self.locomotions.append(at_frame)
+        self.frame_idx.append(frame)
 
-        if trim:
-            fast = np.where(self.speed > 20)[0]
-            self.trim_start, self.trim_end = fast[0], fast[-1]
-            self.trim(self.trim_start, self.trim_end)
-        else:
-            self.trim_start, self.trim_end = 0, -1
-
-        # extract variables from locomotion bout
-        self.gcoord: np.ndarray = bout["gcoord"][
-            self.trim_start : self.trim_end
-        ]
-        self.duration: float = bout["duration"] if not self.trim_end else (
-            self.trim_end - self.trim_start
-        ) / 60
-
-        self.start_frame: int = bout["start_frame"] + self.trim_start
-        self.end_frame: int = bout["end_frame"] if not self.trim_end else bout[
-            "end_frame"
-        ] - self.trim_end
-
-        # linearize to a reference track
-        if linearize_to is not None:
-            self.linearized: Trajectory = TCS.path_to_track_coordinates_system(
-                linearize_to, self
+        # project to linearized track
+        if center_line is not None:
+            self.track_distance.append(
+                TCS.point_to_track_coordinates_system(
+                    center_line, (at_frame.body.x, at_frame.body.y)
+                )[0]
             )
 
-        # add other body parts tracking as a series of Path
-        if bparts_tracking is not None:
-            for bp in BPS:
-                bp_path = Trajectory(
-                    bparts_tracking[bp + "_x"], bparts_tracking[bp + "_x"]
-                ).smooth(window=window)
-                bp_path.trim(self.trim_start, self.trim_end)
-                setattr(self, bp, bp_path)
-
-    def __repr__(self) -> str:
-        return (
-            f"datastructures.LocomotionBout ({self.duration:.3f}s in duration)"
-        )
-
-    def __str__(self) -> str:
-        return self.__repr__()
-
-    def __len__(self):
-        return len(self.x)
-
-    def __getitem__(self, item: str):
-        return self.__dict__[item]
-
-    def at(self, frame: int) -> SnapShot:
-        """
-            Returns the kinematics variables at a frame
-        """
-
-        return SnapShot(
-            x=self.x[frame],
-            y=self.y[frame],
-            xy=Vector(self.x[frame], self.y[frame]),
-            v=self.velocity[frame],
-            s=self.speed[frame],
-            a_mag=self.acceleration[frame],
-            a=self.acceleration_vec[frame],
-            tangent=self.tangent[frame],
-            theta=self.theta[frame],
-            thetadot=self.thetadot[frame],
-            thetadotdot=self.thetadotdot[frame],
-        )
-
-    def add_ephys(self, unit: pd.DataFrame):
-        self.firing_rate = unit.firing_rate[self.start_frame : self.end_frame]
-        self.spikes = unit.spikes[self.start_frame : self.end_frame]
-        self.unit = unit
-
-
-def merge_locomotion_bouts(bouts: List[Locomotion]) -> Tuple[np.ndarray]:
-    """
-        It concats scalar quantities across individual bouts
-        X -> x pos
-        Y -> y pos
-        S -> speed
-        A -> acceleration
-        T -> theta/orientation
-        AV -> angular velocity
-        AA -> angular acceleration
-    """
-    X, Y, S, A, T, AV, AA = [], [], [], [], [], [], []
-
-    for bout in bouts:
-        start = np.where(bout.body.speed > 10)[0][0]
-        X.append(bout.body.x[start:])
-        Y.append(bout.body.y[start:])
-        S.append(bout.body.speed[start:])
-        A.append(bout.body.acceleration_mag[start:])
-        T.append(bout.body.theta[start:])
-        AV.append(bout.body.thetadot[start:])
-        AA.append(bout.body.thetadotdot[start:])
-
-    return (
-        np.hstack(X),
-        np.hstack(Y),
-        np.hstack(S),
-        np.hstack(A),
-        np.hstack(T),
-        np.hstack(AV),
-        np.hstack(AA),
-    )
-
-
-if __name__ == "__main__":
-    bouts = pd.read_hdf(
-        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data/complete_bouts.h5",
-        key="hdf",
-    )
-
-    print(LocomotionBout(bouts.iloc[1]))
+        # get the G_coordinates
+        self.G_distance.append(locomotion.gcoord[frame])

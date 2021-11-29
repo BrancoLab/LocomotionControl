@@ -59,12 +59,3 @@ def load_complete_bouts(
         bouts.append(locomotion_bout)
 
     return bouts
-
-
-if __name__ == "__main__":
-    bts = load_complete_bouts(keep=2)
-
-    print(bts[1])
-    print(bts[1].snout)
-
-    # TODO check why these are shorter now?

@@ -9,6 +9,9 @@ from fcutils.maths.signals import get_onset_offset
 
 from data.debug_utils import plot_signal_and_events
 
+from kino.locomotion import Locomotion
+
+
 KEYS = (
     "x",
     "y",
@@ -26,6 +29,40 @@ KEYS = (
     "thetadot",
     "thetadotdot",
 )
+
+
+def merge_locomotion_bouts(bouts: List[Locomotion]) -> Tuple[np.ndarray]:
+    """
+        It concats scalar quantities across individual bouts
+        X -> x pos
+        Y -> y pos
+        S -> speed
+        A -> acceleration
+        T -> theta/orientation
+        AV -> angular velocity
+        AA -> angular acceleration
+    """
+    X, Y, S, A, T, AV, AA = [], [], [], [], [], [], []
+
+    for bout in bouts:
+        start = np.where(bout.body.speed > 10)[0][0]
+        X.append(bout.body.x[start:])
+        Y.append(bout.body.y[start:])
+        S.append(bout.body.speed[start:])
+        A.append(bout.body.acceleration_mag[start:])
+        T.append(bout.body.theta[start:])
+        AV.append(bout.body.thetadot[start:])
+        AA.append(bout.body.thetadotdot[start:])
+
+    return (
+        np.hstack(X),
+        np.hstack(Y),
+        np.hstack(S),
+        np.hstack(A),
+        np.hstack(T),
+        np.hstack(AV),
+        np.hstack(AA),
+    )
 
 
 def resample_linear_1d(original: np.ndarray, target_length: int) -> np.ndarray:
