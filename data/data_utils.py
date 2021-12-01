@@ -41,8 +41,10 @@ def merge_locomotion_bouts(bouts: List[Locomotion]) -> Tuple[np.ndarray]:
         T -> theta/orientation
         AV -> angular velocity
         AA -> angular acceleration
+        LonA -> longitudinal acceleartion
+        LatA -> lateral acceleration
     """
-    X, Y, S, A, T, AV, AA = [], [], [], [], [], [], []
+    X, Y, S, A, T, AV, AA, LonA, LatA = [], [], [], [], [], [], [], [], []
 
     for bout in bouts:
         start = np.where(bout.body.speed > 10)[0][0]
@@ -53,6 +55,8 @@ def merge_locomotion_bouts(bouts: List[Locomotion]) -> Tuple[np.ndarray]:
         T.append(bout.body.theta[start:])
         AV.append(bout.body.thetadot[start:])
         AA.append(bout.body.thetadotdot[start:])
+        LonA.append(bout.body.longitudinal_acceleration[start:])
+        LatA.append(bout.body.normal_acceleration[start:])
 
     return (
         np.hstack(X),
@@ -62,6 +66,8 @@ def merge_locomotion_bouts(bouts: List[Locomotion]) -> Tuple[np.ndarray]:
         np.hstack(T),
         np.hstack(AV),
         np.hstack(AA),
+        np.hstack(LonA),
+        np.hstack(LatA),
     )
 
 

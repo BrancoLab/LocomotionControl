@@ -120,9 +120,14 @@ def skeleton2path(
     X = convolve_with_gaussian(X, kernel_width=31)
     Y = convolve_with_gaussian(Y, kernel_width=31)
 
-    return Trajectory(
-        X, Y, name="skeleton", fps=60, smoothing_window=1
-    ).downsample_euclidean(spacing=points_spacing)
+    if points_spacing >= 1:
+        return Trajectory(
+            X, Y, name="skeleton", fps=60, smoothing_window=1
+        ).downsample_euclidean(spacing=points_spacing)
+    else:
+        return Trajectory(
+            X, Y, name="skeleton", fps=60, smoothing_window=1
+        ).interpolate(spacing=points_spacing)
 
 
 def extrude_paths(
@@ -163,8 +168,8 @@ def extrude_paths(
         R["x"].append(p.x - width * np.cos(theta))
         R["y"].append(p.y - width * np.sin(theta))
 
-    left_line = Trajectory(L["x"], L["y"])
-    right_line = Trajectory(R["x"], R["y"])
+    left_line = Trajectory(L["x"], L["y"], fps=60, smoothing_window=1)
+    right_line = Trajectory(R["x"], R["y"], fps=60, smoothing_window=1)
 
     return left_line, right_line
 
