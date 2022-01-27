@@ -4,6 +4,8 @@ from fcutils.path import files
 from loguru import logger
 import numpy as np
 
+from myterial import green, grey_dark, grey, black, indigo
+
 br.settings.SHOW_AXES = False
 # br.set_logging('DEBUG')
 
@@ -11,7 +13,15 @@ probes_folder = Path(
     r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
 )
 
-colors = ["k", "b", "r", "m"]
+colors = {
+    '1100279_0': grey,
+    '1100281_0': grey_dark,
+    '1100516_0': indigo,
+    '1110750_0': green,
+    '1110751_0': black,
+}
+
+["k", "b", "r", "m", green]
 
 # scene and brain regions
 scene = br.Scene()
@@ -26,9 +36,9 @@ scene.add_brain_region(
 # add probes
 for n, probe in enumerate(files(probes_folder, pattern="*_0.npy")):
     coords = np.load(probe)
-    scene.add(br.actors.Points(coords, colors=colors[n], radius=40))
-    logger.info(f"Adding probe from {probe.name} with color: {colors[n]}")
-    print(f"Adding probe from {probe.name} with color: {colors[n]}")
+    probe_actor = scene.add(br.actors.Points(coords, colors=colors[probe.stem], radius=40))
+    logger.info(f"Adding probe from {probe.name} with color: {colors[probe.stem]}")
+
 
 # slice
 plane = scene.atlas.get_plane(

@@ -14,28 +14,6 @@ from data.paths import (
 )
 
 
-def get_opto_metadata(mouse:str, metadata_file:Path):
-    metadata = pd.read_excel(metadata_file, engine="odf")
-    
-    # checl of there's an entry for this mouse
-    mouse_id = int(mouse[-3:])
-    metadata = metadata.loc[metadata["Unnamed: 1"] == mouse_id]
-    if metadata.empty:
-        logger.debug(f"No probe implant metadata found for mouse: {mouse_id}")
-        return None
-
-    # get clean metadata
-    try:
-        raise NotImplementedError("fix metadata cleaning")
-        cleaned_data = dict(
-            
-        )
-    except TypeError:
-        logger.debug(
-            f"Incomplete opto implant metadata found for mouse: {mouse_id}"
-        )
-        return None
-    return cleaned_data
 
 def get_probe_metadata(mouse: str):
     metadata = pd.read_excel(probes_surgeries_metadata, engine="odf")
