@@ -3,6 +3,10 @@
 video.mp4
 
 cache
+logs/*
+*/logs/*
+./logs/*
+
 rnn_cache
 
 */secrets.py

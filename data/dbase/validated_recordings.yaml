@@ -228,4 +228,34 @@ FC_210917_BAA1110281_hairpin:
     n_analog_channels: 4
     n_frames: 167562
     name: FC_210917_BAA1110281_hairpin
+FC_211022_BAA110516_hairpin:
+    bonsai_cut_end: 11724.0
+    bonsai_cut_start: 11224.0
+    duration: 3561.1833333333334
+    ephys_cut_start: 30000.0
+    ephys_time_scaling_factor: 1.000089691496645
+    mouse_id: BAA110516
+    n_analog_channels: 4
+    n_frames: 213672
+    name: FC_211022_BAA110516_hairpin
+FC_211027_BAA110516_hairpin:
+    bonsai_cut_end: 11620.0
+    bonsai_cut_start: 11120.0
+    duration: 4312.983333333334
+    ephys_cut_start: 30000.0
+    ephys_time_scaling_factor: 1.0000905863182052
+    mouse_id: BAA110516
+    n_analog_channels: 4
+    n_frames: 258780
+    name: FC_211027_BAA110516_hairpin
+FC_220120_BAA110517_hairpin:
+    bonsai_cut_end: 8723.0
+    bonsai_cut_start: 8223.0
+    duration: 3582.583333333333
+    ephys_cut_start: 30000.0
+    ephys_time_scaling_factor: 1.0000899198758353
+    mouse_id: BAA110517
+    n_analog_channels: 4
+    n_frames: 214956
+    name: FC_220120_BAA110517_hairpin
 test: entry

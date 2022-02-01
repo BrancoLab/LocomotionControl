@@ -1208,6 +1208,26 @@ FC_211004_BAA1100521_hairpin:
     n_analog_channels: 4
     n_frames: 411558
     name: FC_211004_BAA1100521_hairpin
+FC_211005_BAA1110521_hairpin:
+    bonsai_cut_end: 11380.0
+    bonsai_cut_start: 10880.0
+    duration: 6112.083333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA1110521
+    n_analog_channels: 4
+    n_frames: 366726
+    name: FC_211005_BAA1110521_hairpin
+FC_211006_BAA1110520_hairpin:
+    bonsai_cut_end: 11376.0
+    bonsai_cut_start: 10876.0
+    duration: 3847.083333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA1110520
+    n_analog_channels: 4
+    n_frames: 230826
+    name: FC_211006_BAA1110520_hairpin
 FC_211007_BAA1100522_hairpin:
     bonsai_cut_end: 10509.0
     bonsai_cut_start: 10009.0
@@ -1228,4 +1248,214 @@ FC_211007_BAA1100523_hairpin:
     n_analog_channels: 4
     n_frames: 89598
     name: FC_211007_BAA1100523_hairpin
+FC_211015_BAA110522_hairpin:
+    bonsai_cut_end: 11615.0
+    bonsai_cut_start: 11115.0
+    duration: 1907.9833333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110522
+    n_analog_channels: 4
+    n_frames: 114480
+    name: FC_211015_BAA110522_hairpin
+FC_211015_BAA110523_hairpin:
+    bonsai_cut_end: 10070.0
+    bonsai_cut_start: 9570.0
+    duration: 3469.383333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110523
+    n_analog_channels: 4
+    n_frames: 208164
+    name: FC_211015_BAA110523_hairpin
+FC_211018_BAA110516_hairpin:
+    bonsai_cut_end: 11532.0
+    bonsai_cut_start: 11032.0
+    duration: 6052.683333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110516
+    n_analog_channels: 4
+    n_frames: 363162
+    name: FC_211018_BAA110516_hairpin
+FC_211018_BAA110522_hairpin:
+    bonsai_cut_end: 8307.0
+    bonsai_cut_start: 7807.0
+    duration: 3268.6833333333334
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110522
+    n_analog_channels: 4
+    n_frames: 196122
+    name: FC_211018_BAA110522_hairpin
+FC_211018_BAA110523_hairpin:
+    bonsai_cut_end: 8117.0
+    bonsai_cut_start: 7617.0
+    duration: 3675.883333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110523
+    n_analog_channels: 4
+    n_frames: 220554
+    name: FC_211018_BAA110523_hairpin
+FC_211019_BAA110516_hairpin:
+    bonsai_cut_end: 8736.0
+    bonsai_cut_start: 8236.0
+    duration: 3398.9833333333336
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110516
+    n_analog_channels: 4
+    n_frames: 203940
+    name: FC_211019_BAA110516_hairpin
+FC_211019_BAA110522_hairpin:
+    bonsai_cut_end: 8734.0
+    bonsai_cut_start: 8234.0
+    duration: 4242.683333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110522
+    n_analog_channels: 4
+    n_frames: 254562
+    name: FC_211019_BAA110522_hairpin
+FC_211019_BAA110523_hairpin:
+    bonsai_cut_end: 11735.0
+    bonsai_cut_start: 11235.0
+    duration: 2375.2833333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110523
+    n_analog_channels: 4
+    n_frames: 142518
+    name: FC_211019_BAA110523_hairpin
+FC_211020_BAA110522_hairpin:
+    bonsai_cut_end: 11668.0
+    bonsai_cut_start: 11168.0
+    duration: 5022.583333333334
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110522
+    n_analog_channels: 4
+    n_frames: 301356
+    name: FC_211020_BAA110522_hairpin
+FC_211020_BAA110523_hairpin:
+    bonsai_cut_end: 11309.0
+    bonsai_cut_start: 10809.0
+    duration: 3463.0833333333335
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110523
+    n_analog_channels: 4
+    n_frames: 207786
+    name: FC_211020_BAA110523_hairpin
+FC_211021_BAA110516_hairpin:
+    bonsai_cut_end: 8741.0
+    bonsai_cut_start: 8241.0
+    duration: 1621.0833333333335
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110516
+    n_analog_channels: 4
+    n_frames: 97266
+    name: FC_211021_BAA110516_hairpin
+FC_211021_BAA110522_hairpin:
+    bonsai_cut_end: 11708.0
+    bonsai_cut_start: 11208.0
+    duration: 3279.0833333333335
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110522
+    n_analog_channels: 4
+    n_frames: 196746
+    name: FC_211021_BAA110522_hairpin
+FC_211021_BAA110523_hairpin:
+    bonsai_cut_end: 8720.0
+    bonsai_cut_start: 8220.0
+    duration: 2321.0833333333335
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110523
+    n_analog_channels: 4
+    n_frames: 139266
+    name: FC_211021_BAA110523_hairpin
+FC_211125_BAA110518_hairpin:
+    bonsai_cut_end: 8636.0
+    bonsai_cut_start: 8136.0
+    duration: 3694.2833333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110518
+    n_analog_channels: 4
+    n_frames: 221658
+    name: FC_211125_BAA110518_hairpin
+FC_211126_BAA110518_hairpin:
+    bonsai_cut_end: 8424.0
+    bonsai_cut_start: 7924.0
+    duration: 6207.983333333334
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110518
+    n_analog_channels: 4
+    n_frames: 372480
+    name: FC_211126_BAA110518_hairpin
+FC_211130_BAA110518_hairpin:
+    bonsai_cut_end: 8707.0
+    bonsai_cut_start: 8207.0
+    duration: 3363.383333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110518
+    n_analog_channels: 4
+    n_frames: 201804
+    name: FC_211130_BAA110518_hairpin
+FC_211130_BAA110618_hairpin:
+    bonsai_cut_end: 8040.0
+    bonsai_cut_start: 7540.0
+    duration: 2389.2833333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110618
+    n_analog_channels: 4
+    n_frames: 143358
+    name: FC_211130_BAA110618_hairpin
+FC_211130_BAA110620_hairpin:
+    bonsai_cut_end: 11656.0
+    bonsai_cut_start: 11156.0
+    duration: 4696.583333333334
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110620
+    n_analog_channels: 4
+    n_frames: 281796
+    name: FC_211130_BAA110620_hairpin
+FC_211201_BAA110618_hairpin:
+    bonsai_cut_end: 11176.0
+    bonsai_cut_start: 10676.0
+    duration: 3366.883333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110618
+    n_analog_channels: 4
+    n_frames: 202014
+    name: FC_211201_BAA110618_hairpin
+FC_211201_BAA110619_hairpin:
+    bonsai_cut_end: 11010.0
+    bonsai_cut_start: 10510.0
+    duration: 2344.7833333333333
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110619
+    n_analog_channels: 4
+    n_frames: 140688
+    name: FC_211201_BAA110619_hairpin
+FC_211203_BAA110620_hairpin:
+    bonsai_cut_end: 8143.0
+    bonsai_cut_start: 7643.0
+    duration: 2841.6833333333334
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: BAA110620
+    n_analog_channels: 4
+    n_frames: 170502
+    name: FC_211203_BAA110620_hairpin
 test: entry

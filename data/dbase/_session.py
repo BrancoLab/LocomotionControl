@@ -27,8 +27,14 @@ def fill_session_table(table):
         if name in in_table:
             continue
 
+        if "opto" in name:
+            logger.info(
+                f"Skipping session {name} because its OPTOGENETICS session"
+            )
+            continue
+
         if "test" in name.lower() in name.lower():
-            logger.warning(f"Skipping session {name} as it is a test")
+            logger.info(f"Skipping session {name} as it is a test")
             continue
 
         # get date and mouse

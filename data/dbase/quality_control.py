@@ -132,7 +132,7 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         nframes,
         frame_trigger_times[0],
         frame_trigger_times[1],
-        "nothing",
+        "behav_valid",
     )
 
 
@@ -246,9 +246,14 @@ def validate_recording(
     logger.debug(f"\nRunning validate RECORDING on {name}")
 
     # load analog from bonsai
-    bonsai_probe_sync = load_or_open(
-        ephys_ap_data_path, "bonsai", ai_file_path, 3
-    )
+    try:
+        bonsai_probe_sync = load_or_open(
+            ephys_ap_data_path, "bonsai", ai_file_path, 3
+        )
+    except FileNotFoundError as e:
+        # raise FileNotFoundError(e)
+        logger.warning(f"Failed to find recording data: {e}")
+        return False, 0, 0, f"No rec data found {e}"
 
     # load data from ephys (from local file if possible)
     ephys_probe_sync = load_or_open(
@@ -313,7 +318,7 @@ def validate_recording(
         )
         # plt.show()
 
-    return is_ok, ephys_sync_onsets[0], time_scaling_factor, "nothing"
+    return is_ok, ephys_sync_onsets[0], time_scaling_factor, "rec_valid"
 
 
 if __name__ == "__main__":

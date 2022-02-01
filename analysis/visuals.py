@@ -6,7 +6,7 @@ from loguru import logger
 from scipy.stats import sem
 
 
-from fcutils.plot.distributions import plot_kde
+# from fcutils.plot.distributions import plot_kde
 from fcutils.plot.elements import plot_mean_and_error
 from myterial import blue_grey, blue_grey_dark, grey_darker, pink_dark, blue
 
@@ -188,6 +188,7 @@ def plot_heatmap_2d(
             **kwargs,
         )
 
+
 # ---------------------------------------------------------------------------- #
 #                                     EPHSY                                    #
 # ---------------------------------------------------------------------------- #
@@ -195,25 +196,34 @@ def plot_probe_electrodes(
     rsites: pd.DataFrame,
     ax: plt.axis,
     TARGETS: list = [],
-    annotate_every:Union[int, bool] = 5,
+    annotate_every: Union[int, bool] = 5,
     x_shift: bool = True,
     s: int = 25,
     lw: float = 0.25,
-    x_pos_delta:float = 0, 
+    x_pos_delta: float = 0,
 ):
     x = np.ones(len(rsites)) * 1.025 + x_pos_delta
     if x_shift:
         x[::2] = 1.025 + x_pos_delta - 0.05
         x[2::4] = 1.025 + x_pos_delta - 0.025
-        x[1::4] =  1.025 + x_pos_delta + 0.025
+        x[1::4] = 1.025 + x_pos_delta + 0.025
     else:
-        x = x_pos_delta + np.tile([0.975, 1.025, 1.0, 1.05], np.int(np.ceil(len(rsites)/4)))[:len(rsites)]
+        x = (
+            x_pos_delta
+            + np.tile(
+                [0.975, 1.025, 1.0, 1.05], np.int(np.ceil(len(rsites) / 4))
+            )[: len(rsites)]
+        )
 
     if TARGETS is not None:
         colors = [
             rs.color
             if rs.brain_region in TARGETS
-            else ([0.3, 0.3, 0.3] if rs.brain_region in ('unknown', 'OUT') else blue_grey)
+            else (
+                [0.3, 0.3, 0.3]
+                if rs.brain_region in ("unknown", "OUT")
+                else blue_grey
+            )
             for i, rs in rsites.iterrows()
         ]
     else:
@@ -273,16 +283,17 @@ def plot_raster(
 
     # plot KDE
     if kde:
-        plot_kde(
-            ax=ax,
-            z=-len(events) / 4,
-            data=X,
-            normto=len(events) / 5,
-            color=blue_grey_dark,
-            kde_kwargs=dict(bw=bw, cut=0),
-            alpha=0.6,
-            invert=False,
-        )
+        raise NotImplementedError("KDE env setup incorrect")
+        # plot_kde(
+        #     ax=ax,
+        #     z=-len(events) / 4,
+        #     data=X,
+        #     normto=len(events) / 5,
+        #     color=blue_grey_dark,
+        #     kde_kwargs=dict(bw=bw, cut=0),
+        #     alpha=0.6,
+        #     invert=False,
+        # )
 
     # set x axis properties
     ax.set(
