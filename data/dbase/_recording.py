@@ -6,10 +6,11 @@ from loguru import logger
 import h5py
 import numpy as np
 from scipy import stats
+from rich.prompt import Confirm
 
 sys.path.append("./")
 
-from fcutils.path import files, size
+from fcutils.path import size
 
 
 def get_recording_filepaths(
@@ -18,43 +19,45 @@ def get_recording_filepaths(
     recordings_folder: Path,
     rec_folder: str,
 ) -> dict:
-    
+
     # check if recording has been validated
     metadata = rec_metadata.loc[
         rec_metadata["recording folder"] == rec_folder
     ].iloc[0]
 
-    if metadata.Validated != "yes" or metadata['USE?'] != 'yes':
-        logger.debug(f'Recording for {key["name"]} was not validated - skipping.')
+    if metadata.Validated != "yes" or metadata["USE?"] != "yes":
+        logger.debug(
+            f'Recording for {key["name"]} was not validated - skipping.'
+        )
         return
 
-    if metadata['spike sorted'] != 'yes':
-        logger.info(f'Recording for {key["name"]} not yet spike sorted - skipping.')
+    if metadata["spike sorted"] != "yes":
+        logger.debug(
+            f'Recording for {key["name"]} not yet spike sorted - skipping.'
+        )
         return
 
     # Check if it's a concatenated recording
-    concat_filepath = metadata["concatenated recording file"]
-    if isinstance(concat_filepath, str):
-        # it was concatenated
-        rec_name = concat_filepath
-        rec_path = recordings_folder / Path(rec_name)
-        key["concatenated"] = 1
+    # concat_filepath = metadata["concatenated recording file"]
+    # if isinstance(concat_filepath, str):
+    #     # it was concatenated
+    #     rec_name = concat_filepath
+    #     rec_path = recordings_folder / Path(rec_name)
+    #     key["concatenated"] = 1
 
-        if not rec_path.is_dir() or not files(rec_path):
-            logger.warning(
-                f'Invalid rec folder: {rec_path} for session {key["name"]} - empty or not existant rec folder.'
-            )
-            return None
+    #     if not rec_path.is_dir() or not files(rec_path):
+    #         logger.warning(
+    #             f'Invalid rec folder: {rec_path} for session {key["name"]} - empty or not existant rec folder.'
+    #         )
+    #         return None
 
-        rec_name = rec_name + "_g0"
-    else:
-        rec_name = rec_metadata.loc[
-            rec_metadata["recording folder"] == rec_folder
-        ]["recording folder"].iloc[0]
-        rec_path = (
-            recordings_folder / Path(rec_name) / Path(rec_name + "_imec0")
-        )
-        key["concatenated"] = -1
+    #     rec_name = rec_name + "_g0"
+    # else:
+    rec_name = rec_metadata.loc[
+        rec_metadata["recording folder"] == rec_folder
+    ]["recording folder"].iloc[0]
+    rec_path = recordings_folder / Path(rec_name) / Path(rec_name + "_imec0")
+    key["concatenated"] = -1
 
     # complete the paths to all relevant files
     key["spike_sorting_params_file_path"] = str(
@@ -73,11 +76,18 @@ def get_recording_filepaths(
         "spike_sorting_clusters_file_path",
     ):
         if not Path(key[name]).exists():
-            logger.warning(f'Cant find file for "{name}" in session "{key["name"]}" - maybe not spike sorted yet?')
-            return None
+            logger.warning(
+                f'Cant find file for "{name}" in session "{key["name"]}" - maybe not spike sorted yet?\nPath: {key[name]}'
+            )
+            if Confirm.ask("Insert placeholder?"):
+                pass
+            else:
+                return None
 
     # get probe configuration
-    key['recording_probe_configuration'], key['reference'] = metadata['probe config'].split('_')
+    key["recording_probe_configuration"], key["reference"] = metadata[
+        "probe config"
+    ].split("_")
     return key
 
 
@@ -141,7 +151,6 @@ def get_unit_spike_times(
         Gets a unit's spikes times aligned to bonsai's video frames
         in both milliseconds from the recording start and in frame numbers
     """
-    logger.debug(f"         getting spikes times")
 
     # check that the last spike didn't occur too late
     # if unit["raw_spikes_s"][-1] - 2 > triggers['duration']:  # -2 to account for tails of recording
@@ -194,31 +203,34 @@ def cut_concatenated_units(
         for spikes to keep. The keeping of the spikes is actually done in 'get_unit_spike_times'
     """
     # get if first or second in concatenated data
-    concat_filename = Path(recording["spike_sorting_spikes_file_path"]).stem[
-        :-15
-    ]
-    concat_metadata = rec_metadata.loc[
-        rec_metadata["concatenated recording file"] == concat_filename
-    ]
+    # concat_filename = Path(recording["spike_sorting_spikes_file_path"]).stem[
+    #     :-15
+    # ]
+    # # concat_metadata = rec_metadata.loc[
+    # #     rec_metadata["concatenated recording file"] == concat_filename
+    # # ]
+    # # concat_metadata = rec_metadata.loc[
+    # #     [True if isinstance(x, str) and concat_filename in x else False for x in rec_metadata["recording folder"].values]
+    # # ]
+    # # if len(concat_metadata) != 2:
+    # #     raise ValueError("Expected to find two metadata entries")
 
-    if len(concat_metadata) != 2:
-        raise ValueError("Expected to find two metadata entries")
+    # rec_filename = Path(recording["ephys_ap_data_path"]).stem[:-12]
+    # idx = np.where(concat_metadata["recording folder"] == rec_filename)[0][0]
+    # is_first = idx == 0
 
-    rec_filename = Path(recording["ephys_ap_data_path"]).stem[:-12]
-    idx = np.where(concat_metadata["recording folder"] == rec_filename)[0][0]
-    is_first = idx == 0
+    # # deal with things separately based on if its first or second recording
+    # if is_first:
+    #     pre_cut = 0
+    #     post_cut = triggers["n_samples"]
+    # else:
+    #     # Get the number of samples of the previous recording and set that as pre_cut
+    #     raise NotImplementedError(
+    #         "need to deal with second of two concatenated recordings"
+    #     )
 
-    # deal with things separately based on if its first or second recording
-    if is_first:
-        pre_cut = 0
-        post_cut = triggers["n_samples"]
-    else:
-        # Get the number of samples of the previous recording and set that as pre_cut
-        raise NotImplementedError(
-            "need to deal with second of two concatenated recordings"
-        )
-
-    return pre_cut, post_cut
+    # return pre_cut, post_cut
+    return None
 
 
 # -------------------------------- firing rate ------------------------------- #
@@ -255,7 +267,7 @@ def get_units_firing_rate(
     X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), frate_window)
     kernel = norm.pdf(X)
     kernel /= np.sum(kernel)  # normalize area under the curve to 1
-    kernel = kernel * 1/np.max(kernel)  # ensure peak at 1
+    kernel = kernel * 1 / np.max(kernel)  # ensure peak at 1
 
     # define number of bins
     # n_bins = int(n_ms / frate_window)

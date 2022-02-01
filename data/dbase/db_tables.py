@@ -36,7 +36,7 @@ from data.dbase import (
     _roi,
 )
 from data.dbase.hairpin_trace import HairpinTrace
-from data.dbase.io import get_probe_metadata, load_bin
+from data.dbase.io import get_probe_metadata  # , load_bin
 from data import data_utils
 from data import arena
 
@@ -207,7 +207,7 @@ if have_dj:
     @schema
     class SessionCondition(dj.Imported):
         definition = """
-            # stores the conditions (e.g. control, implanted) of an experimental sessoin
+            # stores the conditions (e.g. control, implanted) of an experimental session
             -> Session
             condition:  varchar(256)
         """
@@ -270,9 +270,12 @@ if have_dj:
             failed = from_yaml("data/dbase/validation_failed.yaml")
             if failed is None:
                 failed = {}
+
             if key["name"] in failed.keys():
+                reason = failed[key["name"]]["__REASON"]
+                rec = failed[key["name"]]["__IS_RECORDING"]
                 logger.warning(
-                    f'Skipping because {key["name"]} previously failed validation'
+                    f'Skipping because "{key["name"]}" (Is recording: {rec}) previously failed validation because: "{reason}"\n\n'
                 )
                 return
 
@@ -582,8 +585,10 @@ if have_dj:
         def make(self, key):
             _key = key.copy()
 
-            if '_t' in key['name'] and 'training' not in key['name']:
-                logger.warning(f'Skipping session {key["name"]} because its a test session')
+            if "_t" in key["name"] and "training" not in key["name"]:
+                logger.warning(
+                    f'Skipping session {key["name"]} because its a test session'
+                )
                 return
 
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
@@ -731,7 +736,7 @@ if have_dj:
                 )
 
             # insert in table
-            logger.debug(f'Foun {len(crossings)} crossings')
+            logger.debug(f"Foun {len(crossings)} crossings")
             for cross in crossings:
                 cross["crossing_id"] = len(self) + 1
                 self.insert1({**key, **cross})
@@ -750,20 +755,31 @@ if have_dj:
                     "theta",
                     "thetadot",
                 ):
-                    part_key[k + "_init"] = cross[k][0] if not np.isnan(cross[k][0]) else 0
+                    part_key[k + "_init"] = (
+                        cross[k][0] if not np.isnan(cross[k][0]) else 0
+                    )
                 self.InitialCondition.insert1(part_key)
 
         @staticmethod
-        def get_crossing_tracking(crossing:pd.Series, session_tracking:pd.DataFrame) -> dict:
-            '''
+        def get_crossing_tracking(
+            crossing: pd.Series, session_tracking: pd.DataFrame
+        ) -> dict:
+            """
                 Returns a dictionary with tracking cut to the start/end of the locomotion bout
-            '''
-            columns = ('x', 'y', 'bp_speed')
-            results = {bp:{k:[] for k in columns} for bp in session_tracking.bpname.values}
+            """
+            columns = ("x", "y", "bp_speed")
+            results = {
+                bp: {k: [] for k in columns}
+                for bp in session_tracking.bpname.values
+            }
 
             for bp in results.keys():
                 for col in columns:
-                    results[bp][col] = session_tracking.loc[session_tracking.bpname==bp][col].iloc[0][crossing['start_frame']:crossing['end_frame']]
+                    results[bp][col] = session_tracking.loc[
+                        session_tracking.bpname == bp
+                    ][col].iloc[0][
+                        crossing["start_frame"] : crossing["end_frame"]
+                    ]
             return results
 
     @schema
@@ -778,13 +794,12 @@ if have_dj:
         """
 
         def make(self, key):
-            tracking = ROICrossing.get_crossing_tracking(key['crossing_id'])
+            tracking = ROICrossing.get_crossing_tracking(key["crossing_id"])
             for bp, bp_tracking in tracking.items():
                 bpkey = {**key, **bp_tracking}
-                bpkey['bpname'] = bp
+                bpkey["bpname"] = bp
                 self.insert1(bpkey)
 
-            
     @schema
     class RoiCrossingsTwins(dj.Imported):
         definition = """
@@ -834,26 +849,36 @@ if have_dj:
         min_gcoord_delta: float = 0.25  # the global coordinates must change of at least this during bout
 
         @staticmethod
-        def get_bout_tracking(bout:pd.DataFrame, session_tracking:pd.DataFrame=None) -> pd.DataFrame:
-            '''
+        def get_bout_tracking(
+            bout: pd.DataFrame, session_tracking: pd.DataFrame = None
+        ) -> pd.DataFrame:
+            """
                 Returns a dictionary with tracking cut to the start/end of the locomotion bout
-            '''
-            session_tracking = Tracking.get_session_tracking(bout['name'], movement=False, body_only=False) if session_tracking is None else session_tracking
+            """
+            session_tracking = (
+                Tracking.get_session_tracking(
+                    bout["name"], movement=False, body_only=False
+                )
+                if session_tracking is None
+                else session_tracking
+            )
 
             bps = session_tracking.bpname.values
-            x = [bp+'_x' for bp in bps]
-            y = [bp+'_y' for bp in bps]
-            results = {k:[] for k in x + y}
-            columns = ('x', 'y')
-            results['gcoord'] = []
+            x = [bp + "_x" for bp in bps]
+            y = [bp + "_y" for bp in bps]
+            results = {k: [] for k in x + y}
+            columns = ("x", "y")
+            results["gcoord"] = []
 
             for bp in bps:
                 for col in columns:
-                    results[f'{bp}_{col}'] = session_tracking.loc[session_tracking.bpname==bp][col].iloc[0][
-                        bout['start_frame']:bout['end_frame']]
+                    results[f"{bp}_{col}"] = session_tracking.loc[
+                        session_tracking.bpname == bp
+                    ][col].iloc[0][bout["start_frame"] : bout["end_frame"]]
 
-            results[f'gcoord'] = session_tracking.loc[session_tracking.bpname=='body']['global_coord'].iloc[0][
-                bout['start_frame']:bout['end_frame']]
+            results[f"gcoord"] = session_tracking.loc[
+                session_tracking.bpname == "body"
+            ]["global_coord"].iloc[0][bout["start_frame"] : bout["end_frame"]]
             return pd.DataFrame(results)
 
         @staticmethod
@@ -881,9 +906,9 @@ if have_dj:
             )
 
         def make(self, key):
-            if 'open' in key['name']:
+            if "open" in key["name"]:
                 return
-                
+
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
                 logger.debug(
                     f'Skipping {key["name"]} because it doesnt have a recording'
@@ -905,20 +930,21 @@ if have_dj:
                 )
 
             # get bouts
-            bouts = _locomotion_bouts.get_session_bouts(
-                key,
-                tracking,
-                Session.on_hairpin(key["name"]),
-                speed_th=self.speed_th,
-                max_pause=self.max_pause,
-                min_duration=self.min_duration,
-                min_peak_speed=self.min_peak_speed,
-                min_gcoord_delta=self.min_gcoord_delta,
-            )
+            raise NotImplementedError
+            # bouts = _locomotion_bouts.get_session_bouts(
+            #     key,
+            #     tracking,
+            #     Session.on_hairpin(key["name"]),
+            #     speed_th=self.speed_th,
+            #     max_pause=self.max_pause,
+            #     min_duration=self.min_duration,
+            #     min_peak_speed=self.min_peak_speed,
+            #     min_gcoord_delta=self.min_gcoord_delta,
+            # )
 
-            # insert in table
-            for bout in bouts:
-                self.insert1(bout)
+            # # insert in table
+            # for bout in bouts:
+            #     self.insert1(bout)
 
     @schema
     class Movement(dj.Imported):
@@ -1016,7 +1042,13 @@ if have_dj:
             )
 
             # insert into main table
-            self.insert1(probe_key)
+            try:
+                self.insert1(probe_key)
+            except Exception as e:
+                logger.warning(
+                    f'Failed to populate probe table, likely missing path to reconstruction file. Original error:\n"{e}"'
+                )
+                return
 
             # get recording sites in each possible configuration
             tip = (
@@ -1192,19 +1224,26 @@ if have_dj:
             return rsites
 
         def make(self, key):
+            logger.info(f'Procesing: "{key["name"]}"')
             recording = (Session * Recording & key).fetch1()
 
             # load units data
-            units = _recording.load_cluster_curation_results(
-                recording["spike_sorting_clusters_file_path"],
-                recording["spike_sorting_spikes_file_path"],
-            )
+            try:
+                units = _recording.load_cluster_curation_results(
+                    recording["spike_sorting_clusters_file_path"],
+                    recording["spike_sorting_spikes_file_path"],
+                )
+            except FileNotFoundError as e:
+                logger.warning(f"Could not open some file!!!\n{e}")
+                return
 
             # load behavior camera triggers
             triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
 
             # deal with concatenated recordinds
             if recording["concatenated"] == 1:
+                logger.warning("Concatenated analysis not working currently")
+                return
                 # load recordings metadata
                 rec_metadata = pd.read_excel(
                     Session.recordings_metadata_path, engine="odf"
@@ -1241,7 +1280,14 @@ if have_dj:
                 spikes_key["unit_id"] = unit["unit_id"]
 
                 # insert into table
-                self.insert1(unit_key)
+                name = key["mouse_id"]
+                (Probe & f'mouse_id="{name}"')
+                try:
+                    self.insert1(unit_key)
+                except Exception as e:
+                    raise ValueError(
+                        f'Failed to insert key {unit_key} into table\n{Unit()}\nWith error\n"{e}"\nUnit was:{unit}\nProbablyt no Probe key match:\n{Probe & key}'
+                    )
                 self.Spikes.insert1(spikes_key)
 
     @schema
@@ -1299,7 +1345,7 @@ if __name__ == "__main__":
     # Tracking().drop()
     # LocomotionBouts().drop()
     # Unit().drop()
-    # FiringRate.drop()
+    # FiringRate().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1309,6 +1355,8 @@ if __name__ == "__main__":
     # sort_files()
 
     # -------------------------------- fill dbase -------------------------------- #
+
+    # TODO CCM, Tracking, Probe, Recording
 
     logger.info("#####    Filling mouse data")
     # Mouse().fill()
@@ -1332,40 +1380,40 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
     # ROICrossing().populate(display_progress=True)
     # ROICrossingTracking().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
 
-
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=True)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=False)
 
-    # Unit().populate(display_progress=True)
+    Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 
-  
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
     TABLES = [
         Mouse,
         Surgery,
         Session,
+        ValidatedSession,
         SessionCondition,
         Probe,
-        Recording
+        Recording,
     ]
     NAMES = [
         "Mouse",
         "Surgery",
         "Session",
+        "ValidatedSession",
         "SessionCondition",
         "Probe",
-        'Recording'
+        "Recording",
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)

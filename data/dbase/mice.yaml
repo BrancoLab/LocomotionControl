@@ -43,41 +43,58 @@
 
 # --------------------------------- cohort 3 --------------------------------- #
 - mouse:
-    mouse_id: BAA1100516
+    mouse_id: BAA110516
     strain: 'bl6'
     dob: '210713'
 
 - mouse:
-    mouse_id: BAA1100517
+    mouse_id: BAA110517
     strain: 'bl6'
     dob: '210713'
 
 - mouse:
-    mouse_id: BAA1100518
+    mouse_id: BAA110518
     strain: 'bl6'
     dob: '210713'
 
 - mouse:
-    mouse_id: BAA1100519
+    mouse_id: BAA110519
     strain: 'bl6'
     dob: '210713'
 
 - mouse:
-    mouse_id: BAA1100520
+    mouse_id: BAA110520
     strain: 'bl6'
     dob: '210713'
 
 - mouse:
-    mouse_id: BAA1100521
+    mouse_id: BAA110521
     strain: 'bl6'
     dob: '210713'
 
 - mouse:
-    mouse_id: BAA1100522
+    mouse_id: BAA110522
     strain: 'bl6'
     dob: '210713'
 
 - mouse:
-    mouse_id: BAA1100523
+    mouse_id: BAA110523
     strain: 'bl6'
     dob: '210713'
+
+# --------------------------------- cohort 4 --------------------------------- #
+
+- mouse:
+    mouse_id: BAA110618
+    strain: 'bl6'
+    dob: '210913'
+
+- mouse:
+    mouse_id: BAA110619
+    strain: 'bl6'
+    dob: '210913'
+
+- mouse:
+    mouse_id: BAA110620
+    strain: 'bl6'
+    dob: '210913'
