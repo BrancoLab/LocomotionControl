@@ -14,7 +14,7 @@ from myterial.utils import make_palette
 from tpd import recorder
 from myterial import pink_dark, blue_dark
 
-from control import trajectory_planning as tp
+from control_fc import trajectory_planning as tp
 import draw
 from data import paths
 from data.data_structures import LocomotionBout

@@ -45,7 +45,10 @@ def load_complete_bouts(
     for i, bout in track(
         _bouts.iterrows(), total=len(_bouts), description="loading bouts..."
     ):
-        locomotion_bout = Locomotion(mouse, bout, fps=60,)
+
+        locomotion_bout = Locomotion(
+            mouse, bout, fps=60, smoothing_window=window
+        )
 
         # add extra stuff from the locomotion bout (e.g. gcoord)
         for key in bout.index:

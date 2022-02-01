@@ -12,7 +12,7 @@ sys.path.append("./")
 
 from geometry import Path, GrowingPath
 
-from control.config import (
+from control_fc.config import (
     wheelbase,
     dt,
     max_iteration,
@@ -21,9 +21,9 @@ from control.config import (
     matrix_r,
     state_size,
 )
-from control.vehicle import Vehicle
-from control._control import LongitudinalController
-from control.trajectory import TrajectoryAnalyzer
+from control_fc.vehicle import Vehicle
+from control_fc._control import LongitudinalController
+from control_fc.trajectory import TrajectoryAnalyzer
 
 
 class LatController:

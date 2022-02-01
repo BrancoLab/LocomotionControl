@@ -2,6 +2,7 @@
 *.pt
 video.mp4
 
+cache
 rnn_cache
 
 */secrets.py
@@ -110,7 +111,7 @@ ipython_config.py
 .python-version
 
 # pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control_fc.
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
 #   having no cross-platform support, pipenv may install dependencies that don't work, or not
 #   install all needed dependencies.

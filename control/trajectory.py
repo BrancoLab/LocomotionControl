@@ -2,15 +2,15 @@ import math
 import numpy as np
 from typing import Tuple
 
-from control.config import (
+from control_fc.config import (
     dt,
     wheelbase,
     max_steer_angle,
     look_ahead_distance,
     look_ahead_gain,
 )
-from control.vehicle import Vehicle
-from control.paths.utils import pi_2_pi
+from control_fc.vehicle import Vehicle
+from control_fc.paths.utils import pi_2_pi
 
 
 class Node:

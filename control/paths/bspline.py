@@ -5,7 +5,7 @@ sys.path.append("./")
 import numpy as np
 import scipy.interpolate as scipy_interpolate
 
-from control.paths.waypoints import Waypoints
+from control_fc.paths.waypoints import Waypoints
 from geometry import Path
 
 """

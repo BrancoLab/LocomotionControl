@@ -7,8 +7,8 @@ import sys
 sys.path.append("./")
 
 
-from control.paths.utils import mod2pi, pi_2_pi
-from control.paths.waypoints import Waypoints, Waypoint
+from control_fc.paths.utils import mod2pi, pi_2_pi
+from control_fc.paths.waypoints import Waypoints, Waypoint
 from geometry import Path
 
 """

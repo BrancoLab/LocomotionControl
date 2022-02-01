@@ -8,7 +8,7 @@ import sys
 sys.path.append("./")
 
 import draw
-from control.paths.waypoints import Waypoints
+from control_fc.paths.waypoints import Waypoints
 
 
 """

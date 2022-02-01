@@ -31,7 +31,7 @@ import draw
 
 # %%
 # load and clean complete bouts
-bouts = load_complete_bouts(keep=10, window=1)
+bouts = load_complete_bouts(keep=100, window=1)
 
 # merge bouts and get speed, longitudinal and lateral accelerations
 _, _, S, A, _, _, _, LonA, LatA = merge_locomotion_bouts(bouts)
@@ -174,6 +174,7 @@ _ = sns.kdeplot(
     linewidths=2,
     ax=axes["G"],
     bw=0.5,
+    zorder=200,
 )
 
 # plot normalized accelerations
@@ -325,3 +326,4 @@ f.tight_layout()
 plt.plot(bout.body.velocity.magnitude)
 plt.plot(np.cumsum(bout.body.longitudinal_acceleration / 60))
 # %%
+plt.show()

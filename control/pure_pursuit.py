@@ -12,10 +12,10 @@ sys.path.append("./")
 
 from geometry import Path, GrowingPath
 
-from control.config import wheelbase
-from control.vehicle import Vehicle
-from control._control import LongitudinalController
-from control.trajectory import TrajectoryAnalyzer, Node, Nodes
+from control_fc.config import wheelbase
+from control_fc.vehicle import Vehicle
+from control_fc._control import LongitudinalController
+from control_fc.trajectory import TrajectoryAnalyzer, Node, Nodes
 
 
 def pure_pursuit(node, ref_path, index_old):

@@ -8,7 +8,7 @@ sys.path.append("/Users/federicoclaudi/Documents/Github/LocomotionControl")
 
 import matplotlib.pyplot as plt
 from tpd import recorder
-from control import trajectory_planning as tp
+from control_fc import trajectory_planning as tp
 import draw
 
 folder = pathlib.Path(

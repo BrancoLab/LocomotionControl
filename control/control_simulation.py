@@ -7,14 +7,12 @@ import numpy as np
 from myterial import purple, indigo_dark, salmon_dark, blue_dark
 
 import draw
-import control
 
 
 import geometry.vector_analysis as va
 
 from control.lqr_kinematics import KinematicsLQR
-
-# from control.pure_pursuit import PurePqursuit
+import control
 from control.config import dt
 
 # initialize car

@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import math
 
-from control.config import (
+from control_fc.config import (
     wheelbase,
     dt,
     max_acceleration,

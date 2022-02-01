@@ -7,7 +7,7 @@ from typing import Union
 
 from myterial import blue_grey_dark, grey_dark
 
-from control.config import (
+from control_fc.config import (
     wheelbase,
     wheeldist,
     v_w,

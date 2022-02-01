@@ -4,7 +4,7 @@ import numpy as np
 from fcutils.maths import derivative
 
 
-from control.config import (
+from control_fc.config import (
     longitudinal_pid_P_gain,
     longitudinal_pid_D_gain,
     longitudinal_pid_I_gain,

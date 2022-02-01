@@ -7,6 +7,7 @@ from PIL import Image
 from skimage.morphology import medial_axis, skeletonize
 from skimage.util import invert
 from scipy import signal
+from pathlib import Path
 from typing import Tuple
 
 from kino.geometry import Trajectory, Vector
@@ -238,16 +239,26 @@ def extract_track_from_image(
     )
 
 
+def save_track(
+    left: Trajectory, center: Trajectory, right: Trajectory, savefolder: Path
+):
+    """
+        Saves each path as a npy file
+    """
+    for name, traj in zip(("left", "center", "right"), (left, center, right)):
+        np.save(savefolder / f"{name}.npy", traj.points)
+
+
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
+    # # import matplotlib.pyplot as plt
 
-    from myterial import blue_grey
+    # from myterial import blue_grey
 
-    import draw
+    # import draw
 
     # ---------------------------------- COMPUTE --------------------------------- #
     K = 11
-    points_spacing = 3
+    points_spacing = 1
 
     (
         left_line,
@@ -261,40 +272,50 @@ if __name__ == "__main__":
         points_spacing=points_spacing,
         k=K,
         restrict_extremities=False,
-        apply_extra_spacing=True,
+        apply_extra_spacing=False,
     )
 
-    f = plt.figure(figsize=(8, 12))
-    axes = f.subplot_mosaic(
-        """
-            AAA
-            AAA
-            AAA
-            BBB
-        """
+    # save
+    save_track(
+        left_line,
+        center_line,
+        right_line,
+        Path(
+            "/Users/federicoclaudi/Documents/Github/rodent-locomotion/control"
+        ),
     )
 
-    # draw tracking 2d
-    draw.Tracking(center_line.x, center_line.y, ax=axes["A"])
-    draw.Tracking.scatter(
-        center_line.x, center_line.y, ax=axes["A"], color=blue_grey
-    )
-    draw.Tracking(left_line.x, left_line.y, ls="--", alpha=0.5, ax=axes["A"])
-    draw.Tracking(
-        right_line.x, right_line.y, ls="--", alpha=0.5, color="b", ax=axes["A"]
-    )
+    # f = plt.figure(figsize=(8, 12))
+    # axes = f.subplot_mosaic(
+    #     """
+    #         AAA
+    #         AAA
+    #         AAA
+    #         BBB
+    #     """
+    # )
 
-    _ = draw.Hairpin(ax=axes["A"])
+    # # draw tracking 2d
+    # draw.Tracking(center_line.x, center_line.y, ls='--', lw=3, alpha=.5, ax=axes["A"])
+    # draw.Tracking.scatter(
+    #     center_line.x, center_line.y, ax=axes["A"], color=blue_grey, zorder=100
+    # )
+    # draw.Tracking(left_line.x, left_line.y, alpha=1, lw=2, ax=axes["A"])
+    # draw.Tracking(
+    #     right_line.x, right_line.y, alpha=1, lw=2, ax=axes["A"]
+    # )
 
-    # track tracking in track coord system
-    draw.Tracking(
-        left_to_track.x, left_to_track.y, ax=axes["B"], ls="--", color="k"
-    )
-    draw.Tracking(
-        center_to_track.x, center_to_track.y, ax=axes["B"], lw=2, color="k"
-    )
-    draw.Tracking(
-        right_to_track.x, right_to_track.y, ax=axes["B"], ls="--", color="b"
-    )
+    # _ = draw.Hairpin(ax=axes["A"], set_ax=True, alpha=.5)
 
-    plt.show()
+    # # track tracking in track coord system
+    # draw.Tracking(
+    #     left_to_track.x, left_to_track.y, ax=axes["B"], ls="--", color="k"
+    # )
+    # draw.Tracking(
+    #     center_to_track.x, center_to_track.y, ax=axes["B"], lw=2, color="k"
+    # )
+    # draw.Tracking(
+    #     right_to_track.x, right_to_track.y, ax=axes["B"], ls="--", color="b"
+    # )
+
+    # plt.show()

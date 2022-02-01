@@ -1,1 +1,1 @@
-from control import paths
+from control_fc import paths
