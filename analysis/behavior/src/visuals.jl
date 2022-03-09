@@ -105,13 +105,13 @@ function summary_plot(
     )
 
     for border in get_track_borders(track)
-        plot!(xyplot, border.X, border.Y; lw=3, lc=grey_dark, label=nothing, alpha=0.6)
+        plot!(border.X, border.Y; lw=3, lc=grey_dark, label=nothing, alpha=0.6)
     end
 
     # mark bike's trajectory
-    plot!(xyplot, model.x, model.y; color=salmon_dark, lw=6, label="model")
+    plot!(model.x, model.y; color=salmon_dark, lw=6, label="model")
     n = (Int ∘ round)(1 / model.δt * 0.5)  # put a mark ever .25s aprox
-    scatter!(xyplot, model.x[1:n:end], model.y[1:n:end]; ms=6, color=black, label=nothing)
+    scatter!(model.x[1:n:end], model.y[1:n:end]; ms=6, color=black, label=nothing)
 
     # plot bike's posture
     plot_bike!(model, bike, n)
@@ -128,6 +128,7 @@ function summary_plot(
     fig = plot(; layout=grid(3, 2), size=(1200, 1200))
     # # xyplot,
     plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
+    # scatter!(t, _t)
     # # plot(t, model.v, label="v", ;w=2, color=black)
     # # plot(t, rad2deg.(model.δ), label="δ", ;w=2, color=black)
     plot_two!(t, _t, model.v, value(controlmodel[:v]), "ODE v", "control v", subplot=2)
@@ -137,7 +138,7 @@ function summary_plot(
     plot_two!(t, _t, model.uδ, value(controlmodel[:uδ]), "ODE uδ", "control uδ", subplot=6)
     # # plot(t, model.uδ, label="uδ", ;w=2, color=red)
 
-    display(xyplot)
     display(fig)
+    display(xyplot)
     return nothing
 end
