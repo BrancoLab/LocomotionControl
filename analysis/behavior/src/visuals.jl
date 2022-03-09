@@ -9,28 +9,28 @@ function summary_plot(model::InfiniteModel, wrt::Symbol)
     xvals = wrt == :space ? value(model[:s]) : value(model[:t])
     # s = value(model[:s])
 
-    p(x, color::String) = plot(xvals, value(model[x]); lw=4, label=string(x), color=color)
+    fig = plot(; layout=grid(5, 2), size=(1200, 1200))
+
+    p(x, color::String) = plot!(xvals, value(model[x]); lw=4, label=string(x), color=color)
+
     function p(x, transform::Function)
-        return plot(xvals, transform.(value(model[x])); lw=4, label=string(x), color=black)
+        return plot!(xvals, transform.(value(model[x])); lw=4, label=string(x), color=black)
     end
+
     p(x) = p(x, black)
 
-    return display(
-        plot(
-            p(:n),
-            p(:ψ),
-            p(:v),
-            p(:δ, rad2deg),
-            p(:β, rad2deg),
-            p(:ω, rad2deg),
-            p(:SF),
-            plot(),
-            p(:uv, red),
-            p(:uδ, red);
-            layout=grid(5, 2),
-            size=(1200, 1200),
-        ),
-    )
+    p(:n)
+    p(:ψ)
+    p(:v)
+    p(:δ, rad2deg)
+    p(:β, rad2deg)
+    p(:ω, rad2deg)
+    p(:SF)
+    plot!()
+    p(:uv, red)
+    p(:uδ, red)
+    display(fig)
+    return nothing
 end
 
 # """
