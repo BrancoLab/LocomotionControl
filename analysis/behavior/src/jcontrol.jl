@@ -1,6 +1,6 @@
 module jcontrol
-    using Term
-    install_term_logger()
+    # using Term
+    # install_term_logger()
 
     using Plots
     using Interpolations

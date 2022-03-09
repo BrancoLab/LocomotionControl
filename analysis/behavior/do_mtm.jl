@@ -1,8 +1,8 @@
 using Revise
 Revise.revise()
 
-using Term
-install_term_logger()
+# using Term
+# install_term_logger()
 
 using jcontrol
 
@@ -16,7 +16,7 @@ and solve the minimum time maneuvering problem.
 
 The MTM is solved in the track's curvilinear coordinates system and
 then the solution is integrated to get the allocentric coordinates
-trajectory over time. 
+trajectory over time.
 """
 ))
 
@@ -80,7 +80,7 @@ if DO_MODEL
         track,
         bike,
         coptions,
-        icond, 
+        icond,
         fcond
     )
 end

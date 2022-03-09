@@ -34,7 +34,7 @@ end
 """
 Compute the curvature at each waypoint in the track
 """
-function compute_curvature(t, x, y, tnew) 
+function compute_curvature(t, x, y, tnew)
     xspl = Spline1D(t, x)
     yspl = Spline1D(t, y)
     dx = derivative(xspl, tnew; nu=1)
@@ -126,6 +126,3 @@ function Track(; width=2, keep_n_waypoints = -1, δ=1, resolution=0.005)
 
     return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, width, θ)
 end
-
-
-
