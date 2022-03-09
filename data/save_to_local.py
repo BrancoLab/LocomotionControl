@@ -16,10 +16,12 @@ from data.dbase.db_tables import ROICrossing, LocomotionBouts, Tracking
 from data import arena
 
 
-# base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior")
 base_folder = Path(
-    "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
+    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior"
 )
+# base_folder = Path(
+#     "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
+# )
 
 recorder.start(
     base_folder=base_folder, folder_name="saved_data", timestamp=False,
@@ -124,5 +126,5 @@ def save_bouts_h5():
 
 if __name__ == "__main__":
     # save_rois()
-    # save_bouts_JSON()
+    save_bouts_JSON()
     save_bouts_h5()

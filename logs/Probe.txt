@@ -1,8 +1,0 @@
-      mouse_id skull_coordinates  implanted_depth                                                       reconstructed_track_filepath  angle_ml  angle_ap   target
-0   AAA1110750  [[4.76], [2.22]]             5980  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1110750.npy        13        12  CUN/GRN
-1   BAA1100516  [[4.65], [1.84]]             5700  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1100516.npy        14        13  CUN/GRN
-2    BAA110516  [[4.65], [1.84]]             5700  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1100516.npy        14        13  CUN/GRN
-3  BAA11100516  [[4.65], [1.84]]             5700  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1100516.npy        14        13  CUN/GRN
-4   BAA1110279  [[4.25], [1.97]]             5954  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1100279.npy        14        13  CUN/GRN
-5   BAA1110281    [[4.1], [1.9]]             5570  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1100281.npy        14        13  CUN/GRN
-6   BAA1110516  [[4.65], [1.84]]             5700  D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location\1100516.npy        14        13  CUN/GRN
