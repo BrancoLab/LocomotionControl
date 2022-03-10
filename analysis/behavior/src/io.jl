@@ -6,7 +6,7 @@ module io
     import JSON
     using DataFrames: DataFrame
 
-    export PATHS
+    export PATHS, load_trials
 
 
     PATHS = Dict(
@@ -23,8 +23,14 @@ module io
     If method==:efficient only a subset of the keys are kept
     If keep_n isa number: only the first keep_n bouts (sorted by duration) are kept
     """
-    function load_locomotion_bouds(; keep_n::Union{Nothing, Int}=nothing, method::Symbol=:efficient)::DataFrame
-        files = glob("*_bout.json", io.PATHS["exp_data_fodler"])
+    function load_trials(; keep_n::Union{Nothing, Int}=nothing, method::Symbol=:efficient)::DataFrame
+        files::Vector{String} = []
+        try
+            files = glob("*_bout.json", io.PATHS["exp_data_fodler"])
+        catch
+            @warn "Could not load tracking data. Perhaps you don't have the right path to the data?"
+            return nothing
+        end
 
         # initialize empty dataframe
         f1 = JSON.parsefile(files[1])
@@ -57,4 +63,3 @@ module io
     end
 
 end
-

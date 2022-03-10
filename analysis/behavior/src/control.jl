@@ -127,7 +127,7 @@ function create_and_solve_control(
     # ----------------------------- define variables ----------------------------- #
     @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = options.num_supports)
 
-    allowed_track_width = track.width * options.track_safety
+    allowed_track_width = (track.width - bike.width/2) * options.track_safety
     @variables(
         model,
         begin

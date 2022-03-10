@@ -1,6 +1,13 @@
 using Plots
-using MyterialColors: red, black, indigo, grey_dark, salmon_dark, white
+using MyterialColors: red, black, indigo, grey_dark, salmon_dark, white, grey
 import InfiniteOpt: InfiniteModel, value
+import DataFrames: DataFrame
+
+
+plot_arena!() = plot!([-8, 47], [-12, 66], reverse(arena, dims = 1), yflip = false)
+plot_arena() = plot([-8, 47], [-12, 66], reverse(arena, dims = 1), yflip = false)
+
+
 
 """
 Plot summary of MTM solution
@@ -41,6 +48,17 @@ function summary_plot(model::InfiniteModel, wrt::Symbol)
     display(fig)
     return nothing
 end
+
+
+"""
+Plots all tracking data form a dataframe of trials
+"""
+function plot_trials!(trials::DataFrame)
+    for (i, trial) in enumerate(eachrow(trials))
+        plot!(trial.body_x, trial.body_y, color=grey, lw=1.5, label=nothing)
+    end
+end
+
 
 # """
 # Plot the bike's posture every n frames
@@ -86,14 +104,15 @@ function plot_bike!(model::Solution, bike::Bicycle, n::Int)
 end
 
 function summary_plot(
-    model::Solution, controlmodel::InfiniteModel, track::Track, bike::Bicycle
+    model::Solution, controlmodel::InfiniteModel, track::Track, bike::Bicycle; trials::Union{Nothing, DataFrame}=nothing
 )
     # plot the track + XY trajectory
-    xyplot = plot(
+    xyplot = plot_arena()
+    plot!(
         track.X,
         track.Y;
         lw=5,
-        lc=grey_dark,
+        lc=black,
         label=nothing,
         xlabel="X",
         ylabel="Y",
@@ -101,11 +120,16 @@ function summary_plot(
         aspect_ratio=:equal,
         title="Duration: $(round(model.t[end]; digits=3))s",
         size=(1200, 1200),
-        alpha=0.6,
+        alpha=0.8,
     )
 
     for border in get_track_borders(track)
-        plot!(border.X, border.Y; lw=3, lc=grey_dark, label=nothing, alpha=0.6)
+        plot!(border.X, border.Y; lw=4, lc=black, label=nothing, alpha=1)
+    end
+
+    # plot trials
+    if !isnothing(trials)
+        plot_trials!(trials)
     end
 
     # mark bike's trajectory
@@ -126,17 +150,12 @@ function summary_plot(
     end
 
     fig = plot(; layout=grid(3, 2), size=(1200, 1200))
-    # # xyplot,
     plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
-    # scatter!(t, _t)
-    # # plot(t, model.v, label="v", ;w=2, color=black)
-    # # plot(t, rad2deg.(model.δ), label="δ", ;w=2, color=black)
     plot_two!(t, _t, model.v, value(controlmodel[:v]), "ODE v", "control v", subplot=2)
     plot_two!( t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ",subplot=3)
     plot!(t, model.uv, label="uv", ;w=2, color=red, subplot=4)
     plot_two!(t, _t, model.uv, value(controlmodel[:uv]), "ODE uv", "control uv", subplot=5)
     plot_two!(t, _t, model.uδ, value(controlmodel[:uδ]), "ODE uδ", "control uδ", subplot=6)
-    # # plot(t, model.uδ, label="uδ", ;w=2, color=red)
 
     display(fig)
     display(xyplot)

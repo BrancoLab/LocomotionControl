@@ -4,8 +4,10 @@ module jcontrol
 
 using Plots
 using Interpolations
+import Images
 
 include("utils.jl")
+include("io.jl")
 include("track.jl")
 include("bike.jl")
 include("control.jl")
@@ -16,7 +18,12 @@ export State, Bicycle
 export ControlOptions, create_and_solve_control, Bounds
 export Solution, run_forward_model
 export summary_plot
+export PATHS, load_trials
+export arena
 
+arena = Images.load("src/arena.png")
+
+using .io: PATHS, load_trials
 using .bicycle: State, Bicycle
 using .control: ControlOptions, create_and_solve_control, Bounds, State
 using .forwardmodel: Solution, run_forward_model

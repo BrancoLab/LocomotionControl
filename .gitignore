@@ -13,6 +13,7 @@ rnn_cache
 .vscode/settings.json
 proj/secrets.py
 workspace.py
+workspace.jl
 logs_*
 
 .vscode/*

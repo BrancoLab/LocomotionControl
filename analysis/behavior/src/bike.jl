@@ -6,11 +6,12 @@ export Bicycle, State
 
 """
 Stores immutable geometric properties of the bike.
-Also stores parameters for drawing
+Also stores parameters for drawing.
 """
 @with_kw struct Bicycle
-    L::Number   # total lengt
-    l::Number   # bike rear wheel to CoM length
+    L::Number           # total lengt
+    l::Number           # bike rear wheel to CoM length
+    width::Number       # 'width' of bike. Used to staty within track
 
     wheel_length = 0.8
     wheel_lw = 16

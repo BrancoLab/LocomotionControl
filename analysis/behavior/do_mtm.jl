@@ -1,7 +1,4 @@
 module Run
-# using Revise
-# Revise.revise()
-
 # using Term
 # install_term_logger()
 
@@ -19,11 +16,7 @@ using jcontrol
 #             trajectory over time.
 #             """))
 
-function run(num_supports)
-
-    # ----------------------------------- params --------------------------------- #
-    DO_MODEL = true
-    DO_FORWWARD = true
+function run(num_supports; showtrials::Union{Nothing, Int64}=false)
 
     δt = 0.01 # Δt for forward integration
 
@@ -31,11 +24,11 @@ function run(num_supports)
     #                                DEFINE PARAMERS                               #
     # ---------------------------------------------------------------------------- #
     # create track object
-    track = Track(; width=2, keep_n_waypoints=-1, resolution=0.001)
+    track = Track(; width=3, keep_n_waypoints=-1, resolution=0.001)
     @info "track" track
 
     # create bike
-    bike = Bicycle(; L=6, l=2)
+    bike = Bicycle(; L=6, l=2, width=1.5)
 
     coptions = ControlOptions(;
         # solver optionsx
@@ -44,12 +37,12 @@ function run(num_supports)
         num_supports=num_supports,
 
         # error bounds
-        track_safety=0.75,
+        track_safety=1.0,
         ψ_bounds=Bounds(-35, 35, :angle),
 
         # controls & variables bounds
-        uv_bounds=Bounds(-10, 10),          # cm/s²
-        uδ_bounds=Bounds(-1.5, 1.5),        # rad/s²
+        uv_bounds=Bounds(-50, 50),          # cm/s²
+        uδ_bounds=Bounds(-2, 2),        # rad/s²
         v_bounds=Bounds(5, 100),           # cm
         δ_bounds=Bounds(-80, 80, :angle),   # deg
     )
@@ -61,25 +54,23 @@ function run(num_supports)
     # ---------------------------------------------------------------------------- #
     #                                   FIT MODEL                                  #
     # ---------------------------------------------------------------------------- #
-
-    if DO_MODEL
-        @info "control options" coptions
-
-        control_model = create_and_solve_control(track, bike, coptions, icond, fcond)
-    end
-
-    # visualize results
-    summary_plot(control_model, :time)
+    @info "control options" coptions
+    control_model = create_and_solve_control(track, bike, coptions, icond, fcond)
 
     # ---------------------------------------------------------------------------- #
     #                              FORWARD INTEGRATION                             #
     # ---------------------------------------------------------------------------- #
-    if DO_FORWWARD
-        solution = run_forward_model(control_model, icond, bike; δt=δt)
-    end
+    solution = run_forward_model(control_model, icond, bike; δt=δt)
+
+    # ---------------------------------------------------------------------------- #
+    #                                 VISUALIZATION                                #
+    # ---------------------------------------------------------------------------- #
+    # visualize results
+    summary_plot(control_model, :time)
 
     # visualize
-    summary_plot(solution, control_model, track, bike)
+    trials = !isnothing(showtrials) ? jcontrol.load_trials(; keep_n=showtrials) : nothing
+    summary_plot(solution, control_model, track, bike; trials=trials)
 
     # print("\n")
     # print(hLine("done"; style="bold blue"))
@@ -88,3 +79,11 @@ function run(num_supports)
     return nothing
 end
 end
+
+
+
+
+# --------------------------------- Execution -------------------------------- #
+Run.run(2000; showtrials=50)
+
+
