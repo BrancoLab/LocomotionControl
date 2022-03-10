@@ -20,11 +20,11 @@ function run(num_supports; showtrials::Union{Nothing, Int64}=false)
 
     δt = 0.01 # Δt for forward integration
 
-    # ---------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------- #    
     #                                DEFINE PARAMERS                               #
     # ---------------------------------------------------------------------------- #
     # create track object
-    track = Track(; width=3, keep_n_waypoints=-1, resolution=0.001)
+    track = Track(; keep_n_waypoints=-1, resolution=0.001)
     @info "track" track
 
     # create bike
@@ -42,7 +42,7 @@ function run(num_supports; showtrials::Union{Nothing, Int64}=false)
 
         # controls & variables bounds
         uv_bounds=Bounds(-50, 50),          # cm/s²
-        uδ_bounds=Bounds(-2, 2),        # rad/s²
+        uδ_bounds=Bounds(-3, 3),        # rad/s²
         v_bounds=Bounds(5, 100),           # cm
         δ_bounds=Bounds(-80, 80, :angle),   # deg
     )
@@ -76,7 +76,7 @@ function run(num_supports; showtrials::Union{Nothing, Int64}=false)
     # print(hLine("done"; style="bold blue"))
     # print("\n\n")
     #
-    return nothing
+    return control_model, solution
 end
 end
 
@@ -84,6 +84,6 @@ end
 
 
 # --------------------------------- Execution -------------------------------- #
-Run.run(2000; showtrials=50)
+control_model, solution = Run.run(2000; showtrials=50);    
 
 

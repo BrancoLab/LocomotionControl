@@ -127,7 +127,7 @@ function create_and_solve_control(
     # ----------------------------- define variables ----------------------------- #
     @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = options.num_supports)
 
-    allowed_track_width = (track.width - bike.width/2) * options.track_safety
+    # allowed_track_width = (track.width - bike.width/2) * options.track_safety
     @variables(
         model,
         begin
@@ -136,7 +136,8 @@ function create_and_solve_control(
             options.uδ_bounds.lower ≤ uδ ≤ options.uδ_bounds.upper, Infinite(s)    # steering acceleration
 
             # track errors
-            -allowed_track_width ≤ n ≤ allowed_track_width, Infinite(s)
+            # -allowed_track_width ≤ n ≤ allowed_track_width, Infinite(s)
+            n, Infinite(s)
             options.ψ_bounds.lower ≤ ψ ≤ options.ψ_bounds.upper, Infinite(s)
 
             # other variables
@@ -148,9 +149,17 @@ function create_and_solve_control(
             SF, Infinite(s)
 
             # time
-            0 ≤ t ≤ 60, Infinite(s), (start = 10)
+            0 ≤ t ≤ 60, Infinite(s), (start = 10)   
         end
     )
+
+    # -------------------------- track width constraints ------------------------- #
+    # safety_margin = track.width * options.track_safety
+    # widthfn(s) = s / track.S_f * safety_margin # + s/track.S_f * allowed_track_width
+    @parameter_function(model, allowed_track_width == track.width(s))
+
+    @constraint(model, -allowed_track_width + bike.width ≤ n)
+    @constraint(model, allowed_track_width - bike.width ≥ n)
 
     # ----------------------------- define kinematics ---------------------------- #        
     l, L = bike.l, bike.L

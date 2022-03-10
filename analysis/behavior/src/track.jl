@@ -14,7 +14,7 @@ struct Track
     S::Vector
     δs::Vector
     κ::Any
-    width::Number
+    width::Function
     θ::Vector
 end
 
@@ -49,8 +49,8 @@ Get border lines by extruding along normal directoin
 """
 function get_track_borders(track::Track)
     η = track.θ .+ π / 2
-    dx = track.width .* cos.(η)
-    dy = track.width .* sin.(η)
+    dx = track.width.(track.S) .* cos.(η)
+    dy = track.width.(track.S) .* sin.(η)
 
     left = Border(track.X .+ dx, track.Y .+ dy)
     right = Border(track.X .- dx, track.Y .- dy)
@@ -78,6 +78,47 @@ end
 #                                track creation                                #
 # ---------------------------------------------------------------------------- #
 """
+Ugly hard coded function to change track width as a function of curvilinear
+distance along the track.
+"""
+function widtfn(s, S_f, width) 
+    r = (s/S_f) 
+    if r < .07
+        fact = 1
+
+    elseif r < .185
+        fact = .7
+
+    elseif r < .21
+        fact = 1
+
+    elseif r < .44
+        fact = 1.25
+
+    elseif r < .46
+        fact = 1
+
+    elseif r < .55
+        fact = .7
+
+    elseif r < .58
+        fact = 1
+
+    elseif r < .6
+        fact = 1.25
+
+    # elseif r < .66
+    #     fact = 2
+
+    else
+        fact = 1.5
+    end
+    return fact * width
+end
+
+
+
+"""
 Create a track from saved waypoints coordinates.
 
 #Arguments
@@ -85,7 +126,7 @@ Create a track from saved waypoints coordinates.
   - `δ` can be used to select every δ waypoints (downsample)
   - `resolution` used to upsample track waypoints through interpolation.
 """
-function Track(; width=2, keep_n_waypoints=-1, δ=1, resolution=0.005)
+function Track(; keep_n_waypoints=-1, δ=1, resolution=0.005)
     # load data
     XY = npzread("src/hairpin.npy")
     keep_n_waypoints =
@@ -112,7 +153,7 @@ function Track(; width=2, keep_n_waypoints=-1, δ=1, resolution=0.005)
     δs = sqrt.(Δx .^ 2 .+ Δy .^ 2)
     S_f = sum(δs)
 
-    S = cumsum(δs)
+    S = cumsum(δs)  # curvilinear coordinates
     @assert S[1] == 0 && S[end] - S_f < 0.01 "ops. $(S[1]) $(S[end])==$(S_f)"
 
     # compute curvature
@@ -125,5 +166,5 @@ function Track(; width=2, keep_n_waypoints=-1, δ=1, resolution=0.005)
     θ = atan.(Δy, Δx)
     θ[1] = θ[2]
 
-    return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, width, θ)
+    return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, (s)->widtfn(s, S_f, 3), θ)
 end
