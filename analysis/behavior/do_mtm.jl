@@ -69,13 +69,13 @@ end
 
 
 # --------------------------------- Execution -------------------------------- #
-using Term
-install_term_logger()
+# using Term
+# install_term_logger()
 
-print("\n\n" * hLine("start"; style="bold green"))
-control_model, solution = @time Run.run(:dynamics, 2000; showtrials=nothing);    
+# print("\n\n" * hLine("start"; style="bold green"))
+control_model, solution = @time Run.run(:kinematics, 2000; showtrials=nothing);    
 
-print(hLine("done"; style="bold blue") * "\n\n")
+# print(hLine("done"; style="bold blue") * "\n\n")
 
 # TODO forward integration for dyn mod.
 # TODO final plots for dyn mod.

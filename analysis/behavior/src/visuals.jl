@@ -188,8 +188,7 @@ function summary_plot(
     plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
     plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=2)
     plot_two!( t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ",subplot=3)
-    # plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
-    plot(),
+    plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
     plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
     plot_two!(t, _t, model.δ̇, value(controlmodel[:δ̇]), "ODE δ̇dot", "control δ̇dot", subplot=6)
 

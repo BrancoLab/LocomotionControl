@@ -90,7 +90,7 @@ function run_forward_model(problemtype::KinematicsProblem,  mtm_solution, x_0::S
     """
     Bicicle model kinematics equatiosn
     """
-    l = bike.l_f
+    l = bike.l_r
     L = bike.l_f + bike.l_r
     function kinematics!(du, x, p, t)
         u̇t, δ̇t = p(t)     # controls
