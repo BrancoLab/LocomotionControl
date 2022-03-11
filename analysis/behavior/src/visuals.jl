@@ -37,14 +37,14 @@ function summary_plot(model::InfiniteModel, wrt::Symbol)
 
     p(1, :n)
     p(2, :ψ)
-    p(3, :v)
+    p(3, :u)
     p(4, :δ, rad2deg)
     p(5, :β, rad2deg)
     p(6, :ω, rad2deg)
     p(7, :SF)
     plot!(; subplot=8)
-    p(9, :uv, red)
-    p(10, :uδ, red)
+    p(9, :u̇, red)
+    p(10, :δ̇, red)
     display(fig)
     return nothing
 end
@@ -82,7 +82,7 @@ function plot_bike!(model::Solution, bike::Bicycle, n::Int)
         return nothing
     end
 
-    _L = bike.L / 2
+    _L = (bike.l_f + bike.l_r) / 2
     for t in 1:n:length(model.x)
         x, y, θ, δ = model.x[t], model.y[t], model.θ[t], model.δ[t]
 
@@ -151,11 +151,11 @@ function summary_plot(
 
     fig = plot(; layout=grid(3, 2), size=(1200, 1200))
     plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
-    plot_two!(t, _t, model.v, value(controlmodel[:v]), "ODE v", "control v", subplot=2)
+    plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=2)
     plot_two!( t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ",subplot=3)
-    plot!(t, model.uv, label="uv", ;w=2, color=red, subplot=4)
-    plot_two!(t, _t, model.uv, value(controlmodel[:uv]), "ODE uv", "control uv", subplot=5)
-    plot_two!(t, _t, model.uδ, value(controlmodel[:uδ]), "ODE uδ", "control uδ", subplot=6)
+    plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
+    plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
+    plot_two!(t, _t, model.δ̇, value(controlmodel[:δ̇]), "ODE δ̇", "control δ̇", subplot=6)
 
     display(fig)
     display(xyplot)

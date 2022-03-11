@@ -13,13 +13,18 @@ export Solution, run_forward_model
 @with_kw struct Solution
     δt::Float64
     t::Vector
-    x::Vector
+    x::Vector    # position
     y::Vector
-    θ::Vector
-    δ::Vector
-    v::Vector
-    uv::Vector
-    uδ::Vector
+    θ::Vector    # orientation
+    δ::Vector    # steering angle
+    u::Vector    # velocity  | fpr DynamicsProblem its the longitudinal velocity component
+    
+    # Dynamics problem only
+    v::Vector = []  # lateral velocity
+
+    # controls
+    u̇::Vector
+    δ̇::Vector
 end
 
 """
@@ -34,8 +39,8 @@ get the solution in time and in the allocentric reference frame,
 """
 function run_forward_model(mtm_solution, x_0::State, bike::Bicycle; δt=0.1)
     @info "Starting forward integration"
-    L = bike.L
-    l = bike.l
+    l = bike.l_r
+    L = bike.l_r + bike.l_f
 
     """
         Get the control values at a moment in time.
@@ -44,64 +49,51 @@ function run_forward_model(mtm_solution, x_0::State, bike::Bicycle; δt=0.1)
         solution and finding the index of the time step closest to the current time.
     """
     function controls(t)
-        # return uv(t), uδ(t)
         if t == 0
-            return uv[1], uδ[1]
+            return u̇[1], δ̇[1]
         end
 
         # get support indes
         t_large = findfirst(TIME .>= t)
 
         if TIME[t_large] - t == 0
-            return uv[t_large], uδ[t_large]
+            return u̇[t_large], δ̇[t_large]
         end
 
         # get controls
         t_idx_post = isnothing(t_large) ? length(time) : t_large
-        return uv[t_idx_post], uδ[t_idx_post]
+        return u̇[t_idx_post], δ̇[t_idx_post]
         idx = n(t)
-        return uv(idx), uδ(idx)
+        return u̇(idx), δ̇(idx)
     end
 
     """
     Bicicle model kinematics equatiosn
     """
-    function kinematics!(du, u, p, t)
-        uvt, uδt = p(t)     # controls
-        _, _, θ, δ, v = u   # state
+    function kinematics!(du, x, p, t)
+        u̇t, δ̇t = p(t)     # controls
+        _, _, θ, δ, u = x   # state
 
         β = atan(l * tan(δ) / L)
 
-        du[1] = v * cos(θ + β)              # ẋ = v cos(θ + β)
-        du[2] = v * sin(θ + β)              # ẏ = v sin(θ + β)
-        du[3] = v * (tan(δ) * cos(β)) / L     # θ̇ = v * (tan(δ) * cos(β)) / L
-        du[4] = uδt                         # δ̇ = uδ
-        du[5] = uvt                         # v̇ = uv
+        du[1] = u * cos(θ + β)              # ẋ = u cos(θ + β)
+        du[2] = u * sin(θ + β)              # ẏ = u sin(θ + β)
+        du[3] = u * (tan(δ) * cos(β)) / L   # θ̇ = u * (tan(δ) * cos(β)) / L
+        du[4] = δ̇t                          # δ̇
+        du[5] = u̇t                          # vu̇
         return du
     end
 
     # get variables
     TIME = value(mtm_solution[:t]) # time in the MTM model's solution
-    T = TIME[end]
-    N = length(TIME)
     time = collect(0:δt:(TIME[end] + δt))  # time in ODEs solution
 
     # controls from MTM solution
-    """
-        These functions take a value t ∈ [0 T], 
-        and use it to get the corresponding value out of the 
-        interpolated vector ξ(x) by getting the index
-        value n ∈ [0 N] ⊂ R corresponding to t.
-    """
-    # time = range(0, T, length=length(TIME))
-    # uv =  Interpolations.scale(ξ(value(mtm_solution[:uv])), time)
-    # uδ =  Interpolations.scale(ξ(value(mtm_solution[:uδ])), time)
-
-    uv = value(mtm_solution[:uv])
-    uδ = value(mtm_solution[:uδ])
+    u̇ = value(mtm_solution[:u̇])
+    δ̇ = value(mtm_solution[:δ̇])
 
     # initial state
-    u0 = [x_0.x, x_0.y, x_0.θ, x_0.δ, x_0.v]
+    u0 = [x_0.x, x_0.y, x_0.θ, x_0.δ, x_0.u]
 
     # solve problem
     tspan = (0.0, TIME[end])
@@ -116,9 +108,9 @@ function run_forward_model(mtm_solution, x_0::State, bike::Bicycle; δt=0.1)
         y=[u[2] for u in sol.u],
         θ=[u[3] for u in sol.u],
         δ=[u[4] for u in sol.u],
-        v=[u[5] for u in sol.u],
-        uv=vcat([c[1] for c in controls.(sol.t)]),
-        uδ=vcat([c[2] for c in controls.(sol.t)]),
+        u=[u[5] for u in sol.u],
+        u̇=vcat([c[1] for c in controls.(sol.t)]),
+        δ̇=vcat([c[2] for c in controls.(sol.t)]),
     )
 end
 

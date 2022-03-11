@@ -1,23 +1,11 @@
 module Run
-# using Term
-# install_term_logger()
+
 
 using jcontrol
 
-# print("\n\n")
-# print(hLine("start"; style="bold green"))
-#
-# print(Panel("""
-#             Code to run the Kinematic Bicycle model on the full hairpin maze
-#             and solve the minimum time maneuvering problem.
-#
-#             The MTM is solved in the track's curvilinear coordinates system and
-#             then the solution is integrated to get the allocentric coordinates
-#             trajectory over time.
-#             """))
 
-function run(num_supports; showtrials::Union{Nothing, Int64}=false)
-
+function run(problemtype::Symbol, num_supports; showtrials::Union{Nothing, Int64}=false)
+    problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
     δt = 0.01 # Δt for forward integration
 
     # ---------------------------------------------------------------------------- #    
@@ -28,7 +16,7 @@ function run(num_supports; showtrials::Union{Nothing, Int64}=false)
     @info "track" track
 
     # create bike
-    bike = Bicycle(; L=6, l=2, width=1.5)
+    bike = Bicycle(; l_r=2, l_f=4, width=1.5, m=25, Iz=3)
 
     coptions = ControlOptions(;
         # solver optionsx
@@ -41,21 +29,22 @@ function run(num_supports; showtrials::Union{Nothing, Int64}=false)
         ψ_bounds=Bounds(-35, 35, :angle),
 
         # controls & variables bounds
-        uv_bounds=Bounds(-50, 50),          # cm/s²
-        uδ_bounds=Bounds(-3, 3),        # rad/s²
-        v_bounds=Bounds(5, 100),           # cm
+        u̇_bounds=Bounds(-10, 50),           # cm/s²
+        δ̇_bounds=Bounds(-2.5, 2.5),             # rad/s²
+
+        u_bounds=Bounds(5, 100),            # cm
         δ_bounds=Bounds(-80, 80, :angle),   # deg
     )
 
     # define initial and final conditions
-    icond = State(; x=track.X[1], y=track.Y[1], θ=track.θ[1], v=coptions.v_bounds.lower)
-    fcond = State(; v=coptions.v_bounds.lower)
+    icond = State(; x=track.X[1], y=track.Y[1], θ=track.θ[1], u=coptions.u_bounds.lower)
+    fcond = State(; u=coptions.u_bounds.lower)
 
     # ---------------------------------------------------------------------------- #
     #                                   FIT MODEL                                  #
     # ---------------------------------------------------------------------------- #
     @info "control options" coptions
-    control_model = create_and_solve_control(track, bike, coptions, icond, fcond)
+    control_model = create_and_solve_control(problemtype, track, bike, coptions, icond, fcond)
 
     # ---------------------------------------------------------------------------- #
     #                              FORWARD INTEGRATION                             #
@@ -72,9 +61,6 @@ function run(num_supports; showtrials::Union{Nothing, Int64}=false)
     trials = !isnothing(showtrials) ? jcontrol.load_trials(; keep_n=showtrials) : nothing
     summary_plot(solution, control_model, track, bike; trials=trials)
 
-    # print("\n")
-    # print(hLine("done"; style="bold blue"))
-    # print("\n\n")
     #
     return control_model, solution
 end
@@ -84,6 +70,10 @@ end
 
 
 # --------------------------------- Execution -------------------------------- #
-control_model, solution = Run.run(2000; showtrials=50);    
+using Term
+install_term_logger()
 
+print("\n\n" * hLine("start"; style="bold green"))
+control_model, solution = @time Run.run(:kinematics, 2000; showtrials=50);    
 
+print(hLine("done"; style="bold blue") * "\n\n")

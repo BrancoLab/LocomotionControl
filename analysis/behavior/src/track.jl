@@ -107,11 +107,8 @@ function widtfn(s, S_f, width)
     elseif r < .6
         fact = 1.25
 
-    # elseif r < .66
-    #     fact = 2
-
     else
-        fact = 1.5
+        fact = 1.4
     end
     return fact * width
 end
