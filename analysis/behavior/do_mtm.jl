@@ -16,12 +16,12 @@ function run(problemtype::Symbol, num_supports; showtrials::Union{Nothing, Int64
     @info "track" track
 
     # create bike
-    bike = Bicycle(; l_r=2, l_f=4, width=1.5, m=25, Iz=3)
+    bike = Bicycle(; l_r=2, l_f=4, width=1.5, m=25, Iz=3) 
 
     coptions = ControlOptions(;
         # solver optionsx
         verbose=0,
-        n_iter=200,
+        n_iter=5000,
         num_supports=num_supports,
 
         # error bounds
@@ -30,7 +30,7 @@ function run(problemtype::Symbol, num_supports; showtrials::Union{Nothing, Int64
 
         # controls & variables bounds
         u̇_bounds=Bounds(-10, 50),           # cm/s²
-        δ̇_bounds=Bounds(-2.5, 2.5),             # rad/s²
+        δ̇_bounds=Bounds(-2.5, 2.5),         # rad/s²
 
         u_bounds=Bounds(5, 100),            # cm
         δ_bounds=Bounds(-80, 80, :angle),   # deg
@@ -49,19 +49,18 @@ function run(problemtype::Symbol, num_supports; showtrials::Union{Nothing, Int64
     # ---------------------------------------------------------------------------- #
     #                              FORWARD INTEGRATION                             #
     # ---------------------------------------------------------------------------- #
-    solution = run_forward_model(control_model, icond, bike; δt=δt)
+    solution = run_forward_model(problemtype, control_model, icond, bike; δt=δt)
 
     # ---------------------------------------------------------------------------- #
     #                                 VISUALIZATION                                #
     # ---------------------------------------------------------------------------- #
     # visualize results
-    summary_plot(control_model, :time)
+    summary_plot(problemtype, control_model, :time)
 
     # visualize
     trials = !isnothing(showtrials) ? jcontrol.load_trials(; keep_n=showtrials) : nothing
     summary_plot(solution, control_model, track, bike; trials=trials)
 
-    #
     return control_model, solution
 end
 end
@@ -74,6 +73,9 @@ using Term
 install_term_logger()
 
 print("\n\n" * hLine("start"; style="bold green"))
-control_model, solution = @time Run.run(:kinematics, 2000; showtrials=50);    
+control_model, solution = @time Run.run(:dynamics, 2000; showtrials=nothing);    
 
 print(hLine("done"; style="bold blue") * "\n\n")
+
+# TODO forward integration for dyn mod.
+# TODO final plots for dyn mod.

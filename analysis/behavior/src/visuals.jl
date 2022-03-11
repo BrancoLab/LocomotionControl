@@ -12,11 +12,11 @@ plot_arena() = plot([-8, 47], [-12, 66], reverse(arena, dims = 1), yflip = false
 """
 Plot summary of MTM solution
 """
-function summary_plot(model::InfiniteModel, wrt::Symbol)
+function summary_plot(problemtype::KinematicsProblem,  model::InfiniteModel, wrt::Symbol)
     xvals = wrt == :space ? value(model[:s]) : value(model[:t])
     # s = value(model[:s])
 
-    fig = plot(; layout=grid(5, 2), size=(1200, 1200))
+    fig = plot(; layout=grid(5, 2), size=(1600, 1200))
 
     function p(i, x, color::String)
         return plot!(xvals, value(model[x]); lw=4, label=string(x), color=color, subplot=i)
@@ -45,6 +45,41 @@ function summary_plot(model::InfiniteModel, wrt::Symbol)
     plot!(; subplot=8)
     p(9, :u̇, red)
     p(10, :δ̇, red)
+    display(fig)
+    return nothing
+end
+
+function summary_plot(problemtype::DynamicsProblem,  model::InfiniteModel, wrt::Symbol)
+    xvals = wrt == :space ? value(model[:s]) : value(model[:t])
+    # s = value(model[:s])
+
+    fig = plot(; layout=grid(4, 2), size=(1600, 1200))
+
+    function p(i, x, color::String)
+        return plot!(xvals, value(model[x]); lw=4, label=string(x), color=color, subplot=i)
+    end
+
+    function p(i, x, transform::Function)
+        return plot!(
+            xvals,
+            transform.(value(model[x]));
+            subplot=i,
+            lw=4,
+            label=string(x),
+            color=black,
+        )
+    end
+
+    p(i, x) = p(i, x, black)
+
+    p(1, :n)
+    p(2, :ψ)
+    p(3, :u)
+    p(4, :δ, rad2deg)
+    p(5, :ω, rad2deg)
+    p(6, :SF)
+    p(7, :u̇, red)
+    p(8, :δ̇, red)
     display(fig)
     return nothing
 end
@@ -153,9 +188,10 @@ function summary_plot(
     plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
     plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=2)
     plot_two!( t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ",subplot=3)
-    plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
+    # plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
+    plot(),
     plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
-    plot_two!(t, _t, model.δ̇, value(controlmodel[:δ̇]), "ODE δ̇", "control δ̇", subplot=6)
+    plot_two!(t, _t, model.δ̇, value(controlmodel[:δ̇]), "ODE δ̇dot", "control δ̇dot", subplot=6)
 
     display(fig)
     display(xyplot)
