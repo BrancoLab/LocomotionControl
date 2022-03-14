@@ -11,9 +11,9 @@ Also stores parameters for drawing.
 @with_kw struct Bicycle
 
     # geometry
-    l_f::Number     # distance from COM to front wheel
-    l_r::Number     # distance from rear wheel to COM
-    width::Number   # 'width' of bike. Used to staty within track
+    l_f::Number=2     # distance from COM to front wheel
+    l_r::Number=4     # distance from rear wheel to COM
+    width::Number=1.5   # 'width' of bike. Used to staty within track
 
     # dynamics
     m = 25  # grams

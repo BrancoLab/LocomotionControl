@@ -20,7 +20,7 @@ export Solution, run_forward_model
 export summary_plot
 export PATHS, load_trials
 export arena
-export DynamicsProblem, KinematicsProblem
+export DynamicsProblem, KinematicsProblem, realistict_control_options
 
 arena = Images.load("src/arena.png")
 
@@ -31,8 +31,9 @@ using .control: ControlOptions,
         Bounds,
         State,
         DynamicsProblem,
-        KinematicsProblem
-        
+        KinematicsProblem,
+        realistict_control_options
+
 using .forwardmodel: Solution, run_forward_model
 
 include("visuals.jl")

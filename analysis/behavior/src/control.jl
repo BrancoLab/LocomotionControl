@@ -8,7 +8,7 @@ import jcontrol: Track
 import ..bicycle: Bicycle, State
 
 export ModelVariables, ControlOptions, create_and_solve_control, Bounds, State
-export DynamicsProblem, KinematicsProblem
+export DynamicsProblem, KinematicsProblem, realistict_control_options
 
 
 abstract type MTMproblem end
@@ -51,6 +51,13 @@ other parameters such as bounds on allowed errors.
 end
 
 
+realistict_control_options = Dict(
+    "u" => Bounds(5, 80),
+    "u̇" => Bounds(-150, 200),
+    "δ" => Bounds(-20, 20, :angle),
+    "δ̇" => Bounds(-80, 80, :angle),
+    # "ω" => Bounds(-450, 450, :angle)
+)
 
 
 
