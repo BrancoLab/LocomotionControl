@@ -1,5 +1,8 @@
 """
-Compute velocity `u` and angular velocity `ω` from position
+Compute velocity `u` and angular velocity `ω` from position.
+
+Assumes θ in radians.
+Assumes values at equally spaced time intervals.
 """
 function kinematics_from_position(
             x::Vector{Float64},
@@ -14,7 +17,7 @@ function kinematics_from_position(
 
     # compute angular velocity
     time = (collect(0:length(u)) ./ fps)[2:end]
-    ω = ∂(time, θ)
+    ω = ∂(time, unwrap(θ))
 
     # smooth
     if smooth

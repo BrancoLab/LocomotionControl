@@ -20,16 +20,16 @@ int(x) = (Int64 ∘ round)(x)
     x::Vector{Float64}    # position
     y::Vector{Float64}
     θ::Vector{Float64}    # orientation
-    # δ::Vector{Float64}    # steering angle
+    δ::Vector{Float64}    # steering angle
     u::Vector{Float64}    # velocity  | fpr DynamicsProblem its the longitudinal velocity component
     
     # Dynamics problem only
-    # v::Vector{Float64} = Vector{Float64}[]  # lateral velocity
+    v::Vector{Float64} = Vector{Float64}[]  # lateral velocity
     ω::Vector{Float64} = Vector{Float64}[]  # angular velocity
 
     # controls
-    # u̇::Vector{Float64}
-    # δ̇::Vector{Float64}
+    u̇::Vector{Float64}
+    δ̇::Vector{Float64}
 end
 
 
@@ -51,8 +51,11 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
     ψ = value(model[:ψ])
     s = only.(supports(model[:n]))
     Ts = value(model[:t])
+    δs = value(model[:δ])
+    δ̇s = value(model[:δ̇])
+    u̇s = value(model[:u̇])
 
-    n, ψ, s, Ts = upsample(n, ψ, s, Ts; δp=0.0005)
+    n, ψ, s, Ts, δs, δ̇s, u̇s  = upsample(n, ψ, s, Ts, δs, δ̇s, u̇s; δp=0.0005)
 
     # compute bike position with variable Δt
     Xs, Ys, θs = zeros(length(n)), zeros(length(n)), zeros(length(n))
@@ -84,7 +87,8 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
 
     # fix variable Δt
     time = collect(0:δt:Ts[end])
-    T, X, Y, θ = zeros(length(time)), zeros(length(time)), zeros(length(time)), zeros(length(time))
+    I() = zeros(length(time))
+    T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
     for (i, t) in pbar(enumerate(time))
         # get next larger timestep
         idx = findfirst(Ts .> t)
@@ -93,10 +97,14 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
         X[i] = Xs[idx]
         Y[i] = Ys[idx]
         θ[i] = θs[idx]
+        δ[i] = δs[idx]
+        δ̇[i] = δ̇s[idx]
+        u̇[i] = u̇s[idx]
     end
 
     # compute velocities
-    u, ω = kinematics_from_position(X, Y, θ; fps=int(1/δt), smooth=true, smooth_wnd=.2)
+    fps = int(1/δt)
+    u, ω = kinematics_from_position(X, Y, θ; fps=fps, smooth=true, smooth_wnd=.05)
       
     return Solution(
         δt=δt,
@@ -106,6 +114,9 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
         θ = θ,
         u = u,
         ω = ω,
+        δ = δ,
+        δ̇ = δ̇,
+        u̇ = u̇,
     )
 end
 

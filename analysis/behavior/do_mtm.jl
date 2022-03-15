@@ -125,7 +125,7 @@ clear()
 print("\n\n" * hLine("start"; style="bold green"))
 track, control_model, solution = Run.run(
     :kinematics,
-    500;
+    400;
     realistic_controls=true,
     showtrials=50,
     niters=5000

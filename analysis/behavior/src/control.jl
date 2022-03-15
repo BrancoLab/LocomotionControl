@@ -76,6 +76,7 @@ realistict_control_options = Dict(
 
 """
 Model description.
+See: https://thef1clan.com/2020/09/21/vehicle-dynamics-the-kinematic-bicycle-model/
 
 Bicyle model with kinematics in the CoM reference frame.
     The CoM has position (x,y) and is at a distance l from

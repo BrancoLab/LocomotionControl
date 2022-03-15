@@ -170,11 +170,11 @@ function summary_plot(
 
     # mark bike's trajectory
     plot!(model.x, model.y; color=salmon_dark, lw=6, label="model")
-    n = (Int ∘ round)(1 / model.δt * 0.5)  # put a mark ever .25s aprox
+    n = (Int ∘ round)(1 / model.δt * 0.5)  # put a mark ever .5s aprox
     scatter!(model.x[1:n:end], model.y[1:n:end]; ms=6, color=black, label=nothing)
 
     # plot bike's posture
-    # plot_bike!(model, bike, n)
+    plot_bike!(model, bike, n)
 
     t = model.t
     _t = value(controlmodel[:t])
@@ -187,20 +187,11 @@ function summary_plot(
 
     fig = plot(; layout=grid(3, 2), size=(1200, 1200))
     plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
-    plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=2)
-    # plot_two!( t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ",subplot=3)
-    # plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
-
-    # # plot controls
-    # u̇ = value(controlmodel[:u̇])
-    # δ̇ = value(controlmodel[:δ̇])
-
-    # # fix controls (finite problem approx introduces boundary errors)
-    # u̇[1], u̇[end] = u̇[2], u̇[end-1]
-    # δ̇[1], δ̇[end] = δ̇[2], δ̇[end-1]
-
-    # plot_two!(t, _t, model.u̇, u̇, "ODE u̇", "control u̇", subplot=5)
-    # plot_two!(t, _t, model.δ̇, δ̇, "ODE δ̇dot", "control δ̇dot", subplot=6)
+    plot_two!(t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ", subplot=2)
+    plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=3)
+    plot_two!(t, _t, rad2deg.(model.ω), rad2deg.(value(controlmodel[:ω])), "ODE ω", "control ω", subplot=4)
+    plot_two!(t, _t, rad2deg.(model.δ̇), rad2deg.(value(controlmodel[:δ̇])), "ODE δ̇", "control δ̇", subplot=5)
+    plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=6)
 
     display(fig)
     display(xyplot)
