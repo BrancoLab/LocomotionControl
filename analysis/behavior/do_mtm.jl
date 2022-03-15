@@ -27,7 +27,7 @@ function run(
     @info "track" track
 
     # create bike
-    bike = Bicycle(; l_r=2, l_f=4, width=1.5, m=25, Iz=3) 
+    bike = Bicycle() 
 
     if realistic_controls
         coptions = ControlOptions(
@@ -38,12 +38,11 @@ function run(
 
             # error bounds
             track_safety=1.0,
-            ψ_bounds=Bounds(-35, 35, :angle),
+            ψ_bounds=Bounds(-45, 45, :angle),
 
             # controls & variables bounds
             u̇_bounds=realistict_control_options["u̇"],   # cm/s²
             δ̇_bounds=realistict_control_options["δ̇"],   # rad/s²
-
             u_bounds=realistict_control_options["u"],   # cm
             δ_bounds=realistict_control_options["δ"],   # deg
         )
@@ -56,13 +55,13 @@ function run(
 
             # error bounds
             track_safety=1.0,
-            ψ_bounds=Bounds(-35, 35, :angle),
+            ψ_bounds=Bounds(-45, 45, :angle),
 
             # controls & variables bounds
-            u_bounds=Bounds(5, 100),            # cm
-            u̇_bounds=Bounds(-10, 50),           # cm/s²
-            δ_bounds=Bounds(-80, 80, :angle),   # deg
-            δ̇_bounds=Bounds(-2.5, 2.5),         # rad/s²
+            u_bounds=Bounds(5, 80),            # cm
+            u̇_bounds=Bounds(-60, 120),         # cm/s²
+            δ_bounds=Bounds(-90, 90, :angle),  # deg
+            δ̇_bounds=Bounds(-6, 6),            # rad/s²
         )
     end
 
@@ -73,7 +72,6 @@ function run(
     # ---------------------------------------------------------------------------- #
     #                                   FIT MODEL                                  #
     # ---------------------------------------------------------------------------- #
-    @info "control options" coptions
     control_model = @timeit to "solve control"  create_and_solve_control(problemtype, track, bike, coptions, icond, fcond)
 
     # ---------------------------------------------------------------------------- #
@@ -107,10 +105,10 @@ end
 # print("\n\n" * hLine("start"; style="bold green"))
 control_model, solution = Run.run(
     :kinematics,
-    2000;
+    200;
     realistic_controls=false,
-    showtrials=nothing,
-    niters=250
+    showtrials=50,
+    niters=1000
 )
 
 # print(hLine("done"; style="bold blue") * "\n\n")

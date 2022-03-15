@@ -39,9 +39,8 @@ function get_params_estimate()
     FPS = 60
     δt = 1 / FPS
 
-    bike = Bicycle(; l_r=2, l_f=4, width=1.5, m=25, Iz=3)
+    bike = Bicycle()
     L = bike.l_r + bike.l_f
-    L = 2
 
 
     # load data from file
@@ -98,7 +97,7 @@ function get_params_estimate()
 
         # compute δ and δ̇
         δ = atan.(
-            (L.* deg2rad.(ω)) ./ v 
+            (L.* deg2rad.(ω)), v 
         )
         δ = movingaverage(δ, 6)
         δ = rad2deg.(δ)

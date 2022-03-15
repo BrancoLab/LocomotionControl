@@ -34,7 +34,7 @@ other parameters such as bounds on allowed errors.
 @with_kw struct ControlOptions
     n_iter::Int = 1000
     num_supports::Int = 100
-    tollerance::Number = 1e-8
+    tollerance::Number = 1e-6
     verbose::Int = 0
 
     # errors bounds
@@ -43,19 +43,19 @@ other parameters such as bounds on allowed errors.
 
     # control bounds
     u̇_bounds::Bounds = Bounds(-200, 200)
-    δ̇_bounds::Bounds = Bounds(-50, 50)
+    δ̇_bounds::Bounds = Bounds(-50, 50, :angle)
 
     # varibles bounds
     u_bounds::Bounds = Bounds(0, 100)
-    δ_bounds::Bounds = Bounds(deg2rad(-45), deg2rad(45))
+    δ_bounds::Bounds = Bounds(-45, 45, :angle)
 end
 
 
 realistict_control_options = Dict(
     "u" => Bounds(5, 80),
-    "u̇" => Bounds(-150, 200),
-    "δ" => Bounds(-20, 20, :angle),
-    "δ̇" => Bounds(-80, 80, :angle),
+    "u̇" => Bounds(-180, 200),
+    "δ" => Bounds(-56.8, 56.8, :angle),  # data value is around 40, but that causes the problem to be infeasible
+    "δ̇" => Bounds(-220, 220, :angle),
     # "ω" => Bounds(-450, 450, :angle)
 )
 
@@ -172,7 +172,6 @@ function create_and_solve_control(
 
     # -------------------------- track width constraints ------------------------- #
     @parameter_function(model, allowed_track_width == track.width(s))
-
     @constraint(model, -allowed_track_width + bike.width ≤ n)
     @constraint(model, allowed_track_width - bike.width ≥ n)
 
@@ -211,23 +210,28 @@ function create_and_solve_control(
             ω(0) == initial_conditions.ω
 
             # final conditions
-            u(track.S_f) == final_conditions.u
-            ω(track.S_f) == final_conditions.ω
+
             n(track.S_f) == 0
             ψ(track.S_f) == 0
+            u(track.S_f) == final_conditions.u
+            δ(track.S_f) == final_conditions.δ
+            β(track.S_f) == final_conditions.β
+            ω(track.S_f) == final_conditions.ω
         end
     )
 
     # --------------------------------- optimize --------------------------------- #
+    # solve
     @info "control model ready, solving with IPOPT" options.num_supports options.n_iter
     @objective(model, Min, ∫(SF, s))
     optimize!(model)
-
+    
+    # print info
     @info "Model optimization complete" termination_status(model) objective_value(model) value(
         model[:t]
     )[end]
+    println(solution_summary(optimizer_model(model)))
 
-    # done
     return model
 end
 

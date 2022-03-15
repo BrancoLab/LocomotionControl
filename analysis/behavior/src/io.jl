@@ -52,6 +52,13 @@ module io
             # open file
             contents = JSON.parsefile(fl)
             for (k,v) in zip(KEYS, cleanvec.(filtervals(contents)))
+
+                # fix data misalignment
+                if contains(k, "_x")
+                    v .+= .5
+                elseif contains(k, "_y")
+                    v .-= 1
+                end
                 push!(data[k], v)
             end
         end

@@ -48,36 +48,34 @@ function run_forward_model(mtm_solution, kinematics!, u0, δt)
         solution and finding the index of the time step closest to the current time.
     """
     function controls(t)
-        if t == 0
+        if t == t_start
             return u̇[1], δ̇[1]
+        elseif t == t_end
+            return u̇[end], δ̇[end]
+        else
+            idx = findfirst(TIME .>= t)    
+            return u̇[idx], δ̇[idx]
         end
-
-        # get support indes
-        t_large = findfirst(TIME .>= t)
-
-        if TIME[t_large] - t == 0
-            return u̇[t_large], δ̇[t_large]
-        end
-
-        # get controls
-        t_idx_post = isnothing(t_large) ? length(time) : t_large
-        return u̇[t_idx_post], δ̇[t_idx_post]
-        idx = n(t)
-        return u̇(idx), δ̇(idx)
     end
+
 
     # get variables
     TIME = value(mtm_solution[:t]) # time in the MTM model's solution
-    time = collect(0:δt:(TIME[end] + δt))  # time in ODEs solution
+    t_start, t_end = TIME[1], TIME[end]
+    # time = collect(0:δt:(TIME[end] + δt))  # time in ODEs solution
 
     # controls from MTM solution
     u̇ = value(mtm_solution[:u̇])
     δ̇ = value(mtm_solution[:δ̇])
 
+    # fix controls (finite problem approx introduces boundary errors)
+    u̇[1], u̇[end] = u̇[2], u̇[end-1]
+    δ̇[1], δ̇[end] = δ̇[2], δ̇[end-1]
+
     # solve problem
     tspan = (0.0, TIME[end])
     prob = ODEProblem(kinematics!, u0, tspan, t -> controls(t))
-    sol = desolve(prob, Tsit5(); reltol=1e-12, abstol=1e-12, saveat=δt)
+    sol = desolve(prob, Tsit5(); reltol=1e-10, abstol=1e-10, saveat=δt)
     @info "ODEs solution found" sol.t[end]
     return sol, controls
 end
