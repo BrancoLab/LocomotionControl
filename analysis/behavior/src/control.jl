@@ -3,6 +3,10 @@ module control
 using InfiniteOpt, Ipopt
 import InfiniteOpt: set_optimizer_attribute
 import Parameters: @with_kw
+import IOCapture
+import Term: Panel, RenderableText
+import Term.style: apply_style
+import MyterialColors: blue_light
 
 import jcontrol: Track
 import ..bicycle: Bicycle, State
@@ -16,7 +20,7 @@ abstract type MTMproblem end
 # ---------------------------------------------------------------------------- #
 #                                    OPTIONS                                   #
 # ---------------------------------------------------------------------------- #
-@with_kw struct Bounds
+struct Bounds
     lower::Number
     upper::Number
 end
@@ -26,6 +30,8 @@ Constructor with an additional parametr to convert angles in degrees to radians
 """
 Bounds(lower, upper, angle) = Bounds(deg2rad(lower), deg2rad(upper))
 
+Base.show(io::IO, b::Bounds) = print(io, apply_style("[green]$(round(b.lower; digits=2))[/green] [red]≤[/red] var [red]≤[/red][green] $(round(b.upper; digits=2))[/green]"))
+
 """
 Options for solving the control problem.
 Include options for the optimizer itself as well 
@@ -34,7 +40,7 @@ other parameters such as bounds on allowed errors.
 @with_kw struct ControlOptions
     n_iter::Int = 1000
     num_supports::Int = 100
-    tollerance::Number = 1e-6
+    tollerance::Number = 1e-10
     verbose::Int = 0
 
     # errors bounds
@@ -54,7 +60,7 @@ end
 realistict_control_options = Dict(
     "u" => Bounds(5, 80),
     "u̇" => Bounds(-180, 200),
-    "δ" => Bounds(-56.8, 56.8, :angle),  # data value is around 40, but that causes the problem to be infeasible
+    "δ" => Bounds(-54, 54, :angle),  # data value is around 40, but that causes the problem to be infeasible
     "δ̇" => Bounds(-220, 220, :angle),
     # "ω" => Bounds(-450, 450, :angle)
 )
@@ -134,7 +140,7 @@ function create_and_solve_control(
     final_conditions::State,
 )
     # initialize optimizer
-    model = InfiniteModel(Ipopt.Optimizer)
+    model = InfiniteModel(Ipopt.Optimizer; add_bridges=false)
     set_optimizer_attribute(model, "max_iter", options.n_iter)
     set_optimizer_attribute(model, "acceptable_tol", options.tollerance)
     set_optimizer_attribute(model, "print_level", options.verbose)
@@ -222,15 +228,23 @@ function create_and_solve_control(
 
     # --------------------------------- optimize --------------------------------- #
     # solve
-    @info "control model ready, solving with IPOPT" options.num_supports options.n_iter
     @objective(model, Min, ∫(SF, s))
     optimize!(model)
     
     # print info
-    @info "Model optimization complete" termination_status(model) objective_value(model) value(
-        model[:t]
-    )[end]
-    println(solution_summary(optimizer_model(model)))
+
+    c = IOCapture.capture() do
+        println(solution_summary(optimizer_model(model)))
+    end
+    print(
+        "\n" * Panel(
+            RenderableText(c.output, "$blue_light italic"),
+            style="yellow1",
+            title="IPoPT output",
+            title_style="red bold",
+            justify=:center
+        ) * "\n\n"
+    )
 
     return model
 end
@@ -403,9 +417,6 @@ function create_and_solve_control(
             Ff == cf * αf
             Fr == cr * αr
 
-            # # compute accelerations
-            # v̇ = (Ff + Fr - u * ω)/m
-            # ω̇ = (Ff * l_f - Fr * l_r)/Iz
 
             # set dynmics
             ∂(v, s) == (Ff + Fr - u * ω)/m

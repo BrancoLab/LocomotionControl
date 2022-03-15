@@ -140,7 +140,8 @@ end
 
 function summary_plot(
     model::Solution, controlmodel::InfiniteModel, track::Track, bike::Bicycle; trials::Union{Nothing, DataFrame}=nothing
-)
+)   
+    nsupports = length(value(controlmodel[:SF]))
     # plot the track + XY trajectory
     xyplot = plot_arena()
     plot!(
@@ -153,7 +154,7 @@ function summary_plot(
         ylabel="Y",
         ls=:dash,
         aspect_ratio=:equal,
-        title="Duration: $(round(model.t[end]; digits=3))s",
+        title="Duration: $(round(model.t[end]; digits=3))s | $nsupports supports",
         size=(1200, 1200),
         alpha=0.8,
     )
@@ -173,7 +174,7 @@ function summary_plot(
     scatter!(model.x[1:n:end], model.y[1:n:end]; ms=6, color=black, label=nothing)
 
     # plot bike's posture
-    plot_bike!(model, bike, n)
+    # plot_bike!(model, bike, n)
 
     t = model.t
     _t = value(controlmodel[:t])
@@ -187,10 +188,19 @@ function summary_plot(
     fig = plot(; layout=grid(3, 2), size=(1200, 1200))
     plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
     plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=2)
-    plot_two!( t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ",subplot=3)
-    plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
-    plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
-    plot_two!(t, _t, model.δ̇, value(controlmodel[:δ̇]), "ODE δ̇dot", "control δ̇dot", subplot=6)
+    # plot_two!( t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ",subplot=3)
+    # plot!(t, model.u̇, label="u̇", ;w=2, color=red, subplot=4)
+
+    # # plot controls
+    # u̇ = value(controlmodel[:u̇])
+    # δ̇ = value(controlmodel[:δ̇])
+
+    # # fix controls (finite problem approx introduces boundary errors)
+    # u̇[1], u̇[end] = u̇[2], u̇[end-1]
+    # δ̇[1], δ̇[end] = δ̇[2], δ̇[end-1]
+
+    # plot_two!(t, _t, model.u̇, u̇, "ODE u̇", "control u̇", subplot=5)
+    # plot_two!(t, _t, model.δ̇, δ̇, "ODE δ̇dot", "control δ̇dot", subplot=6)
 
     display(fig)
     display(xyplot)

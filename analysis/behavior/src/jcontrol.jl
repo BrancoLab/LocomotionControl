@@ -7,6 +7,7 @@ using Interpolations
 import Images
 
 include("utils.jl")
+include("kinematics.jl")
 include("io.jl")
 include("track.jl")
 include("bike.jl")

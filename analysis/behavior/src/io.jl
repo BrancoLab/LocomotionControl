@@ -50,7 +50,13 @@ module io
         cleanvec(x) = x isa AbstractVector ? convert(Vector{typeof(x[1])}, x) : x
         for fl in files
             # open file
-            contents = JSON.parsefile(fl)
+            contents = Dict()
+            try
+                contents = JSON.parsefile(fl)
+            catch err
+                @error "Failed to parse json file" fl err
+                continue
+            end
             for (k,v) in zip(KEYS, cleanvec.(filtervals(contents)))
 
                 # fix data misalignment

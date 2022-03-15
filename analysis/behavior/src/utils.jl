@@ -1,5 +1,35 @@
-
 using Statistics: mean
+using ForwardDiff
+
+"""
+Upsamble a set of variables through interpolation
+"""
+function upsample(data...; δp=0.001)
+  n = length(data)
+  P = range(0, 1, length(data[1]))
+  # upsample data
+  itp = Interpolations.scale(
+    interpolate(hcat(data...), (BSpline(Cubic(Natural(OnGrid()))), NoInterp())), P, 1:n
+  )
+
+  tfine = 0:δp:1
+  upsampled = []
+  for i in 1:n
+    push!(upsampled, [itp(t, i) for t in tfine])
+  end
+  return upsampled
+end
+
+"""
+Interpolate an array and get the derivative at
+time values.
+
+From: https://discourse.julialang.org/t/differentiation-without-explicit-function-np-gradient/57784
+"""
+function ∂(time, x)
+    itp = interpolate((time,), x, Gridded(Linear()));
+    return map((t)->ForwardDiff.derivative(itp, t), time)
+end
 
 
 """
@@ -18,7 +48,10 @@ Simple linear interpolation
 """
 ξ(x) = interpolate(x, BSpline(Linear()))
 
-
+"""
+Round a Float and turn it into an integer
+"""
+int(x::Number) = (Int ∘ round)(x)
 
 """ 
 Unwrap circular variables (in radians)

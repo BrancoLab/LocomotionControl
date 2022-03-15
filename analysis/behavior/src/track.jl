@@ -87,7 +87,7 @@ function widtfn(s, S_f, width)
         fact = 1
 
     elseif r < .185
-        fact = .7
+        fact = .85
 
     elseif r < .21
         fact = 1
@@ -95,17 +95,20 @@ function widtfn(s, S_f, width)
     elseif r < .44
         fact = 1.25
 
-    elseif r < .46
+    elseif r < .49
         fact = 1
 
     elseif r < .55
-        fact = .7
+        fact = .85
 
     elseif r < .58
         fact = 1
 
     elseif r < .6
         fact = 1.25
+
+    elseif .675 < r < .775
+        fact = 1.6
 
     else
         fact = 1.4

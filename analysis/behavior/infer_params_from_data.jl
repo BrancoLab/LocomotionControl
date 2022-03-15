@@ -1,11 +1,9 @@
 using jcontrol
-import jcontrol: Δ, unwrap, movingaverage
+import jcontrol: Δ, unwrap, movingaverage, ∂
 using Term
 using Plots
 import MyterialColors: black, red, blue, indigo, green, teal, salmon, blue_grey
-using Interpolations
 using Statistics: mean, quantile
-using ForwardDiff
 
 function summary_statistics(x, xname; lowp=.05, highp=.95)
     _round(x) = round(x; digits=2)
@@ -19,25 +17,12 @@ function summary_statistics(x, xname; lowp=.05, highp=.95)
         [blue]0.50 q:[/blue] [orange]$(_round(mean(x)))    [/orange]
         [blue]$lowp q:[/blue] [orange]$(_round(quantile(x, lowp)))    [/orange]
     """)
-
-
 end
 
 
-"""
-Interpolate an array and get the derivative at
-time values.
-
-From: https://discourse.julialang.org/t/differentiation-without-explicit-function-np-gradient/57784
-"""
-function get_derivative(time, x)
-    itp = interpolate((time,), x, Gridded(Linear()));
-    return map((t)->ForwardDiff.derivative(itp, t), time)
-end
 
 function get_params_estimate()
     FPS = 60
-    δt = 1 / FPS
 
     bike = Bicycle()
     L = bike.l_r + bike.l_f
@@ -46,18 +31,14 @@ function get_params_estimate()
     # load data from file
     data = jcontrol.io.load_trials(; method=:all, keep_n=50)
     
-
-    fig = plot(; layout=grid(4, 2), size=(1400, 1200))
-
     alldata = Dict(
         "v"=>[],
         "v̇"=>[],
-        # "ω"=>[],
         "δ"=>[],
         "δ̇"=>[]
     )
 
-
+    fig = plot(; layout=grid(4, 2), size=(1400, 1200))
     for rown in 1:size(data, 1)
         x = data[rown, "body_x"][25:end]
         y = data[rown, "body_y"][25:end]
@@ -69,7 +50,7 @@ function get_params_estimate()
 
         # compute velocity
         v = movingaverage(
-            sqrt.(Δ(x) .^ 2 .+ Δ(y) .^ 2) * 60,
+            sqrt.(Δ(x) .^ 2 .+ Δ(y) .^ 2) * FPS,
             12
             )
         
@@ -82,7 +63,7 @@ function get_params_estimate()
         # get acceleration as derivative
 
         time = (collect(0:length(v)) ./ FPS)[2:end]
-        a = get_derivative(time, v)
+        a = ∂(time, v)
 
         # get orientation and angular velocity
         θ = unwrap(atan.(
@@ -92,7 +73,7 @@ function get_params_estimate()
         # θ .-= θ[200]
         θ = movingaverage(θ, 6)
 
-        ω = get_derivative(time, θ)
+        ω = ∂(time, θ)
 
 
         # compute δ and δ̇
@@ -101,7 +82,7 @@ function get_params_estimate()
         )
         δ = movingaverage(δ, 6)
         δ = rad2deg.(δ)
-        δ̇ = get_derivative(time, δ)
+        δ̇ = ∂(time, δ)
 
         # append data
         append!(alldata["v"], v)

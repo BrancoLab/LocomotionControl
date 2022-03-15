@@ -1,8 +1,10 @@
 module Run
 
-
+import IOCapture
 using jcontrol
 using TimerOutputs
+import Term: RenderableText, Panel
+import MyterialColors: green_lighter
 
 const to = TimerOutput()
 
@@ -24,7 +26,7 @@ function run(
     # ---------------------------------------------------------------------------- #
     # create track object
     track = Track(; keep_n_waypoints=-1, resolution=0.001)
-    @info "track" track
+
 
     # create bike
     bike = Bicycle() 
@@ -65,6 +67,8 @@ function run(
         )
     end
 
+    @info "using" realistic_controls coptions.u_bounds coptions.u̇_bounds coptions.δ_bounds coptions.δ̇_bounds 
+
     # define initial and final conditions
     icond = State(; x=track.X[1], y=track.Y[1], θ=track.θ[1], u=coptions.u_bounds.lower)
     fcond = State(; u=coptions.u_bounds.lower)
@@ -77,7 +81,8 @@ function run(
     # ---------------------------------------------------------------------------- #
     #                              FORWARD INTEGRATION                             #
     # ---------------------------------------------------------------------------- #
-    solution = @timeit to "run forward model"  run_forward_model(problemtype, control_model, icond, bike; δt=δt)
+    # solution = @timeit to "run forward model"  run_forward_model(problemtype, control_model, icond, bike; δt=δt)
+    solution = @timeit to "run forward model"  run_forward_model(track, control_model; δt=δt)
 
     # ---------------------------------------------------------------------------- #
     #                                 VISUALIZATION                                #
@@ -89,9 +94,21 @@ function run(
     trials = !isnothing(showtrials) ? jcontrol.load_trials(; keep_n=showtrials) : nothing
     @timeit to "plot ODEs" summary_plot(solution, control_model, track, bike; trials=trials)
 
-    show(to)
+    
+    c = IOCapture.capture() do
+        show(to)
+    end
+    print(
+        "\n\n" / Panel(
+            RenderableText(c.output, green_lighter),
+            style="green dim",
+            title="Timing/Allocations info",
+            title_style="green underline bold",
+            justify=:center
+        )
+    )
 
-    return control_model, solution
+    return track, control_model, solution
 end
 end
 
@@ -99,21 +116,22 @@ end
 
 
 # --------------------------------- Execution -------------------------------- #
-# using Term
-# install_term_logger()
+using Term
+import Term.consoles: clear
+install_term_logger()
 
-# print("\n\n" * hLine("start"; style="bold green"))
-control_model, solution = Run.run(
+clear()
+
+print("\n\n" * hLine("start"; style="bold green"))
+track, control_model, solution = Run.run(
     :kinematics,
-    200;
-    realistic_controls=false,
+    500;
+    realistic_controls=true,
     showtrials=50,
-    niters=1000
+    niters=5000
 )
 
-# print(hLine("done"; style="bold blue") * "\n\n")
+print("\n", hLine("done"; style="bold blue") * "\n\n")
 
-# TODO forward integration for dyn mod.
-# TODO final plots for dyn mod.
 
 nothing
