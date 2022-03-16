@@ -59,7 +59,7 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
 
     # compute bike position with variable Δt
     Xs, Ys, θs = zeros(length(n)), zeros(length(n)), zeros(length(n))
-    for i in pbar(1:length(s))
+    for i in pbar(1:length(s); transient=false)
         _n, _ψ = n[i], ψ[i]
 
         # get closest track waypoint
@@ -89,7 +89,7 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
     time = collect(0:δt:Ts[end])
     I() = zeros(length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
-    for (i, t) in pbar(enumerate(time))
+    for (i, t) in pbar(enumerate(time); transient=false)
         # get next larger timestep
         idx = findfirst(Ts .> t)
       

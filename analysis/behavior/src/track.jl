@@ -122,30 +122,19 @@ end
 Create a track from saved waypoints coordinates.
 
 #Arguments
+  - `start_waypoint` index of first wp to keep
   - `keep_n_waypoints` can be used to keep only the first N waypoints. Set to -1 to keep all.
-  - `δ` can be used to select every δ waypoints (downsample)
   - `resolution` used to upsample track waypoints through interpolation.
 """
-function Track(; keep_n_waypoints=-1, δ=1, resolution=0.005)
+function Track(; start_waypoint=1, keep_n_waypoints=-1, resolution=0.005)
     # load data
     XY = npzread("src/hairpin.npy")
     keep_n_waypoints =
         keep_n_waypoints > 0 ? min(keep_n_waypoints, size(XY, 1)) : size(XY, 1)
-    XY = XY[1:δ:keep_n_waypoints, :]
+    XY = XY[start_waypoint:keep_n_waypoints, :]
 
     # get new points locations thorugh interpolation
-    t = range(0, 1; length=length(XY[:, 1]))
-    x = XY[:, 1]
-    y = XY[:, 2]
-    A = hcat(x, y)
-
-    itp = Interpolations.scale(
-        interpolate(A, (BSpline(Cubic(Natural(OnGrid()))), NoInterp())), t, 1:2
-    )
-
-    tfine = 0:resolution:1
-    X, Y = [itp(t, 1) for t in tfine], [itp(t, 2) for t in tfine]
-
+    X, Y = upsample(XY[:, 1], XY[:, 2]; δp = resolution)
     N = length(X)
 
     # get distance step between each track point + total length
@@ -163,7 +152,7 @@ function Track(; keep_n_waypoints=-1, δ=1, resolution=0.005)
     @assert length(curvature) == length(X)
 
     # compute orientation of each segment
-    θ = atan.(Δy, Δx)
+    θ = unwrap(atan.(Δy, Δx))
     θ[1] = θ[2]
 
     return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, (s)->widtfn(s, S_f, 3), θ)

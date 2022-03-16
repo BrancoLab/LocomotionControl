@@ -17,6 +17,7 @@ export DynamicsProblem, KinematicsProblem, realistict_control_options
 
 abstract type MTMproblem end
 
+
 # ---------------------------------------------------------------------------- #
 #                                    OPTIONS                                   #
 # ---------------------------------------------------------------------------- #
@@ -233,7 +234,6 @@ function create_and_solve_control(
     optimize!(model)
     
     # print info
-
     c = IOCapture.capture() do
         println(solution_summary(optimizer_model(model)))
     end
@@ -466,9 +466,7 @@ function create_and_solve_control(
    @objective(model, Min, ∫(SF, s))
    optimize!(model)
 
-   @info "Model optimization complete" termination_status(model) objective_value(model) value(
-       model[:t]
-   )[end]
+   @info "Model optimization complete" termination_status(model) objective_value(model)
 
    # done
    return model

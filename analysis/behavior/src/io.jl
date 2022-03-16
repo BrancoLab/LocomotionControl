@@ -23,7 +23,7 @@ module io
     If method==:efficient only a subset of the keys are kept
     If keep_n isa number: only the first keep_n bouts (sorted by duration) are kept
     """
-    function load_trials(; keep_n::Union{Nothing, Int}=nothing, method::Symbol=:efficient)::DataFrame
+    function load_trials(; keep_n::Union{Nothing, Int}=nothing, method::Symbol=:complete)::DataFrame
         files::Vector{String} = []
         try
             files = glob("*_bout.json", io.PATHS["exp_data_fodler"])
