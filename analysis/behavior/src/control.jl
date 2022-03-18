@@ -45,7 +45,7 @@ other parameters such as bounds on allowed errors.
     verbose::Int = 0
 
     # errors bounds
-    track_safety::Float64 = 0.9
+    track_safety::Float64 = 1
     ψ_bounds::Bounds = Bounds(-π / 2, π / 2)
 
     # control bounds
@@ -60,11 +60,19 @@ other parameters such as bounds on allowed errors.
 end
 
 
+# realistict_control_options = Dict(
+#     "u" => Bounds(5, 80),
+#     "u̇" => Bounds(-180, 200),
+#     "δ" => Bounds(-80, 80, :angle),
+#     "δ̇" => Bounds(-4, 4),
+#     "ω" => Bounds(-600, 600, :angle)
+# )
+
 realistict_control_options = Dict(
-    "u" => Bounds(5, 80),
-    "u̇" => Bounds(-180, 200),
-    "δ" => Bounds(-50, 50, :angle),
-    "δ̇" => Bounds(-220, 220, :angle),
+    "u" => Bounds(5, 60),
+    "u̇" => Bounds(-200, 200),
+    "δ" => Bounds(-80, 80, :angle),
+    "δ̇" => Bounds(-4, 4),
     "ω" => Bounds(-600, 600, :angle)
 )
 
@@ -145,6 +153,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", options.n_iter)
     set_optimizer_attribute(model, "acceptable_tol", options.tollerance)
     set_optimizer_attribute(model, "print_level", options.verbose)
+    set_optimizer_attribute(model, "max_wall_time", 180.0)
 
     # register curvature function
     κ(s) = track.κ(s)
@@ -348,7 +357,7 @@ function create_and_solve_control(
    set_optimizer_attribute(model, "max_iter", options.n_iter)
    set_optimizer_attribute(model, "acceptable_tol", options.tollerance)
    set_optimizer_attribute(model, "print_level", options.verbose)
-   set_optimizer_attribute(model, "max_wall_time", 60.0)
+   set_optimizer_attribute(model, "max_wall_time", 180.0)
 
    # register curvature function
    κ(s) = track.κ(s)
@@ -374,7 +383,8 @@ function create_and_solve_control(
            options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
 
            # velocities & accelerations
-           -400 ≤ v ≤ 400, Infinite(s)
+        #    0 ≤ v ≤ 100, Infinite(s)
+           v, Infinite(s) 
            options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)
            
            # slip angles
@@ -384,6 +394,9 @@ function create_and_solve_control(
            # lateral forces
            -10 ≤ Ff ≤ 10, Infinite(s)
            -10 ≤ Fr ≤ 10, Infinite(s)
+            # Ff, Infinite(s)
+            # Fr, Infinite(s)
+
 
            # time
            SF, Infinite(s)
@@ -413,8 +426,10 @@ function create_and_solve_control(
             # compute lateral forces
             Ff == cf * αf
             Fr == cr * αr
+            # Ff == cf * δ - atan((v + ω * l_f)/(u + eps()))
+            # Fr == cr * atan((v - ω * l_r)/(u + eps()))
 
-            # set dynmics
+            # set dynamics
             ∂(v, s) == (Ff + Fr - u * ω)/m
             ∂(ω, s) == (Ff * l_f - Fr * l_r)/Iz
 
@@ -443,8 +458,8 @@ function create_and_solve_control(
            t(0) == 0
            ω(0) == initial_conditions.ω
            v(0) == 0
-           αf(0) == 0
-           αr(0) == 0
+        #    αf(0) == 0
+        #    αr(0) == 0
            Ff(0) == 0
            Fr(0) == 0
 
@@ -454,8 +469,8 @@ function create_and_solve_control(
            n(track.S_f) == 0
            ψ(track.S_f) == 0
            v(track.S_f) == 0
-           αf(track.S_f) == 0
-           αr(track.S_f) == 0
+        #    αf(track.S_f) == 0
+        #    αr(track.S_f) == 0
            Ff(track.S_f) == 0
            Fr(track.S_f) == 0
        end
