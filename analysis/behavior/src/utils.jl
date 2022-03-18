@@ -32,6 +32,7 @@ Upsamble a set of variables through interpolation
 function upsample(data...; δp=0.001)
   n = length(data)
   P = range(0, 1, length(data[1]))
+
   # upsample data
   itp = Interpolations.scale(
     interpolate(hcat(data...), (BSpline(Cubic(Natural(OnGrid()))), NoInterp())), P, 1:n

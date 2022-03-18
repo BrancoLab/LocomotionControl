@@ -13,9 +13,9 @@ function compare()
     # ---------------------------------- run MTM --------------------------------- #
 
     track, bike, _, solution = run_mtm(
-        :dynamics,  # model type
-        200;  # number of supports
-        realistic_controls=true,
+        :kinematics,  # model type
+        300;  # number of supports
+        realistic_controls=false,
         showtrials=nothing,
         niters=5000,
         timed=false,
@@ -30,7 +30,7 @@ function compare()
     # -------------------------- do comparison with data ------------------------- #
     # load data
     cpoints = get_comparison_points(track; δs=5)
-    trials = load_trials(; keep_n = 50,)
+    trials = load_trials(; keep_n = 20,)
 
     # show data
     plot_trials!(trials; lw=3)

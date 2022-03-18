@@ -36,8 +36,8 @@ struct Bicycle
                 width::Number=2,
                 m_f = 10,
                 m_r = 15,
-                cf = 2,
-                cr = 2,
+                cf = .1,  # 0.5 ≤ cf ≤ 3.5 generally works
+                cr = .1,
         )
 
         # convert units g->Kg, cm->m

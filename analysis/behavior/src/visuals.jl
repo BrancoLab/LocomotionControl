@@ -5,7 +5,7 @@ import InfiniteOpt: InfiniteModel, value
 import DataFrames: DataFrame
 import Images
 
-import jcontrol: Track, get_track_borders
+import jcontrol: Track, get_track_borders, Δ
 import ..comparisons: ComparisonPoint
 import ..control: KinematicsProblem, DynamicsProblem
 import ..forwardmodel: Solution
@@ -22,25 +22,32 @@ arena = Images.load("src/arena.png")
 plot_arena!() = plot!([-8, 47], [-12, 66], reverse(arena, dims = 1), yflip = false, xlim=[-5, 45], ylim=[-5, 65])
 plot_arena() = plot([-8, 47], [-12, 66], reverse(arena, dims = 1), yflip = false, xlim=[-5, 45], ylim=[-5, 65])
 
-function plot_track!(track::Track; title="")
+function plot_track!(track::Track; title="", clean=false)
     plot!(
-        track.X,
-        track.Y;
-        lw=5,
-        lc=black,
-        label=nothing,
         xlabel="X (cm)",
         ylabel="Y (cm)",
-        ls=:dash,
         aspect_ratio=:equal,
         title=title,
         size=(1200, 1200),
-        alpha=0.6,
     )
 
-    for border in get_track_borders(track)
-        plot!(border.X, border.Y; lw=4, lc=black, label=nothing, alpha=.2)
+    if !clean   
+        plot!(
+            track.X,
+            track.Y;
+            lw=5,
+            lc=black,
+            label=nothing,
+            ls=:dash,
+            alpha=0.6,
+        )
+
+        for border in get_track_borders(track)
+            plot!(border.X, border.Y; lw=4, lc=black, label=nothing, alpha=.2)
+        end
     end
+
+
 end
 
 
@@ -142,7 +149,7 @@ function summary_plot(
     nsupports = length(value(controlmodel[:SF]))
     # plot the track + XY trajectory
     xyplot = plot_arena()
-    plot_track!(track; title="Duration: $(round(model.t[end]; digits=3))s | $nsupports supports")
+    plot_track!(track; title="Duration: $(round(model.t[end]; digits=3))s | $nsupports supports", clean=false)
 
     # plot trials
     if !isnothing(trials)
@@ -150,7 +157,7 @@ function summary_plot(
     end
 
     # mark bike's trajectory
-    plot_bike_trajectory!(model, bike)
+    plot_bike_trajectory!(model, bike; showbike=false)
     scatter!(model.x[1:10:end], model.y[1:10:end]; marker_z=model.u[1:10:end], ms=8, label=nothing)
 
 
@@ -164,12 +171,15 @@ function summary_plot(
     end
 
     fig = plot(; layout=grid(3, 2), size=(1200, 1200))
-    plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
+    # plot!(t, rad2deg.(model.θ), label = "θ", ; w = 2, color = black, subplot=1)
+
+    plot_two!(t, t, rad2deg.(model.θ), cumsum(model.ω), "model θ", "∫ω", subplot=1)
+
     plot_two!(t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ", subplot=2)
     plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=3)
     plot_two!(t, _t, rad2deg.(model.ω), rad2deg.(value(controlmodel[:ω])), "ODE ω", "control ω", subplot=4)
-    plot_two!(t, _t, rad2deg.(model.δ̇), rad2deg.(value(controlmodel[:δ̇])), "ODE δ̇", "control δ̇", subplot=5)
-    plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=6)
+    plot_two!(t, _t, rad2deg.(model.δ̇), rad2deg.(value(controlmodel[:δ̇])), "ODE δ̇", "control δ̇", subplot=6)
+    plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
 
     display(fig)
     display(xyplot)

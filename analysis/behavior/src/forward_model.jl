@@ -6,7 +6,7 @@ using Interpolations: Interpolations
 import Parameters: @with_kw
 import Term.progress: track as pbar
 
-import jcontrol: Track, upsample, kinematics_from_position, int
+import jcontrol: Track, upsample, kinematics_from_position, int, ξ
 import ..control: KinematicsProblem, DynamicsProblem
 import ..bicycle: State, Bicycle
 
@@ -47,65 +47,68 @@ Finally, the bike's velocity and angular velocities are computed.
 """
 function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
     # get model's data and upsample
-    n = value(model[:n])
-    ψ = value(model[:ψ])
-    s = only.(supports(model[:n]))
-    Ts = value(model[:t])
-    δs = value(model[:δ])
-    δ̇s = value(model[:δ̇])
-    u̇s = value(model[:u̇])
+    n = ξ(value(model[:n]))
+    ψ = ξ(value(model[:ψ]))
+    s = ξ(value(model[:s]))
 
-    n, ψ, s, Ts, δs, δ̇s, u̇s  = upsample(n, ψ, s, Ts, δs, δ̇s, u̇s; δp=0.0005)
-
-    # compute bike position with variable Δt
-    Xs, Ys, θs = zeros(length(n)), zeros(length(n)), zeros(length(n))
-    for i in pbar(1:length(s); transient=false)
+    # compute bike position with variable Δt (wrt s)
+    svalues = 1:.25:length(value(model[:n]))
+    II() = zeros(Float64, length(svalues))
+    Xs, Ys, θs = II(), II(), II()
+    for (ni, i) in pbar(enumerate(svalues))
         _n, _ψ = n[i], ψ[i]
 
         # get closest track waypoint
         closest = argmin(abs.(track.S .- s[i]))
 
-        # get position and orientation
+        # get position and orientation of track
         xp = track.X[closest]
         yp = track.Y[closest]
         θp = track.θ[closest]
 
         # get position of bike
         if _n == 0
-            Xs[i] = xp
-            Ys[i] = yp
+            Xs[ni] = xp
+            Ys[ni] = yp
         else
             norm_angle =  θp + π/2
 
-            Xs[i] = xp + _n * cos(norm_angle)
-            Ys[i] = yp + _n * sin(norm_angle)
+            Xs[ni] = xp + _n * cos(norm_angle)
+            Ys[ni] = yp + _n * sin(norm_angle)
         end
 
         # get orientation of bike
-        θs[i] = θp + _ψ
+        θs[ni] = θp + _ψ
     end
 
-    # fix variable Δt
-    time = collect(0:δt:Ts[end])
-    I() = zeros(length(time))
+    # get other variables
+    Ts = map(ξ(value(model[:t])), svalues)
+    δs = map(ξ(value(model[:δ])), svalues)
+    δ̇s = map(ξ(value(model[:δ̇])), svalues)
+    u̇s = map(ξ(value(model[:u̇])), svalues)
+    us = map(ξ(value(model[:u])), svalues)
+    ωs = map(ξ(value(model[:ω])), svalues)
+
+    # get values at regular Δt
+    time = Ts[1]:δt:Ts[end]
+    I() = zeros(Float64, length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
-    for (i, t) in pbar(enumerate(time); transient=false)
-        # get next larger timestep
-        idx = findfirst(Ts .> t)
-      
-        T[i] = Ts[idx]
-        X[i] = Xs[idx]
-        Y[i] = Ys[idx]
-        θ[i] = θs[idx]
-        δ[i] = δs[idx]
-        δ̇[i] = δ̇s[idx]
-        u̇[i] = u̇s[idx]
+    u, ω, v, β =  I(), I(), I(), I()
+    for (n,t) in pbar(enumerate(time); redirectstdout=false)
+        idx = findfirst(Ts .>= t)
+        idx = isnothing(idx) ? 1 : idx
+
+        T[n] = Ts[idx]
+        X[n] = Xs[idx]
+        Y[n] = Ys[idx]
+        θ[n] = θs[idx]
+        δ[n] = δs[idx]
+        δ̇[n] = δ̇s[idx]
+        u̇[n] = u̇s[idx]
+        u[n] = us[idx]
+        ω[n] = ωs[idx]
     end
 
-    # compute velocities
-    fps = int(1/δt)
-    u, ω = kinematics_from_position(X, Y, θ; fps=fps, smooth=true, smooth_wnd=.05)
-      
     return Solution(
         δt=δt,
         t = T,

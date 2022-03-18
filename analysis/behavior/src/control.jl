@@ -65,11 +65,8 @@ realistict_control_options = Dict(
     "u̇" => Bounds(-180, 200),
     "δ" => Bounds(-50, 50, :angle),
     "δ̇" => Bounds(-220, 220, :angle),
-    "ω" => Bounds(-450, 450, :angle)
+    "ω" => Bounds(-600, 600, :angle)
 )
-
-
-
 
 
 # ---------------------------------------------------------------------------- #
@@ -351,6 +348,7 @@ function create_and_solve_control(
    set_optimizer_attribute(model, "max_iter", options.n_iter)
    set_optimizer_attribute(model, "acceptable_tol", options.tollerance)
    set_optimizer_attribute(model, "print_level", options.verbose)
+   set_optimizer_attribute(model, "max_wall_time", 60.0)
 
    # register curvature function
    κ(s) = track.κ(s)

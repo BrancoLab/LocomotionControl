@@ -29,7 +29,7 @@ function run_mtm(
     #                                DEFINE PARAMERS                               #
     # ---------------------------------------------------------------------------- #
     # create track object
-    track = Track(; keep_n_waypoints=-1, resolution=0.001)
+    track = Track(; keep_n_waypoints=-1, resolution=0.00001)
 
 
     # create bike
@@ -62,13 +62,13 @@ function run_mtm(
 
             # error bounds
             track_safety=1.0,
-            ψ_bounds=Bounds(-45, 45, :angle),
+            ψ_bounds=Bounds(-35, 35, :angle),
 
             # controls & variables bounds
             u_bounds=Bounds(5, 80),            # cm
             u̇_bounds=Bounds(-60, 120),         # cm/s²
             δ_bounds=Bounds(-80, 80, :angle),  # deg
-            δ̇_bounds=Bounds(-2, 2),            # rad/s²
+            δ̇_bounds=Bounds(-4, 4),            # rad/s²
             ω_bounds=Bounds(-500, 500, :angle)
         )
     end
@@ -76,9 +76,9 @@ function run_mtm(
     @info "using" problemtype realistic_controls coptions.u_bounds coptions.u̇_bounds coptions.δ_bounds coptions.δ̇_bounds  coptions.ω_bounds
 
     # define initial and final conditions
-    icond = State(; x=track.X[1], y=track.Y[1], θ=track.θ[1], u=coptions.u_bounds.lower)
-    fcond = State(; u=coptions.u_bounds.lower)
-    # icond = State(; x=track.X[1], y=track.Y[1], θ=track.θ[1], u=coptions.u_bounds.lower, ω=8)
+    icond = State(; x=track.X[1], y=track.Y[1], ψ=.3, u=25)
+    fcond = State(; u=5)
+    # icond = State(; x=track.X[1], y=track.Y[1], θ=track.θ[1], u=25, ω=8)
     # fcond = State(; u=coptions.u_bounds.lower, ω=0)
 
     # ---------------------------------------------------------------------------- #
