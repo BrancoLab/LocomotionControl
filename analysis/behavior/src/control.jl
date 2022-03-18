@@ -21,9 +21,9 @@ abstract type MTMproblem end
 # ---------------------------------------------------------------------------- #
 #                                    OPTIONS                                   #
 # ---------------------------------------------------------------------------- #
-struct Bounds
-    lower::Number
-    upper::Number
+struct Bounds{T<:Number}
+    lower::T
+    upper::T
 end
 
 """
@@ -55,15 +55,17 @@ other parameters such as bounds on allowed errors.
     # varibles bounds
     u_bounds::Bounds = Bounds(0, 100)
     δ_bounds::Bounds = Bounds(-45, 45, :angle)
+
+    ω_bounds::Bounds = Bounds(-500, 500, :angle)
 end
 
 
 realistict_control_options = Dict(
     "u" => Bounds(5, 80),
     "u̇" => Bounds(-180, 200),
-    "δ" => Bounds(-54, 54, :angle),  # data value is around 40, but that causes the problem to be infeasible
+    "δ" => Bounds(-50, 50, :angle),
     "δ̇" => Bounds(-220, 220, :angle),
-    # "ω" => Bounds(-450, 450, :angle)
+    "ω" => Bounds(-450, 450, :angle)
 )
 
 
@@ -185,7 +187,7 @@ function create_and_solve_control(
 
     # ----------------------------- define kinematics ---------------------------- #        
     l = bike.l_r
-    L = bike.l_r + bike.l_f
+    L = bike.L
 
     @constraints(
         model,
@@ -267,11 +269,11 @@ The model has the following variables
     δ:      steering angle
     u:      longitudinal velocity component
     v:      lateral velocity component
-    ω:      angualr velocity (around the CoM)
+    ω:      angular velocity (around the CoM)
 
 The bike has the following constants
     l_f:     distance from CoM to front  wheel
-    l_r:     distance from rearh wheel to CoM
+    l_r:     distance from rear wheel to CoM
     m:       mass
     Iz:      angular momentum
     cf, cr:  tyre cornering stiffness
@@ -374,29 +376,25 @@ function create_and_solve_control(
            options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
 
            # velocities & accelerations
-           v, Infinite(s)
-           ω, Infinite(s)
-        #    v̇, Infinite(s)
-        #    ω̇, Infinite(s)
+           -400 ≤ v ≤ 400, Infinite(s)
+           options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)
            
            # slip angles
-           αf, Infinite(s)
-           αr, Infinite(s)
+           -π/2 ≤ αf ≤ π/2, Infinite(s)
+           -π/2 ≤ αr ≤ π/2, Infinite(s)
 
            # lateral forces
-           Ff, Infinite(s)
-           Fr, Infinite(s)
-           
-           SF, Infinite(s)
+           -10 ≤ Ff ≤ 10, Infinite(s)
+           -10 ≤ Fr ≤ 10, Infinite(s)
 
            # time
-           0 ≤ t ≤ 60, Infinite(s), (start = 10)   
+           SF, Infinite(s)
+           0 ≤ t ≤ 20, Infinite(s), (start = 10)   
        end
    )
 
    # -------------------------- track width constraints ------------------------- #
    @parameter_function(model, allowed_track_width == track.width(s))
-
    @constraint(model, -allowed_track_width + bike.width ≤ n)
    @constraint(model, allowed_track_width - bike.width ≥ n)
 
@@ -412,12 +410,11 @@ function create_and_solve_control(
 
             # compute slip angles
             αf == δ - atan((v + ω * l_f)/u)
-            αr == δ - atan((v - ω * l_r)/u)
+            αr == atan((v - ω * l_r)/u)
 
             # compute lateral forces
             Ff == cf * αf
             Fr == cr * αr
-
 
             # set dynmics
             ∂(v, s) == (Ff + Fr - u * ω)/m
@@ -458,6 +455,11 @@ function create_and_solve_control(
            ω(track.S_f) == final_conditions.ω
            n(track.S_f) == 0
            ψ(track.S_f) == 0
+           v(track.S_f) == 0
+           αf(track.S_f) == 0
+           αr(track.S_f) == 0
+           Ff(track.S_f) == 0
+           Fr(track.S_f) == 0
        end
    )
 
@@ -466,9 +468,18 @@ function create_and_solve_control(
    @objective(model, Min, ∫(SF, s))
    optimize!(model)
 
-   @info "Model optimization complete" termination_status(model) objective_value(model)
-
-   # done
+    c = IOCapture.capture() do
+        println(solution_summary(optimizer_model(model)))
+    end
+    print(
+        "\n" * Panel(
+            RenderableText(c.output, "$blue_light italic"),
+            style="yellow1",
+            title="IPoPT output",
+            title_style="red bold",
+            justify=:center
+        ) * "\n\n"
+    )
    return model
 
 end

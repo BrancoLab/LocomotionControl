@@ -133,7 +133,7 @@ function plot_bike_trajectory!(model, bike; showbike=true)
     plot!(model.x, model.y; color=salmon_dark, lw=6, label="model")
 
     # plot bike's posture
-    showbike && plot_bike!(model, bike, n)
+    showbike && plot_bike!(model, bike, 50)
 end
 
 function summary_plot(
@@ -151,6 +151,8 @@ function summary_plot(
 
     # mark bike's trajectory
     plot_bike_trajectory!(model, bike)
+    scatter!(model.x[1:10:end], model.y[1:10:end]; marker_z=model.u[1:10:end], ms=8, label=nothing)
+
 
     t = model.t
     _t = value(controlmodel[:t])

@@ -13,9 +13,9 @@ function compare()
     # ---------------------------------- run MTM --------------------------------- #
 
     track, bike, _, solution = run_mtm(
-        :kinematics,  # model type
+        :dynamics,  # model type
         200;  # number of supports
-        realistic_controls=false,
+        realistic_controls=true,
         showtrials=nothing,
         niters=5000,
         timed=false,
