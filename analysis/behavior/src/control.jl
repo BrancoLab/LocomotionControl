@@ -69,7 +69,7 @@ default_control_options = ControlOptions(
     u_bounds = Bounds(5, 80),
     u̇_bounds = Bounds(-180, 200),
     δ_bounds = Bounds(-90, 90, :angle),
-    δ̇_bounds = Bounds(-4, 4),
+    δ̇_bounds = Bounds(-3, 3),
     ω_bounds = Bounds(-500, 500, :angle),
 )
 

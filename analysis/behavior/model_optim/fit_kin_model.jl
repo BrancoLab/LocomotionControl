@@ -25,7 +25,7 @@ end
 
 function run_model_fit(params_ranges)
     # create track object
-    track = Track(; keep_n_waypoints=-1, resolution=0.00001)
+    track = Track()
 
     # create bike
     bike = Bicycle()
@@ -104,10 +104,10 @@ end
 
 
 params_ranges = Dict(
-    "u̇_bounds" => 150:50:300,
-    "δ̇_bounds" => 1:1:10,
-    "δ_bounds" => 50:25:120,
-    "ω_bounds" => 200:250:1000,
+    "u̇_bounds" => 180:1:181,
+    "δ̇_bounds" => 3:1:10,
+    "δ_bounds" => 80:25:120,
+    "ω_bounds" => 500:250:1000,
 )
 
 res = run_model_fit(params_ranges)

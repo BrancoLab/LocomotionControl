@@ -50,8 +50,8 @@ function run_mtm(
     end
 
     # define initial and final conditions
-    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=control_options.u_bounds.lower) : icond
-    fcond = isnothing(fcond) ? State(; u=control_options.u_bounds.lower) : fcond
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=control_options.u_bounds.lower, n=0, ψ=0) : icond
+    fcond = isnothing(fcond) ? State(; u=control_options.u_bounds.lower, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #
     #                                   FIT MODEL                                  #

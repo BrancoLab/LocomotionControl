@@ -14,10 +14,10 @@ function compare()
 
     track, bike, _, solution = run_mtm(
         :kinematics,  # model type
-        300;  # number of supports
-        realistic_controls=false,
+        3;  # supports density
+        control_options=:default,
         showtrials=nothing,
-        niters=5000,
+        n_iter=5000,
         timed=false,
         showplots=false,
     )

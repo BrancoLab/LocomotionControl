@@ -2,6 +2,8 @@ module bicycle
 import Parameters: @with_kw
 import MyterialColors: blue_grey_darker, blue_grey, cyan_dark
 
+import jcontrol: closest_point_idx, Track, euclidean
+
 export Bicycle, State
 
 """
@@ -95,4 +97,49 @@ model.
     ψ::Number = 0
 end
 
+"""
+    State(trial::Trial, frame::Int, track::Track)
+
+Get `State` from experimental data at a frame
+"""
+function State(trial, frame::Int, track::Track)
+    # get track errors
+    x, y = trial.x[frame], trial.y[frame]
+    idx = closest_point_idx(track.X, x, track.Y, y)
+
+    n = euclidean(track.X[idx], x, track.Y[idx], y)
+    ψ = track.θ[idx] - trial.θ[frame]
+
+    return State(
+        x = x,
+        y = y,
+        θ = trial.θ[frame],
+        ω = trial.ω[frame],
+        u = trial.u[frame],
+        n = n,
+        ψ = ψ
+    )
+end
+
+"""
+    State(solution, frame::Int)
+
+Get `State` from a forward problem solution at Δt from start.
+"""
+function State(solution, Δt::Float64)
+    frame = (Int ∘ round)(Δt/solution.δt)
+
+    return State(
+        x = solution.x[frame],
+        y = solution.y[frame],
+        θ = solution.θ[frame],
+        δ = solution.δ[frame],
+        ω = solution.ω[frame],
+        u = solution.u[frame],
+        β = solution.β[frame],
+        v = solution.v[frame],
+        n = solution.n[frame],
+        ψ = solution.ψ[frame],
+    )
+    end
 end

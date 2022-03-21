@@ -22,10 +22,16 @@ int(x) = (Int64 ∘ round)(x)
     θ::Vector{Float64}    # orientation
     δ::Vector{Float64}    # steering angle
     u::Vector{Float64}    # velocity  | fpr DynamicsProblem its the longitudinal velocity component
-    
+    ω::Vector{Float64} = Vector{Float64}[]  # angular velocity
+
+    n::Vector{Float64}    # track errors
+    ψ::Vector{Float64}
+
+    # Kinematic problem only
+    β::Vector{Float64}
+
     # Dynamics problem only
     v::Vector{Float64} = Vector{Float64}[]  # lateral velocity
-    ω::Vector{Float64} = Vector{Float64}[]  # angular velocity
 
     # controls
     u̇::Vector{Float64}
@@ -88,25 +94,31 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
     u̇s = map(ξ(value(model[:u̇])), svalues)
     us = map(ξ(value(model[:u])), svalues)
     ωs = map(ξ(value(model[:ω])), svalues)
+    ns = map(ξ(value(model[:n])), svalues)
+    ψs = map(ξ(value(model[:ψ])), svalues)
+    βs = map(ξ(value(model[:β])), svalues)
 
     # get values at regular Δt
     time = Ts[1]:δt:Ts[end]
     I() = zeros(Float64, length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
-    u, ω, v, β =  I(), I(), I(), I()
-    for (n,t) in pbar(enumerate(time); redirectstdout=false)
+    u, ω, n, ψ, β =  I(), I(), I(), I(), I()
+    for (i,t) in pbar(enumerate(time); redirectstdout=false)
         idx = findfirst(Ts .>= t)
         idx = isnothing(idx) ? 1 : idx
 
-        T[n] = Ts[idx]
-        X[n] = Xs[idx]
-        Y[n] = Ys[idx]
-        θ[n] = θs[idx]
-        δ[n] = δs[idx]
-        δ̇[n] = δ̇s[idx]
-        u̇[n] = u̇s[idx]
-        u[n] = us[idx]
-        ω[n] = ωs[idx]
+        T[i] = Ts[idx]
+        X[i] = Xs[idx]
+        Y[i] = Ys[idx]
+        θ[i] = θs[idx]
+        δ[i] = δs[idx]
+        δ̇[i] = δ̇s[idx]
+        u̇[i] = u̇s[idx]
+        u[i] = us[idx]
+        ω[i] = ωs[idx]
+        n[i] = ns[idx]
+        ψ[i] = ψs[idx]
+        β[i] = βs[idx]
     end
 
     return Solution(
@@ -120,6 +132,9 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
         δ = δ,
         δ̇ = δ̇,
         u̇ = u̇,
+        n = n,
+        ψ = ψ,
+        β = β,
     )
 end
 
