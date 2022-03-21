@@ -55,7 +55,7 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
     svalues = 1:.25:length(value(model[:n]))
     II() = zeros(Float64, length(svalues))
     Xs, Ys, θs = II(), II(), II()
-    for (ni, i) in pbar(enumerate(svalues))
+    for (ni, i) in pbar(enumerate(svalues); redirectstdout=false)
         _n, _ψ = n[i], ψ[i]
 
         # get closest track waypoint

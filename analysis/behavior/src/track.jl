@@ -81,39 +81,22 @@ end
 Ugly hard coded function to change track width as a function of curvilinear
 distance along the track.
 """
-function widtfn(s, S_f, width) 
-    r = (s/S_f) 
-    if r < .07
-        fact = 1
+function widthfn(s) 
+    r = s /261
 
-    elseif r < .185
-        fact = .85
+    if .225 < r < .45  # second curve
+        fact = 1.1
 
-    elseif r < .21
-        fact = 1
+    elseif r < .6  # narrow curves
+        fact = 1.0
 
-    elseif r < .44
-        fact = 1.25
-
-    elseif r < .49
-        fact = 1
-
-    elseif r < .55
-        fact = .9
-
-    elseif r < .58
-        fact = 1
-
-    elseif r < .6
-        fact = 1.25
-
-    elseif .675 < r < .775
-        fact = 1.6
+    elseif .675 < r < .775  # first part of fourth
+        fact = 1.5
 
     else
-        fact = 1.4
+        fact = 1.3
     end
-    return fact * width
+    return fact * 3
 end
 
 
@@ -126,12 +109,13 @@ Create a track from saved waypoints coordinates.
   - `keep_n_waypoints` can be used to keep only the first N waypoints. Set to -1 to keep all.
   - `resolution` used to upsample track waypoints through interpolation.
 """
-function Track(; start_waypoint=1, keep_n_waypoints=-1, resolution=0.001)
+function Track(; start_waypoint=1, keep_n_waypoints=-1, resolution=0.00001)
     # load data
     XY = npzread("src/hairpin.npy")
+    start_waypoint = min(2, start_waypoint)
     keep_n_waypoints =
-        keep_n_waypoints > 0 ? min(keep_n_waypoints, size(XY, 1)) : size(XY, 1)
-    XY = XY[start_waypoint:keep_n_waypoints, :]
+        keep_n_waypoints > 0 ? min(keep_n_waypoints, size(XY, 1)) : (size(XY, 1) - start_waypoint)
+    XY = XY[start_waypoint:(start_waypoint + keep_n_waypoints - 1), :]
 
     # get new points locations thorugh interpolation
     X, Y = upsample(XY[:, 1], XY[:, 2]; δp = resolution)
@@ -155,5 +139,11 @@ function Track(; start_waypoint=1, keep_n_waypoints=-1, resolution=0.001)
     θ = unwrap(atan.(Δy, Δx))
     θ[1] = θ[2]
 
-    return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, (s)->widtfn(s, S_f, 3), θ)
+    # get width function working for short tracks
+    s1 = (start_waypoint)/261
+    wfn(s) = widthfn(s - s1)
+
+    # return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, s -> widthfn(s - ((start_waypoint-1)/261)), θ)
+    return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, wfn, θ)
+
 end

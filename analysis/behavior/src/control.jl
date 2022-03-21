@@ -39,11 +39,6 @@ Include options for the optimizer itself as well
 other parameters such as bounds on allowed errors.
 """
 @with_kw struct ControlOptions
-    n_iter::Int = 1000
-    num_supports::Int = 100
-    tollerance::Number = 1e-10
-    verbose::Int = 0
-
     # errors bounds
     track_safety::Float64 = 1
     ψ_bounds::Bounds = Bounds(-π / 2, π / 2)
@@ -60,21 +55,24 @@ other parameters such as bounds on allowed errors.
 end
 
 
-# realistict_control_options = Dict(
-#     "u" => Bounds(5, 80),
-#     "u̇" => Bounds(-180, 200),
-#     "δ" => Bounds(-80, 80, :angle),
-#     "δ̇" => Bounds(-4, 4),
-#     "ω" => Bounds(-600, 600, :angle)
-# )
 
-realistict_control_options = Dict(
-    "u" => Bounds(5, 60),
-    "u̇" => Bounds(-200, 200),
-    "δ" => Bounds(-80, 80, :angle),
-    "δ̇" => Bounds(-4, 4),
-    "ω" => Bounds(-600, 600, :angle)
+realistict_control_options = ControlOptions(
+    u_bounds = Bounds(5, 80),
+    u̇_bounds = Bounds(-180, 200),
+    δ_bounds = Bounds(-50, 50, :angle),
+    δ̇_bounds = Bounds(-4, 4),
+    ω_bounds = Bounds(-400, 400, :angle),
 )
+
+
+default_control_options = ControlOptions(
+    u_bounds = Bounds(5, 80),
+    u̇_bounds = Bounds(-180, 200),
+    δ_bounds = Bounds(-90, 90, :angle),
+    δ̇_bounds = Bounds(-4, 4),
+    ω_bounds = Bounds(-500, 500, :angle),
+)
+
 
 
 # ---------------------------------------------------------------------------- #
@@ -142,25 +140,30 @@ get the controls for the MTM problem.
 """
 function create_and_solve_control(
     problem_type::KinematicsProblem,
+    num_supports::Int,
     track::Track,
     bike::Bicycle,
     options::ControlOptions,
     initial_conditions::State,
-    final_conditions::State,
+    final_conditions::State;
+    quiet::Bool=false,
+    n_iter::Int=1000,
+    tollerance::Float64=1e-10,
+    verbose::Int=0
 )
     # initialize optimizer
     model = InfiniteModel(Ipopt.Optimizer; add_bridges=false)
-    set_optimizer_attribute(model, "max_iter", options.n_iter)
-    set_optimizer_attribute(model, "acceptable_tol", options.tollerance)
-    set_optimizer_attribute(model, "print_level", options.verbose)
-    set_optimizer_attribute(model, "max_wall_time", 180.0)
+    set_optimizer_attribute(model, "max_iter", n_iter)
+    set_optimizer_attribute(model, "acceptable_tol", tollerance)
+    set_optimizer_attribute(model, "print_level", verbose)
+    set_optimizer_attribute(model, "max_wall_time", 60.0)
 
     # register curvature function
     κ(s) = track.κ(s)
     @register(model, κ(s))
 
     # ----------------------------- define variables ----------------------------- #
-    @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = options.num_supports)
+    @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = num_supports)
 
     @variables(
         model,
@@ -226,13 +229,12 @@ function create_and_solve_control(
             ω(0) == initial_conditions.ω
 
             # final conditions
-
-            n(track.S_f) == 0
-            ψ(track.S_f) == 0
+            # n(track.S_f) == 0
+            # ψ(track.S_f) == 0
             u(track.S_f) == final_conditions.u
-            δ(track.S_f) == final_conditions.δ
-            β(track.S_f) == final_conditions.β
             ω(track.S_f) == final_conditions.ω
+            # δ(track.S_f) == final_conditions.δ
+            # β(track.S_f) == final_conditions.β
         end
     )
 
@@ -242,18 +244,20 @@ function create_and_solve_control(
     optimize!(model)
     
     # print info
-    c = IOCapture.capture() do
-        println(solution_summary(optimizer_model(model)))
+    if !quiet
+        c = IOCapture.capture() do
+            println(solution_summary(optimizer_model(model)))
+        end
+        print(
+            "\n" * Panel(
+                RenderableText(c.output, "$blue_light italic"),
+                style="yellow1",
+                title="IPoPT output",
+                title_style="red bold",
+                justify=:center
+            ) * "\n\n"
+        )
     end
-    print(
-        "\n" * Panel(
-            RenderableText(c.output, "$blue_light italic"),
-            style="yellow1",
-            title="IPoPT output",
-            title_style="red bold",
-            justify=:center
-        ) * "\n\n"
-    )
 
     return model
 end
@@ -383,19 +387,20 @@ function create_and_solve_control(
            options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
 
            # velocities & accelerations
-        #    0 ≤ v ≤ 100, Infinite(s)
-           v, Infinite(s) 
+           v, Infinite(s)
+        #    -500 ≤ v ≤ 500, Infinite(s) 
            options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)
            
            # slip angles
-           -π/2 ≤ αf ≤ π/2, Infinite(s)
-           -π/2 ≤ αr ≤ π/2, Infinite(s)
-
+        #    -π*2 ≤ αf ≤ π*2, Infinite(s)
+        #    -π*2 ≤ αr ≤ π*2, Infinite(s)
+            αf, Infinite(s)
+            αr, Infinite(s)
            # lateral forces
-           -10 ≤ Ff ≤ 10, Infinite(s)
-           -10 ≤ Fr ≤ 10, Infinite(s)
-            # Ff, Infinite(s)
-            # Fr, Infinite(s)
+        #    -10 ≤ Ff ≤ 10, Infinite(s)
+        #    -10 ≤ Fr ≤ 10, Infinite(s)
+            Ff, Infinite(s)
+            Fr, Infinite(s)
 
 
            # time
@@ -420,8 +425,8 @@ function create_and_solve_control(
             SF == (1 - n * κ(s)) / (u * cos(ψ) + v + eps())  # time -> space domain conversion factor
 
             # compute slip angles
-            αf == δ - atan((v + ω * l_f)/u)
-            αr == atan((v - ω * l_r)/u)
+            αf == δ - atan((v + ω * l_f)/(u + eps()))
+            αr == atan((v - ω * l_r)/(u + eps()))
 
             # compute lateral forces
             Ff == cf * αf
@@ -430,15 +435,22 @@ function create_and_solve_control(
             # Fr == cr * atan((v - ω * l_r)/(u + eps()))
 
             # set dynamics
-            ∂(v, s) == (Ff + Fr - u * ω)/m
-            ∂(ω, s) == (Ff * l_f - Fr * l_r)/Iz
+            # ∂(v, s) == SF * (Ff + Fr - u * ω)/m
+            # ∂(ω, s) == SF * (Ff * l_f - Fr * l_r)/Iz
+
+            ∂(v, s) == SF * (
+                -(cf+cr)/(m*u)*v - ((Ff-Fr)/(m*u) + u) * ω + cf/m*δ
+            )
+            ∂(ω, s) == SF * (
+                -(Ff - Fr)/(u*Iz) * v - (cf*αf^2 + cr*αr^2)/(u*Iz)*ω + (Ff)/Iz*δ
+            )
 
             # errors
             ∂(n, s) == SF * (u * sin(ψ) + v)
             ∂(ψ, s) == SF * ω - κ(s)
 
             # controls
-            ∂(u, s) == SF * u̇
+            ∂(u, s) == SF * u̇ - v * ω
             ∂(δ, s) == SF * δ̇
 
             # time

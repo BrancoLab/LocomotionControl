@@ -6,6 +6,9 @@ import Term: RenderableText, Panel
 import MyterialColors: green_lighter
 
 using jcontrol
+import jcontrol: Track
+import ..bicycle: State
+import ..control: ControlOptions, realistict_control_options, default_control_options
 
 const to = TimerOutput()
 
@@ -13,13 +16,18 @@ export run_mtm
 
 function run_mtm(
         problemtype::Symbol,
-        num_supports; 
-        realistic_controls::Bool = false,
+        supports_density::Number;
+        track::Union{Nothing, Track}=nothing,
+        icond::Union{Nothing, State}=nothing,
+        fcond::Union{Nothing, State}=nothing,
+        control_options::Union{ControlOptions, Symbol} = :default,
         showtrials::Union{Nothing, Int64}=nothing,
-        niters::Int=250,
+        n_iter::Int=1000,
+        tol::Float64=1e-12,
         verbose::Int=0,
         timed::Bool=false,
         showplots::Bool=true,
+        quiet::Bool=false,
     )
 
     problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
@@ -29,67 +37,44 @@ function run_mtm(
     #                                DEFINE PARAMERS                               #
     # ---------------------------------------------------------------------------- #
     # create track object
-    track = Track(; keep_n_waypoints=-1, resolution=0.00001)
-
+    track = isnothing(track) ? Track(; start_waypoint=2, keep_n_waypoints=-1) : track
 
     # create bike
     bike = Bicycle() 
 
-    if realistic_controls
-        coptions = ControlOptions(
-            # solver optionsx
-            verbose=verbose,
-            n_iter=niters,
-            num_supports=num_supports,
-
-            # error bounds
-            track_safety=1.0,
-            ψ_bounds=Bounds(-45, 45, :angle),
-
-            # controls & variables bounds
-            u̇_bounds=realistict_control_options["u̇"],   # cm/s²
-            δ̇_bounds=realistict_control_options["δ̇"],   # rad/s²
-            u_bounds=realistict_control_options["u"],   # cm
-            δ_bounds=realistict_control_options["δ"],   # deg
-            ω_bounds=realistict_control_options["ω"]
-        )
-    else
-        coptions = ControlOptions(;
-            # solver optionsx
-            verbose=verbose,
-            n_iter=niters,
-            num_supports=num_supports,
-
-            # error bounds
-            track_safety=1.0,
-            ψ_bounds=Bounds(-35, 35, :angle),
-
-            # controls & variables bounds
-            u_bounds=Bounds(5, 80),            # cm
-            u̇_bounds=Bounds(-180, 200),         # cm/s²
-            δ_bounds=Bounds(-80, 80, :angle),  # deg
-            δ̇_bounds=Bounds(-4, 4),            # rad/s²
-            ω_bounds=Bounds(-500, 500, :angle)
-        )
+    # get control options
+    if control_options == :default
+        control_options = default_control_options
+    elseif control_options == :realistic
+        control_options == realistict_control_options
     end
 
-    @info "using" problemtype realistic_controls coptions.u_bounds coptions.u̇_bounds coptions.δ_bounds coptions.δ̇_bounds  coptions.ω_bounds
-
     # define initial and final conditions
-    icond = State(; x=track.X[1], y=track.Y[1], ψ=0, u=25)
-    fcond = State(; u=5)
-    # icond = State(; x=track.X[1], y=track.Y[1], θ=track.θ[1], u=25, ω=8)
-    # fcond = State(; u=coptions.u_bounds.lower, ω=0)
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=control_options.u_bounds.lower) : icond
+    fcond = isnothing(fcond) ? State(; u=control_options.u_bounds.lower) : fcond
 
     # ---------------------------------------------------------------------------- #
     #                                   FIT MODEL                                  #
     # ---------------------------------------------------------------------------- #
-    control_model = @timeit to "solve control"  create_and_solve_control(problemtype, track, bike, coptions, icond, fcond)
+    # supports_density = 1 -> 100 supports for the whole track, adjust by track length
+    n_supports = (Int ∘ round)(supports_density * 100 * track.S_f/261)
+    control_model = @timeit to "solve control"  create_and_solve_control(
+                        problemtype,
+                        n_supports,
+                        track,
+                        bike,
+                        control_options,
+                        icond,
+                        fcond; 
+                        n_iter=n_iter,
+                        tollerance=tol,
+                        verbose=verbose,
+                        quiet=quiet,
+    )               
  
     # ---------------------------------------------------------------------------- #
     #                              FORWARD INTEGRATION                             #
     # ---------------------------------------------------------------------------- #
-    # solution = @timeit to "run forward model"  run_forward_model(problemtype, control_model, icond, bike; δt=δt)
     solution = @timeit to "run forward model"  run_forward_model(track, control_model; δt=δt)
 
     # ---------------------------------------------------------------------------- #
@@ -106,7 +91,7 @@ function run_mtm(
 
     # -------------------------------- timing info ------------------------------- #
     # show timing/allocation data
-    if timed
+    if timed && !quiet
         c = IOCapture.capture() do
             show(to)
         end

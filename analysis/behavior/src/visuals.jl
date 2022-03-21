@@ -178,7 +178,7 @@ function summary_plot(
     plot_two!(t, _t, rad2deg.(model.δ), rad2deg.(value(controlmodel[:δ])), "ODE δ", "control δ", subplot=2)
     plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=3)
     plot_two!(t, _t, rad2deg.(model.ω), rad2deg.(value(controlmodel[:ω])), "ODE ω", "control ω", subplot=4)
-    plot_two!(t, _t, rad2deg.(model.δ̇), rad2deg.(value(controlmodel[:δ̇])), "ODE δ̇", "control δ̇", subplot=6)
+    plot_two!(t, _t, rad2deg.(model.δ̇), rad2deg.(value(controlmodel[:δ̇])), "ODE δ̇dot", "control δ̇dot", subplot=6)
     plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
 
     display(fig)
