@@ -64,13 +64,17 @@ realistict_control_options = ControlOptions(
     ω_bounds = Bounds(-400, 400, :angle),
 )
 
-
+"""
+    These represent the best controls for the Kinematic
+    model as of 22/03/2022. Discovered through params 
+    exploration.
+"""
 default_control_options = ControlOptions(
     u_bounds = Bounds(5, 80),
-    u̇_bounds = Bounds(-180, 200),
-    δ_bounds = Bounds(-90, 90, :angle),
+    u̇_bounds = Bounds(-125, 125),
+    δ_bounds = Bounds(-110, 110, :angle),
     δ̇_bounds = Bounds(-3, 3),
-    ω_bounds = Bounds(-500, 500, :angle),
+    ω_bounds = Bounds(-400, 400, :angle),
 )
 
 
@@ -152,11 +156,11 @@ function create_and_solve_control(
     verbose::Int=0
 )
     # initialize optimizer
-    model = InfiniteModel(Ipopt.Optimizer; add_bridges=false)
+    model = InfiniteModel(Ipopt.Optimizer)
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 60.0)
+    set_optimizer_attribute(model, "max_wall_time", 40.0)
 
     # register curvature function
     κ(s) = track.κ(s)
@@ -181,7 +185,7 @@ function create_and_solve_control(
             options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
 
             β, Infinite(s)
-            ω, Infinite(s)
+            options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)
             SF, Infinite(s)
 
             # time

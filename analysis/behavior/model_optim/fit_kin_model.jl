@@ -18,7 +18,6 @@ struct ParamEstimationResults
     u̇::Number
     δ̇::Number
     δ::Number
-    ω::Number
     ℓ::Float64
 end
 
@@ -31,8 +30,8 @@ function run_model_fit(params_ranges)
     bike = Bicycle()
 
     # initial conditions
-    icond = State(; x=track.X[1], y=track.Y[1], ψ=0, u=25)
-    fcond = State(; u=25)
+    icond = State(; x=track.X[1], y=track.Y[1], u=5)
+    fcond = State(; u=5)
 
     # load data
     trials = load_trials(; keep_n = 20,)
@@ -42,17 +41,17 @@ function run_model_fit(params_ranges)
     _u̇ = params_ranges["u̇_bounds"]
     _δ̇ = params_ranges["δ̇_bounds"]
     _δ = params_ranges["δ_bounds"]
-    _ω = params_ranges["ω_bounds"]
+    # _ω = params_ranges["ω_bounds"]
     results::Vector{ParamEstimationResults} = []
-    for u̇ in _u̇, δ̇ in _δ̇, δ in _δ, ω in _ω
-        @info "[bold red]RUNNING[/bold red]" u̇ δ̇ δ ω
+    for u̇ in _u̇, δ̇ in _δ̇, δ in _δ
+        @info "[bold red]RUNNING[/bold red]" u̇ δ̇ δ
         coptions = ControlOptions(
             # controls & variables bounds
             u̇_bounds=Bounds(-u̇, u̇),
             δ̇_bounds=Bounds(-δ̇, δ),
-            u_bounds=Bounds(5, 100),
+            u_bounds=Bounds(5, 80),
             δ_bounds=Bounds(-δ, δ, :angle),
-            ω_bounds=Bounds(-ω, ω, :angle)
+            ω_bounds=Bounds(-400, 400, :angle)
         )
         
         # solve
@@ -95,7 +94,7 @@ function run_model_fit(params_ranges)
         # compute the total error
         ℓ = mse(Δu) + mse(Δω)
         push!(
-            results, ParamEstimationResults(u̇, δ̇, δ, ω, ℓ)
+            results, ParamEstimationResults(u̇, δ̇, δ, ℓ)
         )
     end
 
@@ -104,10 +103,15 @@ end
 
 
 params_ranges = Dict(
-    "u̇_bounds" => 180:1:181,
-    "δ̇_bounds" => 3:1:10,
-    "δ_bounds" => 80:25:120,
-    "ω_bounds" => 500:250:1000,
+    "u̇_bounds" => 100:25:200,
+    "δ̇_bounds" => 1:1:7,
+    "δ_bounds" => 50:15:120,
+    # "ω_bounds" => 500:250:1000,
 )
 
+# run
 res = run_model_fit(params_ranges)
+
+costs = [sim.ℓ for sim in res]
+bestidx = argmin(costs)
+print(res[30])

@@ -15,7 +15,7 @@ track, bike, control_model, solution = run_mtm(
     :kinematics,  # model type
     3;  # supports density
     control_options=:default,
-    showtrials=nothing,
+    showtrials=50,
     n_iter=5000,
     timed=false,
     showplots=true,
