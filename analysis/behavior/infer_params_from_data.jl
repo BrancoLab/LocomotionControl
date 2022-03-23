@@ -11,13 +11,13 @@ function summary_statistics(x, xname; lowp=.05, highp=.95)
     # @info "x" typeof(x) typeof(x[1]) length(x) lowp highp
 
     low = quantile(x, highp)
+    n = "[underline green]$xname[/underline green] "
 
-    tprint("""
-            [underline green]$xname[/underline green]
-        [blue]$highp q:[/blue] [orange]$(_round(low))    [/orange]
-        [blue]0.50 q:[/blue] [orange]$(_round(mean(x)))    [/orange]
-        [blue]$lowp q:[/blue] [orange]$(_round(quantile(x, lowp)))    [/orange]
-    """)
+    h = "[blue]$highp q:[/blue] [orange]$(_round(low))    [/orange]"
+    m = "[blue]0.50 q:[/blue] [orange]$(_round(mean(x)))    [/orange]"
+    l = "[blue]$lowp q:[/blue] [orange]$(_round(quantile(x, lowp)))    [/orange]"
+
+    tprint(n * l * m * h)
 end
 
 
@@ -67,7 +67,7 @@ function get_params_estimate()
         speed = speed[cut:end]
         
         # get velocity vector angle
-        β = atan.(Δy, Δx)[cut:end]
+        β = atan.(Δy, Δx)[cut:end] .- θ
         
         # get the tangential/normal speeds
         u = speed .* cos.(β)

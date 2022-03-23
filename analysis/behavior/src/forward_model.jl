@@ -1,13 +1,11 @@
 module forwardmodel
 import InfiniteOpt: value, InfiniteModel, supports
-using DifferentialEquations
-import DifferentialEquations: solve as desolve
 using Interpolations: Interpolations
 import Parameters: @with_kw
 import Term.progress: track as pbar
 
 import jcontrol: Track, upsample, kinematics_from_position, int, ξ
-import ..control: KinematicsProblem, DynamicsProblem
+import ..control: KinematicsProblem, DynamicsProblem, MTMproblem
 import ..bicycle: State, Bicycle
 
 export Solution, run_forward_model
@@ -51,7 +49,7 @@ to the corresponding time increments.
 
 Finally, the bike's velocity and angular velocities are computed.
 """
-function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
+function run_forward_model(problemtype::MTMproblem, track::Track, model::InfiniteModel; δt=0.01)
     # get model's data and upsample
     n = ξ(value(model[:n]))
     ψ = ξ(value(model[:ψ]))
@@ -91,12 +89,15 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
     Ts = map(ξ(value(model[:t])), svalues)
     δs = map(ξ(value(model[:δ])), svalues)
     δ̇s = map(ξ(value(model[:δ̇])), svalues)
-    u̇s = map(ξ(value(model[:u̇])), svalues)
     us = map(ξ(value(model[:u])), svalues)
     ωs = map(ξ(value(model[:ω])), svalues)
     ns = map(ξ(value(model[:n])), svalues)
     ψs = map(ξ(value(model[:ψ])), svalues)
-    βs = map(ξ(value(model[:β])), svalues)
+
+    if problemtype isa KinematicsProblem
+        βs = map(ξ(value(model[:β])), svalues)
+        u̇s = map(ξ(value(model[:u̇])), svalues)
+    end
 
     # get values at regular Δt
     time = Ts[1]:δt:Ts[end]
@@ -113,12 +114,15 @@ function run_forward_model(track::Track, model::InfiniteModel; δt=0.01)
         θ[i] = θs[idx]
         δ[i] = δs[idx]
         δ̇[i] = δ̇s[idx]
-        u̇[i] = u̇s[idx]
         u[i] = us[idx]
         ω[i] = ωs[idx]
         n[i] = ns[idx]
         ψ[i] = ψs[idx]
-        β[i] = βs[idx]
+
+        if problemtype isa KinematicsProblem
+            β[i] = βs[idx]
+            u̇[i] = u̇s[idx]
+        end
     end
 
     return Solution(

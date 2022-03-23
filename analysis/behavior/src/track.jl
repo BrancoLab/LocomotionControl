@@ -82,12 +82,12 @@ Value of the width factor of the track at various svalues
 width_values = [
     [0.0    1.1]  # start
     [.05    1.0]
-    [.07    .85] # first narrow
+    [.07    .95] # first narrow
     [.15    1.0]  # end of frst narrow
     [.25    1.1]  # second curve
     [.4     1.0]  # end of second curve
-    [.45    0.85]  # second narrow
-    [.55    0.85]  # end of second narrow
+    [.45    0.95]  # second narrow
+    [.55    0.95]  # end of second narrow
     [.6     1.2]  # end of second narrow
     [.67    1.5]  # start of fourth curve
     [.72    1.5]

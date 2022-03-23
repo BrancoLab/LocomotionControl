@@ -11,7 +11,6 @@ Stores immutable geometric properties of the bike.
 Also stores parameters for drawing.
 """
 struct Bicycle
-
     # geometry
     l_f::Number     # distance from COM to front wheel | cm
     l_r::Number     # distance from rear wheel to COM | cm
@@ -21,8 +20,7 @@ struct Bicycle
     # dynamics
     m::Number       # mass | g
     Iz::Number      # moment of angular inertia | Kg⋅m²
-    cf::Number      # corenring stiffness
-    cr::Number      # cornering stiffnes
+    c::Number       # corenring stiffness
 
     # for drawing
     wheel_length::Number
@@ -38,8 +36,7 @@ struct Bicycle
                 width::Number=2,
                 m_f = 10,
                 m_r = 15,
-                cf = .1,  # 0.5 ≤ cf ≤ 3.5 generally works
-                cr = .1,
+                c = .5,
         )
 
         # convert units g->Kg, cm->m
@@ -59,8 +56,7 @@ struct Bicycle
             width,
             m_f + m_r,
             Iz,
-            cf,
-            cr,
+            c,
             0.8,                # wheel_length
             16,                 # wheel_lw
             blue_grey_darker,   # wheel_color

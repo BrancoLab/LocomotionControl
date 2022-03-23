@@ -83,7 +83,7 @@ function summary_plot(problemtype::KinematicsProblem,  model::InfiniteModel, wrt
     p(4, :δ, rad2deg)
     p(5, :β, rad2deg)
     p(6, :ω, rad2deg)
-    p(7, :SF)
+    # p(7, :SF)
     plot!(; subplot=8)
     p(9, :u̇, red)
     p(10, :δ̇, red)
@@ -120,8 +120,8 @@ function summary_plot(problemtype::DynamicsProblem,  model::InfiniteModel, wrt::
     p(3, :u)
     p(4, :δ, rad2deg)
     p(5, :ω, rad2deg)
-    p(6, :SF)
-    p(7, :u̇, red)
+    # p(6, :SF)
+    # p(7, :u̇, red)
     p(8, :δ̇, red)
     display(fig)
     return nothing
@@ -146,7 +146,7 @@ end
 function summary_plot(
     model::Solution, controlmodel::InfiniteModel, track::Track, bike::Bicycle; trials::Union{Nothing, DataFrame}=nothing
 )   
-    nsupports = length(value(controlmodel[:SF]))
+    nsupports = length(value(controlmodel[:u]))
     # plot the track + XY trajectory
     xyplot = plot_arena()
     plot_track!(track; title="Duration: $(round(model.t[end]; digits=3))s | $nsupports supports", clean=false)
@@ -179,7 +179,7 @@ function summary_plot(
     plot_two!(t, _t, model.u, value(controlmodel[:u]), "ODE u", "control u", subplot=3)
     plot_two!(t, _t, rad2deg.(model.ω), rad2deg.(value(controlmodel[:ω])), "ODE ω", "control ω", subplot=4)
     plot_two!(t, _t, rad2deg.(model.δ̇), rad2deg.(value(controlmodel[:δ̇])), "ODE δ̇dot", "control δ̇dot", subplot=6)
-    plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
+    # plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
 
     display(fig)
     display(xyplot)

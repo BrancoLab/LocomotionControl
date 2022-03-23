@@ -17,6 +17,7 @@ export DynamicsProblem, KinematicsProblem, realistict_control_options
 
 abstract type MTMproblem end
 
+⋅ = *
 
 # ---------------------------------------------------------------------------- #
 #                                    OPTIONS                                   #
@@ -50,8 +51,12 @@ other parameters such as bounds on allowed errors.
     # varibles bounds
     u_bounds::Bounds = Bounds(0, 100)
     δ_bounds::Bounds = Bounds(-45, 45, :angle)
-
     ω_bounds::Bounds = Bounds(-500, 500, :angle)
+
+    # dynamic system variables
+    Fy_bounds::Bounds = Bounds(-100, 100)  # lateral forces
+    Fu_bounds::Bounds = Bounds(-200, 200)  # driving force
+    v_bounds::Bounds = Bounds(-125, 125)
 end
 
 
@@ -62,6 +67,9 @@ realistict_control_options = ControlOptions(
     δ_bounds = Bounds(-50, 50, :angle),
     δ̇_bounds = Bounds(-4, 4),
     ω_bounds = Bounds(-400, 400, :angle),
+
+    Fy_bounds = Bounds(-100, 100),
+    v_bounds = Bounds(-125, 125),
 )
 
 """
@@ -75,6 +83,9 @@ default_control_options = ControlOptions(
     δ_bounds = Bounds(-110, 110, :angle),
     δ̇_bounds = Bounds(-3, 3),
     ω_bounds = Bounds(-400, 400, :angle),
+
+    Fy_bounds = Bounds(-500, 500),
+    v_bounds = Bounds(-125, 125),
 )
 
 
@@ -233,12 +244,8 @@ function create_and_solve_control(
             ω(0) == initial_conditions.ω
 
             # final conditions
-            # n(track.S_f) == 0
-            # ψ(track.S_f) == 0
             u(track.S_f) == final_conditions.u
             ω(track.S_f) == final_conditions.ω
-            # δ(track.S_f) == final_conditions.δ
-            # β(track.S_f) == final_conditions.β
         end
     )
 
@@ -274,7 +281,7 @@ end
 # ---------------------------------------------------------------------------- #
 """
 The dynamic bicycle model is taken from:
-    https://thef1clan.com/2020/12/23/vehicle-dynamics-the-dynamic-bicycle-model/
+    Dynamics and optimal control of road Vehicles (Massaro 2018)
 
 
 The model has the following variables
@@ -284,64 +291,52 @@ The model has the following variables
     u:      longitudinal velocity component
     v:      lateral velocity component
     ω:      angular velocity (around the CoM)
+    β:      the slip angle of the velocity vector V
+    
+and these forces
+    Fu:     logitudinal force applied to back tire
+    Fr:     lateral force at the rear wheel
+    Ff:     lateral force at the front wheel
 
 The bike has the following constants
     l_f:     distance from CoM to front  wheel
     l_r:     distance from rear wheel to CoM
     m:       mass
     Iz:      angular momentum
-    cf, cr:  tyre cornering stiffness
+    c:  tyre cornering stiffness
 
 The two controls are 
-    u̇, δ̇
+    δ̇ and Fu
 
 
 # --------------------------------- dynamics --------------------------------- #
-To desribe the bike's movement we need to defien v̇ and ω̇ first.
-These depend on the tyres' lateral forces Ff and Fr which, in turn, 
-depend on the tyres' slip angles αf and αr and on cf cr.
+The bike's dynamics are described by four equations of motion:
+    δ̇    = δ̇   # the control
+    mu̇   = mωv - Ff⋅sinδ + Fu
+    mv̇   = -mωu + Ff⋅cosδ + Fr
+    Iz⋅ω = l_f⋅Ff⋅cosδ - b⋅Fr
 
-The slip angles are:
-    αf = δ - atan((v + l_f * r)/u)
-    αr =     atan((v - l_r * r)/u)
 
-which gives lateral forces:
-    Ff = cf * αf
-    Fr - cr * αr
+we can then compute the magnitude and slip angle of the velocity vector
+    V̂ = √(u² + v²)
+    β = arctan(v/u)
 
-which can be sued to compute v̇ and ω̇:
-    v̇ = (Ff + Fr - uω) / m
-    ω̇ = (Ff * l_f - Fr * l_r) / Iz
-
-Okay, so we have:
-    u̇, δ̇, v̇, ω̇
-
-so we can compute all the rest
-    ẋ = u * cos(θ) + v * sin(θ)
-    ẏ = u * sin(θ) + v * cos(θ)
+Finally the kinematics are given by:
+    ẋ = V̂⋅cos(θ+β)
+    ẏ = V̂⋅sin(θ+β)
     θ̇ = ω
-
-    v̇ = (Ff + Fr - uω) / m
-    ω̇ = (Ff * l_f - Fr * l_r) / Iz
-    u̇ = control
-    δ̇ = control
 
 # --------------------------------- solution --------------------------------- #
 The strategy for the solution is the same as for the kinematics probelm.
 
-Recast everything to the track's space using SF and using the track errors n and ψ.
-Note that `ṅ` differs from what we had for the kinematics model since we don't have
-the velocity slip angle β but we do have the lateral velocity `v`
-with:
-
-    ∂(n, s) == SF * (u * sin(ψ) + v)
+Recast everything to the track's space using SF and using the track errors n and ψ,
+like for the kinematics problem:
+    ∂(n, s) == SF * u * sin(ψ + β)
     ∂(ψ, s) == SF * ω - κ(s)
 
-Similarly, the scaling factor SF goes from:
-    SF == (1 - n * κ(s)) / (u * cos(ψ + β) + eps())
 
-to:
-    SF == (1 - n * κ(s)) / (u * cos(ψ) + v + eps())
+With `SF` being the scaling factor:
+    SF = (1 - n * κ(s))/(u * cos(ψ + β) + eps()) 
 """
 struct DynamicsProblem <: MTMproblem end
 
@@ -351,65 +346,57 @@ get the controls for the MTM problem.
 """
 function create_and_solve_control(
     problem_type::DynamicsProblem,
+    num_supports::Int,
     track::Track,
     bike::Bicycle,
     options::ControlOptions,
     initial_conditions::State,
-    final_conditions::State,
+    final_conditions::State;
+    quiet::Bool=false,
+    n_iter::Int=1000,
+    tollerance::Float64=1e-10,
+    verbose::Int=0
 )
-
-
 
    # initialize optimizer
    model = InfiniteModel(Ipopt.Optimizer)
-   set_optimizer_attribute(model, "max_iter", options.n_iter)
-   set_optimizer_attribute(model, "acceptable_tol", options.tollerance)
-   set_optimizer_attribute(model, "print_level", options.verbose)
-   set_optimizer_attribute(model, "max_wall_time", 180.0)
+   set_optimizer_attribute(model, "max_iter", n_iter)
+   set_optimizer_attribute(model, "acceptable_tol", tollerance)
+   set_optimizer_attribute(model, "print_level", verbose)
+   set_optimizer_attribute(model, "max_wall_time", 120.0)
 
    # register curvature function
    κ(s) = track.κ(s)
    @register(model, κ(s))
 
    # ----------------------------- define variables ----------------------------- #
-   @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = options.num_supports)
+   @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = num_supports)
 
    @variables(
        model,
        begin
-           # CONTROLS
-           options.u̇_bounds.lower ≤ u̇ ≤ options.u̇_bounds.upper, Infinite(s)    # wheel acceleration
-           options.δ̇_bounds.lower ≤ δ̇ ≤ options.δ̇_bounds.upper, Infinite(s)    # steering acceleration
+            # track errors
+            n, Infinite(s)  # constraints defined separtely
+            options.ψ_bounds.lower ≤ ψ ≤ options.ψ_bounds.upper, Infinite(s)
 
-           # track errors
-           n, Infinite(s)  # constraints defined separtely
-           options.ψ_bounds.lower ≤ ψ ≤ options.ψ_bounds.upper, Infinite(s)
+            # steering
+            options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
+            options.δ̇_bounds.lower ≤ δ̇ ≤ options.δ̇_bounds.upper, Infinite(s)    # control
 
-           # other variables
-           # velocities
-           options.u_bounds.lower ≤ u ≤ options.u_bounds.upper, Infinite(s)
-           options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
+            # lateral forces
+            options.Fy_bounds.lower ≤ Ff ≤ options.Fy_bounds.upper, Infinite(s)
+            options.Fy_bounds.lower ≤ Fr ≤ options.Fy_bounds.upper, Infinite(s)
 
-           # velocities & accelerations
-           v, Infinite(s)
-        #    -500 ≤ v ≤ 500, Infinite(s) 
-           options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)
-           
-           # slip angles
-        #    -π*2 ≤ αf ≤ π*2, Infinite(s)
-        #    -π*2 ≤ αr ≤ π*2, Infinite(s)
-            αf, Infinite(s)
-            αr, Infinite(s)
-           # lateral forces
-        #    -10 ≤ Ff ≤ 10, Infinite(s)
-        #    -10 ≤ Fr ≤ 10, Infinite(s)
-            Ff, Infinite(s)
-            Fr, Infinite(s)
+            # long/lat/angular velocities
+            options.u_bounds.lower ≤ u ≤ options.u_bounds.upper, Infinite(s)
+            options.v_bounds.lower ≤ v ≤ options.v_bounds.upper, Infinite(s) 
+            options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)          
 
+            # driving force
+            options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control
 
-           # time
-           SF, Infinite(s)
-           0 ≤ t ≤ 20, Infinite(s), (start = 10)   
+            # time
+            0 ≤ t ≤ 60, Infinite(s), (start = 10)   
        end
    )
 
@@ -418,47 +405,29 @@ function create_and_solve_control(
    @constraint(model, -allowed_track_width + bike.width ≤ n)
    @constraint(model, allowed_track_width - bike.width ≥ n)
 
-   # ----------------------------- define kinematics ---------------------------- #        
+   # ----------------------------- define EOM       ---------------------------- #        
    l_r, l_f = bike.l_r, bike.l_f
-   cf, cr = bike.cf, bike.cr
-   m, Iz = bike.m, bike.Iz
+   m, Iz, c = bike.m, bike.Iz, bike.c
 
+   β = atan(v/(u + eps()))  # slip angle  
+   V = √(u^2 + v^2)
+   SF = (1 - n * κ(s)) / (V⋅cos(ψ + β) + eps())  # time -> space domain conversion factor
+   
    @constraints(
        model,
        begin
-            SF == (1 - n * κ(s)) / (u * cos(ψ) + v + eps())  # time -> space domain conversion factor
+        # errors
+        ∂(n, s) == SF * u⋅sin(ψ + β)
+        ∂(ψ, s) == SF * ω - κ(s)
 
-            # compute slip angles
-            αf == δ - atan((v + ω * l_f)/(u + eps()))
-            αr == atan((v - ω * l_r)/(u + eps()))
+        # EOM
+        ∂(δ, s) == SF * δ̇
+        ∂(u, s) == SF/m  * (m⋅ω⋅v - Ff⋅sin(δ) + Fu)
+        ∂(v, s) == SF/m  * (-m⋅ω⋅u + Ff⋅cos(δ) + Fr)
+        ∂(ω, s) == SF/Iz * (l_f⋅Ff⋅cos(δ) - l_r⋅Fr)
 
-            # compute lateral forces
-            Ff == cf * αf
-            Fr == cr * αr
-            # Ff == cf * δ - atan((v + ω * l_f)/(u + eps()))
-            # Fr == cr * atan((v - ω * l_r)/(u + eps()))
-
-            # set dynamics
-            # ∂(v, s) == SF * (Ff + Fr - u * ω)/m
-            # ∂(ω, s) == SF * (Ff * l_f - Fr * l_r)/Iz
-
-            ∂(v, s) == SF * (
-                -(cf+cr)/(m*u)*v - ((Ff-Fr)/(m*u) + u) * ω + cf/m*δ
-            )
-            ∂(ω, s) == SF * (
-                -(Ff - Fr)/(u*Iz) * v - (cf*αf^2 + cr*αr^2)/(u*Iz)*ω + (Ff)/Iz*δ
-            )
-
-            # errors
-            ∂(n, s) == SF * (u * sin(ψ) + v)
-            ∂(ψ, s) == SF * ω - κ(s)
-
-            # controls
-            ∂(u, s) == SF * u̇ - v * ω
-            ∂(δ, s) == SF * δ̇
-
-            # time
-            ∂(t, s) == SF
+        # time
+        ∂(t, s) == SF
        end
    )
 
@@ -469,47 +438,53 @@ function create_and_solve_control(
            # initial conditions
            n(0) == initial_conditions.n
            ψ(0) == initial_conditions.ψ
-           u(0) == initial_conditions.u
+           
            δ(0) == initial_conditions.δ
-           t(0) == 0
+
+           u(0) == initial_conditions.u
+           v(0) == initial_conditions.v
            ω(0) == initial_conditions.ω
-           v(0) == 0
-        #    αf(0) == 0
-        #    αr(0) == 0
+           
            Ff(0) == 0
            Fr(0) == 0
+           Fu(0) == 0
 
            # final conditions
+           n(track.S_f) == final_conditions.n
+           ψ(track.S_f) == final_conditions.ψ
+           
+           δ(track.S_f) == final_conditions.δ
+
            u(track.S_f) == final_conditions.u
+           v(track.S_f) == final_conditions.v
            ω(track.S_f) == final_conditions.ω
-           n(track.S_f) == 0
-           ψ(track.S_f) == 0
-           v(track.S_f) == 0
-        #    αf(track.S_f) == 0
-        #    αr(track.S_f) == 0
+           
            Ff(track.S_f) == 0
            Fr(track.S_f) == 0
+           Fu(track.S_f) == 0
        end
    )
 
    # --------------------------------- optimize --------------------------------- #
-   @info "control model ready, solving with IPOPT" options.num_supports options.n_iter
    @objective(model, Min, ∫(SF, s))
    optimize!(model)
 
-    c = IOCapture.capture() do
-        println(solution_summary(optimizer_model(model)))
+    # print info
+    if !quiet
+        c = IOCapture.capture() do
+            println(solution_summary(optimizer_model(model)))
+        end
+        print(
+            "\n" * Panel(
+                RenderableText(c.output, "$blue_light italic"),
+                style="yellow1",
+                title="IPoPT output",
+                title_style="red bold",
+                justify=:center
+            ) * "\n\n"
+        )
     end
-    print(
-        "\n" * Panel(
-            RenderableText(c.output, "$blue_light italic"),
-            style="yellow1",
-            title="IPoPT output",
-            title_style="red bold",
-            justify=:center
-        ) * "\n\n"
-    )
-   return model
+    return model
 
 end
 

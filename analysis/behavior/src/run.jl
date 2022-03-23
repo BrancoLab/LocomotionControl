@@ -46,8 +46,9 @@ function run_mtm(
     if control_options == :default
         control_options = default_control_options
     elseif control_options == :realistic
-        control_options == realistict_control_options
+        control_options = realistict_control_options
     end
+    @assert control_options isa ControlOptions "Control options is not a ControlOptions type: $(typeof(control_options)) $control_options"
 
     # define initial and final conditions
     icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=10) : icond
@@ -75,7 +76,7 @@ function run_mtm(
     # ---------------------------------------------------------------------------- #
     #                              FORWARD INTEGRATION                             #
     # ---------------------------------------------------------------------------- #
-    solution = @timeit to "run forward model"  run_forward_model(track, control_model; δt=δt)
+    solution = @timeit to "run forward model"  run_forward_model(problemtype, track, control_model; δt=δt)
 
     # ---------------------------------------------------------------------------- #
     #                                 VISUALIZATION                                #
