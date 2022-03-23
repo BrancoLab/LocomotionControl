@@ -27,16 +27,20 @@ import jcontrol.bicycle: State
 coptions = ControlOptions(
     u_bounds = Bounds(5, 80),
     δ_bounds = Bounds(-50, 50, :angle),
-    δ̇_bounds = Bounds(-4, 4),
-    ω_bounds = Bounds(-400, 400, :angle),
+    δ̇_bounds = Bounds(-3, 3),
+    ω_bounds = Bounds(-500, 500, :angle),
 
-    Fy_bounds = Bounds(-250, 250),
-    v_bounds = Bounds(-125, 125),
-    Fu_bounds = Bounds(-250, 250)
+    Fy_bounds = Bounds(-500, 500),
+    v_bounds = Bounds(-500, 500),
+    Fu_bounds = Bounds(-10, 10)
 )
 
 icond = State(
     u = 10,
+)
+
+fcond = State(
+    u = 5
 )
 
 track, bike, control_model, solution = run_mtm(
@@ -44,6 +48,7 @@ track, bike, control_model, solution = run_mtm(
     3;  # supports density
     control_options=coptions,
     icond = icond,
+    fcond = fcond, 
     showtrials=50,
     n_iter=5000,
     timed=false,

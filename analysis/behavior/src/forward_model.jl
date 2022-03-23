@@ -124,7 +124,7 @@ function run_forward_model(problemtype::MTMproblem, track::Track, model::Infinit
             u̇[i] = u̇s[idx]
         end
     end
-
+    
     return Solution(
         δt=δt,
         t = T,

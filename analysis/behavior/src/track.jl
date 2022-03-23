@@ -87,7 +87,7 @@ width_values = [
     [.25    1.1]  # second curve
     [.4     1.0]  # end of second curve
     [.45    0.95]  # second narrow
-    [.55    0.95]  # end of second narrow
+    [.55    1.0]  # end of second narrow
     [.6     1.2]  # end of second narrow
     [.67    1.5]  # start of fourth curve
     [.72    1.5]

@@ -396,6 +396,7 @@ function create_and_solve_control(
             options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control
 
             # time
+            SF, Infinite(s)
             0 ≤ t ≤ 60, Infinite(s), (start = 10)   
        end
    )
@@ -411,11 +412,13 @@ function create_and_solve_control(
 
    β = atan(v/(u + eps()))  # slip angle  
    V = √(u^2 + v^2)
-   SF = (1 - n * κ(s)) / (V⋅cos(ψ + β) + eps())  # time -> space domain conversion factor
+   
    
    @constraints(
        model,
        begin
+        SF == (1 - n * κ(s)) / (V⋅cos(ψ + β) + eps())  # time -> space domain conversion factor
+        
         # errors
         ∂(n, s) == SF * u⋅sin(ψ + β)
         ∂(ψ, s) == SF * ω - κ(s)
