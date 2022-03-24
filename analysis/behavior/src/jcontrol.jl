@@ -19,7 +19,6 @@ include("visuals.jl")
 include("run.jl")
 include("trial.jl")
 
-
 export Track, get_track_borders
 export State, Bicycle
 export ControlOptions, create_and_solve_control, Bounds
@@ -32,27 +31,27 @@ export get_comparison_points
 export run_mtm
 export Trial
 
-
-
 using .io: PATHS, load_trials
 using .bicycle: State, Bicycle
-using .control: ControlOptions,
-        create_and_solve_control,
-        Bounds,
-        State,
-        DynamicsProblem,
-        KinematicsProblem,
-        realistict_control_options
+using .control:
+    ControlOptions,
+    create_and_solve_control,
+    Bounds,
+    State,
+    DynamicsProblem,
+    KinematicsProblem,
+    realistict_control_options
 
 using .forwardmodel: Solution, run_forward_model
 using .comparisons: ComparisonPoints, ComparisonPoint, get_comparison_points
-using .visuals: plot_arena,
-                plot_arena!,
-                plot_track!,
-                summary_plot,
-                plot_trials!,
-                plot_comparison_point!,
-                plot_bike_trajectory!
+using .visuals:
+    plot_arena,
+    plot_arena!,
+    plot_track!,
+    summary_plot,
+    plot_trials!,
+    plot_comparison_point!,
+    plot_bike_trajectory!
 using .Run: run_mtm
 using .trial: Trial
 

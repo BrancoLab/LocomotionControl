@@ -3,7 +3,7 @@ module control
 using InfiniteOpt, Ipopt
 import InfiniteOpt: set_optimizer_attribute
 import Parameters: @with_kw
-import IOCapture
+using IOCapture: IOCapture
 import Term: Panel, RenderableText
 import Term.style: apply_style
 import MyterialColors: blue_light
@@ -13,7 +13,6 @@ import ..bicycle: Bicycle, State
 
 export ModelVariables, ControlOptions, create_and_solve_control, Bounds, State
 export DynamicsProblem, KinematicsProblem, realistict_control_options
-
 
 abstract type MTMproblem end
 
@@ -32,7 +31,14 @@ Constructor with an additional parametr to convert angles in degrees to radians
 """
 Bounds(lower, upper, angle) = Bounds(deg2rad(lower), deg2rad(upper))
 
-Base.show(io::IO, b::Bounds) = print(io, apply_style("[green]$(round(b.lower; digits=2))[/green] [red]≤[/red] var [red]≤[/red][green] $(round(b.upper; digits=2))[/green]"))
+function Base.show(io::IO, b::Bounds)
+    return print(
+        io,
+        apply_style(
+            "[green]$(round(b.lower; digits=2))[/green] [red]≤[/red] var [red]≤[/red][green] $(round(b.upper; digits=2))[/green]",
+        ),
+    )
+end
 
 """
 Options for solving the control problem.
@@ -59,17 +65,14 @@ other parameters such as bounds on allowed errors.
     v_bounds::Bounds = Bounds(-125, 125)
 end
 
-
-
-realistict_control_options = ControlOptions(
-    u_bounds = Bounds(5, 80),
-    u̇_bounds = Bounds(-180, 200),
-    δ_bounds = Bounds(-50, 50, :angle),
-    δ̇_bounds = Bounds(-4, 4),
-    ω_bounds = Bounds(-400, 400, :angle),
-
-    Fy_bounds = Bounds(-100, 100),
-    v_bounds = Bounds(-125, 125),
+realistict_control_options = ControlOptions(;
+    u_bounds=Bounds(5, 80),
+    u̇_bounds=Bounds(-180, 200),
+    δ_bounds=Bounds(-50, 50, :angle),
+    δ̇_bounds=Bounds(-4, 4),
+    ω_bounds=Bounds(-400, 400, :angle),
+    Fy_bounds=Bounds(-100, 100),
+    v_bounds=Bounds(-125, 125),
 )
 
 """
@@ -77,23 +80,19 @@ realistict_control_options = ControlOptions(
     model as of 22/03/2022. Discovered through params 
     exploration.
 """
-default_control_options = ControlOptions(
-    u_bounds = Bounds(5, 80),
-    u̇_bounds = Bounds(-125, 125),
-    δ_bounds = Bounds(-110, 110, :angle),
-    δ̇_bounds = Bounds(-3, 3),
-    ω_bounds = Bounds(-400, 400, :angle),
-
-    Fy_bounds = Bounds(-500, 500),
-    v_bounds = Bounds(-125, 125),
+default_control_options = ControlOptions(;
+    u_bounds=Bounds(5, 80),
+    u̇_bounds=Bounds(-125, 125),
+    δ_bounds=Bounds(-110, 110, :angle),
+    δ̇_bounds=Bounds(-3, 3),
+    ω_bounds=Bounds(-400, 400, :angle),
+    Fy_bounds=Bounds(-500, 500),
+    v_bounds=Bounds(-125, 125),
 )
-
-
 
 # ---------------------------------------------------------------------------- #
 #                                KINEMATIC MODEL                               #
 # ---------------------------------------------------------------------------- #
-
 
 """
 Model description.
@@ -164,7 +163,7 @@ function create_and_solve_control(
     quiet::Bool=false,
     n_iter::Int=1000,
     tollerance::Float64=1e-10,
-    verbose::Int=0
+    verbose::Int=0,
 )
     # initialize optimizer
     model = InfiniteModel(Ipopt.Optimizer)
@@ -200,7 +199,7 @@ function create_and_solve_control(
             SF, Infinite(s)
 
             # time
-            0 ≤ t ≤ 60, Infinite(s), (start = 10)   
+            0 ≤ t ≤ 60, Infinite(s), (start = 10)
         end
     )
 
@@ -253,28 +252,27 @@ function create_and_solve_control(
     # solve
     @objective(model, Min, ∫(SF, s))
     optimize!(model)
-    
+
     # print info
     if !quiet
         c = IOCapture.capture() do
             println(solution_summary(optimizer_model(model)))
         end
         print(
-            "\n" * Panel(
-                RenderableText(c.output, "$blue_light italic"),
+            "\n" *
+            Panel(
+                RenderableText(c.output, "$blue_light italic");
                 style="yellow1",
                 title="IPoPT output",
                 title_style="red bold",
-                justify=:center
-            ) * "\n\n"
+                justify=:center,
+            ) *
+            "\n\n",
         )
     end
 
     return model
 end
-
-
-
 
 # ---------------------------------------------------------------------------- #
 #                                DYNAMICS MODEL                                #
@@ -355,26 +353,26 @@ function create_and_solve_control(
     quiet::Bool=false,
     n_iter::Int=1000,
     tollerance::Float64=1e-10,
-    verbose::Int=0
+    verbose::Int=0,
 )
 
-   # initialize optimizer
-   model = InfiniteModel(Ipopt.Optimizer)
-   set_optimizer_attribute(model, "max_iter", n_iter)
-   set_optimizer_attribute(model, "acceptable_tol", tollerance)
-   set_optimizer_attribute(model, "print_level", verbose)
-   set_optimizer_attribute(model, "max_wall_time", 120.0)
+    # initialize optimizer
+    model = InfiniteModel(Ipopt.Optimizer)
+    set_optimizer_attribute(model, "max_iter", n_iter)
+    set_optimizer_attribute(model, "acceptable_tol", tollerance)
+    set_optimizer_attribute(model, "print_level", verbose)
+    set_optimizer_attribute(model, "max_wall_time", 120.0)
 
-   # register curvature function
-   κ(s) = track.κ(s)
-   @register(model, κ(s))
+    # register curvature function
+    κ(s) = track.κ(s)
+    @register(model, κ(s))
 
-   # ----------------------------- define variables ----------------------------- #
-   @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = num_supports)
+    # ----------------------------- define variables ----------------------------- #
+    @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = num_supports)
 
-   @variables(
-       model,
-       begin
+    @variables(
+        model,
+        begin
             # track errors
             n, Infinite(s)  # constraints defined separtely
             options.ψ_bounds.lower ≤ ψ ≤ options.ψ_bounds.upper, Infinite(s)
@@ -389,88 +387,87 @@ function create_and_solve_control(
 
             # long/lat/angular velocities
             options.u_bounds.lower ≤ u ≤ options.u_bounds.upper, Infinite(s)
-            options.v_bounds.lower ≤ v ≤ options.v_bounds.upper, Infinite(s) 
-            options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)          
+            options.v_bounds.lower ≤ v ≤ options.v_bounds.upper, Infinite(s)
+            options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)
 
             # driving force
             options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control
 
             # time
             SF, Infinite(s)
-            0 ≤ t ≤ 60, Infinite(s), (start = 10)   
-       end
-   )
+            0 ≤ t ≤ 60, Infinite(s), (start = 10)
+        end
+    )
 
-   # -------------------------- track width constraints ------------------------- #
-   @parameter_function(model, allowed_track_width == track.width(s))
-   @constraint(model, -allowed_track_width + bike.width ≤ n)
-   @constraint(model, allowed_track_width - bike.width ≥ n)
+    # -------------------------- track width constraints ------------------------- #
+    @parameter_function(model, allowed_track_width == track.width(s))
+    @constraint(model, -allowed_track_width + bike.width ≤ n)
+    @constraint(model, allowed_track_width - bike.width ≥ n)
 
-   # ----------------------------- define EOM       ---------------------------- #        
-   l_r, l_f = bike.l_r, bike.l_f
-   m, Iz, c = bike.m, bike.Iz, bike.c
+    # ----------------------------- define EOM       ---------------------------- #        
+    l_r, l_f = bike.l_r, bike.l_f
+    m, Iz, c = bike.m, bike.Iz, bike.c
 
-   β = atan(v/(u + eps()))  # slip angle  
-   V = √(u^2 + v^2)
-   
-   
-   @constraints(
-       model,
-       begin
-        SF == (1 - n * κ(s)) / (V⋅cos(ψ + β) + eps())  # time -> space domain conversion factor
-        
-        # errors
-        ∂(n, s) == SF * u⋅sin(ψ + β)
-        ∂(ψ, s) == SF * ω - κ(s)
+    β = atan(v / (u + eps()))  # slip angle  
+    V = √(u^2 + v^2)
 
-        # EOM
-        ∂(δ, s) == SF * δ̇
-        ∂(u, s) == SF/m  * (m⋅ω⋅v - Ff⋅sin(δ) + Fu)
-        ∂(v, s) == SF/m  * (-m⋅ω⋅u + Ff⋅cos(δ) + Fr)
-        ∂(ω, s) == SF/Iz * (l_f⋅Ff⋅cos(δ) - l_r⋅Fr)
+    @constraints(
+        model,
+        begin
+            SF == (1 - n * κ(s)) / (V ⋅ cos(ψ + β) + eps())  # time -> space domain conversion factor
 
-        # time
-        ∂(t, s) == SF
-       end
-   )
+            # errors
+            ∂(n, s) == SF * u ⋅ sin(ψ + β)
+            ∂(ψ, s) == SF * ω - κ(s)
 
-   # ----------------------- set initial/final conditions ----------------------- #
-   @constraints(
-       model,
-       begin
-           # initial conditions
-           n(0) == initial_conditions.n
-           ψ(0) == initial_conditions.ψ
-           
-           δ(0) == initial_conditions.δ
+            # EOM
+            ∂(δ, s) == SF * δ̇
+            ∂(u, s) == SF / m * (m ⋅ ω ⋅ v - Ff ⋅ sin(δ) + Fu)
+            ∂(v, s) == SF / m * (-m ⋅ ω ⋅ u + Ff ⋅ cos(δ) + Fr)
+            ∂(ω, s) == SF / Iz * (l_f ⋅ Ff ⋅ cos(δ) - l_r ⋅ Fr)
 
-           u(0) == initial_conditions.u
-           v(0) == initial_conditions.v
-           ω(0) == initial_conditions.ω
-           
-           Ff(0) == 0
-           Fr(0) == 0
-           Fu(0) == 0
+            # time
+            ∂(t, s) == SF
+        end
+    )
 
-           # final conditions
-           n(track.S_f) == final_conditions.n
-           ψ(track.S_f) == final_conditions.ψ
-           
-           δ(track.S_f) == final_conditions.δ
+    # ----------------------- set initial/final conditions ----------------------- #
+    @constraints(
+        model,
+        begin
+            # initial conditions
+            n(0) == initial_conditions.n
+            ψ(0) == initial_conditions.ψ
 
-           u(track.S_f) == final_conditions.u
-           v(track.S_f) == final_conditions.v
-           ω(track.S_f) == final_conditions.ω
-           
-           Ff(track.S_f) == 0
-           Fr(track.S_f) == 0
-           Fu(track.S_f) == 0
-       end
-   )
+            δ(0) == initial_conditions.δ
 
-   # --------------------------------- optimize --------------------------------- #
-   @objective(model, Min, ∫(SF, s))
-   optimize!(model)
+            u(0) == initial_conditions.u
+            v(0) == initial_conditions.v
+            ω(0) == initial_conditions.ω
+
+            Ff(0) == 0
+            Fr(0) == 0
+            Fu(0) == 0
+
+            # final conditions
+            n(track.S_f) == final_conditions.n
+            ψ(track.S_f) == final_conditions.ψ
+
+            δ(track.S_f) == final_conditions.δ
+
+            u(track.S_f) == final_conditions.u
+            v(track.S_f) == final_conditions.v
+            ω(track.S_f) == final_conditions.ω
+
+            Ff(track.S_f) == 0
+            Fr(track.S_f) == 0
+            Fu(track.S_f) == 0
+        end
+    )
+
+    # --------------------------------- optimize --------------------------------- #
+    @objective(model, Min, ∫(SF, s))
+    optimize!(model)
 
     # print info
     if !quiet
@@ -478,17 +475,18 @@ function create_and_solve_control(
             println(solution_summary(optimizer_model(model)))
         end
         print(
-            "\n" * Panel(
-                RenderableText(c.output, "$blue_light italic"),
+            "\n" *
+            Panel(
+                RenderableText(c.output, "$blue_light italic");
                 style="yellow1",
                 title="IPoPT output",
                 title_style="red bold",
-                justify=:center
-            ) * "\n\n"
+                justify=:center,
+            ) *
+            "\n\n",
         )
     end
     return model
-
 end
 
 end

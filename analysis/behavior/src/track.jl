@@ -32,7 +32,6 @@ end
 
 # ----------------------------------- utils ---------------------------------- #
 
-
 """
 Get border lines by extruding along normal directoin
 """
@@ -60,7 +59,6 @@ function compute_curvature(t, x, y, tnew)
     return -((ddx .* dy) .- (ddy .* dx)) ./ (((dx) .^ 2 + (dy) .^ 2) .^ (3 / 2))
 end
 
-
 """
   κ(s)
 Curvature as a function of curvilinear distance along the track
@@ -80,21 +78,20 @@ end
 Value of the width factor of the track at various svalues
 """
 width_values = [
-    [0.0    1.1]  # start
-    [.05    1.0]
-    [.07    .95] # first narrow
-    [.15    1.0]  # end of frst narrow
-    [.25    1.1]  # second curve
-    [.4     1.0]  # end of second curve
-    [.45    0.95]  # second narrow
-    [.55    1.0]  # end of second narrow
-    [.6     1.2]  # end of second narrow
-    [.67    1.5]  # start of fourth curve
-    [.72    1.5]
-    [.9     1.1]
-    [1      1.1]  # end
+    [0.0 1.1]  # start
+    [0.05 1.0]
+    [0.07 0.95] # first narrow
+    [0.15 1.0]  # end of frst narrow
+    [0.25 1.1]  # second curve
+    [0.4 1.0]  # end of second curve
+    [0.45 0.95]  # second narrow
+    [0.55 1.0]  # end of second narrow
+    [0.6 1.2]  # end of second narrow
+    [0.67 1.5]  # start of fourth curve
+    [0.72 1.5]
+    [0.9 1.1]
+    [1 1.1]  # end
 ]
-
 
 # ---------------------------------------------------------------------------- #
 #                              TRACK CONSTRUCTORS                              #
@@ -105,7 +102,7 @@ Construct `Track` out of a set of waypoints
 """
 function Track(XY, s1::Float64; resolution=0.00001)
     # get new points locations thorugh interpolation
-    X, Y = upsample(XY[:, 1], XY[:, 2]; δp = resolution)
+    X, Y = upsample(XY[:, 1], XY[:, 2]; δp=resolution)
     N = length(X)
 
     # get distance step between each track point + total length
@@ -127,13 +124,12 @@ function Track(XY, s1::Float64; resolution=0.00001)
     θ[1] = θ[2]
 
     # get width function working for short tracks
-    wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3, k=2)
-    wfn(s) = wspline((s - s1)/261)
+    wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=2)
+    wfn(s) = wspline((s - s1) / 261)
 
     # return Track
     return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, wfn, θ)
 end
-
 
 """
 Create a track from saved waypoints coordinates.
@@ -149,11 +145,14 @@ function Track(; start_waypoint=1, keep_n_waypoints=-1, resolution=0.00001)
 
     # trim waypoints
     start_waypoint = max(2, start_waypoint)
-    keep_n_waypoints =
-        keep_n_waypoints > 0 ? min(keep_n_waypoints, size(XY, 1)) : (size(XY, 1) - start_waypoint)
+    keep_n_waypoints = if keep_n_waypoints > 0
+        min(keep_n_waypoints, size(XY, 1))
+    else
+        (size(XY, 1) - start_waypoint)
+    end
     XY = XY[start_waypoint:(start_waypoint + keep_n_waypoints - 1), :]
 
-    s1 = (start_waypoint)/261
+    s1 = (start_waypoint) / 261
 
     return Track(XY, s1; resolution=resolution)
 end
@@ -166,5 +165,7 @@ function Track(state; keep_n_waypoints=-1, resolution=0.00001)
     XY = npzread("src/hairpin.npy")
     idx = closest_point_idx(XY[:, 1], state.x, XY[:, 2], state.y)
 
-    return Track(; start_waypoint=idx, keep_n_waypoints=keep_n_waypoints, resolution=resolution)
+    return Track(;
+        start_waypoint=idx, keep_n_waypoints=keep_n_waypoints, resolution=resolution
+    )
 end
