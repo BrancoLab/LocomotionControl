@@ -88,6 +88,7 @@ width_values = [
     [0.55 1.0]  # end of second narrow
     [0.6 1.2]  # end of second narrow
     [0.67 1.5]  # start of fourth curve
+    [0.7 1.5]
     [0.72 1.5]
     [0.9 1.1]
     [1 1.1]  # end
@@ -124,7 +125,7 @@ function Track(XY, s1::Float64; resolution=0.00001)
     θ[1] = θ[2]
 
     # get width function working for short tracks
-    wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=2)
+    wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=1)
     wfn(s) = wspline((s - s1) / 261)
 
     # return Track
@@ -169,3 +170,6 @@ function Track(state; keep_n_waypoints=-1, resolution=0.00001)
         start_waypoint=idx, keep_n_waypoints=keep_n_waypoints, resolution=resolution
     )
 end
+
+
+const FULLTRACK = Track()

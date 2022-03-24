@@ -6,58 +6,123 @@ import DataFrames: DataFrame
 using Images: Images
 
 import jcontrol: Track, get_track_borders, Δ
-import ..comparisons: ComparisonPoint
+import ..comparisons: ComparisonPoint, TrackSegment
 import ..control: KinematicsProblem, DynamicsProblem
 import ..forwardmodel: Solution
 import ..bicycle: Bicycle
 
-export plot_arena,
-    plot_arena!, plot_track!, summary_plot, plot_trials!, plot_comparison_point!
+export draw, draw!, summary_plot
 export plot_bike_trajectory!
+
+
 
 # ---------------------------------------------------------------------------- #
 #                                     ARENA                                    #
 # ---------------------------------------------------------------------------- #
 arena = Images.load("src/arena.png")
 
-function plot_arena!()
-    return plot!(
-        [-8, 47],
-        [-12, 66],
-        reverse(arena; dims=1);
-        yflip=false,
-        xlim=[-5, 45],
-        ylim=[-5, 65],
-    )
-end
-function plot_arena()
-    return plot(
-        [-8, 47],
-        [-12, 66],
-        reverse(arena; dims=1);
-        yflip=false,
-        xlim=[-5, 45],
-        ylim=[-5, 65],
-    )
-end
 
-function plot_track!(track::Track; title="", clean=false)
+"""
+Set figure and ax properties for showing the Track.
+"""
+function draw!()
     plot!(;
-        xlabel="X (cm)",
-        ylabel="Y (cm)",
-        aspect_ratio=:equal,
-        title=title,
-        size=(1200, 1200),
-    )
+    xlabel="X (cm)",
+    ylabel="Y (cm)",
+    aspect_ratio=:equal,
+    size=(1200, 1200),
+    xlim=[-5, 45],
+    ylim=[-5, 65],
+)
+end
 
-    if !clean
-        plot!(track.X, track.Y; lw=5, lc=black, label=nothing, ls=:dash, alpha=0.6)
-
-        for border in get_track_borders(track)
-            plot!(border.X, border.Y; lw=4, lc=black, label=nothing, alpha=0.2)
-        end
+""" draw various things by name """
+function draw!(what::Symbol; kwargs...)
+    if what == :arena
+        plt =  plot!(
+            [-8, 47],
+            [-12, 66],
+            reverse(arena; dims=1);
+            yflip=false,
+            xlim=[-5, 45],
+            ylim=[-5, 65],
+            kwargs...
+        )
+        draw!()
+        return plt
     end
 end
+
+
+function draw(what::Symbol; kwargs...)
+    if what == :arena
+        plt =  plot(
+            [-8, 47],
+            [-12, 66],
+            reverse(arena; dims=1);
+            yflip=false,
+            xlim=[-5, 45],
+            ylim=[-5, 65],
+            kwargs...
+        )
+        draw!()
+        return plt
+    end
+end
+
+
+
+# ----------------------------------- track ---------------------------------- #
+""" Draw track and track borders """
+function draw!(track::Track; title="", color=black, lw=5, border_lw=3, alpha=.6, border_alpha=.2)
+    plot!(track.X[1:500:end], track.Y[1:500:end]; lw=lw, lc=color, label=nothing, ls=:dash, alpha=alpha)
+
+    for border in get_track_borders(track)
+        plot!(border.X[1:500:end], border.Y[1:500:end]; lw=border_lw, lc=color, label=nothing, alpha=border_alpha)
+    end
+end
+
+
+# ------------------------------- tracking data ------------------------------ #
+"""
+Plots all tracking data form a dataframe of trials
+"""
+function draw!(trials::DataFrame; lw=1.5, color=grey, asscatter=false)
+    for (i, trial) in enumerate(eachrow(trials))
+        asscatter || plot!(trial.body_x, trial.body_y; color=color, lw=lw, label=nothing)
+        asscatter && scatter!(trial.body_x, trial.body_y; color=color, lw=lw, label=nothing)
+    end
+end
+
+# -------------------------------- comparisons ------------------------------- #
+"""
+Draws a line across the track showing the position and 'orientation' of a CP.
+"""
+function draw!(point::ComparisonPoint)
+    dx = point.w * cos.(point.η)
+    dy = point.w * sin.(point.η)
+
+    return plot!(
+        [point.x - dx, point.x + dx],
+        [point.y - dy, point.y + dy];
+        lw=6,
+        color=black,
+        label=nothing,
+    )
+end
+
+"""
+    Draw a track segment
+"""
+function draw!(segment::TrackSegment)
+    draw!(
+        segment.track; border_lw=6,alpha=1, border_alpha=1.0, color=segment.color
+    )
+
+    draw!.(segment.checkpoints)
+end
+
+
 
 # ---------------------------------------------------------------------------- #
 #                                 MTM SOLUTION                                 #
@@ -149,6 +214,11 @@ function plot_bike_trajectory!(model, bike; showbike=true)
     return showbike && plot_bike!(model, bike, 50)
 end
 
+
+"""
+Simulation summary plot with the bike's trajectory and various
+kinematics variables.
+"""
 function summary_plot(
     model::Solution,
     controlmodel::InfiniteModel,
@@ -158,16 +228,15 @@ function summary_plot(
 )
     nsupports = length(value(controlmodel[:u]))
     # plot the track + XY trajectory
-    xyplot = plot_arena()
-    plot_track!(
+    xyplot = draw(:arena)
+    draw!(
         track;
         title="Duration: $(round(model.t[end]; digits=3))s | $nsupports supports",
-        clean=false,
     )
 
     # plot trials
     if !isnothing(trials)
-        plot_trials!(trials)
+        draw!(trials)
     end
 
     # mark bike's trajectory
@@ -229,25 +298,14 @@ function summary_plot(
     return nothing
 end
 
-# ---------------------------------------------------------------------------- #
-#                                 TRACKING DATA                                #
-# ---------------------------------------------------------------------------- #
-"""
-Plots all tracking data form a dataframe of trials
-"""
-function plot_trials!(trials::DataFrame; lw=1.5, color=grey, asscatter=false)
-    for (i, trial) in enumerate(eachrow(trials))
-        asscatter || plot!(trial.body_x, trial.body_y; color=color, lw=lw, label=nothing)
-        asscatter && scatter!(trial.body_x, trial.body_y; color=color, lw=lw, label=nothing)
-    end
-end
+
 
 # ---------------------------------------------------------------------------- #
 #                                     BIKE                                     #
 # ---------------------------------------------------------------------------- #
-# """
-# Plot the bike's posture every n frames
-# """
+"""
+Plot the bike's posture every n frames
+"""
 function plot_bike!(model::Solution, bike::Bicycle, n::Int)
     """
     Get points to plot a line centered at (x,y) with angle α and length l
@@ -288,19 +346,6 @@ function plot_bike!(model::Solution, bike::Bicycle, n::Int)
     end
 end
 
-# ---------------------------------------------------------------------------- #
-#                               ComparisonPoints                               #
-# ---------------------------------------------------------------------------- #
-function plot_comparison_point!(point::ComparisonPoint)
-    dx = point.w * cos.(point.η)
-    dy = point.w * sin.(point.η)
 
-    return plot!(
-        [point.x - dx, point.x + dx],
-        [point.y - dy, point.y + dy];
-        lw=6,
-        color=green_darker,
-        label=nothing,
-    )
-end
+
 end

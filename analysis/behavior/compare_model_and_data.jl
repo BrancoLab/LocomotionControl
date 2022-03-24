@@ -23,8 +23,8 @@ function compare()
     )
 
     # plot model trajectory
-    plt = plot_arena()
-    plot_track!(track)
+    plt = draw(:arena)
+    draw!(track)
     plot_bike_trajectory!(solution, bike; showbike=false)
 
     # -------------------------- do comparison with data ------------------------- #
@@ -33,8 +33,8 @@ function compare()
     trials = load_trials(; keep_n=20)
 
     # show data
-    plot_trials!(trials; lw=3)
-    plot_comparison_point!.(cpoints.points)
+    draw!(trials; lw=3)
+    draw!.(cpoints.points)
 
     # do comparisons
     Δd::Vector{Float64} = []
