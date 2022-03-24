@@ -12,11 +12,21 @@ import jcontrol: closest_point_idx, euclidean
 function compare()
     # ---------------------------------- run MTM --------------------------------- #
 
+    coptions = ControlOptions(;
+        u_bounds=Bounds(5, 80),
+        δ_bounds=Bounds(-50, 50, :angle),
+        δ̇_bounds=Bounds(-3, 3),
+        ω_bounds=Bounds(-500, 500, :angle),
+        Fy_bounds=Bounds(-500, 500),
+        v_bounds=Bounds(-500, 500),
+        Fu_bounds=Bounds(-250, 250),
+    )
+
     track, bike, _, solution = run_mtm(
-        :kinematics,  # model type
-        3;  # supports density
-        control_options=:default,
+        :dynamics,  # model type
+        1;  # supports density
         showtrials=nothing,
+        control_options=coptions,
         n_iter=5000,
         timed=false,
         showplots=false,
@@ -103,5 +113,3 @@ end
 
 compare()
 
-# TODO trim trials based on when speed is high enough
-# TODO remove artifacts from angular velocity

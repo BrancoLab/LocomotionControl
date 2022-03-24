@@ -36,7 +36,7 @@ function run_mtm(
     #                                DEFINE PARAMERS                               #
     # ---------------------------------------------------------------------------- #
     # create track object
-    track = isnothing(track) ? Track(; start_waypoint=2, keep_n_waypoints=-1) : track
+    track = isnothing(track) ? FULLTRACK : track
 
     # create bike
     bike = Bicycle()
@@ -58,6 +58,7 @@ function run_mtm(
     # ---------------------------------------------------------------------------- #
     # supports_density = 1 -> 100 supports for the whole track, adjust by track length
     n_supports = (Int ∘ round)(supports_density * 100 * track.S_f / 261)
+    # @info "Running with" n_supports
     control_model = @timeit to "solve control" create_and_solve_control(
         problemtype,
         n_supports,

@@ -9,10 +9,16 @@ using DataFrames: DataFrame
 export PATHS, load_trials
 
 PATHS = Dict(
-    "exp_data_fodler" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data",
+    "exp_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\saved_data",
+    "cached_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache",
+
 )
 
-humansort(ls) = sort(ls; by=x -> parse(Int, match(r"[0-9].*", x).match))
+# PATHS = Dict(
+#     # "exp_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data",
+# )
+
+
 
 """
 Load individual bouts metadata and tracking data from individual JSON files.
@@ -26,7 +32,7 @@ function load_trials(;
 )::DataFrame
     files::Vector{String} = []
     try
-        files = glob("*_bout.json", io.PATHS["exp_data_fodler"])
+        files = glob("*_bout.json", io.PATHS["exp_data_folder"])
     catch
         @warn "Could not load tracking data. Perhaps you don't have the right path to the data?"
         return nothing
@@ -84,5 +90,9 @@ function load_trials(;
     data = sort!(DataFrame(data), :duration)
     return data = isnothing(keep_n) ? data : first(data, keep_n)
 end
+
+
+function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)
+    glob("*_bout.json", io.PATHS["cached_data_folder"])
 
 end

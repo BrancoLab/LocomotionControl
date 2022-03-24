@@ -1,3 +1,5 @@
+cache
+
 *.pth
 *.pt
 video.mp4

@@ -48,14 +48,14 @@ other parameters such as bounds on allowed errors.
 @with_kw struct ControlOptions
     # errors bounds
     track_safety::Float64 = 1
-    ψ_bounds::Bounds = Bounds(-π / 2, π / 2)
+    ψ_bounds::Bounds = Bounds(-35, 35, :angle)
 
     # control bounds
     u̇_bounds::Bounds = Bounds(-200, 200)
     δ̇_bounds::Bounds = Bounds(-50, 50, :angle)
 
     # varibles bounds
-    u_bounds::Bounds = Bounds(0, 100)
+    u_bounds::Bounds = Bounds(5, 100)
     δ_bounds::Bounds = Bounds(-45, 45, :angle)
     ω_bounds::Bounds = Bounds(-500, 500, :angle)
 
@@ -361,7 +361,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 120.0)
+    set_optimizer_attribute(model, "max_wall_time", 90.0)
 
     # register curvature function
     κ(s) = track.κ(s)

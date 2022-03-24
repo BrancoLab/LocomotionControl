@@ -140,7 +140,7 @@ Create a track from saved waypoints coordinates.
   - `keep_n_waypoints` can be used to keep only the first N waypoints. Set to -1 to keep all.
   - `resolution` used to upsample track waypoints through interpolation.
 """
-function Track(; start_waypoint=1, keep_n_waypoints=-1, resolution=0.00001)
+function Track(; start_waypoint=2, keep_n_waypoints=-1, resolution=0.00001)
     # load data
     XY = npzread("src/hairpin.npy")
 

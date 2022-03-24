@@ -1,6 +1,7 @@
 module trial
 import Parameters: @with_kw
-import DataFrames: DataFrameRow
+import DataFrames: DataFrameRow, DataFrame
+import JSONTables: jsontable
 
 import jcontrol: Track, closest_point_idx, unwrap, kinematics_from_position, movingaverage
 
@@ -30,10 +31,10 @@ Store trial information
     x::Vector{Float64}
     y::Vector{Float64}
     s::Vector{Float64}
-
     θ::Vector{Float64} = Vector{Float64}[]
     ω::Vector{Float64} = Vector{Float64}[]
     u::Vector{Float64} = Vector{Float64}[]
+    duration::Float64
 end
 
 """
@@ -67,7 +68,24 @@ function Trial(trial::DataFrameRow, track::Track)
         θ=θ[start:end],
         ω=ω[start:end],
         u=u[start:end],
+        duration=trial.duration,
     )
 end
 
+
+function Trial(filepath::String)
+    open(filepath) do f
+        data = jsontable(read(f))
+        return Trial(;
+                x=data.x,
+                y=data.y,
+                s=data.s,
+                θ=data.θ,
+                ω=data.ω,
+                u=data.u,
+                duration=data.duration[1]
+            )
+    end
+
+end
 end
