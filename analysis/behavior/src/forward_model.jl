@@ -86,7 +86,6 @@ function run_forward_model(problemtype::MTMproblem, track::Track, model::Infinit
     end
 
     # get other variables
-    Ts = map(ξ(value(model[:t])), svalues)
     δs = map(ξ(value(model[:δ])), svalues)
     δ̇s = map(ξ(value(model[:δ̇])), svalues)
     us = map(ξ(value(model[:u])), svalues)
@@ -100,6 +99,14 @@ function run_forward_model(problemtype::MTMproblem, track::Track, model::Infinit
     end
 
     # get values at regular Δt
+    # Tstart = value(model[:SF])[1]
+    # Tend = cumsum(value(model[:SF]))[end]
+    # Tstart = 0.0
+    # Tend = objective_value(model)
+
+    # get values at regular Δt
+    # Ts = cumsum(value(model[:SF]))[end]
+    Ts = map(ξ(value(model[:t])), svalues)
     time = Ts[1]:δt:Ts[end]
     I() = zeros(Float64, length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
@@ -124,7 +131,7 @@ function run_forward_model(problemtype::MTMproblem, track::Track, model::Infinit
             u̇[i] = u̇s[idx]
         end
     end
-    
+
     return Solution(
         δt=δt,
         t = T,
