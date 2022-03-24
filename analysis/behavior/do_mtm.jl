@@ -40,15 +40,15 @@ icond = State(
 )
 
 fcond = State(
-    u = 5
+    u = 25
 )
 
 track, bike, control_model, solution = run_mtm(
     :dynamics,  # model type
-    3;  # supports density
+    .5;  # supports density
     control_options=coptions,
     icond = icond,
-    # fcond = fcond, 
+    fcond = fcond, 
     showtrials=50,
     n_iter=5000,
     timed=false,

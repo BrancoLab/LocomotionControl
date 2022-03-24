@@ -15,9 +15,12 @@ and estimate the quality of fit to the tracking data
 mse(Δx) = 1 ./ length(Δx) .* sum(Δx .^ 2)
 
 struct ParamEstimationResults
-    u̇::Number
     δ̇::Number
     δ::Number
+    ω::Number
+    Fy::Number
+    v::Number
+    Fu::Number
     ℓ::Float64
 end
 
@@ -30,7 +33,7 @@ function run_model_fit(params_ranges)
     bike = Bicycle()
 
     # initial conditions
-    icond = State(; x=track.X[1], y=track.Y[1], u=5)
+    icond = State(; u=10)
     fcond = State(; u=5)
 
     # load data
@@ -38,31 +41,36 @@ function run_model_fit(params_ranges)
     cpoints = get_comparison_points(track; δs=10)
 
     # iterate over parameters values
-    _u̇ = params_ranges["u̇_bounds"]
     _δ̇ = params_ranges["δ̇_bounds"]
     _δ = params_ranges["δ_bounds"]
-    # _ω = params_ranges["ω_bounds"]
+    _ω = params_ranges["ω_bounds"]
+    _Fy = params_ranges["Fy_bounds"]
+    _v = params_ranges["v_bounds"]
+    _Fu = params_ranges["Fu_bounds"]
     results::Vector{ParamEstimationResults} = []
-    for u̇ in _u̇, δ̇ in _δ̇, δ in _δ
-        @info "[bold red]RUNNING[/bold red]" u̇ δ̇ δ
+    for δ̇ in _δ̇, δ in _δ, ω in _ω, Fy in _Fy, v in _v, Fu in _Fu
+
         coptions = ControlOptions(
             # controls & variables bounds
-            u̇_bounds=Bounds(-u̇, u̇),
-            δ̇_bounds=Bounds(-δ̇, δ̇),
             u_bounds=Bounds(5, 80),
+            δ̇_bounds=Bounds(-δ̇, δ̇),
             δ_bounds=Bounds(-δ, δ, :angle),
-            ω_bounds=Bounds(-400, 400, :angle)
+            ω_bounds=Bounds(-ω, ω, :angle),
+            Fy_bounds = Bounds(-Fy, Fy),
+            v_bounds = Bounds(-v, v),
+            Fu_bounds = Bounds(-Fu, Fu),
         )
         
         # solve
         control_model = create_and_solve_control(
-                KinematicsProblem(),            
-                300,
+                DynamicsProblem(),            
+                100,
                 track,
                 bike,
                 coptions,
                 icond,
                 fcond;
+                n_iter=5000,
                 quiet=true)
 
         if "LOCALLY_SOLVED" != string(termination_status(control_model))
@@ -70,7 +78,7 @@ function run_model_fit(params_ranges)
             continue
         end
 
-        solution = run_forward_model(track, control_model)
+        solution = run_forward_model(DynamicsProblem(), track, control_model)
 
         # estimate error
         Δu::Vector{Float64} = []
@@ -94,7 +102,7 @@ function run_model_fit(params_ranges)
         # compute the total error
         ℓ = mse(Δu) + mse(Δω)
         push!(
-            results, ParamEstimationResults(u̇, δ̇, δ, ℓ)
+            results, ParamEstimationResults(δ̇, δ, ω, Fy, v, Fu, ℓ)
         )
     end
 
@@ -103,10 +111,12 @@ end
 
 
 params_ranges = Dict(
-    "u̇_bounds" => 100:25:200,
-    "δ̇_bounds" => 1:1:7,
-    "δ_bounds" => 50:15:120,
-    # "ω_bounds" => 500:250:1000,
+    "δ̇_bounds"  => 1:1:7,
+    "δ_bounds"  => 25:25:125,
+    "ω_bounds"  => 100:200:1000,
+    "Fy_bounds" => 250:500:2500,
+    "v_bounds"  => [50, 250, 500, 1000, 1500, 2000],
+    "Fu_bounds" => [5, 50, 100, 250, 400, 500],
 )
 
 # run
