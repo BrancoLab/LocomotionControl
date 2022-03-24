@@ -1,14 +1,11 @@
 module trial
-    import Parameters: @with_kw
-    import DataFrames: DataFrameRow
+import Parameters: @with_kw
+import DataFrames: DataFrameRow, DataFrame
+import JSONTables: jsontable
 
-    import jcontrol: Track,
-                closest_point_idx,
-                unwrap,
-                kinematics_from_position,
-                movingaverage
+import jcontrol: Track, closest_point_idx, unwrap, kinematics_from_position, movingaverage
 
-    export Trial
+export Trial
 
 """
 Compute values of `s` based on position along a trial
@@ -34,10 +31,10 @@ Store trial information
     x::Vector{Float64}
     y::Vector{Float64}
     s::Vector{Float64}
-
-    θ::Vector{Float64} = Vector{Float64}[] 
-    ω::Vector{Float64} = Vector{Float64}[] 
-    u::Vector{Float64} = Vector{Float64}[] 
+    θ::Vector{Float64} = Vector{Float64}[]
+    ω::Vector{Float64} = Vector{Float64}[]
+    u::Vector{Float64} = Vector{Float64}[]
+    duration::Float64
 end
 
 """
@@ -47,14 +44,14 @@ function Trial(trial::DataFrameRow, track::Track)
     s = get_trial_s(trial, track)
 
     # get orientation
-    θ = unwrap(atan.(
-            trial.snout_y .- trial.tail_base_y , trial.snout_x .- trial.tail_base_x
-        ))
+    θ = unwrap(
+        atan.(trial.snout_y .- trial.tail_base_y, trial.snout_x .- trial.tail_base_x)
+    )
     θ = movingaverage(θ, 3)
 
     # get velocities
     u, ω = kinematics_from_position(
-                trial.body_x, trial.body_y, θ; fps=60, smooth=true, smooth_wnd=.05
+        trial.body_x, trial.body_y, θ; fps=60, smooth=true, smooth_wnd=0.05
     )
 
     # remove artifacts
@@ -64,15 +61,31 @@ function Trial(trial::DataFrameRow, track::Track)
     # trim start to when speed is high enough
     start = findfirst(u .> 25)
 
-    return Trial(
+    return Trial(;
         x=trial.body_x[start:end],
         y=trial.body_y[start:end],
         s=s[start:end],
-
-        θ = θ[start:end],
-        ω = ω[start:end],
-        u = u[start:end],
+        θ=θ[start:end],
+        ω=ω[start:end],
+        u=u[start:end],
+        duration=trial.duration,
     )
 end
 
+
+function Trial(filepath::String)
+    open(filepath) do f
+        data = jsontable(read(f))
+        return Trial(;
+                x=data.x,
+                y=data.y,
+                s=data.s,
+                θ=data.θ,
+                ω=data.ω,
+                u=data.u,
+                duration=data.duration[1]
+            )
+    end
+
+end
 end

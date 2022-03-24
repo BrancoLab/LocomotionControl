@@ -2,7 +2,6 @@ using Statistics: mean
 using ForwardDiff
 using Dierckx
 
-
 # ------------------------------ interpolations ------------------------------ #
 
 """
@@ -21,31 +20,29 @@ object that can only be queried by values ∈ [1, 101] (the indices range of `a`
 can be queried by values ∈ [0, 100], the values ranges of `time`.
 """
 function interpolate_wrt_to(x, y)
-  @assert length(x)==length(y) "The x and data array should have the same length"
-  return Spline1D(x, y, w=ones(length(x)), k=1, bc="nearest", s=0.0);
+    @assert length(x) == length(y) "The x and data array should have the same length"
+    return Spline1D(x, y; w=ones(length(x)), k=1, bc="nearest", s=0.0)
 end
-
 
 """
 Upsamble a set of variables through interpolation
 """
 function upsample(data...; δp=0.001)
-  n = length(data)
-  P = range(0, 1, length(data[1]))
+    n = length(data)
+    P = range(0, 1, length(data[1]))
 
-  # upsample data
-  itp = Interpolations.scale(
-    interpolate(hcat(data...), (BSpline(Cubic(Natural(OnGrid()))), NoInterp())), P, 1:n
-  )
+    # upsample data
+    itp = Interpolations.scale(
+        interpolate(hcat(data...), (BSpline(Cubic(Natural(OnGrid()))), NoInterp())), P, 1:n
+    )
 
-  tfine = 0:δp:1
-  upsampled = []
-  for i in 1:n
-    push!(upsampled, [itp(t, i) for t in tfine])
-  end
-  return upsampled
+    tfine = 0:δp:1
+    upsampled = []
+    for i in 1:n
+        push!(upsampled, [itp(t, i) for t in tfine])
+    end
+    return upsampled
 end
-
 
 # -------------------------------- derivatives ------------------------------- #
 """
@@ -55,10 +52,9 @@ time values.
 From: https://discourse.julialang.org/t/differentiation-without-explicit-function-np-gradient/57784
 """
 function ∂(time, x)
-    itp = interpolate((time,), x, Gridded(Linear()));
-    return map((t)->ForwardDiff.derivative(itp, t), time)
+    itp = interpolate((time,), x, Gridded(Linear()))
+    return map((t) -> ForwardDiff.derivative(itp, t), time)
 end
-
 
 """
 Prepend a 0 to a vector, useful when takin diff
@@ -70,8 +66,6 @@ but want the resulting vector to have the right length
 Shorthand for diff givin a vector of right length
 """
 Δ(x) = ρ(diff(x))
-
-
 
 # ----------------------------------- misc ----------------------------------- #
 """
@@ -86,25 +80,25 @@ function unwrap(v, inplace=false)
     # currently assuming an array
     unwrapped = inplace ? v : copy(v)
     for i in 2:length(v)
-      while unwrapped[i] - unwrapped[i-1] >= π
-        unwrapped[i] -= 2π
-      end
-      while unwrapped[i] - unwrapped[i-1] <= -π
-        unwrapped[i] += 2π
-      end
+        while unwrapped[i] - unwrapped[i - 1] >= π
+            unwrapped[i] -= 2π
+        end
+        while unwrapped[i] - unwrapped[i - 1] <= -π
+            unwrapped[i] += 2π
+        end
     end
     return unwrapped
-  end
-  
-unwrap!(v) = unwrap(v, true)
+end
 
+unwrap!(v) = unwrap(v, true)
 
 # --------------------------------- smoothing -------------------------------- #
 """
 Moving average with window size `n`
 """
-movingaverage(g, n) = [i < n ? mean(g[begin:i]) : mean(g[i-n+1:i]) for i in 1:length(g)]
-
+function movingaverage(g, n)
+    return [i < n ? mean(g[begin:i]) : mean(g[(i - n + 1):i]) for i in 1:length(g)]
+end
 
 # --------------------------------- geometry --------------------------------- #
 
@@ -113,8 +107,8 @@ movingaverage(g, n) = [i < n ? mean(g[begin:i]) : mean(g[i-n+1:i]) for i in 1:le
 
 Get the index of the point in a vector (X, Y) closest to a point (x,y)
 """
-function closest_point_idx(X::Vector{T}, x::T, Y::Vector{T}, y::T) where T<:Number
-  argmin(sqrt.((X .- x).^2 .+ (Y .- y).^2))
+function closest_point_idx(X::Vector{T}, x::T, Y::Vector{T}, y::T) where {T<:Number}
+    return argmin(sqrt.((X .- x) .^ 2 .+ (Y .- y) .^ 2))
 end
 
-euclidean(x0, x1, y0, y1) = √((x0-x1)^2 + (y0-y1)^2)
+euclidean(x0, x1, y0, y1) = √((x0 - x1)^2 + (y0 - y1)^2)

@@ -36,7 +36,6 @@ int(x) = (Int64 ∘ round)(x)
     δ̇::Vector{Float64}
 end
 
-
 """
 To get the bike's trajectory in time and wrt the allocentric
 track's reference frame (instead of curvilinear coordinates),
@@ -49,14 +48,16 @@ to the corresponding time increments.
 
 Finally, the bike's velocity and angular velocities are computed.
 """
-function run_forward_model(problemtype::MTMproblem, track::Track, model::InfiniteModel; δt=0.01)
+function run_forward_model(
+    problemtype::MTMproblem, track::Track, model::InfiniteModel; δt=0.01
+)
     # get model's data and upsample
     n = ξ(value(model[:n]))
     ψ = ξ(value(model[:ψ]))
     s = ξ(value(model[:s]))
 
     # compute bike position with variable Δt (wrt s)
-    svalues = 1:.25:length(value(model[:n]))
+    svalues = 1:0.25:length(value(model[:n]))
     II() = zeros(Float64, length(svalues))
     Xs, Ys, θs = II(), II(), II()
     for (ni, i) in pbar(enumerate(svalues); redirectstdout=false)
@@ -75,7 +76,7 @@ function run_forward_model(problemtype::MTMproblem, track::Track, model::Infinit
             Xs[ni] = xp
             Ys[ni] = yp
         else
-            norm_angle =  θp + π/2
+            norm_angle = θp + π / 2
 
             Xs[ni] = xp + _n * cos(norm_angle)
             Ys[ni] = yp + _n * sin(norm_angle)
@@ -110,8 +111,8 @@ function run_forward_model(problemtype::MTMproblem, track::Track, model::Infinit
     time = Ts[1]:δt:Ts[end]
     I() = zeros(Float64, length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
-    u, ω, n, ψ, β =  I(), I(), I(), I(), I()
-    for (i,t) in pbar(enumerate(time); redirectstdout=false)
+    u, ω, n, ψ, β = I(), I(), I(), I(), I()
+    for (i, t) in pbar(enumerate(time); redirectstdout=false)
         idx = findfirst(Ts .>= t)
         idx = isnothing(idx) ? 1 : idx
 

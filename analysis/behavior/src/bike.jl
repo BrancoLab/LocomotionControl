@@ -30,29 +30,21 @@ struct Bicycle
     body_lw::Number
     body_color::String
 
-    function Bicycle(;
-                l_f::Number=5,
-                l_r::Number=3,
-                width::Number=2,
-                m_f = 10,
-                m_r = 15,
-                c = 1,
-        )
+    function Bicycle(; l_f::Number=5, l_r::Number=3, width::Number=2, m_f=10, m_r=15, c=1)
 
         # convert units g->Kg, cm->m
         mfKg = m_f / 100
         mrKg = m_r / 100
-        lfM  = l_f / 100
-        lrM  = l_r / 100
+        lfM = l_f / 100
+        lrM = l_r / 100
 
         # compute moment of angular inertia        
         Iz = mfKg * lfM^2 + mrKg * lrM^2
 
-
         return new(
             l_f,
             l_r,
-            l_f + l_r, 
+            l_f + l_r,
             width,
             m_f + m_r,
             Iz,
@@ -64,8 +56,6 @@ struct Bicycle
             8,                  # body_lw
             blue_grey,          # body_color
         )
-
-
     end
 end
 
@@ -106,15 +96,7 @@ function State(trial, frame::Int, track::Track)
     n = euclidean(track.X[idx], x, track.Y[idx], y)
     ψ = track.θ[idx] - trial.θ[frame]
 
-    return State(
-        x = x,
-        y = y,
-        θ = trial.θ[frame],
-        ω = trial.ω[frame],
-        u = trial.u[frame],
-        n = n,
-        ψ = ψ
-    )
+    return State(; x=x, y=y, θ=trial.θ[frame], ω=trial.ω[frame], u=trial.u[frame], n=n, ψ=ψ)
 end
 
 """
@@ -123,19 +105,19 @@ end
 Get `State` from a forward problem solution at Δt from start.
 """
 function State(solution, Δt::Float64)
-    frame = (Int ∘ round)(Δt/solution.δt)
+    frame = (Int ∘ round)(Δt / solution.δt)
 
-    return State(
-        x = solution.x[frame],
-        y = solution.y[frame],
-        θ = solution.θ[frame],
-        δ = solution.δ[frame],
-        ω = solution.ω[frame],
-        u = solution.u[frame],
-        β = solution.β[frame],
-        v = solution.v[frame],
-        n = solution.n[frame],
-        ψ = solution.ψ[frame],
+    return State(;
+        x=solution.x[frame],
+        y=solution.y[frame],
+        θ=solution.θ[frame],
+        δ=solution.δ[frame],
+        ω=solution.ω[frame],
+        u=solution.u[frame],
+        β=solution.β[frame],
+        v=solution.v[frame],
+        n=solution.n[frame],
+        ψ=solution.ψ[frame],
     )
-    end
+end
 end
