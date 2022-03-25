@@ -135,4 +135,4 @@ res = run_model_fit(params_ranges)
 
 costs = [sim.ℓ for sim in res]
 bestidx = argmin(costs)
-print(res[30])
+print(res[bestidx])

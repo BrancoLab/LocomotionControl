@@ -75,20 +75,36 @@ realistict_control_options = ControlOptions(;
     v_bounds=Bounds(-125, 125),
 )
 
+# """
+#     These represent the best controls for the Kinematic
+#     model as of 22/03/2022. Discovered through params 
+#     exploration.
+# """
+# default_control_options = ControlOptions(;
+#     u_bounds=Bounds(5, 80),
+#     u̇_bounds=Bounds(-125, 125),
+#     δ_bounds=Bounds(-110, 110, :angle),
+#     δ̇_bounds=Bounds(-3, 3),
+#     ω_bounds=Bounds(-400, 400, :angle),
+#     Fy_bounds=Bounds(-500, 500),
+#     v_bounds=Bounds(-125, 125),
+# )
+
+
 """
-    These represent the best controls for the Kinematic
-    model as of 22/03/2022. Discovered through params 
-    exploration.
+These are th best controls for the Dynamic model
+as of 25/03/2022
 """
 default_control_options = ControlOptions(;
-    u_bounds=Bounds(5, 80),
-    u̇_bounds=Bounds(-125, 125),
-    δ_bounds=Bounds(-110, 110, :angle),
-    δ̇_bounds=Bounds(-3, 3),
-    ω_bounds=Bounds(-400, 400, :angle),
-    Fy_bounds=Bounds(-500, 500),
-    v_bounds=Bounds(-125, 125),
+u_bounds=Bounds(5, 80),
+δ̇_bounds=Bounds(-6, 6),
+δ_bounds=Bounds(-90, 90, :angle),
+ω_bounds=Bounds(-1000, 1000, :angle),
+Fy_bounds=Bounds(-1500, 1500),
+v_bounds=Bounds(-50, 50),
+Fu_bounds=Bounds(-250, 250),
 )
+
 
 # ---------------------------------------------------------------------------- #
 #                                KINEMATIC MODEL                               #
@@ -446,7 +462,7 @@ function create_and_solve_control(
             Ff(0) == 0
             Fr(0) == 0
             Fu(0) == 0
-            
+
             t(0) == 0
 
             # final conditions

@@ -46,7 +46,7 @@ track, bike, control_model, solution = run_mtm(
     :dynamics,  # model type
     3;  # supports density
     # track=track,
-    control_options=coptions,
+    control_options=:default,
     icond=icond,
     # fcond=fcond,
     showtrials=nothing,
