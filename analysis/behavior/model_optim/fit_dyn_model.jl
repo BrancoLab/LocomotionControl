@@ -2,7 +2,7 @@
 using jcontrol
 import jcontrol: closest_point_idx, euclidean
 import InfiniteOpt: termination_status
-import Term.progress: track as pbar
+import Term.progress: ProgressBar, update, start, stop
 using Term
 install_term_logger()
 
@@ -48,7 +48,12 @@ function run_model_fit(params_ranges)
     _v = params_ranges["v_bounds"]
     _Fu = params_ranges["Fu_bounds"]
     results::Vector{ParamEstimationResults} = []
+
+    nsims = *(length.(values(params_ranges))...)
+    pbar = ProgressBar(; N=nsims, redirectstdout=false)
+    start(pbar)
     for δ̇ in _δ̇, δ in _δ, ω in _ω, Fy in _Fy, v in _v, Fu in _Fu
+        update(pbar)
 
         coptions = ControlOptions(
             # controls & variables bounds
@@ -74,7 +79,7 @@ function run_model_fit(params_ranges)
                 quiet=true)
 
         if "LOCALLY_SOLVED" != string(termination_status(control_model))
-            @warn "Skipping analysis because did not solve locally" termination_status(control_model)
+            # @warn "Skipping analysis because did not solve locally" termination_status(control_model)
             continue
         end
 
@@ -83,7 +88,7 @@ function run_model_fit(params_ranges)
         # estimate error
         Δu::Vector{Float64} = []
         Δω::Vector{Float64} = []
-        for trial in pbar(eachrow(trials); description="Iterating trials", expand=true, columns=:detailed)
+        for trial in eachrow(trials)
             trial = Trial(trial, track)
 
             for cp in cpoints.points
@@ -105,21 +110,27 @@ function run_model_fit(params_ranges)
             results, ParamEstimationResults(δ̇, δ, ω, Fy, v, Fu, ℓ)
         )
     end
-
+    stop(pbar)
     return results
 end
 
 
 params_ranges = Dict(
-    "δ̇_bounds"  => 1:1:7,
-    "δ_bounds"  => 25:25:125,
-    "ω_bounds"  => 100:200:1000,
-    "Fy_bounds" => 250:500:2500,
-    "v_bounds"  => [50, 250, 500, 1000, 1500, 2000],
-    "Fu_bounds" => [5, 50, 100, 250, 400, 500],
+    "δ̇_bounds"  => [1, 3, 6],
+    "δ_bounds"  => [45, 90],
+    "ω_bounds"  => [100, 500, 1000],
+    "Fy_bounds" => [250, 500, 1500],
+    "v_bounds"  => [50, 250, 1500],
+    "Fu_bounds" => [50, 250, 500],
 )
 
-# run
+
+
+
+tot = *(length.(values(params_ranges))...)
+@info "Number of simulations $tot"
+
+run
 res = run_model_fit(params_ranges)
 
 costs = [sim.ℓ for sim in res]

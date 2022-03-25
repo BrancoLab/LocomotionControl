@@ -4,8 +4,9 @@ import DataFrames: DataFrameRow, DataFrame
 import JSONTables: jsontable
 
 import jcontrol: Track, closest_point_idx, unwrap, kinematics_from_position, movingaverage
+import ..comparisons: TrackSegment
 
-export Trial
+export Trial, trimtrial, get_varvalue_at_frameidx
 
 """
 Compute values of `s` based on position along a trial
@@ -86,6 +87,42 @@ function Trial(filepath::String)
                 duration=data.duration[1]
             )
     end
-
 end
+
+
+# ----------------------------------- utils ---------------------------------- #
+"""
+Cut a trial to keep only the data between two s-values.
+"""
+function trimtrial(trial::Trial, s0, s1)
+    start = findfirst(trial.s .>= s0)
+    isnothing(start) && return nothing
+
+    stop = findlast(trial.s .<= s1)
+    isnothing(start) && return nothing
+
+    return Trial(
+        x=trial.x[start:stop],
+        y=trial.y[start:stop],
+        s=trial.s[start:stop],
+        θ=trial.θ[start:stop],
+        ω=trial.ω[start:stop],
+        u=trial.u[start:stop],
+        duration=-1.0,
+    )
+end
+trimtrial(trial::Trial, seg::TrackSegment) = trimtrial(trial,260 * ( seg.s₀ - .01), 260 * (seg.s₁ - .01))
+
+
+"""
+    Get the value of each trial's variable at a frame index
+"""
+get_varvalue_at_frameidx(trials::Vector{Trial}, variable::Symbol, frame::Int) = map(t->getfield(t, variable)[frame], trials)
+
+"""
+    Get the value of each trial's variable at the last frame
+"""
+get_varvalue_at_frameidx(trials::Vector{Trial}, variable::Symbol) = map(t->getfield(t, variable)[end], trials)
+
+
 end

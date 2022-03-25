@@ -10,6 +10,7 @@ import ..comparisons: ComparisonPoint, TrackSegment
 import ..control: KinematicsProblem, DynamicsProblem
 import ..forwardmodel: Solution
 import ..bicycle: Bicycle
+import ..trial: Trial
 
 export draw, draw!, summary_plot
 export plot_bike_trajectory!
@@ -94,6 +95,10 @@ function draw!(trials::DataFrame; lw=1.5, color=grey, asscatter=false)
     end
 end
 
+function draw!(trial::Trial; lw=1.5, color=grey, asscatter=false)
+    asscatter || plot!(trial.x, trial.y; color=color, lw=lw, label=nothing)
+    asscatter && scatter!(trial.x, trial.y; color=color, lw=lw, label=nothing)
+end
 # -------------------------------- comparisons ------------------------------- #
 """
 Draws a line across the track showing the position and 'orientation' of a CP.

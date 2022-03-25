@@ -5,9 +5,10 @@ Run MTM problem and plot results
 using Term
 # install_stacktrace()
 install_term_logger()
+
 import jcontrol.control: ControlOptions, Bounds
 import jcontrol.bicycle: State
-import jcontrol: run_mtm
+import jcontrol: run_mtm, Track
 
 print("\n\n" * hLine("start"; style="bold green"))
 
@@ -35,7 +36,7 @@ coptions = ControlOptions(
     ω_bounds = Bounds(-400, 400, :angle),
 
     Fy_bounds = Bounds(-250, 250),
-    v_bounds = Bounds(-200, 200),
+    v_bounds = Bounds(-1000, 1000),
     Fu_bounds = Bounds(-250, 250)
 )
 icond = State(; u=10)
@@ -43,8 +44,8 @@ fcond = State(; u=50)
 
 track, bike, control_model, solution = run_mtm(
     :dynamics,  # model type
-    2;  # supports density
-    track=track,
+    3;  # supports density
+    # track=track,
     control_options=coptions,
     icond=icond,
     # fcond=fcond,

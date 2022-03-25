@@ -2,7 +2,6 @@ module forwardmodel
 import InfiniteOpt: value, InfiniteModel, supports
 using Interpolations: Interpolations
 import Parameters: @with_kw
-import Term.progress: track as pbar
 
 import jcontrol: Track, upsample, kinematics_from_position, int, ξ
 import ..control: KinematicsProblem, DynamicsProblem, MTMproblem
@@ -60,7 +59,7 @@ function run_forward_model(
     svalues = 1:0.25:length(value(model[:n]))
     II() = zeros(Float64, length(svalues))
     Xs, Ys, θs = II(), II(), II()
-    for (ni, i) in pbar(enumerate(svalues); redirectstdout=false)
+    for (ni, i) in enumerate(svalues)
         _n, _ψ = n[i], ψ[i]
 
         # get closest track waypoint
@@ -100,19 +99,12 @@ function run_forward_model(
     end
 
     # get values at regular Δt
-    # Tstart = value(model[:SF])[1]
-    # Tend = cumsum(value(model[:SF]))[end]
-    # Tstart = 0.0
-    # Tend = objective_value(model)
-
-    # get values at regular Δt
-    # Ts = cumsum(value(model[:SF]))[end]
     Ts = map(ξ(value(model[:t])), svalues)
     time = Ts[1]:δt:Ts[end]
     I() = zeros(Float64, length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
     u, ω, n, ψ, β = I(), I(), I(), I(), I()
-    for (i, t) in pbar(enumerate(time); redirectstdout=false)
+    for (i, t) in enumerate(time)
         idx = findfirst(Ts .>= t)
         idx = isnothing(idx) ? 1 : idx
 

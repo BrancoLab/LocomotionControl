@@ -398,26 +398,6 @@ function create_and_solve_control(
        end
    )
 
-   # -------------------------- track width constraints ------------------------- #
-   @parameter_function(model, allowed_track_width == track.width(s))
-   @constraint(model, -allowed_track_width + bike.width ≤ n)
-   @constraint(model, allowed_track_width - bike.width ≥ n)
-
-   # ----------------------------- define EOM       ---------------------------- #        
-   l_r, l_f = bike.l_r, bike.l_f
-   m, Iz, c = bike.m, bike.Iz, bike.c
-
-   β = atan(v/(u + eps()))  # slip angle  
-   V = √(u^2 + v^2)
-   SF = (1 - n * κ(s)) / (V⋅cos(ψ + β) + eps())  # time -> space domain conversion factor
-   
-   @constraints(
-       model,
-       begin 
-        # errors
-        ∂(n, s) == SF * u⋅sin(ψ + β)
-        ∂(ψ, s) == SF * ω - κ(s)
-
     # -------------------------- track width constraints ------------------------- #
     @parameter_function(model, allowed_track_width == track.width(s))
     @constraint(model, -allowed_track_width + bike.width ≤ n)
@@ -429,12 +409,11 @@ function create_and_solve_control(
 
     β = atan(v / (u + eps()))  # slip angle  
     V = √(u^2 + v^2)
+    SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β) + eps())  # time -> space domain conversion factor
 
     @constraints(
         model,
         begin
-            SF == (1 - n * κ(s)) / (V ⋅ cos(ψ + β) + eps())  # time -> space domain conversion factor
-
             # errors
             ∂(n, s) == SF * u ⋅ sin(ψ + β)
             ∂(ψ, s) == SF * ω - κ(s)
@@ -467,6 +446,8 @@ function create_and_solve_control(
             Ff(0) == 0
             Fr(0) == 0
             Fu(0) == 0
+            
+            t(0) == 0
 
             # final conditions
             n(track.S_f) == final_conditions.n
