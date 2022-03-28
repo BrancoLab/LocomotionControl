@@ -14,9 +14,9 @@ include("bike.jl")
 include("control.jl")
 include("forward_model.jl")
 include("comparisons.jl")
-include("visuals.jl")
 include("run.jl")
 include("trial.jl")
+include("visuals.jl")
 include("io.jl")
 
 export Track, get_track_borders, FULLTRACK
@@ -42,7 +42,7 @@ using .control:
     realistict_control_options
 
 using .forwardmodel: Solution, run_forward_model
-using .comparisons: ComparisonPoints, ComparisonPoint, get_comparison_points, track_segments, TrackSegment
+using .comparisons: ComparisonPoints, ComparisonPoint, track_segments, TrackSegment
 using .visuals
 using .Run: run_mtm
 using .trial: Trial, trimtrial, get_varvalue_at_frameidx

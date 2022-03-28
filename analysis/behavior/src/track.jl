@@ -2,6 +2,8 @@ using NPZ
 using Dierckx: Spline1D, derivative
 using Interpolations
 
+
+
 # -------------------------------- TRACK TYPE -------------------------------- #
 struct Track
     X::Vector
@@ -79,13 +81,13 @@ Value of the width factor of the track at various svalues
 """
 width_values = [
     [0.0 1.1]  # start
-    [0.05 1.0]
-    [0.07 0.95] # first narrow
-    [0.15 1.0]  # end of frst narrow
+    [0.05 0.95]
+    [0.07 0.9] # first narrow
+    [0.15 0.95]  # end of frst narrow
     [0.25 1.1]  # second curve
-    [0.4 1.0]  # end of second curve
-    [0.45 0.95]  # second narrow
-    [0.55 1.0]  # end of second narrow
+    [0.4 0.95]  # end of second curve
+    [0.45 0.9]  # second narrow
+    [0.55 0.95]  # end of second narrow
     [0.6 1.2]  # end of second narrow
     [0.67 1.5]  # start of fourth curve
     [0.7 1.5]

@@ -3,7 +3,7 @@ import InfiniteOpt: value, InfiniteModel, supports
 using Interpolations: Interpolations
 import Parameters: @with_kw
 
-import jcontrol: Track, upsample, kinematics_from_position, int, ξ
+import jcontrol: Track, upsample, int, ξ
 import ..control: KinematicsProblem, DynamicsProblem, MTMproblem
 import ..bicycle: State, Bicycle
 
@@ -96,14 +96,22 @@ function run_forward_model(
     if problemtype isa KinematicsProblem
         βs = map(ξ(value(model[:β])), svalues)
         u̇s = map(ξ(value(model[:u̇])), svalues)
+    else
+        vs = map(ξ(value(model[:v])), svalues)
+        βs = map(
+                ξ(atan.(vs ./ (us .+ eps()))), svalues
+            )
+        
     end
+
+
 
     # get values at regular Δt
     Ts = map(ξ(value(model[:t])), svalues)
     time = Ts[1]:δt:Ts[end]
     I() = zeros(Float64, length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
-    u, ω, n, ψ, β = I(), I(), I(), I(), I()
+    u, ω, n, ψ, β, v = I(), I(), I(), I(), I(), I()
     for (i, t) in enumerate(time)
         idx = findfirst(Ts .>= t)
         idx = isnothing(idx) ? 1 : idx
@@ -118,10 +126,12 @@ function run_forward_model(
         ω[i] = ωs[idx]
         n[i] = ns[idx]
         ψ[i] = ψs[idx]
+        β[i] = βs[idx]
 
-        if problemtype isa KinematicsProblem
-            β[i] = βs[idx]
+        if problemtype isa KinematicsProblem            
             u̇[i] = u̇s[idx]
+        else
+            v[i] = vs[idx]
         end
     end
 
@@ -139,6 +149,7 @@ function run_forward_model(
         n = n,
         ψ = ψ,
         β = β,
+        v = v,
     )
 end
 

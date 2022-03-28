@@ -1,18 +1,18 @@
-
-using jcontrol
-import jcontrol: closest_point_idx, euclidean
+import Statistics: mean
 import InfiniteOpt: termination_status
 import Term.progress: ProgressBar, update, start, stop
 using Term
 install_term_logger()
+
+using jcontrol
+import jcontrol: closest_point_idx
+import jcontrol.comparisons: σ
 
 
 """
 Code to run kinematic model with a range of parameters
 and estimate the quality of fit to the tracking data
 """
-
-mse(Δx) = 1 ./ length(Δx) .* sum(Δx .^ 2)
 
 struct ParamEstimationResults
     δ̇::Number
@@ -37,8 +37,8 @@ function run_model_fit(params_ranges)
     fcond = State(; u=5)
 
     # load data
-    trials = load_trials(; keep_n = 20,)
-    cpoints = get_comparison_points(track; δs=10)
+    trials = load_cached_trials(; keep_n = 20,)
+    cpoints = ComparisonPoints(track; δs=10, trials=trials)
 
     # iterate over parameters values
     _δ̇ = params_ranges["δ̇_bounds"]
@@ -86,29 +86,34 @@ function run_model_fit(params_ranges)
         solution = run_forward_model(DynamicsProblem(), track, control_model)
 
         # estimate error
-        Δu::Vector{Float64} = []
-        Δω::Vector{Float64} = []
-        for trial in eachrow(trials)
-            trial = Trial(trial, track)
+        σx::Vector{Float64} = []
+        σy::Vector{Float64} = []
+        σθ::Vector{Float64} = []
+        σu::Vector{Float64} = []
+        σω::Vector{Float64} = []
 
-            for cp in cpoints.points
-                cp.s < trial.s[1] && continue
-    
-                # get closest trial point
-                idx = closest_point_idx(trial.x, cp.x, trial.y, cp.y)
-                idxs = closest_point_idx(solution.x, cp.x, solution.y, cp.y)
-    
-                # get errors
-                push!(Δu, solution.u[idxs] - trial.u[idx])
-                push!(Δω, solution.ω[idxs] - trial.ω[idx])
-            end
+
+        for cp in cpoints.points
+            cp.s < trial.s[1] && continue
+
+            # get closest trial point
+            idx = closest_point_idx(solution.x, cp.x, solution.y, cp.y)
+
+            # get errors
+            push!(σx, σ(trial.x[idx], cp.kinamtics.x))
+            push!(σy, σ(trial.y[idx], cp.kinamtics.y))
+            push!(σθ, σ(trial.θ[idx], cp.kinamtics.θ))
+            push!(σu, σ(trial.u[idx], cp.kinamtics.u))
+            push!(σω, σ(trial.ω[idx], cp.kinamtics.ω))
         end
 
         # compute the total error
-        ℓ = mse(Δu) + mse(Δω)
+        ℓ = mean(σx) + mean(σy) + mean(σθ) + mean(σu) + mean(σω)
         push!(
             results, ParamEstimationResults(δ̇, δ, ω, Fy, v, Fu, ℓ)
         )
+    
+        break
     end
     stop(pbar)
     return results
@@ -116,11 +121,11 @@ end
 
 
 params_ranges = Dict(
-    "δ̇_bounds"  => [1, 3, 6],
+    "δ̇_bounds"  => [1, 3, 5],
     "δ_bounds"  => [45, 90],
-    "ω_bounds"  => [100, 500, 1000],
-    "Fy_bounds" => [250, 500, 1500],
-    "v_bounds"  => [50, 250, 1500],
+    "ω_bounds"  => [250, 400, 800],
+    "Fy_bounds" => [100, 250, 500],
+    "v_bounds"  => [100, 250, 500],
     "Fu_bounds" => [50, 250, 500],
 )
 

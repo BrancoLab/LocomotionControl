@@ -28,15 +28,19 @@ end
 """
 Store trial information
 """
-@with_kw struct Trial
+struct Trial
     x::Vector{Float64}
     y::Vector{Float64}
     s::Vector{Float64}
-    θ::Vector{Float64} = Vector{Float64}[]
-    ω::Vector{Float64} = Vector{Float64}[]
-    u::Vector{Float64} = Vector{Float64}[]
+    θ::Vector{Float64}
+    ω::Vector{Float64}
+    speed::Vector{Float64}
+    u::Vector{Float64}
+    v::Vector{Float64}
     duration::Float64
 end
+
+Base.show(io::IO, trial::Trial) = print(io, "Trial: $(round(trial.duration; digits=2))s")
 
 """
 Construct Trial out of a dataframe entry.
@@ -51,7 +55,7 @@ function Trial(trial::DataFrameRow, track::Track)
     θ = movingaverage(θ, 3)
 
     # get velocities
-    u, ω = kinematics_from_position(
+    speed, u, v, ω = kinematics_from_position(
         trial.body_x, trial.body_y, θ; fps=60, smooth=true, smooth_wnd=0.05
     )
 
@@ -60,16 +64,18 @@ function Trial(trial::DataFrameRow, track::Track)
     ω[abs.(ω) .> 15] .= 0
 
     # trim start to when speed is high enough
-    start = findfirst(u .> 25)
+    start = findfirst(speed .> 15)
 
-    return Trial(;
-        x=trial.body_x[start:end],
-        y=trial.body_y[start:end],
-        s=s[start:end],
-        θ=θ[start:end],
-        ω=ω[start:end],
-        u=u[start:end],
-        duration=trial.duration,
+    return Trial(
+        trial.body_x[start:end],    # x
+        trial.body_y[start:end],    # y
+        s[start:end],               # s
+        θ[start:end],               # θ
+        ω[start:end],               # ω
+        speed[start:end],           # speed
+        u[start:end],               # u
+        v[start:end],               # v
+        trial.duration,             # duration
     )
 end
 
@@ -77,14 +83,16 @@ end
 function Trial(filepath::String)
     open(filepath) do f
         data = jsontable(read(f))
-        return Trial(;
-                x=data.x,
-                y=data.y,
-                s=data.s,
-                θ=data.θ,
-                ω=data.ω,
-                u=data.u,
-                duration=data.duration[1]
+        return Trial(
+                data.x,             # x
+                data.y,             # y
+                data.s,             # s
+                data.θ,             # θ
+                data.ω,             # ω
+                data.speed,         # speed
+                data.u,             # u
+                data.v,             # v
+                data.duration[1]    # duration
             )
     end
 end
@@ -107,10 +115,13 @@ function trimtrial(trial::Trial, s0, s1)
         s=trial.s[start:stop],
         θ=trial.θ[start:stop],
         ω=trial.ω[start:stop],
+        speed=data.speed[start:stop],
         u=trial.u[start:stop],
+        v=data.v[start:stop],
         duration=-1.0,
     )
 end
+
 trimtrial(trial::Trial, seg::TrackSegment) = trimtrial(trial,260 * ( seg.s₀ - .01), 260 * (seg.s₁ - .01))
 
 
