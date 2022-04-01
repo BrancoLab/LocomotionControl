@@ -79,21 +79,36 @@ end
 """
 Value of the width factor of the track at various svalues
 """
+# width_values = [
+#     [0.0 1.1]  # start
+#     [0.05 0.95]
+#     [0.07 0.8] # first narrow
+#     [0.15 0.9]  # end of frst narrow
+#     [0.3 .8]  # second curve
+#     [0.4 0.95]  # end of second curve
+#     [0.45 0.8]  # second narrow
+#     [0.55 0.8]  # end of second narrow
+#     [0.6 1]  # end of second narrow
+#     [0.67 1]  # start of fourth curve
+#     [0.7 1.1]
+#     [0.71 1.3]
+#     [0.9 1.1]
+#     [1 1.1]  # end
+# ]
+
 width_values = [
-    [0.0 1.1]  # start
-    [0.05 0.95]
-    [0.07 0.9] # first narrow
-    [0.15 0.95]  # end of frst narrow
-    [0.25 1.1]  # second curve
-    [0.4 0.95]  # end of second curve
-    [0.45 0.9]  # second narrow
-    [0.55 0.95]  # end of second narrow
-    [0.6 1.2]  # end of second narrow
-    [0.67 1.5]  # start of fourth curve
+    [0.0 .9]  # start
+    [0.05 .9]
+    [0.07 .9] # first narrow
+    [0.15 .9]  # end of frst narrow
+    [0.3 .9]  # second curve
+    [0.4 .9]  # end of second curve
+    [0.45 .9]  # second narrow
+    [0.5 .8]  # 
+    [0.6 .8]  # end of second narrow
     [0.7 1.5]
-    [0.72 1.5]
-    [0.9 1.1]
-    [1 1.1]  # end
+    [0.85 .95]  # second part of second curve
+    [1 .8]  # end
 ]
 
 # ---------------------------------------------------------------------------- #
@@ -153,7 +168,8 @@ function Track(; start_waypoint=2, keep_n_waypoints=-1, resolution=0.00001)
     else
         (size(XY, 1) - start_waypoint)
     end
-    XY = XY[start_waypoint:(start_waypoint + keep_n_waypoints - 1), :]
+    end_idx = min(start_waypoint + keep_n_waypoints - 1, 261)
+    XY = XY[start_waypoint:end_idx, :]
 
     s1 = (start_waypoint) / 261
 
@@ -175,3 +191,26 @@ end
 
 
 const FULLTRACK = Track()
+
+"""
+Trim the full track from a start value keeping a given length
+"""
+function trim(track::Track, svalue, length)
+    svalue = svalue < 1 ? svalue * 259 : svalue
+    first = findfirst(track.S .>= (svalue))
+    last = findlast(track.S .<= (svalue + length))
+    return Track(
+        FULLTRACK.X[first:last],
+        FULLTRACK.Y[first:last],
+        FULLTRACK.XY[:, first:last],
+        FULLTRACK.curvature[first:last],
+        -1,
+        FULLTRACK.P[first:last],
+        FULLTRACK.S[last],
+        FULLTRACK.S[first:last],
+        FULLTRACK.δs[first:last],
+        FULLTRACK.κ,
+        FULLTRACK.width,
+        FULLTRACK.θ[first:last],
+    )
+end

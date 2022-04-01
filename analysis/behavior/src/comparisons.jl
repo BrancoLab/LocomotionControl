@@ -6,10 +6,10 @@ module comparisons
 using Interpolations
 import DataFrames: DataFrame
 import MyterialColors: salmon, blue, green, purple, teal, indigo_dark
-import Statistics: mean, std
+import Statistics: mean, std, median
 
 
-import jcontrol: Track, interpolate_wrt_to, closest_point_idx, int, FULLTRACK
+import jcontrol: Track, trim, interpolate_wrt_to, closest_point_idx, int, FULLTRACK
 
 export ComparisonPoint, ComparisonPoints, TrackSegment, track_segments
 
@@ -25,16 +25,17 @@ Store parametersof normal distribution
 struct Dist
     name::Union{String, Symbol}
     μ
+    med
     σ
 end
 Base.show(io::IO, dist::Dist) = print(io, "Dist: $(dist.name)(μ: $(round(dist.μ; digits=2)), σ: $(round(dist.σ; digits=2)))")
-Dist(name, data::Vector) = Dist(name, mean(data), std(data))
+Dist(name, data::Vector) = Dist(name, mean(data), median(data), std(data))
 
 
 """
 Get the number of standard deviations away from the mean
 """
-σ(x::Number, dist::Dist) = (x - dist.μ)/dist.σ
+σ(x::Number, dist::Dist; use=:μ) = (x - getfield(dist, use))/dist.σ
 
 """
 Store values of kinematics variables from tracking data
@@ -45,6 +46,7 @@ struct KinematicsValues
     θ::Dist
     ω::Dist
     u::Dist
+    v::Dist
 end
 
 """
@@ -84,12 +86,10 @@ function ComparisonPoint(s, x, y, θ, η, w; trials::Union{Nothing, Vector}=noth
         :θ => [],
         :ω => [],
         :u => [],
+        :v => [],
     )
 
     for trial in trials
-        # @info s trial.s[1]
-        # s < trial.s[1] && continue
-        # get closest trial point
         idx = closest_point_idx(trial.x, x, trial.y, y)
 
         for var in keys(data)
@@ -98,7 +98,7 @@ function ComparisonPoint(s, x, y, θ, η, w; trials::Union{Nothing, Vector}=noth
     end    
     # Store mean and standard deviation
     kv = KinematicsValues(
-        Dist(:x, data[:x]), Dist(:y, data[:y]), Dist(:θ, data[:θ]), Dist(:u, data[:u]), Dist(:ω, data[:ω]),
+        Dist(:x, data[:x]), Dist(:y, data[:y]), Dist(:θ, data[:θ]), Dist(:ω, data[:ω]), Dist(:u, data[:u]),  Dist(:v, data[:v])
     )
     return ComparisonPoint(s, x, y, θ, η, w, kv)
 end
@@ -162,13 +162,8 @@ end
 
 function TrackSegment(s₀::Float64, s₁::Float64, color::String; δs=5)
     # theres 262 waypoints in the track's npy file, the track's S_f is 259.
-    # so we can use this info to get the waypoint idx from s₀
-    wp₀ = int(s₀ * 259)
-    wp₁ = int(s₁ * 259)
-    nwp = wp₁ - wp₀
-
-    # get track
-    track = Track(; start_waypoint=wp₀, keep_n_waypoints=nwp)
+    track = trim(FULLTRACK, s₀ * 259, (s₁ - s₀) * 259)
+    # rack(; start_waypoint=wp₀, keep_n_waypoints=nwp)
 
     return TrackSegment(
         track, 

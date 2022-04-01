@@ -9,7 +9,7 @@ import jcontrol: Track, get_track_borders, Δ
 import ..comparisons: ComparisonPoint, TrackSegment
 import ..control: KinematicsProblem, DynamicsProblem
 import ..forwardmodel: Solution
-import ..bicycle: Bicycle
+import ..bicycle: Bicycle, State
 import ..trial: Trial
 
 export draw, draw!, summary_plot
@@ -103,15 +103,16 @@ end
 """
 Draws a line across the track showing the position and 'orientation' of a CP.
 """
-function draw!(point::ComparisonPoint)
+function draw!(point::ComparisonPoint; color=black, lw=6, alpha=1)
     dx = point.w * cos.(point.η)
     dy = point.w * sin.(point.η)
 
     return plot!(
         [point.x - dx, point.x + dx],
         [point.y - dy, point.y + dy];
-        lw=6,
-        color=black,
+        lw=lw,
+        color=color,
+        alpha=alpha,
         label=nothing,
     )
 end
@@ -124,9 +125,18 @@ function draw!(segment::TrackSegment)
         segment.track; border_lw=6,alpha=1, border_alpha=1.0, color=segment.color
     )
 
-    draw!.(segment.checkpoints)
+    draw!.(segment.checkpoints; lw=4, alpha=.25)
 end
 
+# ----------------------------------- bike ----------------------------------- #
+function draw!(state::State; color=black)
+    plot!(
+        [state.x, state.x + 3 * cos(state.θ)],
+        [state.y, state.y + 3 * sin(state.θ)],
+        lw=6, color=color, label=nothing,
+    )
+    scatter!([state.x], [state.y], ms=8, color=color, label=nothing,)
+end
 
 
 # ---------------------------------------------------------------------------- #
@@ -212,8 +222,8 @@ end
 Plot the trajectory of the model (forward solution)
 showing also the bike's posture
 """
-function plot_bike_trajectory!(model, bike; showbike=true)
-    plot!(model.x, model.y; color=salmon_dark, lw=6, label="model")
+function plot_bike_trajectory!(model, bike; showbike=true, color=salmon_dark, lw=6, label="model")
+    plot!(model.x, model.y; color=color, lw=lw, label=label)
 
     # plot bike's posture
     return showbike && plot_bike!(model, bike, 50)
@@ -296,7 +306,7 @@ function summary_plot(
         "control δ̇dot";
         subplot=6,
     )
-    # plot_two!(t, _t, model.u̇, value(controlmodel[:u̇]), "ODE u̇", "control u̇", subplot=5)
+    plot_two!(t, _t, model.Fu, value(controlmodel[:Fu]), "ODE u̇", "control u̇", subplot=5)
 
     display(fig)
     display(xyplot)

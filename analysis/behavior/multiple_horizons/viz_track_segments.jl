@@ -6,7 +6,10 @@ using Plots
 import MyterialColors: teal, indigo_dark
 
 
-
+"""
+Visualize all the track's segments used for the multiple
+horizons analysis
+"""
 
 track = FULLTRACK
 

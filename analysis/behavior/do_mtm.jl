@@ -27,29 +27,28 @@ print("\n\n" * hLine("start"; style="bold green"))
 
 # ---------------------------------- dynamic---------------------------------- #
 
-track = Track(;start_waypoint=2, keep_n_waypoints=100)
+track = Track(;start_waypoint=2, keep_n_waypoints=-1)
 
-coptions = ControlOptions(
-    u_bounds = Bounds(5, 80),
-    δ_bounds = Bounds(-50, 50, :angle),
-    δ̇_bounds = Bounds(-4, 4),
-    ω_bounds = Bounds(-400, 400, :angle),
-
-    Fy_bounds = Bounds(-250, 250),
-    v_bounds = Bounds(-1000, 1000),
-    Fu_bounds = Bounds(-250, 250)
+coptions = ControlOptions(;
+u_bounds=Bounds(10, 80),
+δ_bounds=Bounds(-120, 120, :angle),
+δ̇_bounds=Bounds(-5, 5),
+ω_bounds=Bounds(-600, 600, :angle),
+v_bounds=Bounds(-250, 250),
+Fu_bounds=Bounds(-250, 3000),
 )
+
 icond = State(; u=10)
-fcond = State(; u=50)
+fcond = State(; u=30, ω=0)
 
 track, bike, control_model, solution = run_mtm(
     :dynamics,  # model type
     3;  # supports density
-    # track=track,
-    control_options=:default,
+    track=track,
+    control_options=coptions,
     icond=icond,
-    # fcond=fcond,
-    showtrials=nothing,
+    fcond=fcond,
+    showtrials=25,
     n_iter=5000,
     timed=false,
     showplots=true,

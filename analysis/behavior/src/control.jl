@@ -48,7 +48,7 @@ other parameters such as bounds on allowed errors.
 @with_kw struct ControlOptions
     # errors bounds
     track_safety::Float64 = 1
-    ψ_bounds::Bounds = Bounds(-35, 35, :angle)
+    ψ_bounds::Bounds = Bounds(-30, 30, :angle)
 
     # control bounds
     u̇_bounds::Bounds = Bounds(-200, 200)
@@ -377,7 +377,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 90.0)
+    set_optimizer_attribute(model, "max_wall_time", 25.0)
 
     # register curvature function
     κ(s) = track.κ(s)
@@ -396,10 +396,6 @@ function create_and_solve_control(
             # steering
             options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
             options.δ̇_bounds.lower ≤ δ̇ ≤ options.δ̇_bounds.upper, Infinite(s)    # control
-
-            # lateral forces
-            options.Fy_bounds.lower ≤ Ff ≤ options.Fy_bounds.upper, Infinite(s)
-            options.Fy_bounds.lower ≤ Fr ≤ options.Fy_bounds.upper, Infinite(s)
 
             # long/lat/angular velocities
             options.u_bounds.lower ≤ u ≤ options.u_bounds.upper, Infinite(s)
@@ -427,6 +423,9 @@ function create_and_solve_control(
     V = √(u^2 + v^2)
     SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β) + eps())  # time -> space domain conversion factor
 
+    Ff = c⋅(δ - (l_f⋅ω + v)/u)
+    Fr = c⋅(l_r⋅ω - v)/u
+
     @constraints(
         model,
         begin
@@ -436,9 +435,9 @@ function create_and_solve_control(
 
             # EOM
             ∂(δ, s) == SF * δ̇
-            ∂(u, s) == SF / m * (m ⋅ ω ⋅ v - Ff ⋅ sin(δ) + Fu)
-            ∂(v, s) == SF / m * (-m ⋅ ω ⋅ u + Ff ⋅ cos(δ) + Fr)
-            ∂(ω, s) == SF / Iz * (l_f ⋅ Ff ⋅ cos(δ) - l_r ⋅ Fr)
+            ∂(u, s) == SF / m * (m⋅ω⋅v - Ff⋅sin(δ) + Fu)
+            ∂(v, s) == SF / m * (-m⋅ω⋅u + Ff⋅cos(δ) + Fr)
+            ∂(ω, s) == SF / Iz * (l_f⋅Ff⋅cos(δ) - l_r⋅Fr)
 
             # time
             ∂(t, s) == SF
@@ -454,30 +453,26 @@ function create_and_solve_control(
             ψ(0) == initial_conditions.ψ
 
             δ(0) == initial_conditions.δ
+            δ̇(0) == initial_conditions.δ̇
 
             u(0) == initial_conditions.u
             v(0) == initial_conditions.v
             ω(0) == initial_conditions.ω
-
-            Ff(0) == 0
-            Fr(0) == 0
-            Fu(0) == 0
+            Fu(0) == initial_conditions.Fu
 
             t(0) == 0
 
             # final conditions
-            n(track.S_f) == final_conditions.n
+            # n(track.S_f) == final_conditions.n
             ψ(track.S_f) == final_conditions.ψ
 
-            δ(track.S_f) == final_conditions.δ
+            # δ(track.S_f) == final_conditions.δ
+            # δ̇(track.S_f) == final_conditions.δ̇
 
             u(track.S_f) == final_conditions.u
             v(track.S_f) == final_conditions.v
             ω(track.S_f) == final_conditions.ω
-
-            Ff(track.S_f) == 0
-            Fr(track.S_f) == 0
-            Fu(track.S_f) == 0
+            # Fu(track.S_f) == final_conditions.Fu
         end
     )
 

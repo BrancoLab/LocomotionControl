@@ -51,7 +51,7 @@ function run_mtm(
 
     # define initial and final conditions
     icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=10) : icond
-    fcond = isnothing(fcond) ? State(; u=15, n=0, ψ=0) : fcond
+    fcond = isnothing(fcond) ? State(; u=40, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #
     #                                   FIT MODEL                                  #

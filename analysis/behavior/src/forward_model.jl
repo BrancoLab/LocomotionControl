@@ -3,17 +3,18 @@ import InfiniteOpt: value, InfiniteModel, supports
 using Interpolations: Interpolations
 import Parameters: @with_kw
 
-import jcontrol: Track, upsample, int, ξ
+import jcontrol: Track, upsample, int, ξ, closest_point_idx, State
 import ..control: KinematicsProblem, DynamicsProblem, MTMproblem
 import ..bicycle: State, Bicycle
 
-export Solution, run_forward_model
+export Solution, run_forward_model, solution2state
 
 int(x) = (Int64 ∘ round)(x)
 
 @with_kw struct Solution
     δt::Float64
     t::Vector{Float64}    # time
+    s::Vector{Float64}    # track progression
     x::Vector{Float64}    # position
     y::Vector{Float64}
     θ::Vector{Float64}    # orientation
@@ -29,6 +30,7 @@ int(x) = (Int64 ∘ round)(x)
 
     # Dynamics problem only
     v::Vector{Float64} = Vector{Float64}[]  # lateral velocity
+    Fu::Vector{Float64}
 
     # controls
     u̇::Vector{Float64}
@@ -101,7 +103,7 @@ function run_forward_model(
         βs = map(
                 ξ(atan.(vs ./ (us .+ eps()))), svalues
             )
-        
+        Fus = map(ξ(value(model[:Fu])), svalues)
     end
 
 
@@ -111,7 +113,7 @@ function run_forward_model(
     time = Ts[1]:δt:Ts[end]
     I() = zeros(Float64, length(time))
     T, X, Y, θ, δ, δ̇, u̇ = I(), I(), I(), I(), I(), I(), I()
-    u, ω, n, ψ, β, v = I(), I(), I(), I(), I(), I()
+    u, ω, n, ψ, β, v, Fu = I(), I(), I(), I(), I(), I(), I()
     for (i, t) in enumerate(time)
         idx = findfirst(Ts .>= t)
         idx = isnothing(idx) ? 1 : idx
@@ -132,12 +134,22 @@ function run_forward_model(
             u̇[i] = u̇s[idx]
         else
             v[i] = vs[idx]
+            Fu[i] = Fus[idx]
         end
     end
+
+    # get `s`
+    S::Vector{Float64} = []
+    for i in 1:length(X)
+        # get the closest track point
+        idx = closest_point_idx(track.X, X[i], track.Y, Y[i])
+        push!(S, track.S[idx])
+    end 
 
     return Solution(
         δt=δt,
         t = T,
+        s = S,
         x = X,
         y = Y,
         θ = θ,
@@ -150,6 +162,23 @@ function run_forward_model(
         ψ = ψ,
         β = β,
         v = v,
+        Fu=Fu,
+    )
+end
+
+
+"""
+Take the value of a forward model solution at a given svalue
+and return a State with the solution values there.
+"""
+function solution2state(svalue::Float64, solution::Solution)::State
+    svalue = svalue < 1 ? svalue * 258 : svalue
+    idx = findfirst(solution.s .>= svalue)
+    vars =  (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
+    return State(;
+        Dict(
+            map(v -> v=>getfield(solution, v)[idx], vars)
+        )...
     )
 end
 

@@ -110,15 +110,15 @@ function trimtrial(trial::Trial, s0, s1)
     isnothing(start) && return nothing
 
     return Trial(
-        x=trial.x[start:stop],
-        y=trial.y[start:stop],
-        s=trial.s[start:stop],
-        θ=trial.θ[start:stop],
-        ω=trial.ω[start:stop],
-        speed=data.speed[start:stop],
-        u=trial.u[start:stop],
-        v=data.v[start:stop],
-        duration=-1.0,
+        trial.x[start:stop],        # x
+        trial.y[start:stop],        # y
+        trial.s[start:stop],        # s
+        trial.θ[start:stop],        # θ
+        trial.ω[start:stop],        # ω
+        trial.speed[start:stop],    # speed
+        trial.u[start:stop],        # u
+        trial.v[start:stop],        # v
+        -1.0,                       # duration
     )
 end
 

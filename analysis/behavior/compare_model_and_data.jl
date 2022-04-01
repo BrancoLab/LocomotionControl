@@ -7,20 +7,21 @@ install_term_logger()
 
 using jcontrol
 using jcontrol.visuals
-import jcontrol: closest_point_idx, euclidean
+import jcontrol: closest_point_idx, euclidean, Track
 import jcontrol.comparisons: ComparisonPoints
 
 function compare(;  problemtype=:dynamics)
     # ---------------------------------- run MTM --------------------------------- #
+    track = Track(;start_waypoint=2, keep_n_waypoints=-1)
+
 
     coptions = ControlOptions(;
-        u_bounds=Bounds(5, 80),
-        δ_bounds=Bounds(-50, 50, :angle),
-        δ̇_bounds=Bounds(-3, 3),
-        ω_bounds=Bounds(-500, 500, :angle),
-        Fy_bounds=Bounds(-500, 500),
-        v_bounds=Bounds(-500, 500),
-        Fu_bounds=Bounds(-250, 250),
+        u_bounds=Bounds(10, 80),
+        δ_bounds=Bounds(-150, 150, :angle),
+        δ̇_bounds=Bounds(-5, 5),
+        ω_bounds=Bounds(-800, 800, :angle),
+        v_bounds=Bounds(-1000, 1000),
+        Fu_bounds=Bounds(-3000, 3000),
     )
 
     track, bike, _, solution = run_mtm(
@@ -28,7 +29,7 @@ function compare(;  problemtype=:dynamics)
         3;  # supports density
         showtrials=nothing,
         control_options=coptions,
-        # control_options=:default,
+        track=track,
         n_iter=5000,
         timed=false,
         showplots=false,
@@ -41,7 +42,7 @@ function compare(;  problemtype=:dynamics)
 
     # -------------------------- do comparison with data ------------------------- #
     # load data
-    trials = load_cached_trials(; keep_n = 200,)
+    trials = load_cached_trials(; keep_n = 20,)
     cpoints = ComparisonPoints(track; δs=10, trials=trials)
 
     # show data
