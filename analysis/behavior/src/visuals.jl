@@ -255,7 +255,7 @@ function summary_plot(
     end
 
     # mark bike's trajectory
-    plot_bike_trajectory!(model, bike; showbike=false)
+    plot_bike_trajectory!(model, bike; showbike=true)
     scatter!(
         model.x[1:10:end],
         model.y[1:10:end];

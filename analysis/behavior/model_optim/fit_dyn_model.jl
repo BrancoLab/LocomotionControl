@@ -116,7 +116,7 @@ function run_model_fit(params_ranges)
         # compute the total error
         ℓ = mean(abs.(σx)) + mean(abs.(σy)) + mean(abs.(σθ)) + mean(abs.(σu)) + mean(abs.(σω))
         # ℓ = mean(abs.(σu)) + mean(abs.(σω)) + mean(abs.(σv))
-        # @info mean(abs.(σu))  mean(abs.(σω))
+
         push!(
             results, ParamEstimationResults(δ̇, δ, ω, v, Fu, duration, ℓ)
         )
@@ -135,9 +135,9 @@ end
 # )
 
 params_ranges = Dict(
-    "δ̇_bounds"  => [5, 8],
-    "δ_bounds"  => [90, 120],
-    "ω_bounds"  => [500, 800],
+    "δ̇_bounds"  => [3, 5, 8],
+    "δ_bounds"  => [45, 90, 120],
+    "ω_bounds"  => [400, 800, 1000],
     "v_bounds"  => [1000, 2000, 5000],
     "Fu_bounds" => [2000, 3500, 5000],
 )

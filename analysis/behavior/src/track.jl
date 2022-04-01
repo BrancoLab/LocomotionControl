@@ -107,7 +107,7 @@ width_values = [
     [0.5 .8]  # 
     [0.6 .8]  # end of second narrow
     [0.7 1.5]
-    [0.85 .95]  # second part of second curve
+    [0.85 1.2]  # second part of last curve
     [1 .8]  # end
 ]
 

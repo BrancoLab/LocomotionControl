@@ -1,5 +1,6 @@
 using Plots
-import MyterialColors: black
+import Statistics: median, std
+import MyterialColors: black, blue_light
 using Term
 import Term: track as pbar
 install_term_logger()
@@ -17,10 +18,10 @@ function compare(;  problemtype=:dynamics)
 
     coptions = ControlOptions(;
         u_bounds=Bounds(10, 80),
-        δ_bounds=Bounds(-150, 150, :angle),
-        δ̇_bounds=Bounds(-5, 5),
-        ω_bounds=Bounds(-800, 800, :angle),
-        v_bounds=Bounds(-1000, 1000),
+        δ_bounds=Bounds(-90, 90, :angle),
+        δ̇_bounds=Bounds(-4, 4),
+        ω_bounds=Bounds(-400, 400, :angle),
+        v_bounds=Bounds(-25, 25),
         Fu_bounds=Bounds(-3000, 3000),
     )
 
@@ -42,7 +43,7 @@ function compare(;  problemtype=:dynamics)
 
     # -------------------------- do comparison with data ------------------------- #
     # load data
-    trials = load_cached_trials(; keep_n = 20,)
+    trials = load_cached_trials(; keep_n = 25,)
     cpoints = ComparisonPoints(track; δs=10, trials=trials)
 
     # show data
@@ -55,6 +56,7 @@ function compare(;  problemtype=:dynamics)
     vplot = plot(; title="v", xlabel="s (cm)", ylabel="v cm/s", legend=false)
     ωplot = plot(; title="ang.vel.", xlabel="s (cm)", ylabel="avel rad/s", legend=false)
 
+    U, Ω = Dict{Float64, Vector{Float64}}(), Dict{Float64, Vector{Float64}}()
     for trial in pbar(
         trials; description="Iterating trials", expand=true, columns=:detailed, redirectstdout=false,
     )   
@@ -68,14 +70,28 @@ function compare(;  problemtype=:dynamics)
         for cp in cpoints.points
             cp.s < trial.s[1] && continue
 
+            if cp.s ∉ keys(U)
+                U[cp.s] = Vector{Float64}[]
+                Ω[cp.s] = Vector{Float64}[]
+            end
+
             # get closest trial point
             idx = closest_point_idx(trial.x, cp.x, trial.y, cp.y)
-            x, y, θ = trial.x[idx], trial.y[idx], trial.θ[idx]
+            x, y = trial.x[idx], trial.y[idx]
+
+            push!(U[cp.s], trial.u[idx])
+            push!(Ω[cp.s], trial.ω[idx])
+
             # mark point for debugging
             scatter!(plt, [x], [y]; ms=5, color="blue", label=nothing, alpha=0.5)
         end
     end
 
+    # plot avg/std of trials kinematics
+    for cp in cpoints.points
+        scatter!(uplot, [cp.s], [median(U[cp.s])]; color=blue_light, ms=10)
+        scatter!(ωplot, [cp.s], [median(Ω[cp.s])]; color=blue_light, ms=10)
+    end
 
     # plot model kinematics at CP
     for cp in cpoints.points

@@ -3,7 +3,7 @@ import InfiniteOpt: value, InfiniteModel, supports
 using Interpolations: Interpolations
 import Parameters: @with_kw
 
-import jcontrol: Track, upsample, int, ξ, closest_point_idx, State
+import jcontrol: Track, upsample, int, ξ, closest_point_idx
 import ..control: KinematicsProblem, DynamicsProblem, MTMproblem
 import ..bicycle: State, Bicycle
 
@@ -168,12 +168,18 @@ end
 
 
 """
-Take the value of a forward model solution at a given svalue
-and return a State with the solution values there.
+Take the value of a forward model solution at a given svalue or timestep
+and return a State with the solution values there/then.
 """
-function solution2state(svalue::Float64, solution::Solution)::State
-    svalue = svalue < 1 ? svalue * 258 : svalue
-    idx = findfirst(solution.s .>= svalue)
+function solution2state(svalue::Float64, solution::Solution; at=:place)::State
+    # get solution sample IDX
+    if at == :place
+        svalue = svalue < 1 ? svalue * 258 : svalue
+        idx = findfirst(solution.s .>= svalue)
+    elseif at == :time
+        idx = findfirst(solution.t .>= svalue)
+    end
+
     vars =  (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
     return State(;
         Dict(
