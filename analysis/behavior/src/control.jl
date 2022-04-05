@@ -350,7 +350,7 @@ function create_and_solve_control(
     bike::Bicycle,
     options::ControlOptions,
     initial_conditions::State,
-    final_conditions::State;
+    final_conditions::Union{Nothing, State};
     quiet::Bool=false,
     n_iter::Int=1000,
     tollerance::Float64=1e-10,
@@ -430,10 +430,10 @@ function create_and_solve_control(
     )
 
     # ----------------------- set initial/final conditions ----------------------- #
+    # initial conditions
     @constraints(
         model,
         begin
-            # initial conditions
             n(track.S[1]) == initial_conditions.n
             ψ(track.S[1]) == initial_conditions.ψ
 
@@ -443,24 +443,30 @@ function create_and_solve_control(
             u(track.S[1]) == initial_conditions.u
             v(track.S[1]) == initial_conditions.v
             ω(track.S[1]) == initial_conditions.ω
-            # Fu(track.S[1]) == initial_conditions.Fu
+            Fu(track.S[1]) == initial_conditions.Fu
 
             t(track.S[1]) == 0
-
-            # final conditions
-            # n(track.S[end]) == final_conditions.n
-            # ψ(track.S[end]) == final_conditions.ψ
-
-            # δ(track.S[end]) == final_conditions.δ
-            # δ̇(track.S[end]) == final_conditions.δ̇
-
-            # u(track.S[end]) == final_conditions.u
-            # v(track.S[end]) == final_conditions.v
-            # ω(track.S[end]) == final_conditions.ω
-            # Fu(track.S[end]) == final_conditions.Fu
         end
     )
 
+    # final conditions
+    if !isnothing(final_conditions)
+        @constraints(
+            model, 
+            begin
+            n(track.S[end]) == final_conditions.n
+            ψ(track.S[end]) == final_conditions.ψ
+
+            δ(track.S[end]) == final_conditions.δ
+            δ̇(track.S[end]) == final_conditions.δ̇
+
+            u(track.S[end]) == final_conditions.u
+            v(track.S[end]) == final_conditions.v
+            ω(track.S[end]) == final_conditions.ω
+            # Fu(track.S[end]) == final_conditions.Fu
+            end
+        )
+        end
     # --------------------------------- optimize --------------------------------- #
     set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
     @objective(model, Min, ∫(SF, s))

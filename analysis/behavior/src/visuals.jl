@@ -131,10 +131,13 @@ end
 # ----------------------------------- bike ----------------------------------- #
 function draw!(state::State; color=black, alpha=1.0)
     plot!(
-        [state.x, state.x + 3 * cos(state.θ)],
-        [state.y, state.y + 3 * sin(state.θ)],
+        [state.x, state.x + 2 * cos(state.θ)],
+        [state.y, state.y + 2 * sin(state.θ)],
         lw=6, color="black", label=nothing,
     )
+
+    scatter!([state.x], [state.y], ms=12, color="white", mlc="white", msc="white", lw=0.01, label=nothing, alpha=alpha)
+
     scatter!([state.x], [state.y], ms=8, color=color, label=nothing, alpha=alpha)
 end
 

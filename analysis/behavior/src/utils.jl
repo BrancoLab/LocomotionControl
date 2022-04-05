@@ -2,6 +2,13 @@ using Statistics: mean
 using ForwardDiff
 using Dierckx
 
+function toDict(res)
+    return Dict(
+        fieldnames(typeof(res)) .=> getfield.(Ref(res), fieldnames(typeof(res)))
+    )
+end
+
+
 # ------------------------------ interpolations ------------------------------ #
 
 """

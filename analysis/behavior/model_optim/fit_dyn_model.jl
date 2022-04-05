@@ -5,7 +5,7 @@ using Term
 install_term_logger()
 
 using jcontrol
-import jcontrol: closest_point_idx
+import jcontrol: closest_point_idx, toDict
 import jcontrol.comparisons: σ, ComparisonPoints
 
 
@@ -24,11 +24,6 @@ struct ParamEstimationResults
     ℓ::Float64
 end
 
-function toDict(res::ParamEstimationResults)
-    return Dict(
-        fieldnames(typeof(res)) .=> getfield.(Ref(res), fieldnames(typeof(res)))
-    )
-end
 
 
 function run_model_fit(params_ranges)

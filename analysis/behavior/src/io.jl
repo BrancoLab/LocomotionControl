@@ -18,7 +18,8 @@ if Sys.iswindows()
 else
     PATHS = Dict(
     "exp_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data",
-    "cached_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_trials_cache"
+    "cached_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_trials_cache",
+    "horizons_sims_cache" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims",
     )
 end
 
