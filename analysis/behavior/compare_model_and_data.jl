@@ -18,11 +18,11 @@ function compare(;  problemtype=:dynamics)
 
     coptions = ControlOptions(;
         u_bounds=Bounds(10, 80),
-        δ_bounds=Bounds(-90, 90, :angle),
+        δ_bounds=Bounds(-50, 50, :angle),
         δ̇_bounds=Bounds(-4, 4),
-        ω_bounds=Bounds(-400, 400, :angle),
+        ω_bounds=Bounds(-500, 500, :angle),
         v_bounds=Bounds(-25, 25),
-        Fu_bounds=Bounds(-3000, 3000),
+        Fu_bounds=Bounds(-3500, 3500),
     )
 
     track, bike, _, solution = run_mtm(

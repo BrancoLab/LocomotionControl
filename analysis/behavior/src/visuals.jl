@@ -129,13 +129,13 @@ function draw!(segment::TrackSegment)
 end
 
 # ----------------------------------- bike ----------------------------------- #
-function draw!(state::State; color=black)
+function draw!(state::State; color=black, alpha=1.0)
     plot!(
         [state.x, state.x + 3 * cos(state.θ)],
         [state.y, state.y + 3 * sin(state.θ)],
-        lw=6, color=color, label=nothing,
+        lw=6, color="black", label=nothing,
     )
-    scatter!([state.x], [state.y], ms=8, color=color, label=nothing,)
+    scatter!([state.x], [state.y], ms=8, color=color, label=nothing, alpha=alpha)
 end
 
 
@@ -222,8 +222,8 @@ end
 Plot the trajectory of the model (forward solution)
 showing also the bike's posture
 """
-function plot_bike_trajectory!(model, bike; showbike=true, color=salmon_dark, lw=6, label="model")
-    plot!(model.x, model.y; color=color, lw=lw, label=label)
+function plot_bike_trajectory!(model, bike; showbike=true, color=salmon_dark, lw=6, alpha=1.0, label="model")
+    plot!(model.x, model.y; color=color, lw=lw, label=label, alpha=alpha)
 
     # plot bike's posture
     return showbike && plot_bike!(model, bike, 50)

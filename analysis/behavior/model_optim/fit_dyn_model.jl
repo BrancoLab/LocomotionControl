@@ -126,19 +126,13 @@ function run_model_fit(params_ranges)
 end
 
 
-# params_ranges = Dict(
-    # "δ̇_bounds"  => [1, 3, 5, 8],
-    # "δ_bounds"  => [45, 60, 90, 120],
-    # "ω_bounds"  => [250, 400, 600, 800],
-    # "v_bounds"  => [100, 250, 500, 1000, 2000, 3000],
-    # "Fu_bounds" => [100, 250, 500, 1000, 2000, 3000, 5000],
-# )
+
 
 params_ranges = Dict(
-    "δ̇_bounds"  => [3, 5, 8],
-    "δ_bounds"  => [45, 90, 120],
-    "ω_bounds"  => [400, 800, 1000],
-    "v_bounds"  => [1000, 2000, 5000],
+    "δ̇_bounds"  => [2, 4, 8],
+    "δ_bounds"  => [60, 90, 120],
+    "ω_bounds"  => [250, 500, 1000],
+    "v_bounds"  => [25, 250, 500],
     "Fu_bounds" => [2000, 3500, 5000],
 )
 

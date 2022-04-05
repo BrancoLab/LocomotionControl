@@ -75,34 +75,19 @@ realistict_control_options = ControlOptions(;
     v_bounds=Bounds(-125, 125),
 )
 
-# """
-#     These represent the best controls for the Kinematic
-#     model as of 22/03/2022. Discovered through params 
-#     exploration.
-# """
-# default_control_options = ControlOptions(;
-#     u_bounds=Bounds(5, 80),
-#     u̇_bounds=Bounds(-125, 125),
-#     δ_bounds=Bounds(-110, 110, :angle),
-#     δ̇_bounds=Bounds(-3, 3),
-#     ω_bounds=Bounds(-400, 400, :angle),
-#     Fy_bounds=Bounds(-500, 500),
-#     v_bounds=Bounds(-125, 125),
-# )
-
 
 """
 These are th best controls for the Dynamic model
-as of 25/03/2022
+as of 04/04/2022, they're also the very close
+to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-u_bounds=Bounds(5, 80),
-δ̇_bounds=Bounds(-6, 6),
-δ_bounds=Bounds(-90, 90, :angle),
-ω_bounds=Bounds(-1000, 1000, :angle),
-Fy_bounds=Bounds(-1500, 1500),
-v_bounds=Bounds(-50, 50),
-Fu_bounds=Bounds(-250, 250),
+    u_bounds=Bounds(10, 80),
+    δ_bounds=Bounds(-50, 50, :angle),
+    δ̇_bounds=Bounds(-4, 4),
+    ω_bounds=Bounds(-500, 500, :angle),
+    v_bounds=Bounds(-25, 25),
+    Fu_bounds=Bounds(-3500, 3500),
 )
 
 
@@ -371,20 +356,20 @@ function create_and_solve_control(
     tollerance::Float64=1e-10,
     verbose::Int=0,
 )
-
+    
     # initialize optimizer
     model = InfiniteModel(Ipopt.Optimizer)
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 50.0)
+    set_optimizer_attribute(model, "max_wall_time", 25.0)
 
     # register curvature function
     κ(s) = track.κ(s)
     @register(model, κ(s))
 
     # ----------------------------- define variables ----------------------------- #
-    @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = num_supports)
+    @infinite_parameter(model, s ∈ [track.S[1], track.S[end]], num_supports = num_supports)
 
     @variables(
         model,
@@ -449,34 +434,35 @@ function create_and_solve_control(
         model,
         begin
             # initial conditions
-            n(0) == initial_conditions.n
-            ψ(0) == initial_conditions.ψ
+            n(track.S[1]) == initial_conditions.n
+            ψ(track.S[1]) == initial_conditions.ψ
 
-            δ(0) == initial_conditions.δ
-            δ̇(0) == initial_conditions.δ̇
+            δ(track.S[1]) == initial_conditions.δ
+            δ̇(track.S[1]) == initial_conditions.δ̇
 
-            u(0) == initial_conditions.u
-            v(0) == initial_conditions.v
-            ω(0) == initial_conditions.ω
-            Fu(0) == initial_conditions.Fu
+            u(track.S[1]) == initial_conditions.u
+            v(track.S[1]) == initial_conditions.v
+            ω(track.S[1]) == initial_conditions.ω
+            # Fu(track.S[1]) == initial_conditions.Fu
 
-            t(0) == 0
+            t(track.S[1]) == 0
 
             # final conditions
-            # n(track.S_f) == final_conditions.n
-            ψ(track.S_f) == final_conditions.ψ
+            # n(track.S[end]) == final_conditions.n
+            # ψ(track.S[end]) == final_conditions.ψ
 
-            # δ(track.S_f) == final_conditions.δ
-            # δ̇(track.S_f) == final_conditions.δ̇
+            # δ(track.S[end]) == final_conditions.δ
+            # δ̇(track.S[end]) == final_conditions.δ̇
 
-            u(track.S_f) == final_conditions.u
-            v(track.S_f) == final_conditions.v
-            ω(track.S_f) == final_conditions.ω
-            # Fu(track.S_f) == final_conditions.Fu
+            # u(track.S[end]) == final_conditions.u
+            # v(track.S[end]) == final_conditions.v
+            # ω(track.S[end]) == final_conditions.ω
+            # Fu(track.S[end]) == final_conditions.Fu
         end
     )
 
     # --------------------------------- optimize --------------------------------- #
+    set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
     @objective(model, Min, ∫(SF, s))
     optimize!(model)
 

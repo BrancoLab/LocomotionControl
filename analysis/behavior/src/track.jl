@@ -23,7 +23,7 @@ end
 function Base.show(io::IO, track::Track)
     return print(
         io,
-        "Track. \e[2m$(round(track.S_f)) cm long, $(track.N) waypoints. Width: $(track.width)cm\e[0m",
+        "Track. \e[2m$(round(track.S_f)) cm long, $(track.N) waypoints.\e[0m",
     )
 end
 
@@ -197,8 +197,11 @@ Trim the full track from a start value keeping a given length
 """
 function trim(track::Track, svalue, length)
     svalue = svalue < 1 ? svalue * 259 : svalue
+    
     first = findfirst(track.S .>= (svalue))
+
     last = findlast(track.S .<= (svalue + length))
+
     return Track(
         FULLTRACK.X[first:last],
         FULLTRACK.Y[first:last],

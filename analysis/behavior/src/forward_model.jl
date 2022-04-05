@@ -107,7 +107,6 @@ function run_forward_model(
     end
 
 
-
     # get values at regular Δt
     Ts = map(ξ(value(model[:t])), svalues)
     time = Ts[1]:δt:Ts[end]
@@ -166,6 +165,20 @@ function run_forward_model(
     )
 end
 
+function Base.lastindex(solution::Solution)::Int
+    return length(solution.x)
+end
+
+
+function Base.getindex(solution::Solution, state)
+    vars =  (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
+    return State(;
+        Dict(
+            map(v -> v=>getfield(solution, v)[state], vars)
+        )...
+    )
+end
+
 
 """
 Take the value of a forward model solution at a given svalue or timestep
@@ -178,6 +191,7 @@ function solution2state(svalue::Float64, solution::Solution; at=:place)::State
         idx = findfirst(solution.s .>= svalue)
     elseif at == :time
         idx = findfirst(solution.t .>= svalue)
+        idx = isnothing(idx) ? 1 : idx
     end
 
     vars =  (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
@@ -188,4 +202,14 @@ function solution2state(svalue::Float64, solution::Solution; at=:place)::State
     )
 end
 
+"""
+The value of `s` of a solution at a timestep.
+"""
+function solution2s(t::Float64, solution::Solution)::Float64
+    # get solution sample IDX
+    idx = findfirst(solution.t .>= t)
+    idx = isnothing(idx) ? length(solution.t) : idx  # if solution is too short
+
+    return solution.s[idx]
+end
 end

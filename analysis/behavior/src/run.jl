@@ -57,7 +57,7 @@ function run_mtm(
     #                                   FIT MODEL                                  #
     # ---------------------------------------------------------------------------- #
     # supports_density = 1 -> 100 supports for the whole track, adjust by track length
-    n_supports = (Int ∘ round)(supports_density * 100 * track.S_f / 261)
+    n_supports = (Int ∘ round)(supports_density * 100 * (track.S[end] - track.S[1]) / 261)
     # @info "Running with" n_supports
     control_model = @timeit to "solve control" create_and_solve_control(
         problemtype,

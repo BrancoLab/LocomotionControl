@@ -162,6 +162,7 @@ end
 
 function TrackSegment(s₀::Float64, s₁::Float64, color::String; δs=5)
     # theres 262 waypoints in the track's npy file, the track's S_f is 259.
+    # get track
     track = trim(FULLTRACK, s₀ * 259, (s₁ - s₀) * 259)
     # rack(; start_waypoint=wp₀, keep_n_waypoints=nwp)
 
