@@ -50,7 +50,7 @@ function run_mtm(
     @assert control_options isa ControlOptions "Control options is not a ControlOptions type: $(typeof(control_options)) $control_options"
 
     # define initial and final conditions
-    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=15, ω=2, ψ=.3) : icond
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=15, ω=0, ψ=.3) : icond
     # fcond = isnothing(fcond) ? State(; u=40, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #

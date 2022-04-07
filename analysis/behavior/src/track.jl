@@ -161,8 +161,8 @@ function Track(XY, s1::Float64; resolution=0.00001)
 
     # get width function working for short tracks
     wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=4)
-    # wfn(s) = wspline((s - s1) / 261)
-    wfn(s) = 3.0
+    wfn(s) = wspline((s - s1) / 261)
+    # wfn(s) = 3.0
 
     # return Track
     return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, wfn, θ)

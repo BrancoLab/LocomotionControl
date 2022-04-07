@@ -29,7 +29,7 @@ print("\n\n" * hLine("start"; style="bold green"))
 
 track = Track(;start_waypoint=2, keep_n_waypoints=-1)
 
-icond = State(; u=10)
+# icond = State(; u=10)
 fcond = State(; u=30, ω=0)
 
 track, bike, control_model, solution = run_mtm(
@@ -37,7 +37,7 @@ track, bike, control_model, solution = run_mtm(
     3;  # supports density
     track=track,
     control_options=:default,
-    icond=icond,
+    icond=nothing,
     fcond=fcond,
     showtrials=nothing,
     n_iter=5000,

@@ -17,11 +17,11 @@ function compare(;  problemtype=:dynamics)
 
 
     coptions = ControlOptions(;
-        u_bounds=Bounds(10, 80),
-        δ_bounds=Bounds(-180, 180, :angle),
+        u_bounds=Bounds(10, 75),
+        δ_bounds=Bounds(-80, 80, :angle),
         δ̇_bounds=Bounds(-4, 4),
         ω_bounds=Bounds(-800, 800, :angle),
-        v_bounds=Bounds(-8, 8),
+        v_bounds=Bounds(-12, 12),
         Fu_bounds=Bounds(-1250, 4500),
     )
 
@@ -32,7 +32,7 @@ function compare(;  problemtype=:dynamics)
         problemtype,  # model type
         3;  # supports density
         showtrials=nothing,
-        # control_options=coptions,
+        control_options=coptions,
         track=track,
         n_iter=5000,
         fcond=final_conditions,

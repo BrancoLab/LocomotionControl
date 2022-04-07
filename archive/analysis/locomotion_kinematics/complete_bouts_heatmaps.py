@@ -2,12 +2,12 @@
 import sys
 
 sys.path.append("./")
-sys.path.append(r"C:\Users\Federico\Documents\GitHub\pysical_locomotion")
+# sys.path.append(r"C:\Users\Federico\Documents\GitHub\pysical_locomotion")
 sys.path.append("/Users/federicoclaudi/Documents/Github/LocomotionControl")
 
 import matplotlib.pyplot as plt
 
-from analysis.load import load_complete_bouts
+from archive.analysis.load import load_complete_bouts
 from data.data_utils import merge_locomotion_bouts
 import draw
 

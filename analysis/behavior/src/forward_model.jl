@@ -57,7 +57,7 @@ to the corresponding time increments.
 Finally, the bike's velocity and angular velocities are computed.
 """
 function run_forward_model(
-    problemtype::MTMproblem, track::Track, model::InfiniteModel; δt=0.01
+    problemtype::MTMproblem, track::Track, model::InfiniteModel; δt=0.005
 )
     # get model's data and upsample
     n = ξ(value(model[:n]))
@@ -219,13 +219,13 @@ end
 Take the value of a forward model solution at a given svalue or timestep
 and return a State with the solution values there/then.
 """
-function solution2state(svalue::Float64, solution::Solution; at=:place)::State
+function solution2state(svalue::Number, solution::Solution; at=:place)::State
     # get solution sample IDX
     if at == :place
         svalue = svalue < 1 ? svalue * 258 : svalue
         idx = findfirst(solution.s .>= svalue)
     elseif at == :time
-        idx = findfirst(solution.t .>= svalue)
+        idx = findfirst(solution.t .> svalue)
         idx = isnothing(idx) ? 1 : idx
     end
 
@@ -240,9 +240,9 @@ end
 """
 The value of `s` of a solution at a timestep.
 """
-function solution2s(t::Float64, solution::Solution)::Float64
+function solution2s(t::Number, solution::Solution)::Float64
     # get solution sample IDX
-    idx = findfirst(solution.t .>= t)
+    idx = findfirst(solution.t .> t)
     idx = isnothing(idx) ? length(solution.t) : idx  # if solution is too short
 
     return solution.s[idx]
