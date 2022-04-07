@@ -8,7 +8,7 @@ install_term_logger()
 
 using jcontrol
 using jcontrol.visuals
-import jcontrol: closest_point_idx, euclidean, Track
+import jcontrol: closest_point_idx, euclidean, Track, State
 import jcontrol.comparisons: ComparisonPoints
 
 function compare(;  problemtype=:dynamics)
@@ -18,20 +18,24 @@ function compare(;  problemtype=:dynamics)
 
     coptions = ControlOptions(;
         u_bounds=Bounds(10, 80),
-        δ_bounds=Bounds(-50, 50, :angle),
+        δ_bounds=Bounds(-180, 180, :angle),
         δ̇_bounds=Bounds(-4, 4),
-        ω_bounds=Bounds(-500, 500, :angle),
-        v_bounds=Bounds(-25, 25),
-        Fu_bounds=Bounds(-3500, 3500),
+        ω_bounds=Bounds(-800, 800, :angle),
+        v_bounds=Bounds(-8, 8),
+        Fu_bounds=Bounds(-1250, 4500),
     )
+
+    fcond = State(; u=35, n=0, ψ=0)
+    final_conditions = fcond
 
     track, bike, _, solution = run_mtm(
         problemtype,  # model type
         3;  # supports density
         showtrials=nothing,
-        control_options=coptions,
+        # control_options=coptions,
         track=track,
         n_iter=5000,
+        fcond=final_conditions,
         timed=false,
         showplots=false,
     )
@@ -43,11 +47,11 @@ function compare(;  problemtype=:dynamics)
 
     # -------------------------- do comparison with data ------------------------- #
     # load data
-    trials = load_cached_trials(; keep_n = 25,)
-    cpoints = ComparisonPoints(track; δs=10, trials=trials)
+    trials = load_cached_trials(; keep_n = 100,)
+    cpoints = ComparisonPoints(track; δs=5, trials=trials)
 
     # show data
-    draw!.(trials; lw=3)    
+    draw!.(trials; lw=3, alpha=.25)    
     draw!.(cpoints.points)
 
     # do comparison
@@ -67,31 +71,31 @@ function compare(;  problemtype=:dynamics)
         plot!(ωplot, trial.s, trial.ω; color=black, alpha=0.7)
 
         # plot model kinematics at CP
-        for cp in cpoints.points
-            cp.s < trial.s[1] && continue
+        # for cp in cpoints.points
+        #     cp.s < trial.s[1] && continue
 
-            if cp.s ∉ keys(U)
-                U[cp.s] = Vector{Float64}[]
-                Ω[cp.s] = Vector{Float64}[]
-            end
+        #     if cp.s ∉ keys(U)
+        #         U[cp.s] = Vector{Float64}[]
+        #         Ω[cp.s] = Vector{Float64}[]
+        #     end
 
-            # get closest trial point
-            idx = closest_point_idx(trial.x, cp.x, trial.y, cp.y)
-            x, y = trial.x[idx], trial.y[idx]
+        #     # get closest trial point
+        #     idx = closest_point_idx(trial.x, cp.x, trial.y, cp.y)
+        #     x, y = trial.x[idx], trial.y[idx]
 
-            push!(U[cp.s], trial.u[idx])
-            push!(Ω[cp.s], trial.ω[idx])
+        #     push!(U[cp.s], trial.u[idx])
+        #     push!(Ω[cp.s], trial.ω[idx])
 
-            # mark point for debugging
-            scatter!(plt, [x], [y]; ms=5, color="blue", label=nothing, alpha=0.5)
-        end
+        #     # mark point for debugging
+        #     scatter!(plt, [x], [y]; ms=5, color="blue", label=nothing, alpha=0.5)
+        # end
     end
 
     # plot avg/std of trials kinematics
-    for cp in cpoints.points
-        scatter!(uplot, [cp.s], [median(U[cp.s])]; color=blue_light, ms=10)
-        scatter!(ωplot, [cp.s], [median(Ω[cp.s])]; color=blue_light, ms=10)
-    end
+    # for cp in cpoints.points
+    #     scatter!(uplot, [cp.s], [median(U[cp.s])]; color=blue_light, ms=10)
+    #     scatter!(ωplot, [cp.s], [median(Ω[cp.s])]; color=blue_light, ms=10)
+    # end
 
     # plot model kinematics at CP
     for cp in cpoints.points
@@ -112,7 +116,7 @@ function compare(;  problemtype=:dynamics)
 
         scatter!(speedplot, [cp.s], [speed]; color="red", ms=10)
         scatter!(uplot, [cp.s], [u]; color="red", ms=10)
-        scatter!(vplot, [cp.s], [v]; color="red", ms=10)
+        scatter!(vplot, [cp.s], [-v]; color="red", ms=10)
         scatter!(ωplot, [cp.s], [solution.ω[idxs]]; color="red", ms=10)
     end
 

@@ -95,9 +95,9 @@ function draw!(trials::DataFrame; lw=1.5, color=grey, asscatter=false)
     end
 end
 
-function draw!(trial::Trial; lw=1.5, color=grey, asscatter=false)
-    asscatter || plot!(trial.x, trial.y; color=color, lw=lw, label=nothing)
-    asscatter && scatter!(trial.x, trial.y; color=color, lw=lw, label=nothing)
+function draw!(trial::Trial; lw=1.5, color=grey, asscatter=false, kwargs...)
+    asscatter || plot!(trial.x, trial.y; color=color, lw=lw, label=nothing, kwargs...)
+    asscatter && scatter!(trial.x, trial.y; color=color, lw=lw, label=nothing, kwargs...)
 end
 # -------------------------------- comparisons ------------------------------- #
 """

@@ -104,7 +104,7 @@ function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)::Vector{Trial}
     durations = map(t->t.duration, trials)
     trials = trials[sortperm(durations)]
 
-    return isnothing(keep_n) ? data : trials[1:keep_n]
+    return isnothing(keep_n) ? trials : trials[1:keep_n]
 end
 
 end

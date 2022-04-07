@@ -118,7 +118,7 @@ function trimtrial(trial::Trial, s0, s1)
         trial.speed[start:stop],    # speed
         trial.u[start:stop],        # u
         trial.v[start:stop],        # v
-        -1.0,                       # duration
+        (stop-start)/60,            # duration
     )
 end
 

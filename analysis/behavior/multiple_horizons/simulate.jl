@@ -7,18 +7,26 @@ import Colors: HSL
 import DataFrames: DataFrame
 import Term: track as pbar
 import Term: install_term_logger
+import Printf: @sprintf
 install_term_logger()
 
 using jcontrol
 import jcontrol.comparisons: track_segments, TrackSegment
 using jcontrol.visuals
-import jcontrol: trimtrial, euclidean, FULLTRACK, Track, trim, toDict
+import jcontrol: trimtrial, euclidean, FULLTRACK, Track, trim, toDict, ControlOptions
 import jcontrol.Run: run_mtm
 import jcontrol.forwardmodel: solution2state, solution2s
 import jcontrol.io: PATHS
 
-HORIZONS_LENGTH = 15  # cm
 
+extreme_coptions = ControlOptions(;
+    u_bounds=Bounds(10, 80),
+    δ_bounds=Bounds(-110, 110, :angle),
+    δ̇_bounds=Bounds(-6, 6),
+    ω_bounds=Bounds(-600, 600, :angle),
+    v_bounds=Bounds(-30, 30),
+    Fu_bounds=Bounds(-1200, 3500),
+)
 
 @Base.kwdef mutable struct SimTracker
     s::Float64      = 0
@@ -26,6 +34,8 @@ HORIZONS_LENGTH = 15  # cm
     t::Float64      = 0.0
     Δt::Float64     = 0.01
     prevsol         = nothing
+    prevvalidsol    = nothing
+    nskipped::Int   = 0
 end
 
 @Base.kwdef mutable struct SolutionTracker
@@ -45,116 +55,142 @@ end
     δ̇::Vector{Float64} = Vector{Float64}[]  
 end
 
-function add!(tracker::SolutionTracker, t::Float64, solution::Solution)
+function add!(tracker::SolutionTracker, t::Float64, state::State, s::Float64)
     push!(tracker.t, t)
 
-    for v in (:s, :y, :x, :θ, :δ, :u, :ω, :n, :ψ, :β, :v, :Fu, :δ̇)
-        push!(getfield(tracker, v), getfield(solution, v)[1])
+    for v in (:y, :x, :θ, :δ, :u, :ω, :n, :ψ, :β, :v, :Fu, :δ̇)
+        push!(getfield(tracker, v), getfield(state, v)[1])
     end
+
+    push!(tracker.s, s)
 end
 
 
-function step(simtracker, globalsolution)
-    simtracker.t += simtracker.Δt
-
+function step(simtracker, globalsolution, planning_horizon::Float64)
+    
     # trim track to define planning window
-    initial_state = simtracker.iter == 1 ? 
-                        globalsolution[1] :
-                        solution2state(simtracker.Δt, simtracker.prevsol; at=:time)
-    simtracker.s = simtracker.iter == 1 ? 0.0 : solution2s(simtracker.Δt, simtracker.prevsol)
-    track = trim(FULLTRACK, max(1.0, simtracker.s + .1), HORIZONS_LENGTH)
-
-
-    # get the final state
-    if track.S[end] >= 259
-        final_state =  State(ψ=0.0, u=25, ω=0.0)
+    # get the initial state
+    if simtracker.iter == 1
+        initial_state = globalsolution[1]
+        simtracker.s = 0.0
+        simtracker.t += simtracker.Δt
     else
+        initial_state =  solution2state(simtracker.Δt, simtracker.prevsol; at=:time)
+        simtracker.s = solution2s(simtracker.Δt, simtracker.prevsol)
+
+        idx = findfirst(simtracker.prevsol.t .>= simtracker.Δt)
+        idx = isnothing(idx) ? length(simtracker.prevsol.t) : idx
+        simtracker.t += simtracker.prevsol.t[idx]
+    end
+
+
+    # get where the previous simulation was at planning_horizon
+    s0 =  max(0.001, simtracker.s)
+    if s0 < 220
+        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, 5)
+        track = trim(FULLTRACK, s0, len)
         final_state = nothing
+    else
+        track = trim(FULLTRACK, s0, 200)
+        final_state = State(ψ=0.0, u=25, ω=0.0)
     end
 
     # fit model
-    _, _, control_model, solution = run_mtm(
-        :dynamics,
-        3;
-        track=track,
-        icond=initial_state,
-        fcond=final_state,
-        control_options=:default,
-        showplots=false,
-        n_iter=5000,
-        quiet=true,
-    )
+    control_model, solution = nothing, nothing
+    try
+        _, _, control_model, solution = run_mtm(
+            :dynamics,
+            3;
+            track=track,
+            icond=initial_state,
+            fcond=final_state,
+            control_options=:default,
+            showplots=false,
+            n_iter=5000,
+            quiet=true,
+        )
 
-
-    if "LOCALLY_SOLVED" != string(termination_status(control_model))
-        # @warn "Could not solve $(simtracker.iter)" termination_status(control_model)
-        # success = false
-        success = true
-    else
-        success = true
+    catch
+        return nothing, nothing, true
     end
 
-    simtracker.prevsol = solution
-    return initial_state, solution, track, success
+    if "LOCALLY_SOLVED" != string(termination_status(control_model))
+        @warn "Could not solve $(simtracker.iter)" termination_status(control_model) s0
+        success = false
+
+        # try again but with different control options
+        # _, _, control_model, solution = run_mtm(
+        #     :dynamics,
+        #     3;
+        #     control_options=extreme_coptions,
+        #     track=track,
+        #     icond=initial_state,
+        #     fcond=final_state,
+        #     showplots=false,
+        #     n_iter=5000,
+        #     quiet=true,
+        # )
+        # @info "With extreme options" termination_status(control_model)
+        # if "LOCALLY_SOLVED" != string(termination_status(control_model))
+        #     return nothing, nothing, true
+        # end
+
+        simtracker.prevsol = solution
+        simtracker.nskipped += 1
+        (s0 < 30 || 80 < s0 < 160 || s0 > 220) &&  return nothing, nothing, true
+    else
+        success = true
+        simtracker.prevvalidsol = solution
+        simtracker.prevsol = solution
+        simtracker.nskipped = 0
+    end
+    
+    return initial_state, solution, false
 end
 
-
-function run_simulation(; planning_horizon=25, n_iter = 500, Δt=.025)
-    final_state =  State(ψ=0.0, u=25, ω=0.0)
-
+"""
+Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
+"""
+function run_simulation(; planning_horizon::Float64=.5, n_iter=200, Δt=.025)
     # run global solution
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
         3;
-        control_options=:default,
-        fcond=final_state,
+        fcond=State(ψ=0.0, u=25, ω=0.0),
         showplots=false,
         n_iter=5000,
     )
 
     # plot background & global trajectory
-    # p1 = draw(:arena)
-    # draw!(FULLTRACK; alpha=.1)
-    # plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_darker, lw=6, alpha=.8, label=nothing)
-
-
-    # simulate iteratively
+    p1 = draw(:arena)
+    plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_darker, lw=6, alpha=.8, label=nothing)
     colors = [
             range(HSL(colorant"red"), stop=HSL(colorant"green"), length=(Int ∘ floor)(n_iter/2))...,
             range(HSL(colorant"green"), stop=HSL(colorant"blue"), length=(Int ∘ ceil)(n_iter/2))...
     ]
+
     simtracker = SimTracker(Δt=Δt)
     solutiontracker = SolutionTracker()
-    for i in pbar(1:n_iter, redirectstdout=false)
+    anim = @animate for i in pbar(1:n_iter, redirectstdout=false)
         simtracker.iter = i
 
         # run simulation and store results
-        initial_state, solution, track, success = step(simtracker, globalsolution)
-        add!(solutiontracker, simtracker.Δt * i, solution)
+        initial_state, solution, shouldstop = step(simtracker, globalsolution, planning_horizon)
+        shouldstop && break
+        add!(solutiontracker, simtracker.t, initial_state, simtracker.s)
 
         # plot stuff
-        # p1 = draw(:arena)
-        # draw!(FULLTRACK; alpha=.1)
-        # plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_dark, lw=4, label=nothing)
-    
-        # draw!(track; alpha=1, color="black")
-        # plot_bike_trajectory!(solution, bike; showbike=false, label=nothing, color=colors[i], alpha=.8, lw=4)
+        plot_bike_trajectory!(solution, bike; showbike=false, label=nothing, color=colors[i], alpha=.8, lw=4)
+        draw!(initial_state; color=colors[i], alpha=1)
+        plot!(; title="Iter $i, time: $(round(simtracker.t; digits=2))s")
 
-        # # draw initial and final states
-        # draw!(initial_state; color=colors[i], alpha=1)
-        # # draw!(final_state; color=blue_dark)
-        # plot!(; title="Iter $i, time: $(round(simtracker.Δt * i; digits=2))s")
-        # # sleep(2)
-        # display(p1)
-
-        success || break
-        simtracker.s > 240 && break
+        simtracker.s > 258 && break
     end
 
-
-    # show all plots
-    # display(p1)
-
+    # save animation
+    name = @sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon
+    gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
+    gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
 
     # save global solution
     destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
@@ -162,16 +198,20 @@ function run_simulation(; planning_horizon=25, n_iter = 500, Δt=.025)
     CSV.write(destination, data)
 
     # save short horizon solution
-    destination = joinpath(PATHS["horizons_sims_cache"], "multiple_horizons_mtm_horizon_length_$planning_horizon.csv")
+    destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
     data = DataFrame(toDict(solutiontracker))
     CSV.write(destination, data)
     return data
 end
 
 
-# TODO when the simulation includes the end of the track we should set end conditions.
+done= (.1, .15, .2, .25, .4, .5, .75)
+# todo = (25,)
 
-for horizon in (5, 10, 15, 20, 25, 30, 50, 100, 150)
-    @info "Running horizon length $horizon"
+# todo = (.1, .15, .2, .25, .4, .5, .75, 1.0, 1.5, 2.0)
+todo = (.10, .15, .20, .25, .40, .50,)
+
+for horizon in todo
+    @info "Running horizon length $horizon seconds"
     results = run_simulation(planning_horizon=horizon)
 end

@@ -82,12 +82,12 @@ as of 04/04/2022, they're also the very close
 to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-    u_bounds=Bounds(10, 80),
-    δ_bounds=Bounds(-50, 50, :angle),
-    δ̇_bounds=Bounds(-4, 4),
-    ω_bounds=Bounds(-500, 500, :angle),
-    v_bounds=Bounds(-25, 25),
-    Fu_bounds=Bounds(-3500, 3500),
+u_bounds=Bounds(10, 80),
+δ_bounds=Bounds(-95, 95, :angle),
+δ̇_bounds=Bounds(-5, 5),
+ω_bounds=Bounds(-1000, 1000, :angle),
+v_bounds=Bounds(-10, 10),
+Fu_bounds=Bounds(-1750, 4500),
 )
 
 
@@ -97,7 +97,6 @@ default_control_options = ControlOptions(;
 
 """
 Model description.
-See: https://thef1clan.com/2020/09/21/vehicle-dynamics-the-kinematic-bicycle-model/
 
 Bicyle model with kinematics in the CoM reference frame.
     The CoM has position (x,y) and is at a distance l from
@@ -369,7 +368,7 @@ function create_and_solve_control(
     @register(model, κ(s))
 
     # ----------------------------- define variables ----------------------------- #
-    @infinite_parameter(model, s ∈ [track.S[1], track.S[end]], num_supports = num_supports)
+    @infinite_parameter(model, s ∈ [track.S[1], track.S[end]], num_supports = max(5, num_supports))
 
     @variables(
         model,
@@ -454,7 +453,7 @@ function create_and_solve_control(
         @constraints(
             model, 
             begin
-            n(track.S[end]) == final_conditions.n
+            # n(track.S[end]) == final_conditions.n
             ψ(track.S[end]) == final_conditions.ψ
 
             δ(track.S[end]) == final_conditions.δ

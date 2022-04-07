@@ -2,6 +2,7 @@ module forwardmodel
 import InfiniteOpt: value, InfiniteModel, supports
 using Interpolations: Interpolations
 import Parameters: @with_kw
+import DataFrames: DataFrame
 
 import jcontrol: Track, upsample, int, ξ, closest_point_idx
 import ..control: KinematicsProblem, DynamicsProblem, MTMproblem
@@ -13,28 +14,34 @@ int(x) = (Int64 ∘ round)(x)
 
 @with_kw struct Solution
     δt::Float64
-    t::Vector{Float64}    # time
-    s::Vector{Float64}    # track progression
-    x::Vector{Float64}    # position
-    y::Vector{Float64}
-    θ::Vector{Float64}    # orientation
-    δ::Vector{Float64}    # steering angle
-    u::Vector{Float64}    # velocity  | fpr DynamicsProblem its the longitudinal velocity component
-    ω::Vector{Float64} = Vector{Float64}[]  # angular velocity
+    t::Vector{Float64} = Vector{Float64}[]    # time
+    s::Vector{Float64} = Vector{Float64}[]    # track progression
+    x::Vector{Float64} = Vector{Float64}[]    # position
+    y::Vector{Float64} = Vector{Float64}[]
+    θ::Vector{Float64} = Vector{Float64}[]    # orientation
+    δ::Vector{Float64} = Vector{Float64}[]    # steering angle
+    u::Vector{Float64} = Vector{Float64}[]    # velocity  | fpr DynamicsProblem its the longitudinal velocity component
+    ω::Vector{Float64} = Vector{Float64}[]    # angular velocity
 
-    n::Vector{Float64}    # track errors
-    ψ::Vector{Float64}
+    n::Vector{Float64} = Vector{Float64}[]    # track errors
+    ψ::Vector{Float64} = Vector{Float64}[]
 
     # Kinematic problem only
-    β::Vector{Float64}
+    β::Vector{Float64} = Vector{Float64}[]
 
     # Dynamics problem only
-    v::Vector{Float64} = Vector{Float64}[]  # lateral velocity
-    Fu::Vector{Float64}
+    v::Vector{Float64} = Vector{Float64}[]   # lateral velocity
+    Fu::Vector{Float64} = Vector{Float64}[]
 
     # controls
-    u̇::Vector{Float64}
-    δ̇::Vector{Float64}
+    u̇::Vector{Float64} = Vector{Float64}[]
+    δ̇::Vector{Float64} = Vector{Float64}[]
+end
+
+function Solution(df::DataFrame)::Solution
+    _keys = filter!(k -> Symbol(k) != :δt, names(df))
+    dt = "δt" ∈ names(df) ? df[1, :δt] : 0.0
+    return Solution(; Dict(map(k -> Symbol(k)=>df[1:end, k], _keys))..., δt=dt)
 end
 
 """
@@ -162,6 +169,34 @@ function run_forward_model(
         β = β,
         v = v,
         Fu=Fu,
+    )
+end
+
+
+function trimsolution(sol::Solution, s0, s1)
+    start = findfirst(sol.s .>= s0)
+    isnothing(start) && return nothing
+
+    stop = findlast(sol.s .<= s1)
+    isnothing(start) && return nothing
+
+    return Solution(
+        δt= sol.δt,
+        t = sol.t[start:stop],
+        s = sol.s[start:stop],
+        x = sol.x[start:stop],
+        y = sol.y[start:stop],
+        θ = sol.θ[start:stop],
+        u = sol.u[start:stop],
+        ω = sol.ω[start:stop],
+        δ = sol.δ[start:stop],
+        δ̇ =  sol.δ̇[start:stop],
+        # u̇ =  sol.u̇[start:stop],
+        n = sol.n[start:stop],
+        ψ = sol.ψ[start:stop],
+        β = sol.β[start:stop],
+        v = sol.v[start:stop],
+        Fu= sol.Fu[start:stop],
     )
 end
 
