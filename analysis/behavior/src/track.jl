@@ -100,25 +100,26 @@ width_values = [
     [0.0 1.2]
     [0.01 1.2]
     [0.05 1.2]
-    [0.07 .9] # first narrow
-    [0.11 .78] # first narrow
+    [0.07 1.0] # first narrow
+    [0.11 .9] # first narrow
     [0.15 .82]  # end of frst narrow
-    [0.25 1.2]
-    [0.30 .9]   # middle of second curve
-    [0.36 1.2]
+    [0.25 1.0]
+    [0.30 .95]   # middle of second curve
+    [0.36 1.0]
     # [0.42 1.06]
-    [0.45 .80]  # second narrow
-    [0.5 .80]  # 
-    [0.6 1.0]  # end of second narrow
-    [0.63 1.2]  
-    [0.67 1.3]
-    [0.7 1.5]
-    [0.75 1.3]
-    [0.85 1.15]  # second part of last curve
-    [0.87 1.0]
-    [0.9 .9]
-    [0.95 .9]
-    [1 .9]  # end
+    [0.45 1.0]  # second narrow
+    [0.5 .95]  # 
+    [0.6 1.05]  # end of second narrow
+    [0.63 1.15]  
+    [0.67 1.15]
+    [0.7 1.15]
+    [0.75 1.15]
+    [0.80 1.1]  # second part of last curve
+    [0.9 1.05]
+    [0.92 1.0]
+    [0.95 1.0]
+    [0.98 1.0]
+    [1 1.0]  # end
     # [1 .75]  # end
     # [1 .75]  # end
 ]

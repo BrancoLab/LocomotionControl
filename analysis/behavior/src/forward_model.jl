@@ -139,7 +139,7 @@ function run_forward_model(
         if problemtype isa KinematicsProblem            
             u̇[i] = u̇s[idx]
         else
-            v[i] = vs[idx]
+        v[i] = vs[idx]
             Fu[i] = Fus[idx]
         end
     end

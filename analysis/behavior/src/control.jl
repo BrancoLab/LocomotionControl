@@ -82,12 +82,12 @@ as of 04/04/2022, they're also the very close
 to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-u_bounds=Bounds(10, 75),
-δ_bounds=Bounds(-80, 80, :angle),
-δ̇_bounds=Bounds(-4, 4),
+u_bounds=Bounds(10, 80),
+δ_bounds=Bounds(-90, 90, :angle),
+δ̇_bounds=Bounds(-6, 6),
 ω_bounds=Bounds(-800, 800, :angle),
-v_bounds=Bounds(-12, 12),
-Fu_bounds=Bounds(-1250, 4500),
+v_bounds=Bounds(-15, 15),
+Fu_bounds=Bounds(-2000, 4000),
 )
 
 
@@ -349,7 +349,7 @@ function create_and_solve_control(
     bike::Bicycle,
     options::ControlOptions,
     initial_conditions::State,
-    final_conditions::Union{Nothing, State};
+    final_conditions::Union{Nothing, State, Symbol};
     quiet::Bool=false,
     n_iter::Int=1000,
     tollerance::Float64=1e-10,
@@ -361,7 +361,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 25.0)
+    set_optimizer_attribute(model, "max_wall_time", 60.0)
 
     # register curvature function
     κ(s) = track.κ(s)
@@ -403,7 +403,7 @@ function create_and_solve_control(
     l_r, l_f = bike.l_r, bike.l_f
     m, Iz, c = bike.m, bike.Iz, bike.c
 
-    β = atan(v / (u + eps()))  # slip angle  
+    β = atan(v / (u))  # slip angle  
     V = √(u^2 + v^2)
     SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β) + eps())  # time -> space domain conversion factor
 
@@ -450,24 +450,36 @@ function create_and_solve_control(
 
     # final conditions
     if !isnothing(final_conditions)
-        @constraints(
-            model, 
-            begin
-            # n(track.S[end]) == final_conditions.n
-            ψ(track.S[end]) == final_conditions.ψ
+        if final_conditions == :minimal
+            @constraints(
+                model, 
+                begin
+                n(track.S[end]) == 0
+                ψ(track.S[end]) == 0
 
-            δ(track.S[end]) == final_conditions.δ
-            δ̇(track.S[end]) == final_conditions.δ̇
+                end
+            )
+        else
+            @constraints(
+                model, 
+                begin
+                n(track.S[end]) == final_conditions.n
+                ψ(track.S[end]) == final_conditions.ψ
 
-            u(track.S[end]) == final_conditions.u
-            v(track.S[end]) == final_conditions.v
-            ω(track.S[end]) == final_conditions.ω
-            # Fu(track.S[end]) == final_conditions.Fu
+                δ(track.S[end]) == final_conditions.δ
+                δ̇(track.S[end]) == final_conditions.δ̇
+
+                u(track.S[end]) == final_conditions.u
+                v(track.S[end]) == final_conditions.v
+                ω(track.S[end]) == final_conditions.ω
+                Fu(track.S[end]) == final_conditions.Fu
+                end
+            )
             end
-        )
         end
     # --------------------------------- optimize --------------------------------- #
-    set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
+    # set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
+    set_all_derivative_methods(model, OrthogonalCollocation(3))
     @objective(model, Min, ∫(SF, s))
     optimize!(model)
 

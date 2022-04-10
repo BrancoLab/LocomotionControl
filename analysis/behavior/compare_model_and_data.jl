@@ -3,6 +3,7 @@ import Statistics: median, std
 import MyterialColors: black, blue_light
 using Term
 import Term: track as pbar
+import InfiniteOpt: objective_value
 install_term_logger()
 # install_stacktrace()
 
@@ -17,15 +18,15 @@ function compare(;  problemtype=:dynamics)
 
 
     coptions = ControlOptions(;
-        u_bounds=Bounds(10, 75),
-        δ_bounds=Bounds(-80, 80, :angle),
-        δ̇_bounds=Bounds(-4, 4),
-        ω_bounds=Bounds(-800, 800, :angle),
-        v_bounds=Bounds(-12, 12),
-        Fu_bounds=Bounds(-1250, 4500),
+    u_bounds=Bounds(10, 80),
+    δ_bounds=Bounds(-80, 80, :angle),
+    δ̇_bounds=Bounds(-6, 6),
+    ω_bounds=Bounds(-800, 800, :angle),
+    v_bounds=Bounds(-20, 20),
+    Fu_bounds=Bounds(-2000, 4000),
     )
 
-    fcond = State(; u=35, n=0, ψ=0)
+    fcond = State(; u=20, n=0, ψ=0)
     final_conditions = fcond
 
     track, bike, _, solution = run_mtm(
@@ -48,7 +49,7 @@ function compare(;  problemtype=:dynamics)
     # -------------------------- do comparison with data ------------------------- #
     # load data
     trials = load_cached_trials(; keep_n = 100,)
-    cpoints = ComparisonPoints(track; δs=5, trials=trials)
+    cpoints = ComparisonPoints(track; δs=10, trials=trials)
 
     # show data
     draw!.(trials; lw=3, alpha=.25)    
@@ -121,9 +122,17 @@ function compare(;  problemtype=:dynamics)
     end
 
     # ------------------------------------ fin ----------------------------------- #
+    trials = load_cached_trials(; keep_n = nothing,)
+    h = histogram(
+        map(t->t.duration, trials), color="black", label=nothing, xlim=[0, 25]
+    )
+    duration = solution.t[end]
+
+    plot!(h, [duration, duration], [0, 100], lw=5, alpha=.5, color="red", label=nothing)
+
 
     l = @layout [
-        a{0.5w} grid(4, 1)
+        a{0.5w} grid(5, 1)
     ]
     return display(
         plot(
@@ -131,7 +140,8 @@ function compare(;  problemtype=:dynamics)
             speedplot,
             uplot,
             vplot,
-            ωplot;
+            ωplot,
+            h;
             layout=l,
             size=(1600, 1200),
         ),

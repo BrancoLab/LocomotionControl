@@ -30,7 +30,7 @@ print("\n\n" * hLine("start"; style="bold green"))
 track = Track(;start_waypoint=2, keep_n_waypoints=-1)
 
 # icond = State(; u=10)
-fcond = State(; u=30, ω=0)
+fcond = State(; u=30, ω=0, δ=0)
 
 track, bike, control_model, solution = run_mtm(
     :dynamics,  # model type
@@ -39,7 +39,7 @@ track, bike, control_model, solution = run_mtm(
     control_options=:default,
     icond=nothing,
     fcond=fcond,
-    showtrials=nothing,
+    showtrials=30,
     n_iter=5000,
     timed=false,
     showplots=true,

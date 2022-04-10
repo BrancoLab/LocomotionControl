@@ -89,9 +89,11 @@ function step(simtracker, globalsolution, planning_horizon::Float64, iter0_start
     # get where the previous simulation was at planning_horizon
     s0 =  max(0.001, simtracker.s)
     if s0 < 220
-        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, 5)
+        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, 15)
         track = trim(FULLTRACK, s0, len)
         final_state = nothing
+        # final_state = State(; ψ=0, n=0)
+
     else
         track = trim(FULLTRACK, s0, 200)
         final_state = State(; u=30, ω=0)
@@ -111,7 +113,6 @@ function step(simtracker, globalsolution, planning_horizon::Float64, iter0_start
             n_iter=5000,
             quiet=true,
         )
-
     catch
         return nothing, nothing, true, nothing
     end
@@ -120,32 +121,39 @@ function step(simtracker, globalsolution, planning_horizon::Float64, iter0_start
         @warn "Could not solve $(simtracker.iter)" termination_status(control_model) s0
         success = false
 
-        # # try again but with different control options
-        # _, _, control_model, solution = run_mtm(
-        #     :dynamics,
-        #     3;
-        #     control_options=extreme_coptions,
-        #     track=track,
-        #     icond=initial_state,
-        #     fcond=final_state,
-        #     showplots=false,
-        #     n_iter=5000,
-        #     quiet=true,
-        # )
-        # @info "With extreme options" termination_status(control_model)
-        # if "LOCALLY_SOLVED" != string(termination_status(control_model))
-        #     (s0 < 30 || 80 < s0 < 160 || s0 > 220) &&  return nothing, nothing, true
-        # end
+        # try again 
+        for i in 1:5
+            len = max(sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .1 * i), 15)
+            track = trim(FULLTRACK, s0, len)
+            # @info "Traing again, with planning window" planning_horizon - .1 * i
 
-        simtracker.prevsol = solution
-        simtracker.nskipped += 1
-        if "TIME_LIMIT" == string(termination_status(control_model))
+            _, _, control_model, solution = run_mtm(
+                :dynamics,
+                3;
+                track=track,
+                icond=initial_state,
+                fcond=:minimal,
+                control_options=:default,
+                showplots=false,
+                n_iter=5000,
+                quiet=true,
+            )
+
+            "LOCALLY_SOLVED" == string(termination_status(control_model)) && break
+        end
+
+        if "LOCALLY_SOLVED" != string(termination_status(control_model))
+            @warn "Failed a second time!" termination_status(control_model)
             return nothing, nothing, true, track
         end
 
+        simtracker.prevsol = solution
+        simtracker.nskipped += 1
+        # if "TIME_LIMIT" == string(termination_status(control_model))
+        #     return nothing, nothing, true, track
+        # end
+
         # return nothing, nothing, true, track
-        (s0 < 30 || 80 < s0 < 160) &&  return nothing, nothing, true, track
-        # simtracker.nskipped == 5 && (s0 < 30 || 80 < s0 < 160 || s0 > 220) &&  return nothing, nothing, true
     else
         success = true
         simtracker.prevvalidsol = solution
@@ -159,7 +167,7 @@ end
 """
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
-function run_simulation(; planning_horizon::Float64=.5, n_iter=200, Δt=.025, iter0_start_svalue=50)
+function run_simulation(; planning_horizon::Float64=.5, n_iter=1200, Δt=.0025, iter0_start_svalue=1)
     # run global solution
     track = Track(;start_waypoint=2, keep_n_waypoints=-1)
 
@@ -202,9 +210,9 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=200, Δt=.025, it
         draw!(track; color=colors[i], border_lw=5, alpha=0.0)
         plot_bike_trajectory!(solution, bike; showbike=false, label=nothing, color=colors[i], alpha=.8, lw=4)
         draw!(initial_state; color=colors[i], alpha=1)
-        plot!(; title="Iter $i, time: $(round(simtracker.t; digits=2))s")
+        plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
-        simtracker.s > 258 && break
+        # simtracker.s > 235 && break
     end
 
     # save animation
@@ -225,8 +233,9 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=200, Δt=.025, it
 end
 
 # .15, .20, .25,
-todo = (.1, .2, .25, .3, .40, .50, .75, 1.0, 1.5)
-
+# todo = (.1, .15, .25, .3, .40, .50, .75, 1.0, 1.5)
+todo = (.1, .15, .2, )
+# .25, .3, .40, .50, .75, 1.0, 1.5)
 startpoints = (1, 50, 100, )
 
 for sp in startpoints
@@ -235,5 +244,5 @@ for sp in startpoints
         results = run_simulation(planning_horizon=horizon, iter0_start_svalue=sp)
         # break
     end
-    # break
+    break
 end

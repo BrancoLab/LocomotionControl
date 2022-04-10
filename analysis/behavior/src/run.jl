@@ -19,7 +19,7 @@ function run_mtm(
     supports_density::Number;
     track::Union{Nothing,Track}=nothing,
     icond::Union{Nothing,State}=nothing,
-    fcond::Union{Nothing,State}=nothing,
+    fcond::Union{Nothing,State, Symbol}=nothing,
     control_options::Union{ControlOptions,Symbol}=:default,
     showtrials::Union{Nothing,Int64}=nothing,
     n_iter::Int=1000,
@@ -50,7 +50,7 @@ function run_mtm(
     @assert control_options isa ControlOptions "Control options is not a ControlOptions type: $(typeof(control_options)) $control_options"
 
     # define initial and final conditions
-    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=15, ω=0, ψ=.3) : icond
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=15, ω=0, ψ=.15) : icond
     # fcond = isnothing(fcond) ? State(; u=40, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #
