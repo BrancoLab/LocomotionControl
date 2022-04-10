@@ -211,7 +211,7 @@ function summary_plot(problemtype::DynamicsProblem, model::InfiniteModel, wrt::S
     p(4, :δ, rad2deg)
     p(5, :ω, rad2deg)
     # p(6, :SF)
-    # p(7, :u̇, red)
+    p(7, :Fu, red)
     p(8, :δ̇, red)
     display(fig)
     return nothing

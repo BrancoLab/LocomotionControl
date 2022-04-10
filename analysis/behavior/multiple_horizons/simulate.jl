@@ -174,15 +174,12 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=1200, Δt=.0025, 
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
         3;
-        track=track,
-        control_options=:default,
-        icond=nothing,
-        fcond=State(; u=30, ω=0),
         showtrials=nothing,
+        track=track,
         n_iter=5000,
+        fcond=State(; u=20, n=0, ψ=0),
         timed=false,
         showplots=false,
-        quiet=false,
     )
 
     # plot background & global trajectory
@@ -234,7 +231,7 @@ end
 
 # .15, .20, .25,
 # todo = (.1, .15, .25, .3, .40, .50, .75, 1.0, 1.5)
-todo = (.1, .15, .2, )
+todo = (.1, .15, .2, .25, .3, .35, .4)
 # .25, .3, .40, .50, .75, 1.0, 1.5)
 startpoints = (1, 50, 100, )
 

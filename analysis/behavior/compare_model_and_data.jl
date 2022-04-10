@@ -22,12 +22,9 @@ function compare(;  problemtype=:dynamics)
     δ_bounds=Bounds(-80, 80, :angle),
     δ̇_bounds=Bounds(-6, 6),
     ω_bounds=Bounds(-800, 800, :angle),
-    v_bounds=Bounds(-20, 20),
-    Fu_bounds=Bounds(-2000, 4000),
+    v_bounds=Bounds(-12, 12),
+    Fu_bounds=Bounds(-1200, 4000),
     )
-
-    fcond = State(; u=20, n=0, ψ=0)
-    final_conditions = fcond
 
     track, bike, _, solution = run_mtm(
         problemtype,  # model type
@@ -36,7 +33,7 @@ function compare(;  problemtype=:dynamics)
         control_options=coptions,
         track=track,
         n_iter=5000,
-        fcond=final_conditions,
+        fcond=State(; u=30, n=0, ψ=0),
         timed=false,
         showplots=false,
     )
