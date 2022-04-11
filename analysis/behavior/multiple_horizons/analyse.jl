@@ -12,7 +12,7 @@ import jcontrol: trimtrial
 import jcontrol.forwardmodel: trimsolution
 
 S0 = 0
-S1 = 200
+S1 = 260
 
 trials = map(t -> trimtrial(t, S0, S1), load_cached_trials(; keep_n = nothing))
 
@@ -36,7 +36,7 @@ for trial in trials
 end
 
 # plot global solution kinematics
-global_kwargs = Dict(:label=>nothing, :color=>blue_grey_dark, :lw=>6)
+global_kwargs = Dict(:label=>nothing, :color=>blue_grey_dark, :lw=>6, :alpha=>.4)
 plot!(uplot, globalsolution.s, globalsolution.u; global_kwargs...)
 plot!(progressplot, globalsolution.s, globalsolution.t; global_kwargs...)
 
@@ -45,15 +45,15 @@ h = histogram(map(t->t.duration, trials), label="trial durations", color="black"
 plot!(h, [globalsolution.t[end], globalsolution.t[end]], [0, 150], color=blue_grey_dark, lw=6, alpha=1, label="global solution")
 
 # plot simulations
-files = sort(glob("multiple_horizons_mtm_horizon_length*_1.csv", PATHS["horizons_sims_cache"]), lt=natural)
+files = sort(glob("multiple_horizons_mtm_horizon_length*.csv", PATHS["horizons_sims_cache"]), lt=natural)
 println.(files)
-colors = range(HSL(200, .4, .2), stop=HSL(1, .6, .6), length=max(5, length(files)))
+colors = range(HSL(326, .9, .68), stop=HSL(212, .9, .6), length=max(2, length(files)))
 alphas = range(.9, .6, length=max(5, length(files)))
 for (file, color, alpha) in zip(files, colors, alphas)
     data = trimsolution(Solution(DataFrame(CSV.File(file))), S0, S1)
-    name = "horizon length: " * (split(file, "_")[end-1][1:end-4])
+    name = "horizon length: " * (split(file, "_")[end][1:end-4])
 
-    plot_kwargs = Dict(:lw=>3, :label=>name, :color=>color, :alpha=>1)
+    plot_kwargs = Dict(:lw=>4, :label=>name, :color=>color, :alpha=>1)
 
     # plot trajectory
     plot!(xyplot, data.x, data.y, lw=4, color=color, label=name)
@@ -76,7 +76,7 @@ l = @layout [
         d{0.2h}        
 ]
 
-display(plot(xyplot, size=(800, 1200) ))
+# display(plot(xyplot, size=(800, 1200) ))
 display(
     plot(
         uplot,

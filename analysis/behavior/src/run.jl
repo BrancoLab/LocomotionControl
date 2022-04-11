@@ -28,6 +28,7 @@ function run_mtm(
     timed::Bool=false,
     showplots::Bool=true,
     quiet::Bool=false,
+    α::Float64=1.0,
 )
     problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
     δt = 0.01 # Δt for forward integration
@@ -71,6 +72,7 @@ function run_mtm(
         tollerance=tol,
         verbose=verbose,
         quiet=quiet,
+        α=α,
     )
 
     # ---------------------------------------------------------------------------- #

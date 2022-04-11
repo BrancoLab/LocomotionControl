@@ -36,8 +36,6 @@ extreme_coptions = ControlOptions(;
     t::Float64      = 0.0
     Δt::Float64     = 0.01
     prevsol         = nothing
-    prevvalidsol    = nothing
-    nskipped::Int   = 0
 end
 
 @Base.kwdef mutable struct SolutionTracker
@@ -67,14 +65,48 @@ function add!(tracker::SolutionTracker, t::Float64, state::State, s::Float64)
     push!(tracker.s, s)
 end
 
+"""
+Repeate MTM with windows of decreasing length
+"""
+function attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
+    @warn "Could not solve $(simtracker.iter)" termination_status(control_model) s0
 
-function step(simtracker, globalsolution, planning_horizon::Float64, iter0_start_svalue)
-    
-    # trim track to define planning window
-    # get the initial state
+    # try again 
+    solution = nothing
+    for i in 1:5
+        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .05 * i), 4)
+        track = trim(FULLTRACK, s0, len)
+
+        _, _, control_model, solution = run_mtm(
+            :dynamics,
+            3;
+            track=track,
+            icond=initial_state,
+            fcond=:minimal,
+            control_options=:default,
+            showplots=false,
+            n_iter=5000,
+            quiet=true,
+        )
+
+        converged(control_model) && break
+    end
+
+    return !converged(control_model), solution
+end
+
+converged(control_model) = "LOCALLY_SOLVED" == string(termination_status(control_model))
+fail() = nothing, nothing, true, nothing
+
+
+"""
+Perform a simulation step
+"""
+function step(simtracker, globalsolution, planning_horizon::Float64,)
+    # get initial conditions
     if simtracker.iter == 1
-        initial_state =  solution2state(iter0_start_svalue, globalsolution)
-        simtracker.s = iter0_start_svalue
+        initial_state =  solution2state(0.0, globalsolution)
+        simtracker.s = 0.0
         simtracker.t += simtracker.Δt
     else
         initial_state =  solution2state(simtracker.Δt, simtracker.prevsol; at=:time)
@@ -86,20 +118,18 @@ function step(simtracker, globalsolution, planning_horizon::Float64, iter0_start
     end
 
 
-    # get where the previous simulation was at planning_horizon
+    # get planning window (trimmed track) & final conditions
     s0 =  max(0.001, simtracker.s)
-    if s0 < 220
-        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, 15)
+    if s0 < 250
+        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, 4)
         track = trim(FULLTRACK, s0, len)
         final_state = nothing
-        # final_state = State(; ψ=0, n=0)
-
     else
         track = trim(FULLTRACK, s0, 200)
         final_state = State(; u=30, ω=0)
     end
 
-    # fit model
+    # (attempt to) solve MTM problem over planning window
     control_model, solution = nothing, nothing
     try
         _, _, control_model, solution = run_mtm(
@@ -114,51 +144,42 @@ function step(simtracker, globalsolution, planning_horizon::Float64, iter0_start
             quiet=true,
         )
     catch
-        return nothing, nothing, true, nothing
+        return fail()
     end
 
-    if "LOCALLY_SOLVED" != string(termination_status(control_model))
-        @warn "Could not solve $(simtracker.iter)" termination_status(control_model) s0
-        success = false
+    # failed -> try alternative strategies
+    if !converged(control_model)
+        # try to recover a solution by shortening the planning window
+        success, solution = attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
 
-        # try again 
-        for i in 1:5
-            len = max(sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .1 * i), 15)
-            track = trim(FULLTRACK, s0, len)
-            # @info "Traing again, with planning window" planning_horizon - .1 * i
+        # enter breaking mode: just try to slow down
+        if !success
+            @warn "\e[32mslowing down\e[0m"
+            for i in 1:5
+                _, _, control_model, solution = run_mtm(
+                    :dynamics,
+                    3;
+                    track=track,
+                    icond=initial_state,
+                    fcond=:minimal,
+                    showplots=false,
+                    n_iter=5000,
+                    quiet=true,
+                    α=1.0-(0.2*i),
 
-            _, _, control_model, solution = run_mtm(
-                :dynamics,
-                3;
-                track=track,
-                icond=initial_state,
-                fcond=:minimal,
-                control_options=:default,
-                showplots=false,
-                n_iter=5000,
-                quiet=true,
-            )
-
-            "LOCALLY_SOLVED" == string(termination_status(control_model)) && break
+                )
+                converged(control_model) && break
+            end
+            # failed even to stop
+            !converged(control_model) && return fail()
         end
 
-        if "LOCALLY_SOLVED" != string(termination_status(control_model))
-            @warn "Failed a second time!" termination_status(control_model)
-            return nothing, nothing, true, track
-        end
-
+        # keep going
+        @info "second attempt succesful"
         simtracker.prevsol = solution
-        simtracker.nskipped += 1
-        # if "TIME_LIMIT" == string(termination_status(control_model))
-        #     return nothing, nothing, true, track
-        # end
-
-        # return nothing, nothing, true, track
     else
         success = true
-        simtracker.prevvalidsol = solution
         simtracker.prevsol = solution
-        simtracker.nskipped = 0
     end
     
     return initial_state, solution, false, track
@@ -167,7 +188,7 @@ end
 """
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
-function run_simulation(; planning_horizon::Float64=.5, n_iter=1200, Δt=.0025, iter0_start_svalue=1)
+function run_simulation(; planning_horizon::Float64=.5, n_iter=550, Δt=.01)
     # run global solution
     track = Track(;start_waypoint=2, keep_n_waypoints=-1)
 
@@ -177,13 +198,12 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=1200, Δt=.0025, 
         showtrials=nothing,
         track=track,
         n_iter=5000,
-        fcond=State(; u=20, n=0, ψ=0),
+        fcond=State(; u=30, ω=0),
         timed=false,
         showplots=false,
     )
 
     # plot background & global trajectory
-
     colors = [
             range(HSL(colorant"red"), stop=HSL(colorant"green"), length=(Int ∘ floor)(n_iter/2))...,
             range(HSL(colorant"green"), stop=HSL(colorant"blue"), length=(Int ∘ ceil)(n_iter/2))...
@@ -191,11 +211,11 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=1200, Δt=.0025, 
 
     simtracker = SimTracker(Δt=Δt)
     solutiontracker = SolutionTracker()
-    anim = @animate for i in pbar(1:n_iter, redirectstdout=false)
+    anim = @animate for i in pbar(1:n_iter, redirectstdout=false, description="Running horizon: $planning_horizon seconds", expand=true)
         simtracker.iter = i
 
         # run simulation and store results
-        initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon, iter0_start_svalue)
+        initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
         shouldstop && break
         add!(solutiontracker, simtracker.t, initial_state, simtracker.s)
 
@@ -209,11 +229,11 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=1200, Δt=.0025, 
         draw!(initial_state; color=colors[i], alpha=1)
         plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
-        # simtracker.s > 235 && break
+        simtracker.s > 260 && break
     end
 
     # save animation
-    name = (@sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon) * "start_$iter0_start_svalue"
+    name = (@sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon)
     gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
     gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
 
@@ -229,17 +249,15 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=1200, Δt=.0025, 
     return data
 end
 
-# .15, .20, .25,
-# todo = (.1, .15, .25, .3, .40, .50, .75, 1.0, 1.5)
-todo = (.1, .15, .2, .25, .3, .35, .4)
-# .25, .3, .40, .50, .75, 1.0, 1.5)
-startpoints = (1, 50, 100, )
 
-for sp in startpoints
-    for horizon in todo
-        @info "Running horizon length $horizon seconds"
-        results = run_simulation(planning_horizon=horizon, iter0_start_svalue=sp)
-        # break
-    end
-    break
+
+todo = (.2, .25, .3, .35, .4)
+todo = (.12, .14, .16, .18)
+
+for horizon in todo
+    @info "Running horizon length $horizon seconds"
+    results = run_simulation(planning_horizon=horizon)
+    # break
+end
+
 end
