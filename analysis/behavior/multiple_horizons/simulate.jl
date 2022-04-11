@@ -251,8 +251,8 @@ end
 
 
 
-todo = (.2, .25, .3, .35, .4)
-todo = (.12, .14, .16, .18)
+# todo = (.2, .25, .3, .35, .4)
+todo = (.22, .28, .32, .38)
 
 for horizon in todo
     @info "Running horizon length $horizon seconds"
@@ -260,4 +260,3 @@ for horizon in todo
     # break
 end
 
-end

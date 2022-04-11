@@ -27,9 +27,10 @@ struct Dist
     μ
     med
     σ
+    values::Vector{Float64}
 end
 Base.show(io::IO, dist::Dist) = print(io, "Dist: $(dist.name)(μ: $(round(dist.μ; digits=2)), σ: $(round(dist.σ; digits=2)))")
-Dist(name, data::Vector) = Dist(name, mean(data), median(data), std(data))
+Dist(name, data::Vector) = Dist(name, mean(data), median(data), std(data), data)
 
 
 """
