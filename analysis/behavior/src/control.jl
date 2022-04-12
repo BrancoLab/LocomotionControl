@@ -1,7 +1,19 @@
 module control
 
-using InfiniteOpt, Ipopt
-import InfiniteOpt: set_optimizer_attribute
+
+using Ipopt
+import InfiniteOpt: 
+    set_optimizer_attribute,
+    @parameter_function,
+    @constraint,
+    @constraints,
+    @objective,
+    @variables,
+    @register,
+    @infinite_parameter,
+    @parameter_function,
+    set_all_derivative_methods
+
 import Parameters: @with_kw
 using IOCapture: IOCapture
 import Term: Panel, RenderableText
