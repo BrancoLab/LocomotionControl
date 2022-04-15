@@ -22,8 +22,8 @@ function compare(;  problemtype=:dynamics)
     δ_bounds=Bounds(-60, 60, :angle),
     δ̇_bounds=Bounds(-4, 4),
     ω_bounds=Bounds(-600, 600, :angle),
-    v_bounds=Bounds(-20, 20),
-    Fu_bounds=Bounds(-3000, 5000),
+    v_bounds=Bounds(-17, 17),
+    Fu_bounds=Bounds(-3500, 4000),
     )
 
     track, bike, _, solution = run_mtm(
@@ -37,6 +37,7 @@ function compare(;  problemtype=:dynamics)
         timed=false,
         showplots=false,
     )
+    @info "Duration" solution.t[end]
 
     # plot model trajectory
     plt = draw(:arena)
@@ -121,7 +122,7 @@ function compare(;  problemtype=:dynamics)
     # ------------------------------------ fin ----------------------------------- #
     trials = load_cached_trials(; keep_n = nothing,)
     h = histogram(
-        map(t->t.duration, trials), color="black", label=nothing, xlim=[0, 25]
+        map(t->t.duration, trials), color="black", label=nothing, xlim=[0, 15]
     )
     duration = solution.t[end]
 

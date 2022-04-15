@@ -2,17 +2,7 @@ module control
 
 
 using Ipopt
-import InfiniteOpt: 
-    set_optimizer_attribute,
-    @parameter_function,
-    @constraint,
-    @constraints,
-    @objective,
-    @variables,
-    @register,
-    @infinite_parameter,
-    @parameter_function,
-    set_all_derivative_methods
+using InfiniteOpt
 
 import Parameters: @with_kw
 using IOCapture: IOCapture
@@ -98,8 +88,8 @@ u_bounds=Bounds(10, 75),
 δ_bounds=Bounds(-60, 60, :angle),
 δ̇_bounds=Bounds(-4, 4),
 ω_bounds=Bounds(-600, 600, :angle),
-v_bounds=Bounds(-20, 20),
-Fu_bounds=Bounds(-3000, 5000),
+v_bounds=Bounds(-17, 17),
+Fu_bounds=Bounds(-3500, 4000),
 )
 
 
@@ -374,7 +364,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 30.0)
+    set_optimizer_attribute(model, "max_wall_time", 90.0)
 
     # register curvature function
     κ(s) = track.κ(s)
@@ -418,7 +408,7 @@ function create_and_solve_control(
 
     β = atan(v / (u))  # slip angle  
     V = √(u^2 + v^2)
-    SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β) + eps())  # time -> space domain conversion factor
+    SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β))  # time -> space domain conversion factor
 
     Ff = c⋅(δ - (l_f⋅ω + v + eps())/u)
     Fr = c⋅(l_r⋅ω - v + eps())/u

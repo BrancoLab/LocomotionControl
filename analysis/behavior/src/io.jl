@@ -103,6 +103,7 @@ function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)::Vector{Trial}
     # sort trials by duration
     durations = map(t->t.duration, trials)
     trials = trials[sortperm(durations)]
+    trials = filter(t -> t.duration <= 12.0, trials)
 
     return isnothing(keep_n) ? trials : trials[1:keep_n]
 end

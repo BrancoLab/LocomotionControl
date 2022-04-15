@@ -71,10 +71,10 @@ Repeate MTM with windows of decreasing length
 function attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
     @warn "Could not solve $(simtracker.iter)" termination_status(control_model) s0
 
-    # try again 
+    # try again , either shortening or lengthening the planning window
     solution = nothing
-    for i in 1:5
-        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .05 * i), 4)
+    for i in 1:8
+        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .01 * i), 4)
         track = trim(FULLTRACK, s0, len)
 
         _, _, control_model, solution = run_mtm(
@@ -154,7 +154,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
 
         # enter breaking mode: just try to slow down
         if !success
-            @warn "\e[32mslowing down\e[0m"
+            @warn "\e[34mcouldn't recover - slowing down\e[0m"
             for i in 1:5
                 _, _, control_model, solution = run_mtm(
                     :dynamics,
@@ -251,8 +251,10 @@ end
 
 
 
-# todo = (.2, .25, .3, .35, .4)
-todo = (.22, .28, .32, .38)
+todo = (.10, .12, .14, .16, .18, .20)
+# todo = .1:.02:.26
+# todo = (.36, .38, .42, .44)
+
 
 for horizon in todo
     @info "Running horizon length $horizon seconds"
