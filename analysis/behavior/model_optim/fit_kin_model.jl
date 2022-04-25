@@ -46,7 +46,7 @@ function run_model_fit(params_ranges)
         coptions = ControlOptions(;
             # controls & variables bounds
             u̇_bounds=Bounds(-u̇, u̇),
-            δ̇_bounds=Bounds(-δ̇, δ),
+            δ̇_bounds=Bounds(-δ̇, δ̇),
             u_bounds=Bounds(5, 80),
             δ_bounds=Bounds(-δ, δ, :angle),
             ω_bounds=Bounds(-400, 400, :angle),

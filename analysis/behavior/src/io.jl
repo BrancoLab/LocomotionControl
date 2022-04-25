@@ -6,19 +6,22 @@ using Glob
 using JSON: JSON
 using DataFrames: DataFrame
 
-export PATHS, load_trials
+import ..trial: Trial
 
-PATHS = Dict(
+export PATHS, load_trials, load_cached_trials
+
+if Sys.iswindows()
+    PATHS = Dict(
     "exp_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\saved_data",
     "cached_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache",
-
-)
-
-# PATHS = Dict(
-#     # "exp_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data",
-# )
-
-
+    )
+else
+    PATHS = Dict(
+    "exp_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data",
+    "cached_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_trials_cache",
+    "horizons_sims_cache" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims",
+    )
+end
 
 """
 Load individual bouts metadata and tracking data from individual JSON files.
@@ -88,11 +91,21 @@ function load_trials(;
 
     # sort by duration and shortem
     data = sort!(DataFrame(data), :duration)
-    return data = isnothing(keep_n) ? data : first(data, keep_n)
+    return isnothing(keep_n) ? data : first(data, keep_n)
 end
 
+"""
+Load cached pre-processed trials as Trial objects
+"""
+function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)::Vector{Trial}
+    trials = Trial.(glob("trial_*.json", io.PATHS["cached_data_folder"]))
 
-function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)
-    glob("*_bout.json", io.PATHS["cached_data_folder"])
+    # sort trials by duration
+    durations = map(t->t.duration, trials)
+    trials = trials[sortperm(durations)]
+    trials = filter(t -> t.duration <= 12.0, trials)
+
+    return isnothing(keep_n) ? trials : trials[1:keep_n]
+end
 
 end

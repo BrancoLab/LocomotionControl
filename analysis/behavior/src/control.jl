@@ -1,7 +1,9 @@
 module control
 
-using InfiniteOpt, Ipopt
-import InfiniteOpt: set_optimizer_attribute
+
+using Ipopt
+using InfiniteOpt
+
 import Parameters: @with_kw
 using IOCapture: IOCapture
 import Term: Panel, RenderableText
@@ -48,7 +50,7 @@ other parameters such as bounds on allowed errors.
 @with_kw struct ControlOptions
     # errors bounds
     track_safety::Float64 = 1
-    ψ_bounds::Bounds = Bounds(-35, 35, :angle)
+    ψ_bounds::Bounds = Bounds(-30, 30, :angle)
 
     # control bounds
     u̇_bounds::Bounds = Bounds(-200, 200)
@@ -75,20 +77,21 @@ realistict_control_options = ControlOptions(;
     v_bounds=Bounds(-125, 125),
 )
 
+
 """
-    These represent the best controls for the Kinematic
-    model as of 22/03/2022. Discovered through params 
-    exploration.
+These are th best controls for the Dynamic model
+as of 04/04/2022, they're also the very close
+to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-    u_bounds=Bounds(5, 80),
-    u̇_bounds=Bounds(-125, 125),
-    δ_bounds=Bounds(-110, 110, :angle),
-    δ̇_bounds=Bounds(-3, 3),
-    ω_bounds=Bounds(-400, 400, :angle),
-    Fy_bounds=Bounds(-500, 500),
-    v_bounds=Bounds(-125, 125),
+u_bounds=Bounds(10, 75),
+δ_bounds=Bounds(-60, 60, :angle),
+δ̇_bounds=Bounds(-4, 4),
+ω_bounds=Bounds(-600, 600, :angle),
+v_bounds=Bounds(-17, 17),
+Fu_bounds=Bounds(-3500, 4000),
 )
+
 
 # ---------------------------------------------------------------------------- #
 #                                KINEMATIC MODEL                               #
@@ -96,7 +99,6 @@ default_control_options = ControlOptions(;
 
 """
 Model description.
-See: https://thef1clan.com/2020/09/21/vehicle-dynamics-the-kinematic-bicycle-model/
 
 Bicyle model with kinematics in the CoM reference frame.
     The CoM has position (x,y) and is at a distance l from
@@ -349,13 +351,14 @@ function create_and_solve_control(
     bike::Bicycle,
     options::ControlOptions,
     initial_conditions::State,
-    final_conditions::State;
+    final_conditions::Union{Nothing, State, Symbol};
     quiet::Bool=false,
     n_iter::Int=1000,
     tollerance::Float64=1e-10,
     verbose::Int=0,
+    α::Float64=1.0,
 )
-
+    
     # initialize optimizer
     model = InfiniteModel(Ipopt.Optimizer)
     set_optimizer_attribute(model, "max_iter", n_iter)
@@ -368,7 +371,7 @@ function create_and_solve_control(
     @register(model, κ(s))
 
     # ----------------------------- define variables ----------------------------- #
-    @infinite_parameter(model, s ∈ [0, track.S_f], num_supports = num_supports)
+    @infinite_parameter(model, s ∈ [track.S[1], track.S[end]], num_supports = max(5, num_supports))
 
     @variables(
         model,
@@ -381,23 +384,18 @@ function create_and_solve_control(
             options.δ_bounds.lower ≤ δ ≤ options.δ_bounds.upper, Infinite(s)
             options.δ̇_bounds.lower ≤ δ̇ ≤ options.δ̇_bounds.upper, Infinite(s)    # control
 
-            # lateral forces
-            options.Fy_bounds.lower ≤ Ff ≤ options.Fy_bounds.upper, Infinite(s)
-            options.Fy_bounds.lower ≤ Fr ≤ options.Fy_bounds.upper, Infinite(s)
-
             # long/lat/angular velocities
             options.u_bounds.lower ≤ u ≤ options.u_bounds.upper, Infinite(s)
             options.v_bounds.lower ≤ v ≤ options.v_bounds.upper, Infinite(s)
             options.ω_bounds.lower ≤ ω ≤ options.ω_bounds.upper, Infinite(s)
 
             # driving force
-            options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control
+            options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control 
 
             # time
-            SF, Infinite(s)
-            0 ≤ t ≤ 60, Infinite(s), (start = 10)
-        end
-    )
+            0 ≤ t ≤ 60, Infinite(s), (start = 10)   
+       end
+   )
 
     # -------------------------- track width constraints ------------------------- #
     @parameter_function(model, allowed_track_width == track.width(s))
@@ -408,23 +406,25 @@ function create_and_solve_control(
     l_r, l_f = bike.l_r, bike.l_f
     m, Iz, c = bike.m, bike.Iz, bike.c
 
-    β = atan(v / (u + eps()))  # slip angle  
+    β = atan(v / (u))  # slip angle  
     V = √(u^2 + v^2)
+    SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β))  # time -> space domain conversion factor
+
+    Ff = c⋅(δ - (l_f⋅ω + v + eps())/u)
+    Fr = c⋅(l_r⋅ω - v + eps())/u
 
     @constraints(
         model,
         begin
-            SF == (1 - n * κ(s)) / (V ⋅ cos(ψ + β) + eps())  # time -> space domain conversion factor
-
             # errors
             ∂(n, s) == SF * u ⋅ sin(ψ + β)
             ∂(ψ, s) == SF * ω - κ(s)
 
             # EOM
             ∂(δ, s) == SF * δ̇
-            ∂(u, s) == SF / m * (m ⋅ ω ⋅ v - Ff ⋅ sin(δ) + Fu)
-            ∂(v, s) == SF / m * (-m ⋅ ω ⋅ u + Ff ⋅ cos(δ) + Fr)
-            ∂(ω, s) == SF / Iz * (l_f ⋅ Ff ⋅ cos(δ) - l_r ⋅ Fr)
+            ∂(u, s) == SF / m * (m⋅ω⋅v - Ff⋅sin(δ) + Fu)
+            ∂(v, s) == SF / m * (-m⋅ω⋅u + Ff⋅cos(δ) + Fr)
+            ∂(ω, s) == SF / Iz * (l_f⋅Ff⋅cos(δ) - l_r⋅Fr)
 
             # time
             ∂(t, s) == SF
@@ -432,41 +432,59 @@ function create_and_solve_control(
     )
 
     # ----------------------- set initial/final conditions ----------------------- #
+    # initial conditions
     @constraints(
         model,
         begin
-            # initial conditions
-            n(0) == initial_conditions.n
-            ψ(0) == initial_conditions.ψ
+            n(track.S[1]) == initial_conditions.n
+            ψ(track.S[1]) == initial_conditions.ψ
 
-            δ(0) == initial_conditions.δ
+            δ(track.S[1]) == initial_conditions.δ
+            δ̇(track.S[1]) == initial_conditions.δ̇
 
-            u(0) == initial_conditions.u
-            v(0) == initial_conditions.v
-            ω(0) == initial_conditions.ω
+            u(track.S[1]) == initial_conditions.u
+            v(track.S[1]) == initial_conditions.v
+            ω(track.S[1]) == initial_conditions.ω
+            Fu(track.S[1]) == initial_conditions.Fu
 
-            Ff(0) == 0
-            Fr(0) == 0
-            Fu(0) == 0
-
-            # final conditions
-            n(track.S_f) == final_conditions.n
-            ψ(track.S_f) == final_conditions.ψ
-
-            δ(track.S_f) == final_conditions.δ
-
-            u(track.S_f) == final_conditions.u
-            v(track.S_f) == final_conditions.v
-            ω(track.S_f) == final_conditions.ω
-
-            Ff(track.S_f) == 0
-            Fr(track.S_f) == 0
-            Fu(track.S_f) == 0
+            t(track.S[1]) == 0
         end
     )
 
+    # final conditions
+    if !isnothing(final_conditions)
+        if final_conditions == :minimal
+            @constraints(
+                model, 
+                begin
+                n(track.S[end]) == 0
+                ψ(track.S[end]) == 0
+
+                end
+            )
+        else
+            @constraints(
+                model, 
+                begin
+                n(track.S[end]) == final_conditions.n
+                ψ(track.S[end]) == final_conditions.ψ
+
+                δ(track.S[end]) == final_conditions.δ
+                δ̇(track.S[end]) == final_conditions.δ̇
+
+                u(track.S[end]) == final_conditions.u
+                v(track.S[end]) == final_conditions.v
+                ω(track.S[end]) == final_conditions.ω
+                Fu(track.S[end]) == final_conditions.Fu
+                end
+            )
+            end
+        end
     # --------------------------------- optimize --------------------------------- #
-    @objective(model, Min, ∫(SF, s))
+    # set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
+    set_all_derivative_methods(model, OrthogonalCollocation(3))
+    @objective(model, Min, ∫(α*SF + (1-α)*u, s))
+
     optimize!(model)
 
     # print info

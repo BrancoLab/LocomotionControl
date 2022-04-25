@@ -30,7 +30,7 @@ struct Bicycle
     body_lw::Number
     body_color::String
 
-    function Bicycle(; l_f::Number=5, l_r::Number=3, width::Number=2, m_f=10, m_r=15, c=1)
+    function Bicycle(; l_f::Number=3, l_r::Number=2, width::Number=2.0, m_f=10, m_r=12, c=3e3)
 
         # convert units g->Kg, cm->m
         mfKg = m_f / 100
@@ -69,6 +69,7 @@ model.
     y::Number = 0
     θ::Number = 0  # orientation
     δ::Number = 0  # steering angle
+    δ̇::Number = 0
     ω::Number = 0
     u::Number = 0  # velocity  | fpr DynamicsProblem its the longitudinal velocity component
 
@@ -77,6 +78,7 @@ model.
 
     # DynamicsProblem only
     v::Number = 0  # lateral velocity
+    Fu::Number = 0  # forward force
 
     # track errors 
     n::Number = 0
@@ -112,12 +114,14 @@ function State(solution, Δt::Float64)
         y=solution.y[frame],
         θ=solution.θ[frame],
         δ=solution.δ[frame],
+        δ̇=solution.δ̇[frame],
         ω=solution.ω[frame],
         u=solution.u[frame],
         β=solution.β[frame],
         v=solution.v[frame],
         n=solution.n[frame],
         ψ=solution.ψ[frame],
+        Fu = solution.Fu[frame]
     )
 end
 end

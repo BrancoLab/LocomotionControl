@@ -19,7 +19,7 @@ function run_mtm(
     supports_density::Number;
     track::Union{Nothing,Track}=nothing,
     icond::Union{Nothing,State}=nothing,
-    fcond::Union{Nothing,State}=nothing,
+    fcond::Union{Nothing,State, Symbol}=nothing,
     control_options::Union{ControlOptions,Symbol}=:default,
     showtrials::Union{Nothing,Int64}=nothing,
     n_iter::Int=1000,
@@ -28,6 +28,7 @@ function run_mtm(
     timed::Bool=false,
     showplots::Bool=true,
     quiet::Bool=false,
+    α::Float64=1.0,
 )
     problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
     δt = 0.01 # Δt for forward integration
@@ -50,14 +51,14 @@ function run_mtm(
     @assert control_options isa ControlOptions "Control options is not a ControlOptions type: $(typeof(control_options)) $control_options"
 
     # define initial and final conditions
-    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=10) : icond
-    fcond = isnothing(fcond) ? State(; u=15, n=0, ψ=0) : fcond
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=10, ω=0, ψ=.15) : icond
+    # fcond = isnothing(fcond) ? State(; u=40, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #
     #                                   FIT MODEL                                  #
     # ---------------------------------------------------------------------------- #
     # supports_density = 1 -> 100 supports for the whole track, adjust by track length
-    n_supports = (Int ∘ round)(supports_density * 100 * track.S_f / 261)
+    n_supports = (Int ∘ round)(supports_density * 100 * (track.S[end] - track.S[1]) / 261)
     # @info "Running with" n_supports
     control_model = @timeit to "solve control" create_and_solve_control(
         problemtype,
@@ -71,6 +72,7 @@ function run_mtm(
         tollerance=tol,
         verbose=verbose,
         quiet=quiet,
+        α=α,
     )
 
     # ---------------------------------------------------------------------------- #

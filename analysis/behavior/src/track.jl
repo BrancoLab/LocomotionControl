@@ -2,6 +2,8 @@ using NPZ
 using Dierckx: Spline1D, derivative
 using Interpolations
 
+
+
 # -------------------------------- TRACK TYPE -------------------------------- #
 struct Track
     X::Vector
@@ -21,7 +23,7 @@ end
 function Base.show(io::IO, track::Track)
     return print(
         io,
-        "Track. \e[2m$(round(track.S_f)) cm long, $(track.N) waypoints. Width: $(track.width)cm\e[0m",
+        "Track. \e[2m$(round(track.S_f)) cm long, $(track.N) waypoints.\e[0m",
     )
 end
 
@@ -77,21 +79,49 @@ end
 """
 Value of the width factor of the track at various svalues
 """
+# width_values = [
+#     [0.0 .9]  # start
+#     [0.05 .8]
+#     [0.07 .8] # first narrow
+#     [0.11 .78] # first narrow
+#     [0.15 .8]  # end of frst narrow
+#     [0.3 .9]  # second curve
+#     [0.4 .9]  # end of second curve
+#     [0.45 .8]  # second narrow
+#     [0.5 .77]  # 
+#     [0.6 .85]  # end of second narrow
+#     [0.63 1.0]  
+#     [0.7 1.5]
+#     [0.85 1.0]  # second part of last curve
+#     [1 .7]  # end
+# ]
+
 width_values = [
-    [0.0 1.1]  # start
-    [0.05 1.0]
-    [0.07 0.95] # first narrow
-    [0.15 1.0]  # end of frst narrow
-    [0.25 1.1]  # second curve
-    [0.4 1.0]  # end of second curve
-    [0.45 0.95]  # second narrow
-    [0.55 1.0]  # end of second narrow
-    [0.6 1.2]  # end of second narrow
-    [0.67 1.5]  # start of fourth curve
-    [0.7 1.5]
-    [0.72 1.5]
-    [0.9 1.1]
-    [1 1.1]  # end
+    [0.0 1.2]
+    [0.01 1.2]
+    [0.05 1.2]
+    [0.07 1.0] # first narrow
+    [0.11 .9] # first narrow
+    [0.15 .82]  # end of frst narrow
+    [0.25 1.0]
+    [0.30 .95]   # middle of second curve
+    [0.36 1.0]
+    # [0.42 1.06]
+    [0.45 1.0]  # second narrow
+    [0.5 .95]  # 
+    [0.6 1.05]  # end of second narrow
+    [0.63 1.15]  
+    [0.67 1.15]
+    [0.7 1.15]
+    [0.75 1.15]
+    [0.80 1.1]  # second part of last curve
+    [0.9 1.05]
+    [0.92 1.0]
+    [0.95 1.0]
+    [0.98 1.0]
+    [1 1.0]  # end
+    # [1 .75]  # end
+    # [1 .75]  # end
 ]
 
 # ---------------------------------------------------------------------------- #
@@ -102,8 +132,14 @@ width_values = [
 Construct `Track` out of a set of waypoints
 """
 function Track(XY, s1::Float64; resolution=0.00001)
+    X = movingaverage(XY[:, 1], 3)
+    Y = movingaverage(XY[:, 2], 3)
+    X, Y = upsample(X, Y; δp=resolution)
+
+
+    # @assert length(X) == size(XY, 1)
     # get new points locations thorugh interpolation
-    X, Y = upsample(XY[:, 1], XY[:, 2]; δp=resolution)
+    # X, Y = upsample(XY[:, 1], XY[:, 2]; δp=resolution)
     N = length(X)
 
     # get distance step between each track point + total length
@@ -125,8 +161,9 @@ function Track(XY, s1::Float64; resolution=0.00001)
     θ[1] = θ[2]
 
     # get width function working for short tracks
-    wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=1)
+    wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=4)
     wfn(s) = wspline((s - s1) / 261)
+    # wfn(s) = 3.0
 
     # return Track
     return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, wfn, θ)
@@ -151,7 +188,8 @@ function Track(; start_waypoint=2, keep_n_waypoints=-1, resolution=0.00001)
     else
         (size(XY, 1) - start_waypoint)
     end
-    XY = XY[start_waypoint:(start_waypoint + keep_n_waypoints - 1), :]
+    end_idx = min(start_waypoint + keep_n_waypoints - 1, 261)
+    XY = XY[start_waypoint:end_idx, :]
 
     s1 = (start_waypoint) / 261
 
@@ -173,3 +211,29 @@ end
 
 
 const FULLTRACK = Track()
+
+"""
+Trim the full track from a start value keeping a given length
+"""
+function trim(track::Track, svalue, length)
+    # svalue = svalue < 1 ? svalue * 259 : svalue
+    
+    first = findfirst(track.S .>= (svalue))
+
+    last = findlast(track.S .<= (svalue + length))
+
+    return Track(
+        FULLTRACK.X[first:last],
+        FULLTRACK.Y[first:last],
+        FULLTRACK.XY[:, first:last],
+        FULLTRACK.curvature[first:last],
+        -1,
+        FULLTRACK.P[first:last],
+        FULLTRACK.S[last],
+        FULLTRACK.S[first:last],
+        FULLTRACK.δs[first:last],
+        FULLTRACK.κ,
+        FULLTRACK.width,
+        FULLTRACK.θ[first:last],
+    )
+end
