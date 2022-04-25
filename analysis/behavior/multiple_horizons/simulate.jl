@@ -19,8 +19,6 @@ import jcontrol.Run: run_mtm
 import jcontrol.forwardmodel: solution2state, solution2s
 import jcontrol.io: PATHS
 
-# good start values 1, 50
-iter0_start_svalue = 50
 
 @Base.kwdef mutable struct SimTracker
     s::Float64      = 0
@@ -69,14 +67,17 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
     for i in 1:8
         len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .01 * i)
         if len < 3
-            @warn "Length is $len"
+            @warn "Length is $len<3"
+            skip=true
             len = 3
+        else
+            skip = false
         end
         track = trim(FULLTRACK, s0, len)
 
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            3;
+            2;
             track=track,
             icond=initial_state,
             fcond=:minimal,
@@ -87,6 +88,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
         )
 
         converged(control_model) && break
+        skip && break
     end
 
     return !converged(control_model), solution
@@ -131,7 +133,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     try
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            3;
+            2;
             track=track,
             icond=initial_state,
             fcond=final_state,
@@ -155,7 +157,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
             for i in 1:5
                 _, _, control_model, solution = run_mtm(
                     :dynamics,
-                    3;
+                    2;
                     track=track,
                     icond=initial_state,
                     fcond=:minimal,
@@ -196,7 +198,7 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=550, Δt=.01)
 
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
-        3;
+        2;
         showtrials=nothing,
         track=track,
         n_iter=5000,
@@ -215,6 +217,7 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=550, Δt=.01)
     solutiontracker = SolutionTracker()
     pbar = ProgressBar(; expand=true, columns=:detailed)
     job = addjob!(pbar; N=n_iter, description="Running horizon: $planning_horizon seconds")
+
     data = nothing
     withpbar(pbar) do
         anim = @animate for i in 1:n_iter

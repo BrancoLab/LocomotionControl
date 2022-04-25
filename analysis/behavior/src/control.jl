@@ -86,10 +86,10 @@ to the realistic values ranges.
 default_control_options = ControlOptions(;
 u_bounds=Bounds(10, 80),
 δ_bounds=Bounds(-80, 80, :angle),
-δ̇_bounds=Bounds(-9, 9),
-ω_bounds=Bounds(-450, 450, :angle),
-v_bounds=Bounds(-13, 13),
-Fu_bounds=Bounds(-3500, 4500),
+δ̇_bounds=Bounds(-8, 8),
+ω_bounds=Bounds(-550, 550, :angle),
+v_bounds=Bounds(-10, 10),
+Fu_bounds=Bounds(-2500, 4000),
 )
 
 
@@ -410,8 +410,8 @@ function create_and_solve_control(
     V = √(u^2 + v^2)
     SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β))  # time -> space domain conversion factor
 
-    Ff = c⋅(δ - (l_f⋅ω + v + eps())/u)
-    Fr = c⋅(l_r⋅ω - v + eps())/u
+    Ff = c⋅(δ - (l_f⋅ω + v)/u)
+    Fr = c⋅(l_r⋅ω - v)/u
 
     # get driving torque
     # τ = Fu / (V + eps())

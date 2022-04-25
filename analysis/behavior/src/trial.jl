@@ -65,6 +65,7 @@ function Trial(trial::DataFrameRow, track::Track)
 
     # trim start to when speed is high enough
     start = findfirst(speed .> 15)
+    start = isnothing(start) ? 1 : start
 
     return Trial(
         trial.body_x[start:end],    # x

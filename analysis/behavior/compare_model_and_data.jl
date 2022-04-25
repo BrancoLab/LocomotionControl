@@ -14,27 +14,26 @@ import jcontrol.comparisons: ComparisonPoints
 
 function compare(;  problemtype=:dynamics)
     # ---------------------------------- run MTM --------------------------------- #
-    track = Track(;start_waypoint=2, keep_n_waypoints=-1)
+    track = Track(;start_waypoint=3, keep_n_waypoints=-1)
 
 
     coptions = ControlOptions(;
     u_bounds=Bounds(10, 80),
     δ_bounds=Bounds(-80, 80, :angle),
-    δ̇_bounds=Bounds(-9, 9),
-    ω_bounds=Bounds(-450, 450, :angle),
-    v_bounds=Bounds(-20, 20),
-    Fu_bounds=Bounds(-3500, 4500),
-
+    δ̇_bounds=Bounds(-8, 8),
+    ω_bounds=Bounds(-550, 550, :angle),
+    v_bounds=Bounds(-10, 10),
+    Fu_bounds=Bounds(-2500, 4000),
     )
 
     track, bike, _, solution = run_mtm(
         problemtype,  # model type
-        3;  # supports density
+        2;  # supports density
         showtrials=nothing,
         control_options=coptions,
         track=track,
         n_iter=5000,
-        fcond=State(; u=10, ψ=0),
+        fcond=State(; u=20, ψ=0),
         timed=false,
         showplots=false,
     )
@@ -49,6 +48,11 @@ function compare(;  problemtype=:dynamics)
     # load data
     trials = load_cached_trials(; keep_n = 300,)
     cpoints = ComparisonPoints(track; δs=5, trials=trials)
+    fasttrials = filter(t -> t.duration <= solution.t[end], trials)
+
+    # print percentage of fast trials (roudned)
+    @info "Fast trials: $(round(100 * length(fasttrials) / length(trials)))% | ($(length(fasttrials))/$(length(trials)))"
+
 
     # show data
     draw!.(trials; lw=3, alpha=.05)    
