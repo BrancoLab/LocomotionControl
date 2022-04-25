@@ -8,7 +8,6 @@ from fcutils.maths.signals import get_onset_offset
 
 from data.data_structures import TrackingData
 from data import colors
-from data import data_utils
 
 
 def plot_speeds(
@@ -134,107 +133,6 @@ def get_when_moving(
     return is_moving
 
 
-def get_threshold_crossing(
-    tracking: tuple, frame: int, direction: str, threshold: float
-) -> int:
-    """
-        Gets the last/first time the speed of all paws crossed a threshold
-    """
-    speeds = (
-        tracking.right_fl.bp_speed,
-        tracking.left_fl.bp_speed,
-        tracking.right_hl.bp_speed,
-        tracking.left_hl.bp_speed,
-    )
-    if direction == "up":
-        if frame == 0:
-            return frame
-        start = frame - 60 if frame > 60 else 0
-
-        crosses = []
-        for paw in speeds:
-            paw = data_utils.convolve_with_gaussian(paw, 8)
-            try:
-                crosses.append(np.where(paw[start:frame] < threshold)[0][-1])
-            except IndexError:
-                crosses.append(np.nan)
-
-        val = np.nanmin(crosses) + start
-        if val > frame or np.isnan(val):
-            logger.warning("Error in precise threshold crossing computation")
-            return None
-        return int(val)
-    else:
-        n_frames = len(tracking.right_fl.speed)
-        if frame == n_frames:
-            return frame
-        end = frame + 60 if frame < (n_frames - 60) else n_frames
-
-        crosses = []
-        for paw in speeds:
-            try:
-                crosses.append(np.where(paw[frame:end] < threshold)[0][0])
-            except IndexError:
-                crosses.append(np.nan)
-
-        val = np.nanmax(crosses) + frame
-        if val > end or np.isnan(val):
-            logger.warning("Error in precise threshold crossing computation")
-            return None
-        return int(val)
-
-
-def get_bout_start_end_times(
-    tracking: tuple, bstart: int, bend: int
-) -> Tuple[int, int]:
-    """
-        Look at the movement of the paws to decide exactly when the bout starts
-    """
-
-    # get exactly when the bout starts and ends
-    precise_start = get_threshold_crossing(tracking, bstart, "up", 8)
-    precise_end = get_threshold_crossing(tracking, bend, "down", 8)
-
-    # plot_bout_start_end(tracking.body.speed,
-    #     rfl=tracking.right_fl.bp_speed,
-    #     lfl=tracking.left_fl.bp_speed,
-    #     rhl=tracking.right_hl.bp_speed,
-    #     lhl=tracking.left_hl.bp_speed,
-    #     precise_start = precise_start,
-    #     precise_end = precise_end,
-    #     start=bstart, end=bend, speed_th=10)
-
-    return precise_start, precise_end
-
-
-def is_quiet(
-    tracking: tuple,
-    bstart: int,
-    bend: int,
-    duration: int,
-    shift: int = 5,
-    th: float = 5,
-) -> bool:
-    """
-        Checks if the speed of all paws is law enough before and after the 
-        the bout which means the mouse wasnt mooving to much.
-    """
-    speeds = np.vstack(
-        [
-            tracking.right_fl.bp_speed,
-            tracking.left_fl.bp_speed,
-            tracking.right_hl.bp_speed,
-            tracking.left_hl.bp_speed,
-        ]
-    )
-
-    if np.mean(speeds[:, bstart - duration - shift : bstart - shift]) > th:
-        return False
-    elif np.mean(speeds[:, bend + shift : bend + shift + duration]) > th:
-        return False
-    return True
-
-
 def check_gcoord_delta(
     tracking, bstart: int, bend: int, min_gcoord_delta: float
 ) -> bool:
@@ -290,13 +188,8 @@ def get_session_bouts(
 
     # get when the mouse is moving
     is_moving = get_when_moving(
-        data_utils.convolve_with_gaussian(tracking.body.speed, 21),
-        speed_th,
-        max_pause,
-        min_duration,
-        min_peak_speed,
+        tracking.body.speed, speed_th, max_pause, min_duration, min_peak_speed,
     )
-    # plot_speeds(tracking.body.speed, is_moving=is_moving)
 
     # get bouts onsets and offsets
     onsets, offsets = get_onset_offset(is_moving, 0.5)
@@ -307,13 +200,6 @@ def get_session_bouts(
     for bstart, bend in zip(onsets, offsets):
         if bend < bstart:
             raise ValueError("Something went wrong...")
-
-        # get precise bout start and end times based on paw speeds
-        bstart, bend = get_bout_start_end_times(tracking, bstart, bend)
-        if bstart is None or bend is None:
-            continue
-        elif bend == len(tracking.body.x):
-            bend -= 1
 
         # remove bouts too close to start and end of recording
         if bstart < 60 or bend > (len(tracking.body.speed) - 60):
@@ -343,8 +229,8 @@ def get_session_bouts(
             continue
 
         # check that there's no movement before/after bout
-        if not is_quiet(tracking, bstart, bend, duration=int(0.5 * 60)):
-            continue
+        # if not is_quiet(tracking, bstart, bend, duration=int(0.25 * 60)):
+        #     continue
 
         # put everything together
         bout = key.copy()

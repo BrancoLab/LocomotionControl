@@ -22,7 +22,7 @@ function compare(;  problemtype=:dynamics)
     δ_bounds=Bounds(-80, 80, :angle),
     δ̇_bounds=Bounds(-9, 9),
     ω_bounds=Bounds(-450, 450, :angle),
-    v_bounds=Bounds(-14, 14),
+    v_bounds=Bounds(-20, 20),
     Fu_bounds=Bounds(-3500, 4500),
 
     )
