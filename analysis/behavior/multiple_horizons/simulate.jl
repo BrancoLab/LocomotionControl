@@ -5,7 +5,8 @@ import InfiniteOpt: termination_status
 using CSV
 import Colors: HSL
 import DataFrames: DataFrame
-import Term: track as pbar
+using Term.progress
+import Term.progress: with as withpbar
 import Term: install_term_logger
 import Printf: @sprintf
 install_term_logger()
@@ -21,21 +22,13 @@ import jcontrol.io: PATHS
 # good start values 1, 50
 iter0_start_svalue = 50
 
-extreme_coptions = ControlOptions(;
-    u_bounds=Bounds(10, 80),
-    δ_bounds=Bounds(-110, 110, :angle),
-    δ̇_bounds=Bounds(-6, 6),
-    ω_bounds=Bounds(-600, 600, :angle),
-    v_bounds=Bounds(-25, 25),
-    Fu_bounds=Bounds(-2000, 4500),
-)
-
 @Base.kwdef mutable struct SimTracker
     s::Float64      = 0
     iter::Int       = 0
     t::Float64      = 0.0
     Δt::Float64     = 0.01
     prevsol         = nothing
+    hasfailed       = 0
 end
 
 @Base.kwdef mutable struct SolutionTracker
@@ -74,7 +67,11 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
     # try again , either shortening or lengthening the planning window
     solution = nothing
     for i in 1:8
-        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .01 * i), 4)
+        len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .01 * i)
+        if len < 3
+            @warn "Length is $len"
+            len = 3
+        end
         track = trim(FULLTRACK, s0, len)
 
         _, _, control_model, solution = run_mtm(
@@ -170,8 +167,13 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
                 )
                 converged(control_model) && break
             end
-            # failed even to stop
+            # failed even to stop, give up if its not the first time
+            # !converged(control_model) && simtracker.hasfailed > 5 && return fail()
+            # if !converged(control_model)
+            #     simtracker.hasfailed += 1
+            # end
             !converged(control_model) && return fail()
+
         end
 
         # keep going
@@ -211,54 +213,59 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=550, Δt=.01)
 
     simtracker = SimTracker(Δt=Δt)
     solutiontracker = SolutionTracker()
-    anim = @animate for i in pbar(1:n_iter, redirectstdout=false, description="Running horizon: $planning_horizon seconds", expand=true)
-        simtracker.iter = i
+    pbar = ProgressBar(; expand=true, columns=:detailed)
+    job = addjob!(pbar; N=n_iter, description="Running horizon: $planning_horizon seconds")
+    data = nothing
+    withpbar(pbar) do
+        anim = @animate for i in 1:n_iter
+            simtracker.iter = i
 
-        # run simulation and store results
-        initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
-        shouldstop && break
-        add!(solutiontracker, simtracker.t, initial_state, simtracker.s)
+            # run simulation and store results
+            initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
+            shouldstop && break
+            add!(solutiontracker, simtracker.t, initial_state, simtracker.s)
 
-        # plot stuff
-        p1 = draw(:arena)
-        plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_darker, lw=6, alpha=.8, label=nothing)
-        draw!(FULLTRACK; border_alpha=.25, alpha=0.0)
+            # plot stuff
+            p1 = draw(:arena)
+            plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_darker, lw=6, alpha=.8, label=nothing)
+            draw!(FULLTRACK; border_alpha=.25, alpha=0.0)
 
-        draw!(track; color=colors[i], border_lw=5, alpha=0.0)
-        plot_bike_trajectory!(solution, bike; showbike=false, label=nothing, color=colors[i], alpha=.8, lw=4)
-        draw!(initial_state; color=colors[i], alpha=1)
-        plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
+            draw!(track; color=colors[i], border_lw=5, alpha=0.0)
+            plot_bike_trajectory!(solution, bike; showbike=false, label=nothing, color=colors[i], alpha=.8, lw=4)
+            draw!(initial_state; color=colors[i], alpha=1)
+            plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
-        simtracker.s > 260 && break
+            simtracker.s > 260 && break
+            update!(job)
+        end
+
+        # save animation
+        name = (@sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon)
+        gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
+        gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
+
+        # save global solution
+        destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
+        data = DataFrame(toDict(globalsolution))
+        CSV.write(destination, data)
+
+        # save short horizon solution
+        destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
+        data = DataFrame(toDict(solutiontracker))
+        CSV.write(destination, data)
     end
 
-    # save animation
-    name = (@sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon)
-    gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
-    gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
 
-    # save global solution
-    destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
-    data = DataFrame(toDict(globalsolution))
-    CSV.write(destination, data)
-
-    # save short horizon solution
-    destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
-    data = DataFrame(toDict(solutiontracker))
-    CSV.write(destination, data)
     return data
 end
 
 
 
-# todo = (.10, .12, .14, .16, .18, .20)
-todo = .1:.01:.26
-# todo = (.36, .38, .42, .44)
-
+todo = .1:.01:.4
+# todo = .45:.05:.6
 
 for horizon in todo
     @info "Running horizon length $horizon seconds"
     results = run_simulation(planning_horizon=horizon)
-    # break
 end
 

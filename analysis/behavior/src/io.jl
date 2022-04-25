@@ -6,7 +6,7 @@ using Glob
 using JSON: JSON
 using DataFrames: DataFrame
 
-import ..trial: Trial
+import ..trial: Trial, trimtrial
 
 export PATHS, load_trials, load_cached_trials
 
@@ -100,10 +100,26 @@ Load cached pre-processed trials as Trial objects
 function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)::Vector{Trial}
     trials = Trial.(glob("trial_*.json", io.PATHS["cached_data_folder"]))
 
+    # trim trials based on start ṡ and at end
+    trimmed::Vector{Trial} = []
+
+    for trial in trials
+        ṡ = diff(trial.s)
+        start = findfirst(ṡ .>= .15)
+        start = isnothing(start) ? 1 : start
+        stop = findfirst(trial.s .> 259)
+        stop = isnothing(stop) ? length(trial.s) : stop
+        _trial = trimtrial(trial, start, stop; by=:space)
+        !isnothing(_trial) && push!(trimmed, _trial)
+    end
+    # @info "Before trimming $(length(trials)) trials, after: $(length(trimmed))"
+
     # sort trials by duration
-    durations = map(t->t.duration, trials)
-    trials = trials[sortperm(durations)]
-    trials = filter(t -> t.duration <= 12.0, trials)
+    durations = map(t->t.duration, trimmed)
+    trials = trimmed[sortperm(durations)]
+    trials = filter(t -> t.duration <= 9.0, trials)
+    trials = filter(t -> t.s[1] <= 15, trials)
+    trials = filter(t -> t.s[end] >= 255, trials)
 
     return isnothing(keep_n) ? trials : trials[1:keep_n]
 end

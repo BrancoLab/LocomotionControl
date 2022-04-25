@@ -2,7 +2,7 @@ using Plots
 import Statistics: median, std
 import MyterialColors: black, blue_light
 using Term
-import Term: track as pbar
+using Term.progress
 import InfiniteOpt: objective_value
 install_term_logger()
 # install_stacktrace()
@@ -18,12 +18,13 @@ function compare(;  problemtype=:dynamics)
 
 
     coptions = ControlOptions(;
-    u_bounds=Bounds(10, 75),
-    δ_bounds=Bounds(-60, 60, :angle),
-    δ̇_bounds=Bounds(-4, 4),
-    ω_bounds=Bounds(-600, 600, :angle),
-    v_bounds=Bounds(-17, 17),
-    Fu_bounds=Bounds(-3500, 4000),
+    u_bounds=Bounds(10, 80),
+    δ_bounds=Bounds(-80, 80, :angle),
+    δ̇_bounds=Bounds(-9, 9),
+    ω_bounds=Bounds(-450, 450, :angle),
+    v_bounds=Bounds(-14, 14),
+    Fu_bounds=Bounds(-3500, 4500),
+
     )
 
     track, bike, _, solution = run_mtm(
@@ -33,7 +34,7 @@ function compare(;  problemtype=:dynamics)
         control_options=coptions,
         track=track,
         n_iter=5000,
-        fcond=State(; u=25, ψ=0),
+        fcond=State(; u=10, ψ=0),
         timed=false,
         showplots=false,
     )
@@ -46,11 +47,11 @@ function compare(;  problemtype=:dynamics)
 
     # -------------------------- do comparison with data ------------------------- #
     # load data
-    trials = load_cached_trials(; keep_n = 100,)
+    trials = load_cached_trials(; keep_n = 300,)
     cpoints = ComparisonPoints(track; δs=5, trials=trials)
 
     # show data
-    draw!.(trials; lw=3, alpha=.25)    
+    draw!.(trials; lw=3, alpha=.05)    
     draw!.(cpoints.points)
 
     # do comparison
@@ -60,9 +61,7 @@ function compare(;  problemtype=:dynamics)
     ωplot = plot(; title="ang.vel.", xlabel="s (cm)", ylabel="avel rad/s", legend=false)
 
     U, Ω = Dict{Float64, Vector{Float64}}(), Dict{Float64, Vector{Float64}}()
-    for trial in pbar(
-        trials; description="Iterating trials", expand=true, columns=:detailed, redirectstdout=false,
-    )   
+    @track for trial in trials
         # plot trial kinematics
         plot!(speedplot, trial.s, trial.speed; color=black, alpha=0.7)
         plot!(uplot, trial.s, trial.u; color=black, alpha=0.7)

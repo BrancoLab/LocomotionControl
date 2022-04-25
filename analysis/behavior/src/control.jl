@@ -84,12 +84,12 @@ as of 04/04/2022, they're also the very close
 to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-u_bounds=Bounds(10, 75),
-δ_bounds=Bounds(-60, 60, :angle),
-δ̇_bounds=Bounds(-4, 4),
-ω_bounds=Bounds(-600, 600, :angle),
-v_bounds=Bounds(-17, 17),
-Fu_bounds=Bounds(-3500, 4000),
+u_bounds=Bounds(10, 80),
+δ_bounds=Bounds(-80, 80, :angle),
+δ̇_bounds=Bounds(-9, 9),
+ω_bounds=Bounds(-450, 450, :angle),
+v_bounds=Bounds(-13, 13),
+Fu_bounds=Bounds(-3500, 4500),
 )
 
 
@@ -364,7 +364,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 90.0)
+    set_optimizer_attribute(model, "max_wall_time", 60.0)
 
     # register curvature function
     κ(s) = track.κ(s)
@@ -412,6 +412,10 @@ function create_and_solve_control(
 
     Ff = c⋅(δ - (l_f⋅ω + v + eps())/u)
     Fr = c⋅(l_r⋅ω - v + eps())/u
+
+    # get driving torque
+    # τ = Fu / (V + eps())
+    # τ = V > 50  ? Fu * .75 : Fu
 
     @constraints(
         model,
@@ -495,7 +499,7 @@ function create_and_solve_control(
         print(
             "\n" *
             Panel(
-                RenderableText(c.output, "$blue_light italic");
+                c.output;
                 style="yellow1",
                 title="IPoPT output",
                 title_style="red bold",

@@ -30,7 +30,7 @@ struct Bicycle
     body_lw::Number
     body_color::String
 
-    function Bicycle(; l_f::Number=3, l_r::Number=2, width::Number=2.0, m_f=10, m_r=12, c=3e3)
+    function Bicycle(; l_f::Number=3, l_r::Number=2, width::Number=2.0, m_f=10, m_r=12, c=4e3)
 
         # convert units g->Kg, cm->m
         mfKg = m_f / 100

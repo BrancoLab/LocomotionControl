@@ -151,11 +151,13 @@ def get_onsets_offsets(bonsai_probe_sync, ephys_probe_sync, sampling_rate):
             "The sync signals have very different lengths, this cant be!"
         )
         is_ok = False
+
     if is_ok and abs(np.mean(bonsai_probe_sync) - 2.5) > 1:
         logger.warning(
-            "Bonsai signal mean very far from exected average, cant be!"
+            "Bonsai signal mean very far from expected average, cant be!"
         )
         is_ok = False
+
     if is_ok and abs(np.mean(ephys_probe_sync) - 30.0) > 6:
         logger.warning(
             "Ephys signal mean very far from exected average, cant be!"
@@ -275,7 +277,7 @@ def validate_recording(
             f"Found {len(errors)} samples with too high values in bonsai probe signal"
         )
         if len(errors) > 1000:
-            logger.warning(f"This value seems to long, retuirning gailure")
+            logger.warning(f"This value seems to long, retuirning failure")
             return False, 0, 0, "too_many_errors_in_behavior_sync_signal"
     bonsai_probe_sync[errors] = bonsai_probe_sync[errors - 1]
 

@@ -102,12 +102,16 @@ end
 """
 Cut a trial to keep only the data between two s-values.
 """
-function trimtrial(trial::Trial, s0, s1)
-    start = findfirst(trial.s .>= s0)
-    isnothing(start) && return nothing
+function trimtrial(trial::Trial, s0, s1; by=:space)
+    if by == :space
+        start = findfirst(trial.s .>= s0)
+        isnothing(start) && return nothing
 
-    stop = findlast(trial.s .<= s1)
-    isnothing(start) && return nothing
+        stop = findlast(trial.s .<= s1)
+        isnothing(stop) && return nothing
+    else
+        start, stop = s0, s1
+    end
 
     return Trial(
         trial.x[start:stop],        # x
