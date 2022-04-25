@@ -34,6 +34,7 @@ from data.dbase import (
     _triggers,
     _recording,
     _roi,
+    _locomotion_bouts,
 )
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata  # , load_bin
@@ -145,9 +146,11 @@ if have_dj:
             ]
             for i, session in recorded_sessions.iterrows():
                 if session["bonsai filename"] not in in_table:
-                    raise ValueError(
+                    # raise ValueError(
+                    logger.warning(
                         f"Recording session not in table:\n{session}"
                     )
+                    # )
 
         @staticmethod
         def on_hairpin(session_name):
@@ -274,14 +277,22 @@ if have_dj:
             if key["name"] in failed.keys():
                 reason = failed[key["name"]]["__REASON"]
                 rec = failed[key["name"]]["__IS_RECORDING"]
-                logger.warning(
-                    f'Skipping because "{key["name"]}" (Is recording: {rec}) previously failed validation because: "{reason}"\n\n'
-                )
+                if rec:
+                    logger.warning(
+                        f'Skipping because "{key["name"]}" (Is recording: {rec}) previously failed validation because: "{reason}"\n\n'
+                    )
                 return
 
             # fetch data
             session = (Session & key).fetch1()
+
             has_rec = Session.has_recording(key["name"])
+            if int(session["date"]) > 220229 and has_rec:
+                logger.warning(
+                    f'Skipping because "{key["name"]}" is a NP2.0 recording {session["date"]}.\n\n'
+                )
+                return
+
             if has_rec:
                 previously_validated_path = (
                     "data/dbase/validated_recordings.yaml"
@@ -930,21 +941,20 @@ if have_dj:
                 )
 
             # get bouts
-            raise NotImplementedError
-            # bouts = _locomotion_bouts.get_session_bouts(
-            #     key,
-            #     tracking,
-            #     Session.on_hairpin(key["name"]),
-            #     speed_th=self.speed_th,
-            #     max_pause=self.max_pause,
-            #     min_duration=self.min_duration,
-            #     min_peak_speed=self.min_peak_speed,
-            #     min_gcoord_delta=self.min_gcoord_delta,
-            # )
+            bouts = _locomotion_bouts.get_session_bouts(
+                key,
+                tracking,
+                Session.on_hairpin(key["name"]),
+                speed_th=self.speed_th,
+                max_pause=self.max_pause,
+                min_duration=self.min_duration,
+                min_peak_speed=self.min_peak_speed,
+                min_gcoord_delta=self.min_gcoord_delta,
+            )
 
-            # # insert in table
-            # for bout in bouts:
-            #     self.insert1(bout)
+            # insert in table
+            for bout in bouts:
+                self.insert1(bout)
 
     @schema
     class Movement(dj.Imported):
@@ -1085,6 +1095,8 @@ if have_dj:
             r"W:\swc\branco\Federico\Locomotion\raw\recordings"
         )
 
+        spikeglx_sampling_rate = 30000.616484
+
         def make(self, key):
             # check if the session has a recording
             if not Session.has_recording(key["name"]):
@@ -1224,6 +1236,7 @@ if have_dj:
             return rsites
 
         def make(self, key):
+            raise NotImplementedError("Need to go over this again")
             logger.info(f'Procesing: "{key["name"]}"')
             recording = (Session * Recording & key).fetch1()
 
@@ -1342,7 +1355,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Tracking().drop()
+    # Session().drop()
     # LocomotionBouts().drop()
     # Unit().drop()
     # FiringRate().drop()
@@ -1356,14 +1369,14 @@ if __name__ == "__main__":
 
     # -------------------------------- fill dbase -------------------------------- #
 
-    # TODO CCM, Tracking, Probe, Recording
+    # TODO check why some recordings are not in the table!!
 
     logger.info("#####    Filling mouse data")
     # Mouse().fill()
 
     logger.info("#####    Filling Session")
-    # Surgery().populate(display_progress=True)
     # Session().fill()
+    # Surgery().populate(display_progress=True)
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
@@ -1380,18 +1393,18 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
-    # Movement().populate(display_progress=True)
-    # ROICrossing().populate(display_progress=True)
-    # ROICrossingTracking().populate(display_progress=True)
-    # RoiCrossingsTwins().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
+    Movement().populate(display_progress=True)
+    ROICrossing().populate(display_progress=True)
+    ROICrossingTracking().populate(display_progress=True)
+    RoiCrossingsTwins().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
-    Recording().populate(display_progress=False)
+    # Probe().populate(display_progress=True)
+    # Recording().populate(display_progress=False)
 
-    Unit().populate(display_progress=True)
+    # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 

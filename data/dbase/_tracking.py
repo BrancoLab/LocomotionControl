@@ -2,15 +2,16 @@ from loguru import logger
 import numpy as np
 from scipy.signal import medfilt
 import pandas as pd
-
+import json
 
 from fcutils.maths import derivative
-from fcutils.path import size
+from fcutils.path import size, files
 
 from data.dbase.io import load_dlc_tracking
 from data import data_utils
 from geometry.angles import orientation, angular_derivative
 from geometry import Path
+from data.paths import processed_tracking
 
 
 def register(x: np.ndarray, y: np.ndarray, M: np.ndarray):
@@ -50,8 +51,8 @@ def process_body_part(
     x, y = np.array(list(xy["x"].values())), np.array(list(xy["y"].values()))
 
     # median filter pass
-    x = data_utils.convolve_with_gaussian(x, kernel_width=5)
-    y = data_utils.convolve_with_gaussian(y, kernel_width=5)
+    # x = data_utils.convolve_with_gaussian(x, kernel_width=5)
+    # y = data_utils.convolve_with_gaussian(y, kernel_width=5)
 
     # compute speed
     speed = Path(x, y, fps=60).speed  # in cm/s
@@ -96,7 +97,7 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results["acceleration"] = derivative(results["speed"])
 
     # get direction of movement
-    path = Path(body.x, body.y).smooth()
+    path = Path(body.x, body.y).smooth(window=3)
     results["theta"] = path.theta
     results["thetadot"] = path.thetadot  # deg/s
     results["thetadotdot"] = path.thetadotdot  # in deg / s^2
@@ -114,6 +115,41 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     return results
 
 
+def _to_arr(v):
+    if isinstance(v[0], str):
+        return "".join(v)
+    else:
+        return np.array(v)
+
+
+def load_processed_tracking(tracking_file):
+    """
+        Attempt to load a processed tracking file to avoid processing anew
+    """
+    files_found = files(processed_tracking)
+    if files_found is None or not isinstance(files_found, list):
+        return None, None
+
+    processed = [f.stem for f in files_found]
+    if tracking_file.stem in processed:
+        logger.info(f"Loading processed tracking file: {tracking_file.stem}")
+
+        _path = processed_tracking / (tracking_file.stem + ".json")
+        # load from json file
+        with open(_path, "r") as f:
+            data = json.load(f)
+
+        key = {k: _to_arr(v) for k, v in data["key"].items()}
+        del data["key"]
+        data = {
+            k: {k2: _to_arr(v2) for k2, v2 in v.items()}
+            for k, v in data.items()
+        }
+        return key, data
+    else:
+        return None, None
+
+
 def process_tracking_data(
     key: dict,
     tracking_file: str,
@@ -125,6 +161,11 @@ def process_tracking_data(
         z = x.copy()  # start with keys and values of x
         z.update(y)  # modifies z with keys and values of y
         return z
+
+    # try using processed tracking file
+    _key, _data = load_processed_tracking(tracking_file)
+    if _key is not None:
+        return _key, _data, len(_key["orientation"])
 
     # load data
     logger.debug(
@@ -185,6 +226,15 @@ def process_tracking_data(
         """
     )
     key.update(velocites)
+
+    # save body_parts_tracking to .json file in the processed tracking data folder
+    with open(processed_tracking / (tracking_file.stem + ".json"), "w") as f:
+        _data = body_parts_tracking.copy()
+        _data["key"] = key
+        _data = {
+            k: {kk: list(vv) for kk, vv in v.items()} for k, v in _data.items()
+        }
+        json.dump(_data, f)
 
     return key, body_parts_tracking, len(key["orientation"])
 

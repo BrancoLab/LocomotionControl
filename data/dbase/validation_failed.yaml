@@ -376,6 +376,20 @@ FC_210915_BAA1110279_hairpin:
     name: FC_210915_BAA1110279_hairpin
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210915_BAA1110279_hairpin_video.avi
+FC_210916_BAA1110279_hairpin:
+    __IS_RECORDING: 1
+    __REASON: too_many_errors_in_ephys_sync_signal
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210916_BAA1110279_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210916_BAA1110279_hairpin_data.csv
+    date: '210916'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210916_279_b0_intref_hairpin_g0\210916_279_b0_intref_hairpin_g0_imec0\210916_279_b0_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210916_279_b0_intref_hairpin_g0\210916_279_b0_intref_hairpin_g0_imec0\210916_279_b0_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA1110279
+    name: FC_210916_BAA1110279_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210916_BAA1110279_hairpin_video.avi
 FC_211005_BAA1110520_hairpin:
     __IS_RECORDING: 0
     __REASON: no_bonsai_file_to_open
@@ -712,3 +726,73 @@ FC_211218_BAA110517_hairpin:
     name: FC_211218_BAA110517_hairpin
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211218_BAA110517_hairpin_video.avi
+FC_220131_BAA0000012_hairpin:
+    __IS_RECORDING: 0
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220131_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220131_BAA0000012_hairpin_data.csv
+    date: '220131'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220131_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220131_BAA0000012_hairpin_video.avi
+FC_220209_BAA0000012_hairpin:
+    __IS_RECORDING: 0
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220209_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220209_BAA0000012_hairpin_data.csv
+    date: '220209'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220209_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220209_BAA0000012_hairpin_video.avi
+FC_220214_BAA0000012_hairpin:
+    __IS_RECORDING: 0
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220214_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220214_BAA0000012_hairpin_data.csv
+    date: '220214'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220214_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220214_BAA0000012_hairpin_video.avi
+FC_220215_BAA0000012_hairpin:
+    __IS_RECORDING: 0
+    __REASON: no_bonsai_file_to_open
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220215_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220215_BAA0000012_hairpin_data.csv
+    date: '220215'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220215_BAA0000012_hairpin
+    nsigs: 0
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220215_BAA0000012_hairpin_video.avi
+FC_220219_BAA0000012_hairpin:
+    __IS_RECORDING: 0
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220219_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220219_BAA0000012_hairpin_data.csv
+    date: '220219'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220219_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220219_BAA0000012_hairpin_video.avi

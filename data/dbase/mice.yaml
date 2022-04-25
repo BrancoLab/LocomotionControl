@@ -98,3 +98,25 @@
     mouse_id: BAA110620
     strain: 'bl6'
     dob: '210913'
+
+
+# ---------------------------------- others ---------------------------------- #
+- mouse:
+    mouse_id: BAA0000011
+    strain: 'bl6'
+    dob: '010120' 
+
+- mouse:
+    mouse_id: BAA0000012
+    strain: 'bl6'
+    dob: '010120' 
+
+- mouse:
+    mouse_id: BAA1101192
+    strain: 'bl6'
+    dob: '010120' 
+
+- mouse:
+    mouse_id: BAA1101193
+    strain: 'bl6'
+    dob: '010120' 
