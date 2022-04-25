@@ -46,9 +46,22 @@ def fill_session_table(table):
                 if m["mouse"]["mouse_id"] in name
             ][0]
         except IndexError:
-            logger.warning(
-                f"Skipping session {name} because couldnt figure out the mouse or date it was done on"
-            )
+            if "523" in name:
+                date = name.split("_")[1]
+                mouse = "BAA110523"
+            elif "522" in name:
+                date = name.split("_")[1]
+                mouse = "BAA110522"
+            elif "521" in name:
+                date = name.split("_")[1]
+                mouse = "BAA110521"
+            elif "520" in name:
+                date = name.split("_")[1]
+                mouse = "BAA110520"
+            else:
+                logger.warning(
+                    f"Skipping session {name} because couldnt figure out the mouse or date it was done on"
+                )
             continue
         key = dict(mouse_id=mouse, name=name, date=date)
 
@@ -88,7 +101,7 @@ def fill_session_table(table):
 
             key["arena"] = rec.arena
             key["is_recording"] = 1
-            key["date"] = rec.date
+            key["date"] = int(rec.date)
         else:
             key["ephys_ap_data_path"] = ""
             key["ephys_ap_meta_path"] = ""
@@ -96,4 +109,6 @@ def fill_session_table(table):
             key["is_recording"] = 0
 
         # add to table
+        # if "." in str(key["date"]):
+        #     a = 1
         insert_entry_in_table(key["name"], "name", key, table)

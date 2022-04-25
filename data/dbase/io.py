@@ -14,7 +14,6 @@ from data.paths import (
 )
 
 
-
 def get_probe_metadata(mouse: str):
     metadata = pd.read_excel(probes_surgeries_metadata, engine="odf")
 
@@ -31,11 +30,12 @@ def get_probe_metadata(mouse: str):
             angle_ap=metadata["angles"].iloc[0],
             angle_ml=metadata["Unnamed: 12"].iloc[0],
             implanted_depth=metadata["inserted probe"].iloc[0],
-            reconstructed_track_filepath=metadata[
-                "reconstructed probe file path"
-            ].iloc[0],
-            target=metadata['Unnamed: 3'].iloc[0],
-            date = metadata['Unnamed: 0'].iloc[0]
+            # reconstructed_track_filepath=metadata[
+            #     "reconstructed probe file path"
+            # ].iloc[0],
+            reconstructed_track_filepath="",
+            target=metadata["Unnamed: 3"].iloc[0],
+            date=metadata["Unnamed: 0"].iloc[0],
         )
     except TypeError:
         logger.debug(

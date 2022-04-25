@@ -28,7 +28,7 @@ def start_connection():
             dj.config["database.host"] = ip
             dj.config["database.user"] = "root"
             dj.config["database.password"] = psw
-            dj.config["database.safemode"] = True
+            dj.config["database.safemode"] = False
             dj.config["safemode"] = False
             dj.config["enable_python_native_blobs"] = True
 
