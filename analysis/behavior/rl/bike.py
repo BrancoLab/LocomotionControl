@@ -94,12 +94,13 @@ class Bicycle:
         ddelta = deltadot
         du = 1 / m * (m * omega * v - Ff * sin(delta) + Fu)
         dv = 1 / m * (-m * omega * u + Ff * cos(delta) + Fr)
-        domega = 1 / Iz * (l_f * Ff * cos(delta) - l_r * Fr)
+        domega = 1 / Iz * (l_f * Ff * cos(delta) - l_r * Fr) * 1/100000
 
         # update state
         self.x += (u * cos(theta) + v * sin(theta)) * self.dt
         self.y += (u * sin(theta) - v * cos(theta)) * self.dt
         self.theta += omega * self.dt
+
 
         self.n += dn * self.dt
         self.psi += dpsi * self.dt
@@ -108,23 +109,26 @@ class Bicycle:
         self.u += du * self.dt
         self.v += dv * self.dt
         self.omega += domega * self.dt
+        print(self.omega, domega)
 
     def enforce_boundaries(self, boundaries):
         """
             Enforces the boundaries on the models variables
         """
-        self.n = inbounds(self.n, boundaries["n"].low, boundaries["n"].high)
-        self.psi = inbounds(
-            self.psi, boundaries["psi"].low, boundaries["psi"].high
-        )
-        self.delta = inbounds(
-            self.delta, boundaries["delta"].low, boundaries["delta"].high
-        )
-        self.u = inbounds(self.u, boundaries["u"].low, boundaries["u"].high)
-        self.v = inbounds(self.v, boundaries["v"].low, boundaries["v"].high)
-        self.omega = inbounds(
-            self.omega, boundaries["omega"].low, boundaries["omega"].high
-        )
+        # self.n = inbounds(self.n, boundaries["n"].low, boundaries["n"].high)
+        # self.psi = inbounds(
+        #     self.psi, boundaries["psi"].low, boundaries["psi"].high
+        # )
+        # self.delta = inbounds(
+        #     self.delta, boundaries["delta"].low, boundaries["delta"].high
+        # )
+        # self.u = inbounds(self.u, boundaries["u"].low, boundaries["u"].high)
+        # self.v = inbounds(self.v, boundaries["v"].low, boundaries["v"].high)
+        # self.omega = inbounds(
+        #     self.omega, boundaries["omega"].low, boundaries["omega"].high
+        # )
+        return
+
 
     def state(self):
         """

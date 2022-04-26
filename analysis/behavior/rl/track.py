@@ -13,6 +13,7 @@ class Track:
         self.theta = np.array(track["θ"])
         self._curv = np.array(track["curvature"])
         self.S = np.array(track["S"])
+        self.width = np.array(track["width"])
 
 
     def curvature(self, s):
@@ -22,7 +23,12 @@ class Track:
         idx = np.argmin(np.abs(self.S - s))
         return self._curv[idx]
 
-
+    def w(self, s):
+        """
+            Return width at given s value
+        """
+        idx = np.argmin(np.abs(self.S - s))
+        return self.width[idx]
 
     def s(self, x, y):
         """

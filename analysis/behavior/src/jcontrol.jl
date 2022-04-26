@@ -1,8 +1,7 @@
 module jcontrol
-using Term
-install_term_logger()
+# using Term
+# install_term_logger()
 
-install_stacktrace
 
 using Plots
 using Interpolations

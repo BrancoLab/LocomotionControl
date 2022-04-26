@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from stable_baselines3.common.env_checker import check_env
 from tpd import recorder
 from loguru import logger
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 
 from bike import Bicycle
@@ -66,7 +67,7 @@ class MTMEnv(gym.Env):
 
     _obs_keys = ("psi", "u", "v", "omega", "delta", "n")
 
-    def __init__(self, horizon: float = 20, ds: float = 1, dt: float = 0.001, log_dir=None):
+    def __init__(self, horizon: float = 20, ds: float = 1, dt: float = 0.0001, log_dir=None):
         super(MTMEnv, self).__init__()
 
         if log_dir is not None:
@@ -93,12 +94,15 @@ class MTMEnv(gym.Env):
         # Define observation space (multiply by N+1 to account for 's')
         assert horizon % ds == 0, "S must be divisible by ds"
         N = int(horizon / ds)
-        _low = [
-            bounds[var].low for var in self._obs_keys
-        ] + [-np.inf] * (N+1)
-        _high = [
-            bounds[var].high for var in self._obs_keys
-        ] + [np.inf] * (N+1)
+        # _low = [
+        #     bounds[var].low for var in self._obs_keys
+        # ] + [-np.inf] * (N+1)
+        # _high = [
+        #     bounds[var].high for var in self._obs_keys
+        # ] + [np.inf] * (N+1)
+
+        _low = np.array([-np.inf] * len(self._obs_keys) + [-np.inf] * (N+1))
+        _high = -_low
 
         self.observation_space = spaces.Box(
             low=np.array(_low), high=np.array(_high), shape=(len(_high),), dtype=np.float64
@@ -126,6 +130,11 @@ class MTMEnv(gym.Env):
         """
             convert action from [-1, 1] to real range
         """
+        if isinstance(action, tuple):
+            action = action[0]
+
+        if len(action.shape) == 2:
+            action = action.ravel()
         deltadot, Fu = action
         deltadot = unnormalize(
             deltadot,
@@ -150,6 +159,26 @@ class MTMEnv(gym.Env):
 
         return np.hstack(list(obs.values())).astype(np.float64)
 
+    def should_terminate(self):
+        bike_s = self.bike.s()
+
+        if bike_s > 250:
+            return True
+
+        if self.n_steps > self.MAX_N_STEPS:
+            return True
+
+        width = (self.track.w(bike_s) - self.bike.width)/2
+        if self.bike.n > width or self.bike.n < -width:
+            return True
+
+        if self.bike.psi > self.boundaries.psi.high or self.bike.psi < self.boundaries.psi.low:
+            return True
+
+        return False
+
+
+
     def step(self, action):
         self.n_steps += 1
         # check action bounds
@@ -168,14 +197,19 @@ class MTMEnv(gym.Env):
         self._bike_prev_s = bike_s
 
         # get other info
-        done = bool(bike_s > 255 or self.n_steps >= self.MAX_N_STEPS)
+        done = self.should_terminate()
         info = {}
         # logger.debug(f"Env step, action: {action}, reward: {reward}, done: {done}")
         return observation, reward, done, info
 
 
     def reset(self) -> np.ndarray:
-        
+        # clear self.axes["A"]
+        for ax in self.axes.values():
+            ax.clear()
+        self.axes["A"].imshow(self.img, extent=[0, 40, 0, 60], origin="upper")
+
+        # reset bike
         self._bike_prev_s = 0.0
         self.n_steps = 0
 
@@ -185,29 +219,62 @@ class MTMEnv(gym.Env):
         return self.get_observation()
 
     def render_init(self):
-        self.fig, self.ax = plt.subplots(figsize=(8, 12))
-        self.ax.axis("equal")
-        self.ax.axis("off")
+        self.fig = plt.figure(figsize=(16, 12), dpi=100)
+        self.canvas = FigureCanvasAgg(self.fig)
+
+        self.axes = self.fig.subplot_mosaic(
+            """
+                AABBCC
+                AADDEE
+                AAFFGG
+            """
+        )
+
+        self.axes["A"].axis("equal")
+        self.axes["A"].axis("off")
         imgpath = "analysis/behavior/src/Hairpin.png"
 
         # load and plot image
         self.img = plt.imread(imgpath)
-        self.ax.imshow(self.img, extent=[0, 40, 0, 60])
+        self.axes["A"].imshow(self.img, extent=[0, 40, 0, 60])
 
     def render(self, mode='rgb_array'):
-        # clear self.ax
-        self.ax.clear()
-
-        # plot image
-        self.ax.imshow(self.img, extent=[0, 40, 0, 6], origin="lower")
-
         # plot bike
         x, y, theta = self.bike.x, self.bike.y, self.bike.theta
-        self.ax.plot(x, y, "o", color="red")
-        self.ax.plot([x, x+0.5*np.cos(theta)], [y, y+0.5*np.sin(theta)], color="black")
-        
+        u, v = self.bike.u, self.bike.v
+
+        self.axes["A"].plot([x, x+2*np.cos(theta)], [y, y+2*np.sin(theta)], color="black")
+        self.axes["A"].plot(x, y, "o", color="red")
+
+        # plot speeds
+        self.axes["B"].scatter(self.n_steps, v, label="v")
+        self.axes["B"].scatter(self.n_steps, u, marker="x", label="u")
+
+        # plot s
+        self.axes["C"].scatter(self.n_steps, self.bike.s(), label="s")
+
+        # plot n
+        self.axes["D"].scatter(self.n_steps, self.bike.n, marker="x", label="n")
+
+        # plot theta & delta
+        self.axes["E"].scatter(self.n_steps, np.degrees(theta), label="theta")
+        self.axes["E"].scatter(self.n_steps, np.degrees(self.bike.delta), marker="x", label="delta")
+
+        # plot omega
+        self.axes["F"].scatter(self.n_steps, np.degrees(self.bike.omega), label="omega")
+
+        # plot psi
+        self.axes["G"].scatter(self.n_steps, np.degrees(self.bike.psi), label="psi")
+
+        if self.n_steps ==0:
+            for ax in "BCDEFG":
+                self.axes[ax].legend()
+
         # return as rgb array
-        return self.fig.canvas.renderer.buffer_rgba()
+        self.canvas.draw()
+        buf = self.canvas.buffer_rgba()
+        # convert to a NumPy array
+        return np.asarray(buf)
 
 
 if __name__ == "__main__":

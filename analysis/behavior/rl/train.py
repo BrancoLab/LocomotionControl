@@ -102,7 +102,7 @@ class SaveVideoCallback(BaseCallback):
             _file = sorted(files)[idx]
             n_iter = Path(_file).stem
 
-            make_video(self.model, self.model.get_env(), os.path.join(self.save_path, f"{n_iter}.mp4"), video_length=150)
+            make_video(self.model, self.model.get_env(), os.path.join(self.save_path, f"{n_iter}.mp4"), video_length=25000)
             
 
         return True
