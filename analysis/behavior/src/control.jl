@@ -84,12 +84,12 @@ as of 04/04/2022, they're also the very close
 to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-u_bounds=Bounds(10, 80),
+u_bounds=Bounds(10, 90),
 δ_bounds=Bounds(-80, 80, :angle),
-δ̇_bounds=Bounds(-8, 8),
-ω_bounds=Bounds(-550, 550, :angle),
-v_bounds=Bounds(-10, 10),
-Fu_bounds=Bounds(-2500, 4000),
+δ̇_bounds=Bounds(-5, 5),
+ω_bounds=Bounds(-600, 600, :angle),
+v_bounds=Bounds(-15, 15),
+Fu_bounds=Bounds(-3000, 4000),
 )
 
 

@@ -103,16 +103,16 @@ width_values = [
     [0.07 1.0] # first narrow
     [0.11 .9] # first narrow
     [0.15 .82]  # end of frst narrow
-    [0.20 1.0]
-    [0.25 1.1]
-    [0.30 1.1]   # middle of second curve
-    [0.36 1.2]
-    [0.45 .95]  # second narrow
-    [0.5 .95]  # 
+    [0.20 .95]
+    [0.25 .95]
+    [0.30 .95]   # middle of second curve
+    [0.36 .95]
+    [0.45 .9]  # second narrow
+    [0.5 .9]  # 
     [0.6 1.00]  # end of second narrow
-    [0.63 1.15]  
-    [0.67 1.15]
-    [0.7 1.15]
+    [0.63 1.0]  
+    [0.67 1.0]
+    [0.7 1.0]
     [0.75 1.10]
     [0.80 1.05]  # second part of last curve
     [0.9 1.0]
@@ -237,7 +237,7 @@ function Track(state; keep_n_waypoints=-1, resolution=0.00001)
 end
 
 
-const FULLTRACK = Track(;start_waypoint=3)
+const FULLTRACK = Track(;start_waypoint=4)
 
 """
 Trim the full track from a start value keeping a given length

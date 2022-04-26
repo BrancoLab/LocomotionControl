@@ -14,16 +14,16 @@ import jcontrol.comparisons: ComparisonPoints
 
 function compare(;  problemtype=:dynamics)
     # ---------------------------------- run MTM --------------------------------- #
-    track = Track(;start_waypoint=3, keep_n_waypoints=-1)
+    track = Track(;start_waypoint=4, keep_n_waypoints=-1)
 
 
     coptions = ControlOptions(;
-    u_bounds=Bounds(10, 80),
+    u_bounds=Bounds(10, 90),
     δ_bounds=Bounds(-80, 80, :angle),
-    δ̇_bounds=Bounds(-8, 8),
-    ω_bounds=Bounds(-550, 550, :angle),
-    v_bounds=Bounds(-10, 10),
-    Fu_bounds=Bounds(-2500, 4000),
+    δ̇_bounds=Bounds(-5, 5),
+    ω_bounds=Bounds(-600, 600, :angle),
+    v_bounds=Bounds(-15, 15),
+    Fu_bounds=Bounds(-3000, 4000),
     )
 
     track, bike, _, solution = run_mtm(
@@ -42,7 +42,7 @@ function compare(;  problemtype=:dynamics)
     # plot model trajectory
     plt = draw(:arena)
     draw!(track)
-    plot_bike_trajectory!(solution, bike; showbike=false)
+
 
     # -------------------------- do comparison with data ------------------------- #
     # load data
@@ -55,8 +55,9 @@ function compare(;  problemtype=:dynamics)
 
 
     # show data
-    draw!.(trials; lw=3, alpha=.05)    
+    draw!.(trials; lw=2, alpha=.15)    
     draw!.(cpoints.points)
+    plot_bike_trajectory!(solution, bike; showbike=false)
 
     # do comparison
     speedplot = plot(; title="speed", xlabel="s (cm)", ylabel="speed cm/s", legend=false)

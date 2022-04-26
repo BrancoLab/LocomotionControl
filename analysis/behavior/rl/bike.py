@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("./")
 
-from numpy import cos, sin, arctan2
+from numpy import cos, sin, arctan2, sqrt
 
 from utils import inbounds
 
@@ -82,7 +82,7 @@ class Bicycle:
 
         # compute variables
         beta = arctan2(v , u)  # slip angle
-        # V = sqrt(u**2 + v**2)
+        V = sqrt(u**2 + v**2)
 
         Ff = c * (delta - (l_f * omega + v) / u)
         Fr = c * (l_r * omega - v) / u
@@ -94,13 +94,12 @@ class Bicycle:
         ddelta = deltadot
         du = 1 / m * (m * omega * v - Ff * sin(delta) + Fu)
         dv = 1 / m * (-m * omega * u + Ff * cos(delta) + Fr)
-        domega = 1 / Iz * (l_f * Ff * cos(delta) - l_r * Fr) * 1/100000
+        domega = 1 / Iz * (l_f * Ff * cos(delta) - l_r * Fr)
 
         # update state
-        self.x += (u * cos(theta) + v * sin(theta)) * self.dt
-        self.y += (u * sin(theta) - v * cos(theta)) * self.dt
+        self.x += V * cos(beta + theta) * self.dt
+        self.y += V * sin(beta + theta) * self.dt
         self.theta += omega * self.dt
-
 
         self.n += dn * self.dt
         self.psi += dpsi * self.dt
