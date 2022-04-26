@@ -2,9 +2,10 @@ import sys
 
 sys.path.append("./")
 
-from numpy import cos, sin, atan
+from numpy import cos, sin, arctan2
 
 from utils import inbounds
+
 
 
 class Bicycle:
@@ -40,19 +41,28 @@ class Bicycle:
         lrM = self.l_r / 100
 
         # compute moment of angular inertia
-        self.Iz = mfKg * lfM ^ 2 + mrKg * lrM ^ 2
+        self.Iz = mfKg * lfM**2 + mrKg * lrM**2
+
+    def reset(self, x0, y0, u0, delta0, v0, theta0, omega0):
+        """
+            Resets the state of the model
+        """
+        self.x, self.y = x0, y0
+        self.u, self.delta = u0, delta0
+        self.v, self.theta, self.omega = v0, theta0, omega0
+        self.n, self.psi = 0.0, 0.0
 
     def s(self):
         """
             Returns current track progress
         """
-        raise NotImplementedError
+        return self.track.s(self.x, self.y)
 
     def k(self):
         """
             Returns curvature
         """
-        raise NotImplementedError
+        return self.track.curvature(self.s())
 
     def step(self, deltadot, Fu):
         """
@@ -71,8 +81,8 @@ class Bicycle:
         m, Iz = self.m, self.Iz
 
         # compute variables
-        beta = atan(v / (u))  # slip angle
-        # V = sqrt(u ^ 2 + v ^ 2)
+        beta = arctan2(v , u)  # slip angle
+        # V = sqrt(u**2 + v**2)
 
         Ff = c * (delta - (l_f * omega + v) / u)
         Fr = c * (l_r * omega - v) / u
