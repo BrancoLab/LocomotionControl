@@ -26,7 +26,7 @@ import torch as th
 
 # from utils import make_video
 from environment import MTMEnv
-
+from utils import make_video
 
 
 def make_env(rank, seed=0, log_dir=None):
@@ -112,11 +112,11 @@ class SaveVideoCallback(BaseCallback):
 
 td3_params = dict(
     learning_rate = 1e-3,
-    gamma = 0.99,
+    gamma = 0.9999,
     learning_starts = 10000,
     buffer_size= 200000,
     train_freq = 1,
-    gradient_steps = 1,
+    gradient_steps = 2,
     batch_size= 256,
     verbose=1,
     device = "auto",
@@ -127,9 +127,9 @@ if __name__ == '__main__':
     fld = Path("/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RL")
 
     # ---------------------------------- params ---------------------------------- #
-    NAME = "TD3"
+    NAME = "TD3-vid"
     N_CPU = 1
-    N_STEPS = 50000
+    N_STEPS = 100_000
     SEED = 0
 
     PARAMS = td3_params
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     action_noise_kwargs = dict(
         use_action_noise=True,
         noise_type="normal",
-        noise_std=0.1
+        noise_std=0.05
     )
 
     # -------------------------------- store logs -------------------------------- #
@@ -173,10 +173,10 @@ if __name__ == '__main__':
     # ------------------------------- model & train ------------------------------ #
     model = make_agent(env, tensorboard_log=log_dir, params=PARAMS)
 
-    checkpoint_callback = CheckpointCallback(save_freq=2500, save_path=log_dir, name_prefix=NAME)
-    video_callback = SaveVideoCallback(5000, log_dir)
-    # _cb = CallbackList([checkpoint_callback, video_callback])
-    _cb = checkpoint_callback
+    checkpoint_callback = CheckpointCallback(save_freq=25, save_path=log_dir, name_prefix=NAME)
+    video_callback = SaveVideoCallback(50, log_dir)
+    _cb = CallbackList([checkpoint_callback, video_callback])
+    # _cb = checkpoint_callback
     model.learn(total_timesteps=N_STEPS, callback=_cb, log_interval=10)
     
     model.save(os.path.join(log_dir, "trained_{NAME}"))

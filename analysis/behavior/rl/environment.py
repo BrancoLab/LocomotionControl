@@ -61,7 +61,7 @@ class MTMEnv(gym.Env):
             - s: track progression
         and a vector representing track curvature for N cm ahead at ds space intervals
     """
-
+    MAX_N_STEPS = 200
     metadata = {"render.modes": ["human", "rgb_array"]}
 
     _obs_keys = ("psi", "u", "v", "omega", "delta", "n")
@@ -106,6 +106,7 @@ class MTMEnv(gym.Env):
 
         self.n_curv_obs = N
         self.horizon = horizon
+        self.render_init()
         logger.debug("Environment initialized")
 
     def initial_conditions(self):
@@ -150,7 +151,7 @@ class MTMEnv(gym.Env):
         return np.hstack(list(obs.values())).astype(np.float64)
 
     def step(self, action):
-        
+        self.n_steps += 1
         # check action bounds
         deltadot, Fu = self.unnormalize_action(action)
 
@@ -163,23 +164,24 @@ class MTMEnv(gym.Env):
 
         # get reward
         bike_s = self.bike.s()
-        reward = bike_s - self._bike_prev_s
+        reward = bike_s  # - self._bike_prev_s
         self._bike_prev_s = bike_s
 
         # get other info
-        done = bool(bike_s > 255)
+        done = bool(bike_s > 255 or self.n_steps >= self.MAX_N_STEPS)
         info = {}
         # logger.debug(f"Env step, action: {action}, reward: {reward}, done: {done}")
         return observation, reward, done, info
 
 
     def reset(self) -> np.ndarray:
-        self.render_init()
+        
         self._bike_prev_s = 0.0
+        self.n_steps = 0
 
         # re initialize bike state
         self.bike.reset(*self.initial_conditions())
-        logger.debug("Environment reset")
+        # logger.debug("Environment reset")
         return self.get_observation()
 
     def render_init(self):
