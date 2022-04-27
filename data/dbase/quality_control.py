@@ -321,6 +321,7 @@ def validate_recording(
         )
         # plt.show()
 
+    # TODO return ephys cut end too
     return is_ok, ephys_sync_onsets[0], time_scaling_factor, "rec_valid"
 
 

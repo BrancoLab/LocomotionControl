@@ -249,9 +249,10 @@ if have_dj:
             n_frames:                   int  # number of video frames in session
             duration:                   int  # experiment duration in seconds
             n_analog_channels:          int  # number of AI channels recorded in bonsai
-            bonsai_cut_start:           int  # where to start/end cutting bonsai signals to align to ephys
-            bonsai_cut_end:             int
-            ephys_cut_start:            int  # where to start/end cutting bonsai signals to align to bonsai
+            bonsai_cut_start:           int  # start of first bonsai sync pulse
+            bonsai_cut_end:             int  # end of last bonsai sync pulse
+            ephys_cut_start:            int  # start of first ephys sync pulse
+            ephys_cut_end:              int  # end of last ephys sync pulse
             ephys_time_scaling_factor:  float  # scales ephys spikes in time to align to bonsai
         """
         analog_sampling_rate = 30000
@@ -304,6 +305,7 @@ if have_dj:
 
             # load previously validated sessions to speed things up
             previously_validated = from_yaml(previously_validated_path)
+            previously_validated = previously_validated or {}
 
             # check if session has known problems and should be excluded
             if session["name"] in self.excluded_sessions:
@@ -359,6 +361,7 @@ if have_dj:
                     (
                         is_ok,
                         ephys_cut_start,
+                        ephys_cut_end,
                         time_scaling_factor,
                         reason,
                     ) = qc.validate_recording(
@@ -367,7 +370,11 @@ if have_dj:
                         sampling_rate=self.analog_sampling_rate,
                     )
                 else:
-                    time_scaling_factor, ephys_cut_start = -1, -1
+                    time_scaling_factor, ephys_cut_start, ephys_cut_end = (
+                        -1,
+                        -1,
+                        -1,
+                    )
 
                 if not is_ok:
                     logger.warning(
@@ -386,6 +393,7 @@ if have_dj:
                 key["bonsai_cut_start"] = float(bonsai_cut_start)
                 key["bonsai_cut_end"] = float(bonsai_cut_end)
                 key["ephys_cut_start"] = float(ephys_cut_start)
+                key["ephys_cut_end"] = float(ephys_cut_end)
                 key["ephys_time_scaling_factor"] = float(time_scaling_factor)
                 key["n_analog_channels"] = int(analog_nsigs)
 
@@ -1358,7 +1366,7 @@ if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
     # Session().drop()
-    # LocomotionBouts().drop()
+    # ValidatedSession().drop()
     # Unit().drop()
     # FiringRate().drop()
     # sys.exit()
@@ -1382,7 +1390,7 @@ if __name__ == "__main__":
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
-    # ValidatedSession().populate(display_progress=True)
+    ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
@@ -1395,7 +1403,7 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
     # ROICrossing().populate(display_progress=True)
     # ROICrossingTracking().populate(display_progress=True)

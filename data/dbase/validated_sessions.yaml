@@ -1,0 +1,33 @@
+FC_210322_AAA1110750:
+    bonsai_cut_end: 11692.0
+    bonsai_cut_start: 11192.0
+    duration: 608.5833333333334
+    ephys_cut_end: -1.0
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: AAA1110750
+    n_analog_channels: 4
+    n_frames: 36516
+    name: FC_210322_AAA1110750
+FC_210322_AAA1110750t:
+    bonsai_cut_end: 14164.0
+    bonsai_cut_start: 13664.0
+    duration: 8.483333333333334
+    ephys_cut_end: -1.0
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: AAA1110750
+    n_analog_channels: 4
+    n_frames: 510
+    name: FC_210322_AAA1110750t
+FC_210323_AAA1110750_d1:
+    bonsai_cut_end: 11998.0
+    bonsai_cut_start: 11498.0
+    duration: 2858.5833333333335
+    ephys_cut_end: -1.0
+    ephys_cut_start: -1.0
+    ephys_time_scaling_factor: -1.0
+    mouse_id: AAA1110750
+    n_analog_channels: 3
+    n_frames: 171516
+    name: FC_210323_AAA1110750_d1
