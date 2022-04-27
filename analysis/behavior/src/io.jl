@@ -83,10 +83,6 @@ function load_trials(;
             if contains(k, "_x")
                 v .-= .5
             end
-            # elseif contains(k, "_y")
-            #     # v .-= 1
-            #     v .* .95
-            # end
             push!(data[k], v)
         end
     end
@@ -122,6 +118,7 @@ function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)::Vector{Trial}
     trials = filter(t -> t.duration <= 9.0, trials)
     trials = filter(t -> t.s[1] <= 15, trials)
     trials = filter(t -> t.s[end] >= 255, trials)
+    trials = filter(t->all(t.s .> 0), trials)
 
     return isnothing(keep_n) ? trials : trials[1:keep_n]
 end

@@ -84,12 +84,12 @@ as of 04/04/2022, they're also the very close
 to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-u_bounds=Bounds(10, 90),
-δ_bounds=Bounds(-80, 80, :angle),
-δ̇_bounds=Bounds(-5, 5),
-ω_bounds=Bounds(-600, 600, :angle),
-v_bounds=Bounds(-15, 15),
-Fu_bounds=Bounds(-3000, 4000),
+u_bounds=Bounds(10, 80),
+δ_bounds=Bounds(-45, 45, :angle),
+δ̇_bounds=Bounds(-2, 2),
+ω_bounds=Bounds(-650, 650, :angle),
+v_bounds=Bounds(-20, 20),
+Fu_bounds=Bounds(-4000, 4500),
 )
 
 
@@ -410,12 +410,10 @@ function create_and_solve_control(
     V = √(u^2 + v^2)
     SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β))  # time -> space domain conversion factor
 
+    # lateral forces
     Ff = c⋅(δ - (l_f⋅ω + v)/u)
     Fr = c⋅(l_r⋅ω - v)/u
 
-    # get driving torque
-    # τ = Fu / (V + eps())
-    # τ = V > 50  ? Fu * .75 : Fu
 
     @constraints(
         model,

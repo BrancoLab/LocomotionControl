@@ -64,12 +64,13 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
     # try again , either shortening or lengthening the planning window
     solution = nothing
-    for i in 1:8
-        len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .01 * i)
-        if len < .5
-            @warn "Length is $len<.5"
+    for i in 1:6
+        _sign  = i < 3 ? +1 : -1
+        len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon + (_sign * .01 * i))
+        if len < 4
+            @warn "Length is $len<4"
             skip=true
-            len = .5
+            len = 4
         else
             skip = false
         end
@@ -91,7 +92,29 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
         skip && break
     end
 
-    return !converged(control_model), solution
+    # try by chaning the objective function
+    # @info "trying slowing down"
+    # len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon)
+    # track = trim(FULLTRACK, s0, max(len, 4))
+    # for α in 0:.2:1
+    #     _, _, control_model, solution = run_mtm(
+    #         :dynamics,
+    #         2;
+    #         track=track,
+    #         icond=initial_state,
+    #         fcond=:minimal,
+    #         control_options=:default,
+    #         showplots=false,
+    #         n_iter=5000,
+    #         quiet=true,
+    #         α=α,
+    #     )
+
+    #     converged(control_model) && @info "Slowing worked with α=$α"
+    #     converged(control_model) && break
+    # end
+
+    return converged(control_model), solution
 end
 
 converged(control_model) = "LOCALLY_SOLVED" == string(termination_status(control_model))
@@ -120,7 +143,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     # get planning window (trimmed track) & final conditions
     s0 =  max(0.001, simtracker.s)
     if s0 < 250
-        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, .5)
+        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, 4)
         track = trim(FULLTRACK, s0, len)
         final_state = nothing
     else
@@ -211,6 +234,7 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
             sleep(0.001)
         end
 
+        @info "SAVING ANIMATIONS"
         # save animation
         name = (@sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon)
         gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
@@ -238,7 +262,7 @@ end
 
 
 # todo = .1:.01:.4
-todo = vcat(collect(.05:.01:.4), collect(.45:.05:.6))
+todo = vcat(collect(.08:.01:.4), collect(.45:.05:.6))
 
 # todo = .45:.05:.6
 

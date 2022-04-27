@@ -32,18 +32,18 @@ struct Bicycle
 
     function Bicycle(; 
         l_f::Number=3,
-        l_r::Number=3,
+        l_r::Number=2,
         width::Number=2,
         m_f=12,
         m_r=12, 
-        c=8e3
+        c=6e3
         )
 
         # convert units g->Kg, cm->m
-        mfKg = m_f / 100
-        mrKg = m_r / 100
-        lfM = l_f / 100
-        lrM = l_r / 100
+        mfKg = m_f # / 100
+        mrKg = m_r # / 100
+        lfM = l_f # / 100
+        lrM = l_r # / 100
 
         # compute moment of angular inertia        
         Iz = mfKg * lfM^2 + mrKg * lrM^2

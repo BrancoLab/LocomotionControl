@@ -13,9 +13,8 @@ from tpd import recorder
 from loguru import logger
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-
 from bike import Bicycle
-from utils import inbounds, unnormalize
+from utils import unnormalize
 from track import Track
 
 logger.remove()
@@ -38,13 +37,14 @@ class Boundaries:
 
     n: boundary = boundary(low=-3, high=3)
     psi: boundary = boundary(low=r(-30), high=r(30))
+
     delta: boundary = boundary(low=r(-80), high=r(80))
     u: boundary = boundary(low=10, high=80)
     v: boundary = boundary(low=-10, high=10)
-    omega: boundary = boundary(low=r(-400), high=r(400))
+    omega: boundary = boundary(low=r(-600), high=r(600))
 
-    deltadot: boundary = boundary(low=-8, high=8)
-    Fu: boundary = boundary(low=-3000, high=4500)
+    deltadot: boundary = boundary(low=-5, high=5)
+    Fu: boundary = boundary(low=-4000, high=4500)
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -62,23 +62,20 @@ class MTMEnv(gym.Env):
             - s: track progression
         and a vector representing track curvature for N cm ahead at ds space intervals
     """
-    MAX_N_STEPS = 200
     metadata = {"render.modes": ["human", "rgb_array"]}
 
     _obs_keys = ("psi", "u", "v", "omega", "delta", "n")
 
-    def __init__(self, horizon: float = 20, ds: float = 1, dt: float = 0.0001, log_dir=None):
+    def __init__(self, horizon: float = 20, ds: float = 1, dt: float = 0.001, log_dir=None, max_n_steps=20000):
         super(MTMEnv, self).__init__()
+
+        self.MAX_N_STEPS = max_n_steps
 
         if log_dir is not None:
             recorder.start(base_folder=log_dir)
 
         # load track from json file
         self.track = Track()
-
-        # get a bike object
-        self.dt = dt
-        self.bike = Bicycle(self.track, *self.initial_conditions(), dt=dt)
 
         # Define action and observation space
         bounds = Boundaries()
@@ -94,13 +91,6 @@ class MTMEnv(gym.Env):
         # Define observation space (multiply by N+1 to account for 's')
         assert horizon % ds == 0, "S must be divisible by ds"
         N = int(horizon / ds)
-        # _low = [
-        #     bounds[var].low for var in self._obs_keys
-        # ] + [-np.inf] * (N+1)
-        # _high = [
-        #     bounds[var].high for var in self._obs_keys
-        # ] + [np.inf] * (N+1)
-
         _low = np.array([-np.inf] * len(self._obs_keys) + [-np.inf] * (N+1))
         _high = -_low
 
@@ -111,6 +101,12 @@ class MTMEnv(gym.Env):
         self.n_curv_obs = N
         self.horizon = horizon
         self.render_init()
+
+        # get a bike object
+        self.dt = dt
+        self.bike = Bicycle(self.track, self.boundaries,  *self.initial_conditions(), dt=dt)
+
+
         logger.debug("Environment initialized")
 
     def initial_conditions(self):
@@ -163,16 +159,20 @@ class MTMEnv(gym.Env):
         bike_s = self.bike.s()
 
         if bike_s > 250:
+            # logger.info("done because at end")
             return True
 
         if self.n_steps > self.MAX_N_STEPS:
+            # logger.info(f"done because max steps reached: {self.n_steps}")
             return True
 
         width = (self.track.w(bike_s) - self.bike.width)/2
         if self.bike.n > width or self.bike.n < -width:
+            # logger.info("done because out of track width")
             return True
 
         if self.bike.psi > self.boundaries.psi.high or self.bike.psi < self.boundaries.psi.low:
+            # logger.info("done because out of psi range")
             return True
 
         return False
@@ -186,7 +186,6 @@ class MTMEnv(gym.Env):
 
         # update bike
         self.bike.step(deltadot, Fu)
-        self.bike.enforce_boundaries(self.boundaries)
 
         # get observations
         observation = self.get_observation()
@@ -219,17 +218,24 @@ class MTMEnv(gym.Env):
         return self.get_observation()
 
     def render_init(self):
-        self.fig = plt.figure(figsize=(16, 12), dpi=100)
+        self.fig = plt.figure(figsize=(8, 12), dpi=100)
         self.canvas = FigureCanvasAgg(self.fig)
+        self.fig.tight_layout()
 
+        # self.axes = self.fig.subplot_mosaic(
+        #     """
+        #         AABBCCHH
+        #         AADDEEII
+        #         AAFFGGLL
+        #     """
+        # )
         self.axes = self.fig.subplot_mosaic(
             """
-                AABBCC
-                AADDEE
-                AAFFGG
+                AA
+                AA
+                AA
             """
         )
-
         self.axes["A"].axis("equal")
         self.axes["A"].axis("off")
         imgpath = "analysis/behavior/src/Hairpin.png"
@@ -245,30 +251,38 @@ class MTMEnv(gym.Env):
 
         self.axes["A"].plot([x, x+2*np.cos(theta)], [y, y+2*np.sin(theta)], color="black")
         self.axes["A"].plot(x, y, "o", color="red")
+        self.axes["A"].set(xticks=[], yticks=[])
+        self.axes["A"].axis("off")
 
-        # plot speeds
-        self.axes["B"].scatter(self.n_steps, v, label="v")
-        self.axes["B"].scatter(self.n_steps, u, marker="x", label="u")
+        # # plot speeds
+        # # self.axes["B"].scatter(self.n_steps, v, label="v")
+        # self.axes["B"].scatter(self.n_steps, u, marker="x", label="u")
 
-        # plot s
-        self.axes["C"].scatter(self.n_steps, self.bike.s(), label="s")
+        # # plot s
+        # self.axes["C"].scatter(self.n_steps, self.bike.s(), label="s")
 
-        # plot n
-        self.axes["D"].scatter(self.n_steps, self.bike.n, marker="x", label="n")
+        # # plot n
+        # self.axes["D"].scatter(self.n_steps, self.bike.n, marker="x", label="n")
 
-        # plot theta & delta
-        self.axes["E"].scatter(self.n_steps, np.degrees(theta), label="theta")
-        self.axes["E"].scatter(self.n_steps, np.degrees(self.bike.delta), marker="x", label="delta")
+        # # plot theta & delta
+        # self.axes["E"].scatter(self.n_steps, np.degrees(theta), label="theta")
+        # self.axes["E"].scatter(self.n_steps, np.degrees(self.bike.delta), marker="x", label="delta")
 
-        # plot omega
-        self.axes["F"].scatter(self.n_steps, np.degrees(self.bike.omega), label="omega")
+        # # plot omega
+        # self.axes["F"].scatter(self.n_steps, np.degrees(self.bike.omega), label="omega")
 
-        # plot psi
-        self.axes["G"].scatter(self.n_steps, np.degrees(self.bike.psi), label="psi")
+        # # plot psi
+        # self.axes["G"].scatter(self.n_steps, np.degrees(self.bike.psi), label="psi")
 
-        if self.n_steps ==0:
-            for ax in "BCDEFG":
-                self.axes[ax].legend()
+        # # plot Fu
+        # self.axes["H"].scatter(self.n_steps, self.bike.Fu, label="Fu")
+
+        # # plot deltadot
+        # self.axes["I"].scatter(self.n_steps, self.bike.deltadot, label="deltadot")
+
+        # if self.n_steps ==0:
+        #     for ax in "BCDEFGHI":
+        #         self.axes[ax].legend()
 
         # return as rgb array
         self.canvas.draw()
