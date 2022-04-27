@@ -253,9 +253,10 @@ if have_dj:
             bonsai_cut_end:             int  # end of last bonsai sync pulse
             ephys_cut_start:            int  # start of first ephys sync pulse
             ephys_cut_end:              int  # end of last ephys sync pulse
-            ephys_time_scaling_factor:  float  # scales ephys spikes in time to align to bonsai
         """
         analog_sampling_rate = 30000
+        spikeglx_sampling_rate = 30000.616484
+
         excluded_sessions = [
             "FC_210713_AAA1110750_r3_hairpin",  # skipping because cable borke mid recording
             "210818_281_longcol_inter_openarena",  # didnt save bonsai data
@@ -287,6 +288,13 @@ if have_dj:
             # fetch data
             session = (Session & key).fetch1()
 
+            # check if session has known problems and should be excluded
+            if session["name"] in self.excluded_sessions:
+                logger.info(
+                    f'Skipping session "{session["name"]}" because its in the excluded sessions list'
+                )
+                return
+
             has_rec = Session.has_recording(key["name"])
             if int(session["date"]) > 220229 and has_rec:
                 logger.warning(
@@ -307,13 +315,6 @@ if have_dj:
             previously_validated = from_yaml(previously_validated_path)
             previously_validated = previously_validated or {}
 
-            # check if session has known problems and should be excluded
-            if session["name"] in self.excluded_sessions:
-                logger.info(
-                    f'Skipping session "{session["name"]}" because its in the excluded sessions list'
-                )
-                return
-
             # check if validation was already executed on this session
             if session["name"] in previously_validated.keys():
                 logger.debug(
@@ -323,20 +324,14 @@ if have_dj:
             else:
                 logger.debug(f'Validating session: {session["name"]}')
 
-                if not has_rec and DO_RECORDINGS_ONLY:
-                    logger.info(
-                        f'Skipping {session["name"]} because we are doing recording sessions ONLY'
-                    )
-                    return
-
                 # check bonsai recording was correct
                 (
                     is_ok,
                     analog_nsigs,
                     duration_seconds,
                     n_frames,
-                    bonsai_cut_start,
-                    bonsai_cut_end,
+                    bonsai_first_frame,
+                    bonsai_last_frame,
                     reason,
                 ) = qc.validate_behavior(
                     session["video_file_path"],
@@ -356,29 +351,29 @@ if have_dj:
 
                 # check ephys data OK and get time scaling factor to align to bonsai
                 if has_rec:
-                    logger.info("NOT DOING EPHYS VALIDATION FOR RECORDINGS")
-                    return
                     (
                         is_ok,
+                        bonsai_cut_start,
+                        bonsai_cut_end,
                         ephys_cut_start,
                         ephys_cut_end,
-                        time_scaling_factor,
                         reason,
                     ) = qc.validate_recording(
                         session["ai_file_path"],
                         session["ephys_ap_data_path"],
+                        duration_seconds,
+                        bonsai_first_frame,
+                        bonsai_last_frame,
                         sampling_rate=self.analog_sampling_rate,
+                        ephys_sampling_rate = self.spikeglx_sampling_rate,
                     )
                 else:
-                    time_scaling_factor, ephys_cut_start, ephys_cut_end = (
-                        -1,
-                        -1,
-                        -1,
-                    )
+                    ephys_cut_start, ephys_cut_end = -1, -1
+                    bonsai_cut_start, bonsai_cut_end = -1, -1
 
                 if not is_ok:
                     logger.warning(
-                        f"Session failed to pass RECORDING validation: {key}"
+                        f"Session failed to pass RECORDING validation: {key}: {reason}"
                     )
                     self.mark_failed_validation(
                         key, reason, analog_nsigs, failed
@@ -390,11 +385,10 @@ if have_dj:
                 # prepare data
                 key["n_frames"] = int(n_frames)
                 key["duration"] = float(duration_seconds)
-                key["bonsai_cut_start"] = float(bonsai_cut_start)
-                key["bonsai_cut_end"] = float(bonsai_cut_end)
-                key["ephys_cut_start"] = float(ephys_cut_start)
-                key["ephys_cut_end"] = float(ephys_cut_end)
-                key["ephys_time_scaling_factor"] = float(time_scaling_factor)
+                key["bonsai_cut_start"] = int(bonsai_cut_start)
+                key["bonsai_cut_end"] = int(bonsai_cut_end)
+                key["ephys_cut_start"] = int(ephys_cut_start)
+                key["ephys_cut_end"] = int(ephys_cut_end)
                 key["n_analog_channels"] = int(analog_nsigs)
 
                 # save results to file
@@ -402,7 +396,7 @@ if have_dj:
                 previously_validated[session["name"]] = key
                 to_yaml(previously_validated_path, previously_validated)
 
-            # fill in table
+            # fill in table 
             logger.info(f'Inserting session data in table: {key["name"]}')
             self.insert1(key)
 
