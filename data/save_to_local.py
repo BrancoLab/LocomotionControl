@@ -12,7 +12,12 @@ from fcutils.path import files, from_json
 sys.path.append("./")
 
 
-from data.dbase.db_tables import ROICrossing, LocomotionBouts, Tracking
+from data.dbase.db_tables import (
+    ROICrossing,
+    LocomotionBouts,
+    Tracking,
+    SessionCondition,
+)
 from data import arena
 
 
@@ -78,8 +83,13 @@ def save_rois():
 def save_bouts_JSON():
     tracking = {}
     logger.info("Fetching bouts")
+
     bouts = pd.DataFrame(
-        (LocomotionBouts & 'complete="true"' & 'direction="outbound"').fetch()
+        (
+            LocomotionBouts * SessionCondition
+            & 'complete="true"'
+            & 'direction="outbound"'
+        ).fetch()
     )
     logger.info(f"Got {len(bouts)} bouts")
 
@@ -127,4 +137,4 @@ def save_bouts_h5():
 if __name__ == "__main__":
     # save_rois()
     save_bouts_JSON()
-    save_bouts_h5()
+    # save_bouts_h5()

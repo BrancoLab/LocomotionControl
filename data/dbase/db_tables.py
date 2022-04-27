@@ -1394,10 +1394,10 @@ if __name__ == "__main__":
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
     LocomotionBouts().populate(display_progress=True)
-    Movement().populate(display_progress=True)
-    ROICrossing().populate(display_progress=True)
-    ROICrossingTracking().populate(display_progress=True)
-    RoiCrossingsTwins().populate(display_progress=True)
+    # Movement().populate(display_progress=True)
+    # ROICrossing().populate(display_progress=True)
+    # ROICrossingTracking().populate(display_progress=True)
+    # RoiCrossingsTwins().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
