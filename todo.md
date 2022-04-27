@@ -1,2 +1,0 @@
-- [ ] train new DLC with open arena and hairpin + cable
-- [ ] Create template for arena registration + ROIs templates

@@ -79,12 +79,14 @@ function load_trials(;
         end
         for (k, v) in zip(KEYS, cleanvec.(filtervals(contents)))
 
-            # fix data misalignment
+            # # fix data misalignment
             if contains(k, "_x")
-                v .+= 0.5
-            elseif contains(k, "_y")
-                v .-= 1
+                v .-= .5
             end
+            # elseif contains(k, "_y")
+            #     # v .-= 1
+            #     v .* .95
+            # end
             push!(data[k], v)
         end
     end

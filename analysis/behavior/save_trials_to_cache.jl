@@ -1,4 +1,4 @@
-import Term.progress: track as pbar
+using Term.progress
 using DataFrames
 import JSONTables: objecttable, jsontable
 
@@ -17,28 +17,38 @@ trials = load_trials()
 # folder = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache"
 folder = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_trials_cache"
 
-for (i, trial) in pbar(enumerate(eachrow(trials)); redirectstdout=false)
-    trial = Trial(trial, FULLTRACK)
 
-    trialdict = Dict(
-        "x" => trial.x,
-        "y" => trial.y,
-        "s" => trial.s,
-        "θ" => trial.θ,
-        "ω" => trial.ω,
-        "speed" => trial.speed,
-        "u" => trial.u,
-        "v" => trial.v,
-        "duration" => trial.duration,
-    )
+pbar = ProgressBar()
+job = addjob!(pbar; N=size(trials, 1))
 
-    df = DataFrame(trialdict)
-    # @info objecttable(df)
-    open(joinpath(folder, "trial_$(i).json"), "w") do f
-        write(f, objecttable(df))
+with(pbar) do
+
+    for (i, trial) in enumerate(eachrow(trials))
+        trial = Trial(trial, FULLTRACK)
+
+        trialdict = Dict(
+            "x" => trial.x,
+            "y" => trial.y,
+            "s" => trial.s,
+            "θ" => trial.θ,
+            "ω" => trial.ω,
+            "speed" => trial.speed,
+            "u" => trial.u,
+            "v" => trial.v,
+            "duration" => trial.duration,
+        )
+
+        df = DataFrame(trialdict)
+        # @info objecttable(df)
+        open(joinpath(folder, "trial_$(i).json"), "w") do f
+            write(f, objecttable(df))
+        end
+
+        # i > 300 && break
+        update!(job)
+        sleep(0.001)
     end
 end
-
 
 open(joinpath(folder, "trial_1.json")) do f
     data = read(f)
