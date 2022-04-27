@@ -41,7 +41,7 @@ end
 function Solution(df::DataFrame)::Solution
     _keys = filter!(k -> Symbol(k) != :δt, names(df))
     dt = "δt" ∈ names(df) ? df[1, :δt] : 0.0
-    return Solution(; Dict(map(k -> Symbol(k)=>df[1:end, k], _keys))..., δt=dt)
+    return Solution(; Dict(map(k -> Symbol(k)=>df[:, k], _keys))..., δt=dt)
 end
 
 """

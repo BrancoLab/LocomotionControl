@@ -54,7 +54,7 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
             f"Getting triggers with: {nsigs} signals in .bin file | analog shape {analog.shape}"
         )
 
-        # check that the number of frames is correct
+        # get frame trigger times
         frame_trigger_times = get_onset_offset(analog[:, 0], 4.5)[0]
         return frame_trigger_times
 
@@ -85,6 +85,7 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         )
         if abs(nframes - len(frame_trigger_times)) > 100:
             try:
+                # likely one of the early recordings in which we had 3 channels in the analog binary file
                 nsigs = 3
                 frame_trigger_times = _get_triggers(nsigs=nsigs)
                 if len(frame_trigger_times) != nframes:

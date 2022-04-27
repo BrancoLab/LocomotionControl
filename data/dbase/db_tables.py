@@ -354,6 +354,8 @@ if have_dj:
 
                 # check ephys data OK and get time scaling factor to align to bonsai
                 if has_rec:
+                    logger.info("NOT DOING EPHYS VALIDATION FOR RECORDINGS")
+                    return
                     (
                         is_ok,
                         ephys_cut_start,
