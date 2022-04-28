@@ -12,6 +12,8 @@ using jcontrol.visuals
 import jcontrol: closest_point_idx, euclidean, Track, State
 import jcontrol.comparisons: ComparisonPoints
 
+
+
 function compare(;  problemtype=:dynamics)
     # ---------------------------------- run MTM --------------------------------- #
     track = Track(;start_waypoint=4, keep_n_waypoints=-1)
@@ -19,16 +21,16 @@ function compare(;  problemtype=:dynamics)
 
     coptions = ControlOptions(;
     u_bounds=Bounds(10, 80),
-    δ_bounds=Bounds(-45, 45, :angle),
-    δ̇_bounds=Bounds(-2, 2),
+    δ_bounds=Bounds(-60, 60, :angle),
+    δ̇_bounds=Bounds(-6, 6),
     ω_bounds=Bounds(-650, 650, :angle),
-    v_bounds=Bounds(-20, 20),
+    v_bounds=Bounds(-14, 14),
     Fu_bounds=Bounds(-4000, 4500),
     )
 
     track, bike, _, solution = run_mtm(
         problemtype,  # model type
-        1.5;  # supports density
+        1;  # supports density
         showtrials=nothing,
         control_options=coptions,
         track=track,

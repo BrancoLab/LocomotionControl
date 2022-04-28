@@ -85,10 +85,10 @@ to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
 u_bounds=Bounds(10, 80),
-δ_bounds=Bounds(-45, 45, :angle),
-δ̇_bounds=Bounds(-2, 2),
+δ_bounds=Bounds(-60, 60, :angle),
+δ̇_bounds=Bounds(-6, 6),
 ω_bounds=Bounds(-650, 650, :angle),
-v_bounds=Bounds(-20, 20),
+v_bounds=Bounds(-15, 15),
 Fu_bounds=Bounds(-4000, 4500),
 )
 

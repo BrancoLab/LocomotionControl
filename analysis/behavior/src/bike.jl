@@ -33,10 +33,10 @@ struct Bicycle
     function Bicycle(; 
         l_f::Number=3,
         l_r::Number=2,
-        width::Number=2,
-        m_f=12,
+        width::Number=1.8,
+        m_f=10,
         m_r=12, 
-        c=6e3
+        c=4e3
         )
 
         # convert units g->Kg, cm->m

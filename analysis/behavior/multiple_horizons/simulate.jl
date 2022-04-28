@@ -7,9 +7,10 @@ import Colors: HSL
 import DataFrames: DataFrame
 using Term.progress
 import Term.progress: with as withpbar
-import Term: install_term_logger
+import Term: install_term_logger, install_stacktrace
 import Printf: @sprintf
 install_term_logger()
+install_stacktrace()
 
 using jcontrol
 import jcontrol.comparisons: track_segments, TrackSegment
@@ -21,6 +22,7 @@ import jcontrol.io: PATHS
 
 
 @Base.kwdef mutable struct SimTracker
+    s0::Float64      = 0
     s::Float64      = 0
     iter::Int       = 0
     t::Float64      = 0.0
@@ -57,6 +59,19 @@ function add!(tracker::SolutionTracker, t::Float64, state::State, s::Float64)
 end
 
 """
+take states at Δt interval while 0 < t < tf and store in tracker
+"""
+function extend_with_sol(tracker::SolutionTracker, sol::Solution, Δt::Float64, tf::Float64)
+    Δt > tf && return
+
+    for t in 0:Δt:tf
+        state = solution2state(t, sol; at=:time)
+        s = solution2s(t, sol)
+        add!(tracker, t, state, s)
+    end
+end
+
+"""
 Repeate MTM with windows of decreasing length
 """
 function attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
@@ -78,7 +93,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            2;
+            1;
             track=track,
             icond=initial_state,
             fcond=:minimal,
@@ -127,8 +142,8 @@ Perform a simulation step
 function step(simtracker, globalsolution, planning_horizon::Float64,)
     # get initial conditions
     if simtracker.iter == 1
-        initial_state =  solution2state(0.0, globalsolution)
-        simtracker.s = 0.0
+        initial_state =  solution2state(simtracker.s0, globalsolution)
+        simtracker.s = simtracker.s0
         simtracker.t += simtracker.Δt
     else
         initial_state =  solution2state(simtracker.Δt, simtracker.prevsol; at=:time)
@@ -156,7 +171,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     try
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            2;
+            1;
             track=track,
             icond=initial_state,
             fcond=final_state,
@@ -183,13 +198,13 @@ end
 """
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
-function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
+function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=250, Δt=.01)
     # run global solution
-    track = Track(;start_waypoint=2, keep_n_waypoints=-1)
+    track = Track(;start_waypoint=4, keep_n_waypoints=-1)
 
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
-        2;
+        1;
         showtrials=nothing,
         track=track,
         n_iter=5000,
@@ -204,7 +219,7 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
             range(HSL(colorant"green"), stop=HSL(colorant"blue"), length=(Int ∘ ceil)(n_iter/2))...
     ]
 
-    simtracker = SimTracker(Δt=Δt)
+    simtracker = SimTracker(s0=s0, Δt=Δt)
     solutiontracker = SolutionTracker()
     pbar = ProgressBar(; expand=true, columns=:detailed)
     job = addjob!(pbar; N=n_iter, description="Running horizon: $planning_horizon seconds")
@@ -216,7 +231,10 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
 
             # run simulation and store results
             initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
-            shouldstop && break
+            shouldstop && begin
+                extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
+                break
+            end
             add!(solutiontracker, simtracker.t, initial_state, simtracker.s)
 
             # plot stuff
@@ -229,14 +247,14 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
             draw!(initial_state; color=colors[i], alpha=1)
             plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
-            simtracker.s > 258 && break
+            simtracker.s > sf && break
             update!(job)
             sleep(0.001)
         end
 
         @info "SAVING ANIMATIONS"
         # save animation
-        name = (@sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon)
+        name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
         gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
         gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
 
@@ -260,14 +278,16 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
 end
 
 
+horizons = vcat(collect(.08:.01:.4), collect(.45:.05:1.2))
+starts = [0.0, 45.0, 98.0, 150.0]
+ends = [38.0, 96.0, 142.0, 220.0]
 
-# todo = .1:.01:.4
-todo = vcat(collect(.08:.01:.4), collect(.45:.05:.6))
+for i in 2:length(starts)
+    for horizon in horizons
+        @info "Running horizon length $horizon seconds on curve $i"
+        results = run_simulation(planning_horizon=horizon, s0=starts[i], sf=ends[i])
+        # break
+    end
 
-# todo = .45:.05:.6
-
-for horizon in todo
-    @info "Running horizon length $horizon seconds"
-    results = run_simulation(planning_horizon=horizon)
 end
 
