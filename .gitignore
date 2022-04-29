@@ -3,6 +3,8 @@ cache
 *.pth
 *.pt
 video.mp4
+*.gif
+workspace.ipynb
 
 cache
 logs/*

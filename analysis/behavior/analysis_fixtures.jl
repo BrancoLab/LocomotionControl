@@ -6,6 +6,7 @@ Pkg.activate(".")
 using Plots, Statistics, Colors
 import KernelDensity: kde
 using MultiKDE
+using DataFrames: DataFrame
 
 using Term
 import Term: install_term_logger
@@ -16,6 +17,7 @@ import MyterialColors: salmon, green_dark, grey, grey_dark, grey_darker, black
 import jcontrol.comparisons: ComparisonPoints, ComparisonPoint
 import jcontrol: FULLTRACK, Solution
 import jcontrol.io: load_cached_trials
+using jcontrol.visuals
 
 """
 Useful things for behavior analysis. Mostly Used in Thesis/Chpt3 analyses.
@@ -83,19 +85,20 @@ end
 
 curves = [
     Curve(;
-        name="first", s0 = 15.0, s=35.0, sf=38.0, tpos=20.0, maxdur=1.5, direction=-1
+        name="first", s0 = 0.0, s=32.0, sf=40.0, tpos=20.0, maxdur=1.5, direction=-1
     ),
     Curve(;
-        name="second", s0 = 45.0, s=86.0, sf=96.0, tpos=55.0, maxdur=1.5, direction=-1
+        name="second", s0 = 45.0, s=84.0, sf=96.0, tpos=55.0, maxdur=1.5, direction=-1
     ),
     Curve(;
-        name="third", s0 = 98.0, s=137.0, sf=142.0, tpos=110.0, maxdur=1.5, direction=1
+        name="third", s0 = 98.0, s=135.0, sf=144.0, tpos=110.0, maxdur=1.5, direction=1
     ),
     Curve(;
-        name="fourth", s0 = 150.0, s=188.0, sf=220.0, tpos=155.0, maxdur=1.5, direction=1
+        name="fourth", s0 = 150.0, s=187.0, sf=205.0, tpos=165.0, maxdur=1.5, direction=1
     ),
 ]
 
+curves_colors  = range(HSL(360, .6, .7), stop=HSL(200, .5, .7), length=length(curves))
 
 
 

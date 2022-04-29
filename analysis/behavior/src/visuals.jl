@@ -75,11 +75,11 @@ end
 
 # ----------------------------------- track ---------------------------------- #
 """ Draw track and track borders """
-function draw!(track::Track; title="", color=black, lw=5, border_lw=3, alpha=.2, border_alpha=.8)
-    plot!(track.X[1:500:end], track.Y[1:500:end]; lw=lw, lc=color, label=nothing, ls=:dash, alpha=alpha)
+function draw!(track::Track; title="", Δp=500, color=black, lw=5, border_lw=3, alpha=.2, border_alpha=.8)
+    plot!(track.X[1:Δp:end], track.Y[1:Δp:end]; lw=lw, lc=color, label=nothing, ls=:dash, alpha=alpha)
 
     for border in get_track_borders(track)
-        plot!(border.X[1:500:end], border.Y[1:500:end]; lw=border_lw, lc=color, label=nothing, alpha=border_alpha)
+        plot!(border.X[1:Δp:end], border.Y[1:Δp:end]; lw=border_lw, lc=color, label=nothing, alpha=border_alpha)
     end
 end
 
