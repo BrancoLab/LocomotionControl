@@ -21,7 +21,7 @@ end
 """
 Simple linear interpolation
 """
-ξ(x) = interpolate(x, BSpline(Linear()))
+ξ(x) = interpolate(x, BSpline(Quadratic(Reflect(OnCell()))))
 
 """
   interpolate_wrt_to(x, y)

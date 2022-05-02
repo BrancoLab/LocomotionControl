@@ -86,9 +86,9 @@ to the realistic values ranges.
 default_control_options = ControlOptions(;
 u_bounds=Bounds(10, 80),
 δ_bounds=Bounds(-60, 60, :angle),
-δ̇_bounds=Bounds(-6, 6),
-ω_bounds=Bounds(-650, 650, :angle),
-v_bounds=Bounds(-15, 15),
+δ̇_bounds=Bounds(-4, 4),
+ω_bounds=Bounds(-600, 600, :angle),
+v_bounds=Bounds(-12, 12),
 Fu_bounds=Bounds(-4000, 4500),
 )
 
@@ -364,7 +364,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 60.0)
+    set_optimizer_attribute(model, "max_wall_time", 180.0)
 
     # register curvature function
     κ(s) = track.κ(s)

@@ -8,6 +8,7 @@ using KernelDensity
 using StatsBase
 
 
+
 """
 Plot the 95th confidence interval of X as a vertical bar at the x axis value xpos
 """

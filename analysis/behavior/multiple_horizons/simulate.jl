@@ -106,29 +106,6 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
         converged(control_model) && break
         skip && break
     end
-
-    # try by chaning the objective function
-    # @info "trying slowing down"
-    # len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon)
-    # track = trim(FULLTRACK, s0, max(len, 4))
-    # for α in 0:.2:1
-    #     _, _, control_model, solution = run_mtm(
-    #         :dynamics,
-    #         2;
-    #         track=track,
-    #         icond=initial_state,
-    #         fcond=:minimal,
-    #         control_options=:default,
-    #         showplots=false,
-    #         n_iter=5000,
-    #         quiet=true,
-    #         α=α,
-    #     )
-
-    #     converged(control_model) && @info "Slowing worked with α=$α"
-    #     converged(control_model) && break
-    # end
-
     return converged(control_model), solution
 end
 

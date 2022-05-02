@@ -22,9 +22,9 @@ function compare(;  problemtype=:dynamics)
     coptions = ControlOptions(;
     u_bounds=Bounds(10, 80),
     δ_bounds=Bounds(-60, 60, :angle),
-    δ̇_bounds=Bounds(-6, 6),
-    ω_bounds=Bounds(-650, 650, :angle),
-    v_bounds=Bounds(-14, 14),
+    δ̇_bounds=Bounds(-4, 4),
+    ω_bounds=Bounds(-600, 600, :angle),
+    v_bounds=Bounds(-10, 10),
     Fu_bounds=Bounds(-4000, 4500),
     )
 
@@ -48,7 +48,7 @@ function compare(;  problemtype=:dynamics)
 
     # -------------------------- do comparison with data ------------------------- #
     # load data
-    trials = load_cached_trials(; keep_n = 300,)
+    trials = load_cached_trials(; keep_n = nothing,)
     cpoints = ComparisonPoints(track; δs=5, trials=trials)
     fasttrials = filter(t -> t.duration <= solution.t[end], trials)
 
@@ -61,13 +61,16 @@ function compare(;  problemtype=:dynamics)
     draw!.(cpoints.points)
     plot_bike_trajectory!(solution, bike; showbike=false)
 
+    scatter!(
+        solution.x, solution.y, marker_z=solution.ω, c=:bwr, label=nothing
+    )
     # do comparison
     speedplot = plot(; title="speed", xlabel="s (cm)", ylabel="speed cm/s", legend=false)
     uplot = plot(; title="u", xlabel="s (cm)", ylabel="u cm/s", legend=false)
     vplot = plot(; title="v", xlabel="s (cm)", ylabel="v cm/s", legend=false)
     ωplot = plot(; title="ang.vel.", xlabel="s (cm)", ylabel="avel rad/s", legend=false)
 
-    @track for trial in trials
+    @track for trial in trials[1:100]
         # plot trial kinematics
         plot!(speedplot, trial.s, trial.speed; color=black, alpha=0.7)
         plot!(uplot, trial.s, trial.u; color=black, alpha=0.7)
@@ -95,8 +98,8 @@ function compare(;  problemtype=:dynamics)
         scatter!(ωplot, [cp.s], [solution.ω[idxs]]; color="red", ms=10)
     end
 
+
     # ------------------------------------ fin ----------------------------------- #
-    trials = load_cached_trials(; keep_n = nothing,)
     h = histogram(
         map(t->t.duration, trials), color="black", label=nothing, xlim=[0, 15]
     )

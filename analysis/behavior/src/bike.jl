@@ -71,7 +71,7 @@ Represents the state of the bicycle model at a moment in time.
 Can be used to pass initial and final condistions to the control
 model.
 """
-@with_kw struct State
+@with_kw mutable struct State
     x::Number = 0  # position
     y::Number = 0
     θ::Number = 0  # orientation
@@ -97,15 +97,16 @@ end
 
 Get `State` from experimental data at a frame
 """
-function State(trial, frame::Int, track::Track)
+function State(trial, frame::Int, track::Track; kwargs...)
     # get track errors
     x, y = trial.x[frame], trial.y[frame]
     idx = closest_point_idx(track.X, x, track.Y, y)
 
     n = euclidean(track.X[idx], x, track.Y[idx], y)
     ψ = track.θ[idx] - trial.θ[frame]
+    ψ = mod(abs(ψ), 2π)
 
-    return State(; x=x, y=y, θ=trial.θ[frame], ω=trial.ω[frame], u=trial.u[frame], n=n, ψ=ψ)
+    return State(; x=x, y=y, θ=trial.θ[frame], ω=trial.ω[frame], u=trial.u[frame], n=n, ψ=ψ, kwargs...)
 end
 
 """
