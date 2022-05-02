@@ -253,6 +253,9 @@ if have_dj:
             bonsai_cut_end:             int  # end of last bonsai sync pulse
             ephys_cut_start:            int  # start of first ephys sync pulse
             ephys_cut_end:              int  # end of last ephys sync pulse
+            frame_to_drop_pre:          int  # number of frames to drop before the first sync pulse
+            frame_to_drop_post:         int  # number of frames to drop after the last sync pulse
+            tscale:                     int  # time scaleing factor for ephys
         """
         analog_sampling_rate = 30000
         spikeglx_sampling_rate = 30000.616484
@@ -275,6 +278,10 @@ if have_dj:
             failed = from_yaml("data/dbase/validation_failed.yaml")
             if failed is None:
                 failed = {}
+
+            if "openarena" in key["name"].lower():
+                logger.info(f"Skipping openarena session {key['name']}")
+                return
 
             if key["name"] in failed.keys():
                 reason = failed[key["name"]]["__REASON"]
@@ -321,6 +328,12 @@ if have_dj:
                     f'Session {session["name"]} was previously validated, loading results'
                 )
                 key = previously_validated[session["name"]]
+                if "frame_to_drop_pre" not in key.keys():
+                    key["frame_to_drop_pre"] = 0
+                if "frame_to_drop_post" not in key.keys():
+                    key["frame_to_drop_post"] = 0
+                if "tscale" not in key.keys():
+                    key["tscale"] = 1
             else:
                 logger.debug(f'Validating session: {session["name"]}')
 
@@ -357,19 +370,22 @@ if have_dj:
                         bonsai_cut_end,
                         ephys_cut_start,
                         ephys_cut_end,
+                        frame_to_drop_pre,
+                        frame_to_drop_post,
+                        tscale,
                         reason,
                     ) = qc.validate_recording(
                         session["ai_file_path"],
                         session["ephys_ap_data_path"],
                         duration_seconds,
-                        bonsai_first_frame,
-                        bonsai_last_frame,
                         sampling_rate=self.analog_sampling_rate,
-                        ephys_sampling_rate = self.spikeglx_sampling_rate,
+                        ephys_sampling_rate=self.spikeglx_sampling_rate,
                     )
                 else:
                     ephys_cut_start, ephys_cut_end = -1, -1
                     bonsai_cut_start, bonsai_cut_end = -1, -1
+                    frame_to_drop_pre, frame_to_drop_post = 0, 0
+                    tscale = 1
 
                 if not is_ok:
                     logger.warning(
@@ -379,7 +395,7 @@ if have_dj:
                         key, reason, analog_nsigs, failed
                     )
                     return
-                else:
+                elif has_rec:
                     logger.info(f"Session passed RECORDING validation")
 
                 # prepare data
@@ -390,13 +406,16 @@ if have_dj:
                 key["ephys_cut_start"] = int(ephys_cut_start)
                 key["ephys_cut_end"] = int(ephys_cut_end)
                 key["n_analog_channels"] = int(analog_nsigs)
+                key["frame_to_drop_pre"] = int(frame_to_drop_pre)
+                key["frame_to_drop_post"] = int(frame_to_drop_post)
+                key["tscale"] = float(tscale)
 
                 # save results to file
                 logger.debug(f"Saving key entries to yaml: {key}")
                 previously_validated[session["name"]] = key
                 to_yaml(previously_validated_path, previously_validated)
 
-            # fill in table 
+            # fill in table
             logger.info(f'Inserting session data in table: {key["name"]}')
             self.insert1(key)
 
