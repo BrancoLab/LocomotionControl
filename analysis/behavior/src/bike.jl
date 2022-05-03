@@ -2,7 +2,7 @@ module bicycle
 import Parameters: @with_kw
 import MyterialColors: blue_grey_darker, blue_grey, cyan_dark
 
-import jcontrol: closest_point_idx, Track, euclidean
+import jcontrol: closest_point_idx, Track, euclidean, movingaverage
 
 export Bicycle, State
 
@@ -36,7 +36,7 @@ struct Bicycle
         width::Number=1.8,
         m_f=10,
         m_r=12, 
-        c=4e3
+        c=5e3
         )
 
         # convert units g->Kg, cm->m
@@ -97,16 +97,25 @@ end
 
 Get `State` from experimental data at a frame
 """
-function State(trial, frame::Int, track::Track; kwargs...)
+function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
+    if smoothing_window == 1
+        _x, _y, _ω, _u, _θ = _x, trial.y, trial.ω, trial.u, trial.θ
+    else
+        _x = movingaverage(trial.x, smoothing_window)
+        _y = movingaverage(trial.y, smoothing_window)
+        _ω = movingaverage(trial.ω, smoothing_window)
+        _u = movingaverage(trial.u, smoothing_window)
+        _θ = movingaverage(trial.θ, smoothing_window)
+    end
     # get track errors
-    x, y = trial.x[frame], trial.y[frame]
+    x, y = _x[frame], _y[frame]
     idx = closest_point_idx(track.X, x, track.Y, y)
 
     n = euclidean(track.X[idx], x, track.Y[idx], y)
-    ψ = track.θ[idx] - trial.θ[frame]
-    ψ = mod(abs(ψ), 2π)
+    ψ = track.θ[idx] - _θ[frame]
+    # ψ = mod(abs(ψ), 2π)
 
-    return State(; x=x, y=y, θ=trial.θ[frame], ω=trial.ω[frame], u=trial.u[frame], n=n, ψ=ψ, kwargs...)
+    return State(; x=x, y=y, θ=_θ[frame], ω=_ω[frame], u=_u[frame], n=n, ψ=ψ, kwargs...)
 end
 
 """

@@ -9,7 +9,7 @@ install_term_logger()
 
 using jcontrol
 using jcontrol.visuals
-import jcontrol: closest_point_idx, euclidean, Track, State
+import jcontrol: closest_point_idx, Track, State
 import jcontrol.comparisons: ComparisonPoints
 
 
@@ -30,7 +30,7 @@ function compare(;  problemtype=:dynamics)
 
     track, bike, _, solution = run_mtm(
         problemtype,  # model type
-        1;  # supports density
+        2;  # supports density
         showtrials=nothing,
         control_options=coptions,
         track=track,

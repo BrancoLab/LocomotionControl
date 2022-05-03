@@ -89,7 +89,7 @@ u_bounds=Bounds(10, 80),
 δ̇_bounds=Bounds(-4, 4),
 ω_bounds=Bounds(-600, 600, :angle),
 v_bounds=Bounds(-12, 12),
-Fu_bounds=Bounds(-4000, 4500),
+Fu_bounds=Bounds(-4500, 4500),
 )
 
 

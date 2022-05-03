@@ -224,6 +224,7 @@ function solution2state(svalue::Number, solution::Solution; at=:place)::State
     if at == :place
         svalue = svalue < 1 ? svalue * 258 : svalue
         idx = findfirst(solution.s .>= svalue)
+        idx = isnothing(idx) ? length(solution.x) : idx
     elseif at == :time
         idx = findfirst(solution.t .> svalue)
         idx = isnothing(idx) ? 1 : idx
@@ -235,7 +236,7 @@ function solution2state(svalue::Number, solution::Solution; at=:place)::State
             map(v -> v=>getfield(solution, v)[idx], vars)
         )...
     )
-    state.ψ = mod(2π - state.ψ, 2π)
+    # state.ψ = mod(2π - state.ψ, 2π)
     return state
 end
 

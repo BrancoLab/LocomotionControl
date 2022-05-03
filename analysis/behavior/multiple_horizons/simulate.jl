@@ -93,7 +93,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            1;
+            1.5;
             track=track,
             icond=initial_state,
             fcond=:minimal,
@@ -148,7 +148,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     try
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            1;
+            1.5;
             track=track,
             icond=initial_state,
             fcond=final_state,
@@ -181,7 +181,7 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
 
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
-        1;
+        1.5;
         showtrials=nothing,
         track=track,
         n_iter=5000,

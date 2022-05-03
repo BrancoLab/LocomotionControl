@@ -29,6 +29,7 @@ function run_mtm(
     showplots::Bool=true,
     quiet::Bool=false,
     α::Float64=1.0,
+    bike::Union{Nothing, Bicycle}=nothing,
 )
     problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
     δt = 0.01 # Δt for forward integration
@@ -40,7 +41,7 @@ function run_mtm(
     track = isnothing(track) ? FULLTRACK : track
 
     # create bike
-    bike = Bicycle()
+    bike = isnothing(bike) ? Bicycle() : bike
 
     # get control options
     if control_options == :default
