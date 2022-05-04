@@ -7,7 +7,7 @@ import MyterialColors: green_lighter
 
 using jcontrol
 import jcontrol: Track
-import ..bicycle: State
+import ..bicycle: State, Bicycle
 import ..control: ControlOptions, realistict_control_options, default_control_options
 
 const to = TimerOutput()
@@ -30,6 +30,7 @@ function run_mtm(
     quiet::Bool=false,
     α::Float64=1.0,
     bike::Union{Nothing, Bicycle}=nothing,
+    waypoint=nothing
 )
     problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
     δt = 0.01 # Δt for forward integration
@@ -74,6 +75,7 @@ function run_mtm(
         verbose=verbose,
         quiet=quiet,
         α=α,
+        waypoint=waypoint,
     )
 
     # ---------------------------------------------------------------------------- #

@@ -148,7 +148,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     try
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            1.5;
+            1.75;
             track=track,
             icond=initial_state,
             fcond=final_state,
@@ -158,14 +158,14 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
             quiet=true,
         )
     catch
-        return fail()
+        return initial_state, solution, true, track
     end
 
     # failed -> try alternative strategies
     if !converged(control_model)
         # try to recover a solution by shortening the planning window
         success, solution = attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
-        success || return fail()
+        success || return initial_state, solution, true, track
     end
     simtracker.prevsol = solution
     
@@ -176,6 +176,11 @@ end
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
 function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=250, Δt=.01)
+    # check if a solution was already saved and skip
+    name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
+    destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
+    isfile(destination) && return
+
     # run global solution
     track = Track(;start_waypoint=4, keep_n_waypoints=-1)
 
@@ -208,7 +213,7 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
 
             # run simulation and store results
             initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
-            shouldstop && begin
+            shouldstop && i != 32 && begin
                 extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
                 break
             end
@@ -224,14 +229,17 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
             draw!(initial_state; color=colors[i], alpha=1)
             plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
-            simtracker.s > sf && break
+            simtracker.s > sf && i != 32 && begin
+                extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
+                break
+            end
             update!(job)
             sleep(0.001)
         end
 
         @info "SAVING ANIMATIONS"
         # save animation
-        name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
+        
         gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
         gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
 
@@ -240,12 +248,11 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
         mp4(anim, vidpath, fps=(Int ∘ round)(0.2/Δt))
 
         # save global solution
-        destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
-        data = DataFrame(toDict(globalsolution))
-        CSV.write(destination, data)
+        # destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
+        # data = DataFrame(toDict(globalsolution))
+        # CSV.write(destination, data)
 
         # save short horizon solution
-        destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
         data = DataFrame(toDict(solutiontracker))
         CSV.write(destination, data)
     end
@@ -255,16 +262,18 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
 end
 
 
-horizons = vcat(collect(.08:.01:.4), collect(.45:.05:1.2))
+horizons = vcat(collect(.08:.01:.38), collect(.38:.02:.54), collect(.5:.05:1.2))
 starts = [0.0, 45.0, 98.0, 150.0]
 ends = [38.0, 96.0, 142.0, 220.0]
 
-for i in 2:length(starts)
+for i in 1:length(starts)
+    if i != 4
+        continue
+    end
     for horizon in horizons
         @info "Running horizon length $horizon seconds on curve $i"
         results = run_simulation(planning_horizon=horizon, s0=starts[i], sf=ends[i])
         # break
     end
-
 end
 

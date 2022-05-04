@@ -1,6 +1,7 @@
 import cv2
 from loguru import logger
 from rich.progress import track
+import numpy as np
 
 
 def make_video(model, env, video_name="video.mp4", video_length=50):
@@ -51,6 +52,7 @@ def make_video(model, env, video_name="video.mp4", video_length=50):
         # action = env.action_space.sample()
         # action = (action, None)
         action = model.predict(obs)
+        # action = (np.array([0.0, 1.0]).astype(np.float32), None)
         try:
             obs, rew, done, _ = env.step(action)
         except Exception as e:

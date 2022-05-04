@@ -8,6 +8,8 @@ import KernelDensity: kde
 using MultiKDE
 using DataFrames: DataFrame
 using CSV
+using Glob, NaturalSort
+
 using Term
 import Term: install_term_logger
 install_term_logger()
@@ -22,6 +24,7 @@ using jcontrol.visuals
 """
 Useful things for behavior analysis. Mostly Used in Thesis/Chpt3 analyses.
 """
+PLOTS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Writings/THESIS/Chpt3/Plots"
 
 
 # ---------------------------------------------------------------------------- #

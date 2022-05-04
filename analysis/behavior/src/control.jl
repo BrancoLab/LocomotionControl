@@ -354,9 +354,10 @@ function create_and_solve_control(
     final_conditions::Union{Nothing, State, Symbol};
     quiet::Bool=false,
     n_iter::Int=1000,
-    tollerance::Float64=1e-10,
+    tollerance::Float64=1e-4,
     verbose::Int=0,
     α::Float64=1.0,
+    waypoint=nothing,  # pass (s, State) to set the state at a track.s value
 )
     
     # initialize optimizer
@@ -393,7 +394,7 @@ function create_and_solve_control(
             options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control 
 
             # time
-            0 ≤ t ≤ 60, Infinite(s), (start = 10)   
+            0 ≤ t ≤ 60, Infinite(s), (start = 3)   
        end
    )
 
@@ -482,6 +483,28 @@ function create_and_solve_control(
             )
             end
         end
+
+
+    # additional waypoint
+    if !isnothing(waypoint)
+        sval, constraint = waypoint
+        @constraints(
+            model, 
+            begin
+            n(sval) == constraint.n
+            ψ(sval) == constraint.ψ
+
+            δ(sval) == constraint.δ
+            δ̇(sval) == constraint.δ̇
+
+            u(sval) == constraint.u
+            v(sval) == constraint.v
+            ω(sval) == constraint.ω
+            Fu(sval) == constraint.Fu
+            end
+        )
+    end
+
     # --------------------------------- optimize --------------------------------- #
     # set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
     set_all_derivative_methods(model, OrthogonalCollocation(3))

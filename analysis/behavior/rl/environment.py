@@ -12,11 +12,14 @@ from stable_baselines3.common.env_checker import check_env
 from tpd import recorder
 from loguru import logger
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+from rich.pretty import install
+from rich import print
 
 from bike import Bicycle
 from utils import unnormalize
 from track import Track
 
+install()
 logger.remove()
 logger.add(sys.stdout, level="INFO")
 
@@ -38,17 +41,16 @@ class Boundaries:
     n: boundary = boundary(low=-3, high=3)
     psi: boundary = boundary(low=r(-30), high=r(30))
 
-    delta: boundary = boundary(low=r(-80), high=r(80))
+    delta: boundary = boundary(low=r(-60), high=r(60))
     u: boundary = boundary(low=10, high=80)
-    v: boundary = boundary(low=-10, high=10)
+    v: boundary = boundary(low=-12, high=12)
     omega: boundary = boundary(low=r(-600), high=r(600))
 
-    deltadot: boundary = boundary(low=-5, high=5)
-    Fu: boundary = boundary(low=-4000, high=4500)
+    deltadot: boundary = boundary(low=-4, high=4)
+    Fu: boundary = boundary(low=-4500, high=4500)
 
     def __getitem__(self, item):
         return getattr(self, item)
-
 
 class MTMEnv(gym.Env):
     """
@@ -66,7 +68,7 @@ class MTMEnv(gym.Env):
 
     _obs_keys = ("psi", "u", "v", "omega", "delta", "n")
 
-    def __init__(self, horizon: float = 20, ds: float = 1, dt: float = 0.001, log_dir=None, max_n_steps=20000):
+    def __init__(self, horizon: float = 20, ds: float = 1, dt: float = 0.001, log_dir=None, max_n_steps=2000):
         super(MTMEnv, self).__init__()
 
         self.MAX_N_STEPS = max_n_steps
@@ -106,19 +108,16 @@ class MTMEnv(gym.Env):
         self.dt = dt
         self.bike = Bicycle(self.track, self.boundaries,  *self.initial_conditions(), dt=dt)
 
-
         logger.debug("Environment initialized")
 
     def initial_conditions(self):
         # returns the bike's state at the beginning of the track
         state = [
-            self.track.x[0],
-            self.track.y[0],
-            10.0, # u
+            20.0, # u
             0.0, # delta
             0.0, # v
-            self.track.theta[0],
             0.0, # omega
+            0.0, # s
         ]
         return state
 
@@ -131,6 +130,7 @@ class MTMEnv(gym.Env):
 
         if len(action.shape) == 2:
             action = action.ravel()
+
         deltadot, Fu = action
         deltadot = unnormalize(
             deltadot,
@@ -142,10 +142,9 @@ class MTMEnv(gym.Env):
         )
         return deltadot, Fu
 
-
     def get_observation(self) -> np.ndarray:
         obs = self.bike.state()
-        obs["s"] = self.track.s(obs["x"], obs["y"])
+        # obs["s"] = self.track.s(obs["x"], obs["y"])
         del obs["x"]; del obs["y"]; del obs["theta"]
         
         # get curvature observations
@@ -156,7 +155,7 @@ class MTMEnv(gym.Env):
         return np.hstack(list(obs.values())).astype(np.float64)
 
     def should_terminate(self):
-        bike_s = self.bike.s()
+        bike_s = self.bike.s
 
         if bike_s > 250:
             # logger.info("done because at end")
@@ -177,10 +176,9 @@ class MTMEnv(gym.Env):
 
         return False
 
-
-
     def step(self, action):
         self.n_steps += 1
+
         # check action bounds
         deltadot, Fu = self.unnormalize_action(action)
 
@@ -191,8 +189,8 @@ class MTMEnv(gym.Env):
         observation = self.get_observation()
 
         # get reward
-        bike_s = self.bike.s()
-        reward = bike_s  # - self._bike_prev_s
+        bike_s = self.bike.s
+        reward = bike_s #  - self._bike_prev_s
         self._bike_prev_s = bike_s
 
         # get other info
@@ -200,7 +198,6 @@ class MTMEnv(gym.Env):
         info = {}
         # logger.debug(f"Env step, action: {action}, reward: {reward}, done: {done}")
         return observation, reward, done, info
-
 
     def reset(self) -> np.ndarray:
         # clear self.axes["A"]
@@ -247,8 +244,10 @@ class MTMEnv(gym.Env):
     def render(self, mode='rgb_array'):
         # plot bike
         x, y, theta = self.bike.x, self.bike.y, self.bike.theta
-        u, v = self.bike.u, self.bike.v
 
+
+        print({**self.bike.state(), **{"k":self.bike.k()}})
+        
         self.axes["A"].plot([x, x+2*np.cos(theta)], [y, y+2*np.sin(theta)], color="black")
         self.axes["A"].plot(x, y, "o", color="red")
         self.axes["A"].set(xticks=[], yticks=[])

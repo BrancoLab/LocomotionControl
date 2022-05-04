@@ -16,6 +16,13 @@ class Track:
         self.width = np.array(track["width"])
 
 
+    def get_at_sval(self, s):
+        """
+            Get the x,y,theta at a given s value
+        """
+        idx = np.argmin(np.abs(self.S - s))
+        return self.x[idx], self.y[idx], self.theta[idx]
+
     def curvature(self, s):
         """
             Get the curvature at a given s value
