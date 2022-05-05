@@ -1,7 +1,7 @@
 import pandas as pd
 import sys
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union
 from loguru import logger
 import h5py
 import numpy as np
@@ -11,6 +11,62 @@ from rich.prompt import Confirm
 sys.path.append("./")
 
 from fcutils.path import size
+from fcutils.maths.signals import get_onset_offset
+from quality_control import load_or_open
+from data.dbase.io import get_recording_local_copy
+
+
+def get_tscale(ephys_ap_data_path, ai_file_path, sampling_rate=30000):
+    """
+        Because of a mistake we don't have time scaling information in validated sessions, 
+        so have to extract it anew
+    """
+
+    # load analog from bonsai
+    try:
+        bonsai_probe_sync = load_or_open(
+            ephys_ap_data_path, "bonsai", ai_file_path, 3
+        )
+    except FileNotFoundError as e:
+        # raise FileNotFoundError(e)
+        logger.warning(f"Failed to find recording data: {e}")
+        return False, 0, 0, 0, 0, 0, 0, 0, f"No rec data found {e}"
+
+    # load data from ephys (from local file if possible)
+    ephys_probe_sync = load_or_open(
+        ephys_ap_data_path,
+        "ephys",
+        get_recording_local_copy(ephys_ap_data_path),
+        -1,
+        order="F",
+        dtype="int16",
+        nsigs=385,
+    )
+
+    # get sync pulses for bonsai and ephys
+    bonsai_sync_onsets, bonsai_sync_offsets = get_onset_offset(
+        bonsai_probe_sync, 4
+    )
+
+    ephys_sync_onsets, ephys_sync_offsets = get_onset_offset(
+        ephys_probe_sync, 45
+    )
+
+    # remove pulses that are too brief
+    errors = np.where(np.diff(bonsai_sync_onsets) < sampling_rate / 3)[0]
+    bonsai_sync_offsets = np.delete(bonsai_sync_offsets, errors)
+    bonsai_sync_onsets = np.delete(bonsai_sync_onsets, errors)
+
+    # remove pulses that are too brief
+    errors = np.where(np.diff(ephys_sync_onsets) < sampling_rate / 2)[0]
+    ephys_sync_offsets = np.delete(ephys_sync_offsets, errors)
+    ephys_sync_onsets = np.delete(ephys_sync_onsets, errors)
+
+    tscale = (bonsai_sync_offsets[-1] - bonsai_sync_onsets[0]) / (
+        ephys_sync_offsets[-1] - ephys_sync_onsets[0]
+    )
+    print("done getting tscale")
+    return tscale
 
 
 def get_recording_filepaths(
@@ -37,22 +93,6 @@ def get_recording_filepaths(
         )
         return
 
-    # Check if it's a concatenated recording
-    # concat_filepath = metadata["concatenated recording file"]
-    # if isinstance(concat_filepath, str):
-    #     # it was concatenated
-    #     rec_name = concat_filepath
-    #     rec_path = recordings_folder / Path(rec_name)
-    #     key["concatenated"] = 1
-
-    #     if not rec_path.is_dir() or not files(rec_path):
-    #         logger.warning(
-    #             f'Invalid rec folder: {rec_path} for session {key["name"]} - empty or not existant rec folder.'
-    #         )
-    #         return None
-
-    #     rec_name = rec_name + "_g0"
-    # else:
     rec_name = rec_metadata.loc[
         rec_metadata["recording folder"] == rec_folder
     ]["recording folder"].iloc[0]
@@ -141,96 +181,42 @@ def load_cluster_curation_results(
 
 
 def get_unit_spike_times(
-    unit: dict,
-    triggers: dict,
-    sampling_rate: int,
-    pre_cut: int = None,
-    post_cut: int = None,
+    unit: dict, triggers: dict, sampling_rate: int, tscale: float,
 ) -> dict:
     """
         Gets a unit's spikes times aligned to bonsai's video frames
         in both milliseconds from the recording start and in frame numbers
     """
 
-    # check that the last spike didn't occur too late
-    # if unit["raw_spikes_s"][-1] - 2 > triggers['duration']:  # -2 to account for tails of recording
-    #     raise ValueError('The last spike cannot be after after the end of the video')
+    # take spike times in seconds, convert to samples number (in ephys samples)
+    spikes_samples_ephys = unit["raw_spikes_s"] * sampling_rate
 
-    # get spike times in sample number
-    spikes_samples = unit["raw_spikes_s"] * sampling_rate
-
-    # cut to deal with concatenated recordings
-    if pre_cut is not None:
-        spikes_samples = spikes_samples[
-            (spikes_samples > pre_cut) & (spikes_samples < post_cut)
-        ]
-        spikes_samples -= pre_cut
-
-    # cut frames spikes in the 1s before/after the recording
-    spikes_samples = spikes_samples[
-        (spikes_samples > triggers["ephys_cut_start"])
-        & (spikes_samples < triggers["n_samples"])
+    # cut spikes in the 1s before/after recording
+    # spikes_samples_ephys = spikes_samples_ephys[(spikes_samples_ephys > sampling_rate) & (spikes_samples_ephys < (spikes_samples_ephys[-1]-sampling_rate))]
+    spikes_samples_ephys = spikes_samples_ephys[
+        (spikes_samples_ephys > triggers["ephys_cut_start"])
+        & (spikes_samples_ephys < triggers["ephys_cut_end"])
     ]
 
-    # cut and scale to match bonsai data
-    spikes_samples = spikes_samples - triggers["ephys_cut_start"]
-    spikes_samples *= triggers["ephys_time_scaling_factor"]
+    # get number of samples relative to the first trigger
+    spikes_samples_ephys -= triggers["ephys_cut_start"]
+
+    # convert to samples numbers in bonsai samples
+    spikes_samples = spikes_samples_ephys * tscale
+
+    # we have spikes in samples relative to first probe syn trigger, now adjust relative to start of experiment
+    spikes_samples += triggers["frame_to_drop_pre"] * 1 / 60 * sampling_rate
 
     # get the closest frame trigger to each spike sample
     samples_per_frame = 1 / 60 * sampling_rate
-    spikes_frames = np.floor(spikes_samples / samples_per_frame).astype(
+    spikes_frames = np.round(spikes_samples / samples_per_frame).astype(
         np.int64
     )
-
-    if (
-        np.any(spikes_frames < 0)
-        or np.any(spikes_frames > triggers["trigger_times"].max())
-        or spikes_frames.max() > triggers["n_frames"]
-    ):
-        raise ValueError("Error while assigning frame number to spike times")
 
     # return data
     return dict(
         spikes_ms=spikes_samples / sampling_rate * 1000, spikes=spikes_frames
     )
-
-
-def cut_concatenated_units(
-    recording: dict, triggers: dict, rec_metadata: pd.DataFrame
-) -> Tuple[int, int]:
-    """
-        Split units spiking data from concatenated recordings. Return min and max values (in samples)
-        for spikes to keep. The keeping of the spikes is actually done in 'get_unit_spike_times'
-    """
-    # get if first or second in concatenated data
-    # concat_filename = Path(recording["spike_sorting_spikes_file_path"]).stem[
-    #     :-15
-    # ]
-    # # concat_metadata = rec_metadata.loc[
-    # #     rec_metadata["concatenated recording file"] == concat_filename
-    # # ]
-    # # concat_metadata = rec_metadata.loc[
-    # #     [True if isinstance(x, str) and concat_filename in x else False for x in rec_metadata["recording folder"].values]
-    # # ]
-    # # if len(concat_metadata) != 2:
-    # #     raise ValueError("Expected to find two metadata entries")
-
-    # rec_filename = Path(recording["ephys_ap_data_path"]).stem[:-12]
-    # idx = np.where(concat_metadata["recording folder"] == rec_filename)[0][0]
-    # is_first = idx == 0
-
-    # # deal with things separately based on if its first or second recording
-    # if is_first:
-    #     pre_cut = 0
-    #     post_cut = triggers["n_samples"]
-    # else:
-    #     # Get the number of samples of the previous recording and set that as pre_cut
-    #     raise NotImplementedError(
-    #         "need to deal with second of two concatenated recordings"
-    #     )
-
-    # return pre_cut, post_cut
-    return None
 
 
 # -------------------------------- firing rate ------------------------------- #

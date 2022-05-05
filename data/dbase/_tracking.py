@@ -186,7 +186,7 @@ def process_tracking_data(
     logger.debug("      computing body orientation")
     velocites = compute_averaged_quantities(body_parts_tracking)
 
-    # # make sure all tracking start at (x,y)=(0, 0) and ends at (x,y)=(40, 60)
+    # make sure all tracking start at (x,y)=(0, 0) and ends at (x,y)=(40, 60)
     limits = dict(
         x=(
             np.percentile(body_parts_tracking["body"]["x"], 0.001),
@@ -244,26 +244,44 @@ def get_movements(
     tracking: pd.DataFrame,
     moving_threshold: float,
     turning_threshold: float,
+    paw_speed_th=10,
 ) -> dict:
     """
         Creates array indicating when the mouse is doing different kinds of movements
     """
-    base_array = np.zeros_like(tracking.x)
+
+    paws = tracking.loc[
+        tracking.bpname.isin(["left_fl", "left_hl", "right_fl", "right_hl"])
+    ]
+
+    # get when each paw is moving
+    paws_moving = {
+        f"{p.bpname}_moving": np.int64(p.speed >= paw_speed_th)
+        for i, p in paws.iterrows()
+    }
+    paws_moving["walking"] = np.prod(
+        np.vstack(list(paws_moving.values())), axis=0
+    )
+
+    body = tracking.loc[tracking.bpname == "body"].iloc[0]
+    base_array = np.zeros_like(body.x)
 
     # get when moving
     key["moving"] = base_array.copy()
-    key["moving"][np.where(tracking.speed > moving_threshold)[0]] = 1
+    key["moving"][np.where(body.speed > moving_threshold)[0]] = 1
 
     # get when turning left
     key["turning_left"] = base_array.copy()
     key["turning_left"][
-        np.where(tracking.angular_velocity > turning_threshold)[0]
+        np.where(body.angular_velocity > turning_threshold)[0]
     ] = 1
 
     # get when turning right
     key["turning_right"] = base_array.copy()
     key["turning_right"][
-        np.where(tracking.angular_velocity < -turning_threshold)[0]
+        np.where(body.angular_velocity < -turning_threshold)[0]
     ] = 1
+
+    key = {**key, **paws_moving}
 
     return key

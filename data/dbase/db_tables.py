@@ -992,6 +992,10 @@ if have_dj:
             walking:        longblob  # 1 when the mouse is walking
             turning_left:   longblob
             turning_right:  longblob
+            left_fl_moving: longblob
+            right_fl_moving: longblob
+            left_hl_moving: longblob
+            right_hl_moving: longblob
         """
 
         def make(self, key):
@@ -999,10 +1003,17 @@ if have_dj:
                 Gets arrays indicating when the mouse id doing certain kinds of movements
             """
             # get data
-            tracking = Tracking.get_session_tracking(key["name"])
+            tracking = Tracking.get_session_tracking(
+                key["name"], body_only=False, movement=False
+            )
+            if tracking.empty:
+                logger.warning(
+                    f'Failed to get tracking data for session {key["name"]}'
+                )
+                return
 
             # get when walking
-            key["walking"] = LocomotionBouts.is_locomoting(key["name"])
+            # key["walking"] = LocomotionBouts.is_locomoting(key["name"])
 
             # get other movements
             key = _tracking.get_movements(
@@ -1084,14 +1095,15 @@ if have_dj:
                 return
 
             # get recording sites in each possible configuration
-            tip = (
-                self._tips[key["mouse_id"]]
-                if key["mouse_id"] in self._tips.keys()
-                else 175
-            )
+            # tip = (
+            #     self._tips[key["mouse_id"]]
+            #     if key["mouse_id"] in self._tips.keys()
+            #     else 175
+            # )
+            tip = 175
             for configuration in self.possible_configurations:
                 recording_sites = _probe.place_probe_recording_sites(
-                    metadata, configuration, tip=tip
+                    probe_key, configuration, tip=tip
                 )
                 if recording_sites is None:
                     continue
@@ -1111,7 +1123,7 @@ if have_dj:
             spike_sorting_params_file_path:     varchar(256)  # PRM file with spike sorting paramters
             spike_sorting_spikes_file_path:     varchar(256)  # CSV files with spikes times
             spike_sorting_clusters_file_path:   varchar(256)  # MAT file with clusters IDs
-            recording_probe_configuration:                varchar(256)  # longcol, b_0 ...
+            recording_probe_configuration:      varchar(256)  # longcol, b_0 ...
             reference:                          varchar(256)  # interf, extref
         """
         recordings_folder = Path(
@@ -1259,7 +1271,6 @@ if have_dj:
             return rsites
 
         def make(self, key):
-            raise NotImplementedError("Need to go over this again")
             logger.info(f'Procesing: "{key["name"]}"')
             recording = (Session * Recording & key).fetch1()
 
@@ -1274,27 +1285,17 @@ if have_dj:
                 return
 
             # load behavior camera triggers
-            triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
+            triggers = (Session * ValidatedSession & key).fetch1()
 
-            # deal with concatenated recordinds
-            if recording["concatenated"] == 1:
-                logger.warning("Concatenated analysis not working currently")
-                return
-                # load recordings metadata
-                rec_metadata = pd.read_excel(
-                    Session.recordings_metadata_path, engine="odf"
-                )
-
-                # cut unit spikes
-                pre_cut, post_cut = _recording.cut_concatenated_units(
-                    recording, triggers, rec_metadata
-                )
-            else:
-                pre_cut, post_cut = None, None
+            # get time scaliing factors
+            tscale = _recording.get_tscale(
+                triggers["ephys_ap_data_path"], triggers["ai_file_path"]
+            )
 
             # fill in units
             for nu, unit in enumerate(units):
                 logger.debug(f"processing unit {nu+1}/{len(units)}")
+
                 # enter info in main table
                 unit_key = key.copy()
                 unit_key["unit_id"] = unit["unit_id"]
@@ -1309,8 +1310,7 @@ if have_dj:
                     unit,
                     triggers,
                     ValidatedSession.analog_sampling_rate,
-                    pre_cut=pre_cut,
-                    post_cut=post_cut,
+                    tscale=tscale,
                 )
                 spikes_key = {**key.copy(), **unit_spikes}
                 spikes_key["unit_id"] = unit["unit_id"]
@@ -1381,7 +1381,7 @@ if __name__ == "__main__":
     # Session().drop()
     # ValidatedSession().drop()
     # Unit().drop()
-    # FiringRate().drop()
+    # Recording().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1403,7 +1403,7 @@ if __name__ == "__main__":
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
-    ValidatedSession().populate(display_progress=True)
+    # ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
@@ -1425,9 +1425,9 @@ if __name__ == "__main__":
     # ? EPHYS
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=False)
+    Recording().populate(display_progress=False)
 
-    # Unit().populate(display_progress=True)
+    Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 
@@ -1441,6 +1441,7 @@ if __name__ == "__main__":
         SessionCondition,
         Probe,
         Recording,
+        Movement,
     ]
     NAMES = [
         "Mouse",
@@ -1450,6 +1451,7 @@ if __name__ == "__main__":
         "SessionCondition",
         "Probe",
         "Recording",
+        "Movement",
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)

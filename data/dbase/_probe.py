@@ -1,11 +1,9 @@
 import numpy as np
 from pathlib import Path
-import pandas as pd
-from typing import Union, List
+from typing import List
 from loguru import logger
 from dataclasses import dataclass
 
-from fcutils.path import files
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 from myterial.utils import rgb2hex
 
@@ -16,58 +14,75 @@ class ActiveElectrode:
     probe_position: int  # distance in um along the Y axis of the probe
 
 
-def prepare_electrodes_positions(configuration: str, n_sites: int = 384) -> List[ActiveElectrode]:
-    '''
+def prepare_electrodes_positions(
+    configuration: str, n_sites: int = 384
+) -> List[ActiveElectrode]:
+    """
         Defines the position along the probe (in coordinates from the first electrode)
         of each active electrode
-    '''
-    if configuration == 'b0':
-        Y = 20 * np.repeat(np.arange(0, int(n_sites/2)), 2)
-        ids = np.arange(1, n_sites+1)
-    elif configuration == 'longcolumn':
+    """
+    if configuration == "b0":
+        Y = 20 * np.repeat(np.arange(0, int(n_sites / 2)), 2)
+        ids = np.arange(1, n_sites + 1)
+    elif configuration == "longcolumn":
         Y = 20 * np.arange(n_sites)
 
         # odd numbers for bank 0 and even for bank 1
         _ids = np.arange(n_sites + 1)
         ids = np.hstack([_ids[1::2], _ids[2::2]])
     else:
-        raise NotImplementedError(f'Probe configuration "{configuration}" not supported')
+        raise NotImplementedError(
+            f'Probe configuration "{configuration}" not supported'
+        )
 
     return [ActiveElectrode(idx, y) for idx, y in zip(ids, Y)]
 
-def reconstructed_track_quality_check(implanted_depth:int,  point_distances:np.ndarray):
-    '''
+
+def reconstructed_track_quality_check(
+    implanted_depth: int, point_distances: np.ndarray
+):
+    """
         Checks that a reconstructed track is accurate by:
             1 - ensuring that the length of the reconstructed track matches the estimated insterted depth
 
-    '''
-
-
+    """
     # check that the length of the reconstructed track is comparable to that of the implanted depth
     if abs(point_distances[-1] - implanted_depth) > 100:
-        logger.warning(f"""
+        logger.warning(
+            f"""
             The probe was implanted at a depth of {implanted_depth} (in brain space) but the reconstructed track
             length is: {point_distances[-1]} (in atlas space).
-        """)
+        """
+        )
         # return False
     return True
 
 
 def place_probe_recording_sites(
-    probe_metadata: dict, configuration: str, n_sites: int = 384, tip: int = 375
+    probe_metadata: dict,
+    configuration: str,
+    n_sites: int = 384,
+    tip: int = 375,
 ) -> list:
     # get brainglobe atlas
     atlas = BrainGlobeAtlas("allen_mouse_25um")
 
     # find multiple reconstructions files paths
     try:
-        rec_path = Path(probe_metadata["reconstructed_track_filepath"])
-    except TypeError:
-        logger.warning(f"Did not find reconstructed track filepath")
+        mouse = probe_metadata["mouse_id"][-3:]
+        files = Path(
+            r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
+        ).glob(mouse + "_atlas_space_0.npy")
+        rec_path = list(files)[0]
+    except IndexError:
+        logger.warning(
+            f"Did not find reconstructed track filepath for mouse {mouse}"
+        )
         return
 
-    fld, name = rec_path.parent, rec_path.stem
-    reconstruction_files = files(fld, pattern=f"{name}_*.npy")
+    # _, name = rec_path.parent, rec_path.stem
+    # reconstruction_files = files(fld, pattern=f"{name}_*.npy")
+    reconstruction_files = [rec_path]
 
     if reconstruction_files is None:
         logger.warning("Did not find any reconstruction files!")
@@ -89,7 +104,9 @@ def place_probe_recording_sites(
     for rec_file in reconstruction_files:
         # load points (1 every um of inserted probe) and check that the right number of points is loaded
         try:
-            points = np.load(rec_file)[::-1]  # flipped so that the first point is at the bottom of the probe like in brain
+            points = np.load(rec_file)[
+                ::-1
+            ]  # flipped so that the first point is at the bottom of the probe like in brain
             # and exclude tip of probe
         except TypeError:
             logger.warning("Could not load reconstructed track file")
@@ -97,10 +114,14 @@ def place_probe_recording_sites(
 
         # get the distance of each point along the probe
         # the point corresponding to the first point on the track
-        point_distances = np.apply_along_axis(np.linalg.norm, 1, points - points[0]).astype(np.int32)
+        point_distances = np.apply_along_axis(
+            np.linalg.norm, 1, points - points[0]
+        ).astype(np.int32)
 
         # do quality check
-        if not reconstructed_track_quality_check(probe_metadata['implanted_depth'],  point_distances):
+        if not reconstructed_track_quality_check(
+            probe_metadata["implanted_depth"], point_distances
+        ):
             continue
 
         # exclude points on the tuip of the probe
@@ -108,28 +129,36 @@ def place_probe_recording_sites(
         points = points[first_non_tip:]
 
         # compute points distances again but with 0 at first electrode now
-        point_distances = np.apply_along_axis(np.linalg.norm, 1, points - points[0]).astype(np.int32)
+        point_distances = np.apply_along_axis(
+            np.linalg.norm, 1, points - points[0]
+        ).astype(np.int32)
 
         # get the coordinates of each electrode
         for electrode in active_electrodes:
             # check if electrode is outside the brain
             if electrode.probe_position > np.max(point_distances):
-                electrodes_coordinates[electrode.idx].append(np.full(3, np.nan))
+                electrodes_coordinates[electrode.idx].append(
+                    np.full(3, np.nan)
+                )
                 outside_brain[electrode.idx] = True
 
             # get the point closest to the electrode
-            point_idx = np.argmin(abs(point_distances - electrode.probe_position))
+            point_idx = np.argmin(
+                abs(point_distances - electrode.probe_position)
+            )
             electrodes_coordinates[electrode.idx].append(points[point_idx])
 
             if point_distances[point_idx] < -1:
-                raise ValueError('Cant select points on the tip')
-
+                raise ValueError("Cant select points on the tip")
 
     # get the average coordinates for each electrode
     try:
-        avg_electrode_coord = {k: np.nanmean(np.vstack(c), 0) for k,c in electrodes_coordinates.items()}
+        avg_electrode_coord = {
+            k: np.nanmean(np.vstack(c), 0)
+            for k, c in electrodes_coordinates.items()
+        }
     except ValueError:
-        logger.warning('Failed to reconstruct probe geometry')
+        logger.warning("Failed to reconstruct probe geometry")
         return
     sites_probe_coords = {e.idx: e.probe_position for e in active_electrodes}
 
@@ -138,7 +167,7 @@ def place_probe_recording_sites(
     for e_idx, coords in avg_electrode_coord.items():
         # reconstruct position in brain
         if outside_brain[e_idx]:
-            acro = 'OUT'
+            acro = "OUT"
             color = rgb2hex([0.1, 0.1, 0.1])
         else:
             rid = atlas.structure_from_coords(coords, microns=True)
@@ -149,10 +178,12 @@ def place_probe_recording_sites(
                 acro = atlas.structure_from_coords(
                     coords, microns=True, as_acronym=True
                 )
-                color = rgb2hex([
-                    c / 255
-                    for c in atlas._get_from_structure(acro, "rgb_triplet")
-                ])
+                color = rgb2hex(
+                    [
+                        c / 255
+                        for c in atlas._get_from_structure(acro, "rgb_triplet")
+                    ]
+                )
 
         recording_sites.append(
             {
@@ -166,25 +197,29 @@ def place_probe_recording_sites(
         )
 
     # assign to undefined structures the closest well defined structure
-    excluded = ('P', 'MB', 'scp', 'II', 'APr')
+    excluded = ("P", "MB", "scp", "II", "APr")
     for n, esite in enumerate(recording_sites):
-        if esite['brain_region'] in excluded:
+        if esite["brain_region"] in excluded:
             shift = 1
             while True:
-                if recording_sites[n-shift]['brain_region'] not in excluded:
-                    for key in ('brain_region', 'brain_region_id', 'color'):
-                        esite[key] = recording_sites[n-shift][key]
+                if recording_sites[n - shift]["brain_region"] not in excluded:
+                    for key in ("brain_region", "brain_region_id", "color"):
+                        esite[key] = recording_sites[n - shift][key]
                     break
-                elif recording_sites[n+shift]['brain_region'] not in excluded:
-                    for key in ('brain_region', 'brain_region_id', 'color'):
-                        esite[key] = recording_sites[n+shift][key]
+                elif (
+                    recording_sites[n + shift]["brain_region"] not in excluded
+                ):
+                    for key in ("brain_region", "brain_region_id", "color"):
+                        esite[key] = recording_sites[n + shift][key]
                     break
-                elif n - shift < 0 or n+shift > len(recording_sites):
+                elif n - shift < 0 or n + shift > len(recording_sites):
                     break
                 else:
                     shift += 1
 
     if len(recording_sites) != n_sites:
-        raise ValueError(f'Expected {n_sites} recordiing sites, found: {len(recording_sites)}')
+        raise ValueError(
+            f"Expected {n_sites} recordiing sites, found: {len(recording_sites)}"
+        )
 
     return recording_sites
