@@ -175,10 +175,15 @@ end
 """
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
-function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=250, Δt=.01)
+function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=660, Δt=.01)
     # check if a solution was already saved and skip
     name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
-    destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
+    # destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
+
+    FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Writings/THESIS/Chpt3/Videos"
+    # FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_complete"
+
+    destination = joinpath(FOLDER, "$name.csv")
     isfile(destination) && return
 
     # run global solution
@@ -186,7 +191,7 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
 
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
-        1.5;
+        1.75;
         showtrials=nothing,
         track=track,
         n_iter=5000,
@@ -237,20 +242,13 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
             sleep(0.001)
         end
 
-        @info "SAVING ANIMATIONS"
-        # save animation
-        
-        gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
-        gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
+        @info "SAVING ANIMATIONS"       
+        gifpath = joinpath(FOLDER, "$name.gif")
+        gif(anim, gifpath, fps=(Int ∘ round)(1/Δt))
 
         # save video
-        vidpath = joinpath(PATHS["horizons_sims_cache"], "$name.mp4")
-        mp4(anim, vidpath, fps=(Int ∘ round)(0.2/Δt))
-
-        # save global solution
-        # destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
-        # data = DataFrame(toDict(globalsolution))
-        # CSV.write(destination, data)
+        vidpath = joinpath(FOLDER, "$name.mp4")
+        mp4(anim, vidpath, fps=(Int ∘ round)(1/Δt))
 
         # save short horizon solution
         data = DataFrame(toDict(solutiontracker))
@@ -262,18 +260,25 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=2
 end
 
 
-horizons = vcat(collect(.08:.01:.38), collect(.38:.02:.54), collect(.5:.05:1.2))
-starts = [0.0, 45.0, 98.0, 150.0]
-ends = [38.0, 96.0, 142.0, 220.0]
+# horizons = vcat(collect(.08:.01:.38), collect(.38:.02:.54), collect(.5:.05:1.2))
+# # starts = [0.0, 45.0, 98.0, 150.0]
+# # ends = [38.0, 96.0, 142.0, 220.0]
 
-for i in 1:length(starts)
-    if i != 4
-        continue
-    end
-    for horizon in horizons
-        @info "Running horizon length $horizon seconds on curve $i"
-        results = run_simulation(planning_horizon=horizon, s0=starts[i], sf=ends[i])
-        # break
-    end
-end
+# for horizon in horizons
+#     @info "Running horizon length $horizon seconds on curve $i"
+#     results = run_simulation(planning_horizon=horizon, s0=0.0, sf=260)
+#     # break
+# end
 
+# for i in 1:length(starts)
+#     if i != 4
+#         continue
+#     end
+#     for horizon in horizons
+#         @info "Running horizon length $horizon seconds on curve $i"
+#         results = run_simulation(planning_horizon=horizon, s0=starts[i], sf=ends[i])
+#         # break
+#     end
+# end
+
+results = run_simulation(planning_horizon=1.0, s0=0.0, sf=250)
