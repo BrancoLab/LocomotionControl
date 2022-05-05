@@ -29,15 +29,15 @@ from environment import MTMEnv
 from utils import make_video
 
 
-def make_env(rank, seed=0, log_dir=None):
+def make_env(rank, seed=0, log_dir=None, **kwargs):
     """
     Utility function for multiprocessed env.
 
     :param seed: (int) the inital seed for RNG
     :param rank: (int) index of the subprocess
     """
-    def _init():
-        env = MTMEnv(log_dir=log_dir)
+    def _init(**kwargs):
+        env = MTMEnv(log_dir=log_dir, **kwargs)
         env.seed(seed + rank)
         log_file = os.path.join(log_dir, str(rank)) if log_dir is not None else None
         env = Monitor(env, log_file)
@@ -111,8 +111,8 @@ class SaveVideoCallback(BaseCallback):
 
 
 td3_params = dict(
-    learning_rate = 1e-3,
-    gamma = 0.9999,
+    learning_rate = 1e3,
+    gamma = 0.99,
     learning_starts = 10000,
     buffer_size= 200000,
     train_freq = 1,
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     fld = Path("/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RL")
 
     # ---------------------------------- params ---------------------------------- #
-    NAME = "TD3-vid"
+    NAME = "TD32"
     N_CPU = 1
     N_STEPS = 100_000
     SEED = 0
@@ -135,11 +135,8 @@ if __name__ == '__main__':
     PARAMS = td3_params
 
     policy_kwargs = dict(
-        # features_extractor_class=VisualProprioceptionCombinedExtractor,
-        # features_extractor_class=ProprioceptiveFeaturesExtractor,
-        # features_extractor_kwargs=dict(features_dim=64),
-        # net_arch=[512, 512],
-        net_arch=[64, 64],
+        net_arch=[512, 512],
+        # net_arch=[64, 64],
         activation_fn=th.nn.ReLU
     )
 
@@ -173,10 +170,10 @@ if __name__ == '__main__':
     # ------------------------------- model & train ------------------------------ #
     model = make_agent(env, tensorboard_log=log_dir, params=PARAMS)
 
-    checkpoint_callback = CheckpointCallback(save_freq=25, save_path=log_dir, name_prefix=NAME)
-    video_callback = SaveVideoCallback(50, log_dir)
-    _cb = CallbackList([checkpoint_callback, video_callback])
-    # _cb = checkpoint_callback
+    checkpoint_callback = CheckpointCallback(save_freq=2500, save_path=log_dir, name_prefix=NAME)
+    # video_callback = SaveVideoCallback(25000, log_dir)
+    # _cb = CallbackList([checkpoint_callback, video_callback])
+    _cb = checkpoint_callback
     model.learn(total_timesteps=N_STEPS, callback=_cb, log_interval=10)
     
     model.save(os.path.join(log_dir, "trained_{NAME}"))

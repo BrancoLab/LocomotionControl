@@ -1,6 +1,7 @@
 import cv2
 from loguru import logger
 from rich.progress import track
+import numpy as np
 
 
 def make_video(model, env, video_name="video.mp4", video_length=50):
@@ -11,13 +12,17 @@ def make_video(model, env, video_name="video.mp4", video_length=50):
     #         _env = _env.env
     # except:
     #     _env = env.unwrapped.env
-    _env = env.envs[0].env
+    try:
+        _env = env.envs[0].env
+    except:
+        _env = env
+    _env.MAX_N_STEPS = video_length
 
     # setup frame
     logger.info(f"Writing video to {video_name}")
     frame = _env.render()[:, :, :-1]
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    height, width = frame.shape
+    # frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    height, width, _ = frame.shape
 
     # crate a cv2.VideoWriter for a greyscale video
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -31,28 +36,31 @@ def make_video(model, env, video_name="video.mp4", video_length=50):
     for i in track(range(video_length + 1), description="Recording video", total=video_length + 1):
         
         # capture frame 
-        if i % 400 == 0:
+        if i % 40 == 0:
             frame = _env.render()[:, :, :-1]
+
             # convert frame to grayscale
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            # frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
             # write frame to video
             cv2.imshow(video_name, frame)
-            cv2.waitKey(1)
+            cv2.waitKey(10)
             video.write(frame)
         
 
         # execute next action
-        action = env.action_space.sample()
-        action = (action, None)
-        # action = model.predict(obs)
+        # action = env.action_space.sample()
+        # action = (action, None)
+        action = model.predict(obs)
+        # action = (np.array([0.0, 1.0]).astype(np.float32), None)
         try:
             obs, rew, done, _ = env.step(action)
         except Exception as e:
-            logger.debug(f"Error in step during video creation: {e}")
+            logger.warning(f"Error in step during video creation: {e}")
             break
 
         if done:
+            logger.info("Env says done")
             break
 
     # Save the video

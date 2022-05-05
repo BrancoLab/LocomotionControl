@@ -34,7 +34,7 @@ fcond = State(; u=30, ω=0, δ=0)
 
 track, bike, control_model, solution = run_mtm(
     :dynamics,  # model type
-    3;  # supports density
+    1;  # supports density
     track=track,
     control_options=:default,
     icond=nothing,

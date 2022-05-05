@@ -65,7 +65,7 @@ function run_forward_model(
     s = ξ(value(model[:s]))
 
     # compute bike position with variable Δt (wrt s)
-    svalues = 1:0.25:length(value(model[:n]))
+    svalues = 1:0.01:length(value(model[:n]))
     II() = zeros(Float64, length(svalues))
     Xs, Ys, θs = II(), II(), II()
     for (ni, i) in enumerate(svalues)
@@ -224,17 +224,20 @@ function solution2state(svalue::Number, solution::Solution; at=:place)::State
     if at == :place
         svalue = svalue < 1 ? svalue * 258 : svalue
         idx = findfirst(solution.s .>= svalue)
+        idx = isnothing(idx) ? length(solution.x) : idx
     elseif at == :time
         idx = findfirst(solution.t .> svalue)
         idx = isnothing(idx) ? 1 : idx
     end
 
     vars =  (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
-    return State(;
+    state = State(;
         Dict(
             map(v -> v=>getfield(solution, v)[idx], vars)
         )...
     )
+    # state.ψ = mod(2π - state.ψ, 2π)
+    return state
 end
 
 """

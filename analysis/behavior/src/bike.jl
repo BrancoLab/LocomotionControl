@@ -2,7 +2,7 @@ module bicycle
 import Parameters: @with_kw
 import MyterialColors: blue_grey_darker, blue_grey, cyan_dark
 
-import jcontrol: closest_point_idx, Track, euclidean
+import jcontrol: closest_point_idx, Track, euclidean, movingaverage
 
 export Bicycle, State
 
@@ -32,18 +32,18 @@ struct Bicycle
 
     function Bicycle(; 
         l_f::Number=3,
-        l_r::Number=3,
-        width::Number=2,
-        m_f=12,
+        l_r::Number=2,
+        width::Number=1.8,
+        m_f=10, 
         m_r=12, 
-        c=8e3
+        c=4e3
         )
 
         # convert units g->Kg, cm->m
-        mfKg = m_f / 100
-        mrKg = m_r / 100
-        lfM = l_f / 100
-        lrM = l_r / 100
+        mfKg = m_f # / 100
+        mrKg = m_r # / 100
+        lfM = l_f # / 100
+        lrM = l_r # / 100
 
         # compute moment of angular inertia        
         Iz = mfKg * lfM^2 + mrKg * lrM^2
@@ -71,7 +71,7 @@ Represents the state of the bicycle model at a moment in time.
 Can be used to pass initial and final condistions to the control
 model.
 """
-@with_kw struct State
+@with_kw mutable struct State
     x::Number = 0  # position
     y::Number = 0
     θ::Number = 0  # orientation
@@ -97,15 +97,25 @@ end
 
 Get `State` from experimental data at a frame
 """
-function State(trial, frame::Int, track::Track)
+function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
+    if smoothing_window == 1
+        _x, _y, _ω, _u, _θ = _x, trial.y, trial.ω, trial.u, trial.θ
+    else
+        _x = movingaverage(trial.x, smoothing_window)
+        _y = movingaverage(trial.y, smoothing_window)
+        _ω = movingaverage(trial.ω, smoothing_window)
+        _u = movingaverage(trial.u, smoothing_window)
+        _θ = movingaverage(trial.θ, smoothing_window)
+    end
     # get track errors
-    x, y = trial.x[frame], trial.y[frame]
+    x, y = _x[frame], _y[frame]
     idx = closest_point_idx(track.X, x, track.Y, y)
 
     n = euclidean(track.X[idx], x, track.Y[idx], y)
-    ψ = track.θ[idx] - trial.θ[frame]
+    ψ = track.θ[idx] - _θ[frame]
+    # ψ = mod(abs(ψ), 2π)
 
-    return State(; x=x, y=y, θ=trial.θ[frame], ω=trial.ω[frame], u=trial.u[frame], n=n, ψ=ψ)
+    return State(; x=x, y=y, θ=_θ[frame], ω=_ω[frame], u=_u[frame], n=n, ψ=ψ, kwargs...)
 end
 
 """

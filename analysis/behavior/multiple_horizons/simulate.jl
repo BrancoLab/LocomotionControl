@@ -7,9 +7,10 @@ import Colors: HSL
 import DataFrames: DataFrame
 using Term.progress
 import Term.progress: with as withpbar
-import Term: install_term_logger
+import Term: install_term_logger, install_stacktrace
 import Printf: @sprintf
 install_term_logger()
+install_stacktrace()
 
 using jcontrol
 import jcontrol.comparisons: track_segments, TrackSegment
@@ -21,6 +22,7 @@ import jcontrol.io: PATHS
 
 
 @Base.kwdef mutable struct SimTracker
+    s0::Float64      = 0
     s::Float64      = 0
     iter::Int       = 0
     t::Float64      = 0.0
@@ -57,6 +59,19 @@ function add!(tracker::SolutionTracker, t::Float64, state::State, s::Float64)
 end
 
 """
+take states at Δt interval while 0 < t < tf and store in tracker
+"""
+function extend_with_sol(tracker::SolutionTracker, sol::Solution, Δt::Float64, tf::Float64)
+    Δt > tf && return
+
+    for t in 0:Δt:tf
+        state = solution2state(t, sol; at=:time)
+        s = solution2s(t, sol)
+        add!(tracker, t, state, s)
+    end
+end
+
+"""
 Repeate MTM with windows of decreasing length
 """
 function attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
@@ -64,12 +79,13 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
     # try again , either shortening or lengthening the planning window
     solution = nothing
-    for i in 1:8
-        len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon - .01 * i)
-        if len < .5
-            @warn "Length is $len<.5"
+    for i in 1:6
+        _sign  = i < 3 ? +1 : -1
+        len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon + (_sign * .01 * i))
+        if len < 4
+            @warn "Length is $len<4"
             skip=true
-            len = .5
+            len = 4
         else
             skip = false
         end
@@ -77,7 +93,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            2;
+            1.5;
             track=track,
             icond=initial_state,
             fcond=:minimal,
@@ -90,8 +106,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
         converged(control_model) && break
         skip && break
     end
-
-    return !converged(control_model), solution
+    return converged(control_model), solution
 end
 
 converged(control_model) = "LOCALLY_SOLVED" == string(termination_status(control_model))
@@ -104,8 +119,8 @@ Perform a simulation step
 function step(simtracker, globalsolution, planning_horizon::Float64,)
     # get initial conditions
     if simtracker.iter == 1
-        initial_state =  solution2state(0.0, globalsolution)
-        simtracker.s = 0.0
+        initial_state =  solution2state(simtracker.s0, globalsolution)
+        simtracker.s = simtracker.s0
         simtracker.t += simtracker.Δt
     else
         initial_state =  solution2state(simtracker.Δt, simtracker.prevsol; at=:time)
@@ -120,7 +135,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     # get planning window (trimmed track) & final conditions
     s0 =  max(0.001, simtracker.s)
     if s0 < 250
-        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, .5)
+        len = max(sqrt(initial_state.v^2 + initial_state.u^2) * planning_horizon, 4)
         track = trim(FULLTRACK, s0, len)
         final_state = nothing
     else
@@ -133,7 +148,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     try
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            2;
+            1.75;
             track=track,
             icond=initial_state,
             fcond=final_state,
@@ -143,14 +158,14 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
             quiet=true,
         )
     catch
-        return fail()
+        return initial_state, solution, true, track
     end
 
     # failed -> try alternative strategies
     if !converged(control_model)
         # try to recover a solution by shortening the planning window
         success, solution = attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
-        success || return fail()
+        success || return initial_state, solution, true, track
     end
     simtracker.prevsol = solution
     
@@ -160,13 +175,18 @@ end
 """
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
-function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
+function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=250, Δt=.01)
+    # check if a solution was already saved and skip
+    name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
+    destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
+    isfile(destination) && return
+
     # run global solution
-    track = Track(;start_waypoint=2, keep_n_waypoints=-1)
+    track = Track(;start_waypoint=4, keep_n_waypoints=-1)
 
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
-        2;
+        1.5;
         showtrials=nothing,
         track=track,
         n_iter=5000,
@@ -181,7 +201,7 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
             range(HSL(colorant"green"), stop=HSL(colorant"blue"), length=(Int ∘ ceil)(n_iter/2))...
     ]
 
-    simtracker = SimTracker(Δt=Δt)
+    simtracker = SimTracker(s0=s0, Δt=Δt)
     solutiontracker = SolutionTracker()
     pbar = ProgressBar(; expand=true, columns=:detailed)
     job = addjob!(pbar; N=n_iter, description="Running horizon: $planning_horizon seconds")
@@ -193,7 +213,10 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
 
             # run simulation and store results
             initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
-            shouldstop && break
+            shouldstop && i != 32 && begin
+                extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
+                break
+            end
             add!(solutiontracker, simtracker.t, initial_state, simtracker.s)
 
             # plot stuff
@@ -206,13 +229,17 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
             draw!(initial_state; color=colors[i], alpha=1)
             plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
-            simtracker.s > 258 && break
+            simtracker.s > sf && i != 32 && begin
+                extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
+                break
+            end
             update!(job)
             sleep(0.001)
         end
 
+        @info "SAVING ANIMATIONS"
         # save animation
-        name = (@sprintf "multiple_horizons_mtm_horizon_length_%.2f" planning_horizon)
+        
         gifpath = joinpath(PATHS["horizons_sims_cache"], "$name.gif")
         gif(anim, gifpath, fps=(Int ∘ round)(0.2/Δt))
 
@@ -221,12 +248,11 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
         mp4(anim, vidpath, fps=(Int ∘ round)(0.2/Δt))
 
         # save global solution
-        destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
-        data = DataFrame(toDict(globalsolution))
-        CSV.write(destination, data)
+        # destination = joinpath(PATHS["horizons_sims_cache"], "global_solution.csv")
+        # data = DataFrame(toDict(globalsolution))
+        # CSV.write(destination, data)
 
         # save short horizon solution
-        destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
         data = DataFrame(toDict(solutiontracker))
         CSV.write(destination, data)
     end
@@ -236,14 +262,18 @@ function run_simulation(; planning_horizon::Float64=.5, n_iter=2500, Δt=.005)
 end
 
 
+horizons = vcat(collect(.08:.01:.38), collect(.38:.02:.54), collect(.5:.05:1.2))
+starts = [0.0, 45.0, 98.0, 150.0]
+ends = [38.0, 96.0, 142.0, 220.0]
 
-# todo = .1:.01:.4
-todo = vcat(collect(.05:.01:.4), collect(.45:.05:.6))
-
-# todo = .45:.05:.6
-
-for horizon in todo
-    @info "Running horizon length $horizon seconds"
-    results = run_simulation(planning_horizon=horizon)
+for i in 1:length(starts)
+    if i != 4
+        continue
+    end
+    for horizon in horizons
+        @info "Running horizon length $horizon seconds on curve $i"
+        results = run_simulation(planning_horizon=horizon, s0=starts[i], sf=ends[i])
+        # break
+    end
 end
 

@@ -21,6 +21,7 @@ end
 """
 Simple linear interpolation
 """
+# ξ(x) = interpolate(x, BSpline(Quadratic(Reflect(OnCell()))))
 ξ(x) = interpolate(x, BSpline(Linear()))
 
 """

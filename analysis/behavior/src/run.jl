@@ -7,7 +7,7 @@ import MyterialColors: green_lighter
 
 using jcontrol
 import jcontrol: Track
-import ..bicycle: State
+import ..bicycle: State, Bicycle
 import ..control: ControlOptions, realistict_control_options, default_control_options
 
 const to = TimerOutput()
@@ -29,6 +29,8 @@ function run_mtm(
     showplots::Bool=true,
     quiet::Bool=false,
     α::Float64=1.0,
+    bike::Union{Nothing, Bicycle}=nothing,
+    waypoint=nothing
 )
     problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
     δt = 0.01 # Δt for forward integration
@@ -40,7 +42,7 @@ function run_mtm(
     track = isnothing(track) ? FULLTRACK : track
 
     # create bike
-    bike = Bicycle()
+    bike = isnothing(bike) ? Bicycle() : bike
 
     # get control options
     if control_options == :default
@@ -51,7 +53,7 @@ function run_mtm(
     @assert control_options isa ControlOptions "Control options is not a ControlOptions type: $(typeof(control_options)) $control_options"
 
     # define initial and final conditions
-    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=10, ω=0, ψ=.15) : icond
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=25, ω=3, ψ=.25) : icond
     # fcond = isnothing(fcond) ? State(; u=40, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #
@@ -73,6 +75,7 @@ function run_mtm(
         verbose=verbose,
         quiet=quiet,
         α=α,
+        waypoint=waypoint,
     )
 
     # ---------------------------------------------------------------------------- #

@@ -84,12 +84,12 @@ as of 04/04/2022, they're also the very close
 to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-u_bounds=Bounds(10, 90),
-δ_bounds=Bounds(-80, 80, :angle),
-δ̇_bounds=Bounds(-5, 5),
+u_bounds=Bounds(10, 80),
+δ_bounds=Bounds(-60, 60, :angle),
+δ̇_bounds=Bounds(-4, 4),
 ω_bounds=Bounds(-600, 600, :angle),
-v_bounds=Bounds(-15, 15),
-Fu_bounds=Bounds(-3000, 4000),
+v_bounds=Bounds(-12, 12),
+Fu_bounds=Bounds(-4500, 4500),
 )
 
 
@@ -354,9 +354,10 @@ function create_and_solve_control(
     final_conditions::Union{Nothing, State, Symbol};
     quiet::Bool=false,
     n_iter::Int=1000,
-    tollerance::Float64=1e-10,
+    tollerance::Float64=1e-4,
     verbose::Int=0,
     α::Float64=1.0,
+    waypoint=nothing,  # pass (s, State) to set the state at a track.s value
 )
     
     # initialize optimizer
@@ -364,7 +365,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 60.0)
+    set_optimizer_attribute(model, "max_wall_time", 180.0)
 
     # register curvature function
     κ(s) = track.κ(s)
@@ -393,7 +394,7 @@ function create_and_solve_control(
             options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control 
 
             # time
-            0 ≤ t ≤ 60, Infinite(s), (start = 10)   
+            0 ≤ t ≤ 60, Infinite(s), (start = 3)   
        end
    )
 
@@ -410,12 +411,10 @@ function create_and_solve_control(
     V = √(u^2 + v^2)
     SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β))  # time -> space domain conversion factor
 
+    # lateral forces
     Ff = c⋅(δ - (l_f⋅ω + v)/u)
     Fr = c⋅(l_r⋅ω - v)/u
 
-    # get driving torque
-    # τ = Fu / (V + eps())
-    # τ = V > 50  ? Fu * .75 : Fu
 
     @constraints(
         model,
@@ -484,6 +483,28 @@ function create_and_solve_control(
             )
             end
         end
+
+
+    # additional waypoint
+    if !isnothing(waypoint)
+        sval, constraint = waypoint
+        @constraints(
+            model, 
+            begin
+            n(sval) == constraint.n
+            ψ(sval) == constraint.ψ
+
+            δ(sval) == constraint.δ
+            δ̇(sval) == constraint.δ̇
+
+            u(sval) == constraint.u
+            v(sval) == constraint.v
+            ω(sval) == constraint.ω
+            Fu(sval) == constraint.Fu
+            end
+        )
+    end
+
     # --------------------------------- optimize --------------------------------- #
     # set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
     set_all_derivative_methods(model, OrthogonalCollocation(3))
