@@ -9,10 +9,13 @@ from data.dbase import db_tables
 
 
 """
-    Gets the total number of units for each brain region across all recordings
+    Gets the total number of units for each brain region across all recordings.
+    It prints the count in a nicely formatted table + creates a heatmap to display the numbers.
 """
 
-
+# ---------------------------------------------------------------------------- #
+#                                get/count units                               #
+# ---------------------------------------------------------------------------- #
 recordings = (db_tables.Recording).fetch(as_dict=True)
 all_units = []
 for recording in recordings:
@@ -56,3 +59,28 @@ tb.add_column("Count", f"Tot: {counts['# units'].sum()}")
 for r, n in counts.iterrows():
     tb.add_row(r, str(n.values[0]))
 print(tb)
+
+
+# ---------------------------------------------------------------------------- #
+#                                    heatmap                                   #
+# ---------------------------------------------------------------------------- #
+
+
+import bgheatmaps as bgh
+
+"""
+    This example shows how to use visualize a heatmap in 2D
+"""
+
+values = dict(counts)
+
+
+f = bgh.heatmap(
+    values,
+    position=0,  
+    orientation="sagittal",  # 'frontal' or 'sagittal', or 'horizontal' or a tuple (x,y,z)
+    title="cellcounts",
+    vmin=-5,
+    vmax=3,
+    format="2D",
+).show()
