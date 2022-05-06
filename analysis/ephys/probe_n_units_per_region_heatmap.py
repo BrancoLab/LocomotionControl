@@ -4,8 +4,18 @@ from rich import print
 from rich.table import Table
 from rich.box import MINIMAL
 
+import bgheatmaps as bgh
+from pathlib import Path
+import brainrender
+from myterial import blue_light, blue_lighter
+
 sys.path.append("./")
 from data.dbase import db_tables
+
+
+brainrender.settings.BACKGROUND_COLOR = "white"
+
+save_fld = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys")
 
 
 """
@@ -66,21 +76,60 @@ print(tb)
 # ---------------------------------------------------------------------------- #
 
 
-import bgheatmaps as bgh
+values = {r: int(c.values[0]) for r, c in counts.iterrows()}
 
-"""
-    This example shows how to use visualize a heatmap in 2D
-"""
-
-values = dict(counts)
+for key in ("OUT", "unknown", "bic", "tb", "scwm"):
+    if key in values.keys():
+        del values[key]
 
 
-f = bgh.heatmap(
-    values,
-    position=0,  
-    orientation="sagittal",  # 'frontal' or 'sagittal', or 'horizontal' or a tuple (x,y,z)
-    title="cellcounts",
-    vmin=-5,
-    vmax=3,
-    format="2D",
-).show()
+positions = (4400, 5250)
+
+
+scene = brainrender.Scene(screenshots_folder=save_fld)
+com = scene.root._mesh.centerOfMass()
+scene.root.alpha(1)
+colors = (blue_light, blue_lighter)
+for pos, color, alpha in zip(positions, colors, (0.75, 9)):
+    p = com
+    p[2] = -p[2]
+    p[2] = pos
+    plane = scene.atlas.get_plane(
+        pos=p, norm=(0, 0, 1), sx=18000, sy=10000, alpha=alpha, color=color
+    )
+    plane = scene.add(plane)
+    scene.add_silhouette(plane)
+
+    intersection = scene.root.mesh.intersectWith(plane).lineWidth(4).c("black")
+    scene.add(intersection)
+
+
+scene.render(
+    camera={
+        "pos": (-40685, -11861, -22445),
+        "viewup": (0, -1, 0),
+        "clippingRange": (30733, 82928),
+        "focalPoint": (7553, 4657, -5791),
+        "distance": 53213,
+    },
+    #    camera="frontal",
+    interactive=False,
+)
+scene.screenshot(name="n_units_slicing_planes")
+scene.close()
+del scene
+
+for pos in positions:
+    f = bgh.heatmap(
+        values,
+        position=pos,
+        orientation="sagittal",  # 'frontal' or 'sagittal', or 'horizontal' or a tuple (x,y,z)
+        title="cellcounts",
+        # vmin=0,
+        # vmax=354,
+        thickness=300,
+        format="2D",
+        label_regions=False,
+    ).plot(cbar_label="# cells", save_fld=True)
+
+    f.savefig(save_fld / f"n_units_heatmap_{pos}.png", dpi=600)

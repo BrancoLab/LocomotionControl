@@ -12,7 +12,7 @@ sys.path.append("./")
 
 from fcutils.path import size
 from fcutils.maths.signals import get_onset_offset
-from quality_control import load_or_open
+from data.dbase.quality_control import load_or_open
 from data.dbase.io import get_recording_local_copy
 
 
@@ -21,6 +21,10 @@ def get_tscale(ephys_ap_data_path, ai_file_path, sampling_rate=30000):
         Because of a mistake we don't have time scaling information in validated sessions, 
         so have to extract it anew
     """
+    if "220220_517" in ephys_ap_data_path:
+        ephys_ap_data_path = ephys_ap_data_path.replace(
+            "220220_517", "220120_517"
+        )
 
     # load analog from bonsai
     try:
@@ -30,7 +34,6 @@ def get_tscale(ephys_ap_data_path, ai_file_path, sampling_rate=30000):
     except FileNotFoundError as e:
         # raise FileNotFoundError(e)
         logger.warning(f"Failed to find recording data: {e}")
-        return False, 0, 0, 0, 0, 0, 0, 0, f"No rec data found {e}"
 
     # load data from ephys (from local file if possible)
     ephys_probe_sync = load_or_open(
@@ -109,6 +112,12 @@ def get_recording_filepaths(
     key["spike_sorting_clusters_file_path"] = str(
         rec_path / (rec_name + "_t0.imec0.ap_res.mat")
     )
+
+    if key["name"] == "FC_220120_BAA110517_hairpin":
+        key = {
+            k: v.replace("220220", "220120") if isinstance(v, str) else v
+            for k, v in key.items()
+        }
 
     for name in (
         "spike_sorting_params_file_path",

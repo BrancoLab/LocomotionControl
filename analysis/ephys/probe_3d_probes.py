@@ -2,29 +2,46 @@ import sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
+
 sys.path.append("./")
 
 
-from brainrender import Scene
+from brainrender import Scene, settings
 from brainrender.actors import Points
-from data.dbase.db_tables import Probe, Session, ValidatedSession
+from data.dbase.db_tables import Probe
+from myterial import blue_grey, grey_darker
 
-CONFIGURATION = "longcol"
+settings.SHOW_AXES = False
 
-probes = (Probe * Session * ValidatedSession).fetch()
-scene = Scene()
+CONFIGURATION = "longcolumn"
 
-for probe in probes:
+probes = (Probe).fetch()
+
+save_fld = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys")
+
+scene = Scene(screenshots_folder=save_fld)
+
+regions = ["CUN", "PPN"]
+regions_meshes = scene.add_brain_region(*regions, alpha=0.3, silhouette=False)
+scene.slice(plane="frontal", actors=[scene.root])
+
+for probe in probes[1:]:
     # get and visualize the probe from the reconstruction file.
     mouse = probe["mouse_id"][-3:]
-    rec_file = Path(
-        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
-    ).glob(mouse + "_atlas_space_0.npy")[0]
 
-    probe_points = np.load(rec_file)[
-                ::-1
-            ]  # flipped so that the first point is at the bottom of the probe like in brain
-    scene.add(Points(probe_points, colors="black", radius=15))
+    rec_file = list(
+        Path(
+            r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
+        ).glob(mouse + "_atlas_space_0.npy")
+    )
+
+    if len(rec_file) == 0:
+        continue
+
+    probe_points = np.load(rec_file[0])[
+        ::-1
+    ]  # flipped so that the first point is at the bottom of the probe like in brain
+    scene.add(Points(probe_points[::5], colors=grey_darker, radius=15))
 
     # get and visualize the probe's recording sites
     mouse = probe["mouse_id"]
@@ -35,18 +52,25 @@ for probe in probes:
             & f'probe_configuration="{CONFIGURATION}"'
         ).fetch()
     )
+    rsites = rsites.loc[rsites.brain_region.isin(regions)]
 
     track = np.vstack(rsites.registered_brain_coordinates.values)
     colors = [
         color
-        # if region in targets
-        # else (blue_grey if region not in ("unknown", "OUT") else "k")
+        if region in regions
+        else (blue_grey if region not in ("unknown", "OUT") else "k")
         for color, region in zip(
             rsites.color.values, rsites.brain_region.values
         )
     ]
-    pts = scene.add(Points(track, colors=colors, radius=15))
+    pts = scene.add(Points(track, colors=colors, radius=30))
     scene.add_silhouette(pts, lw=2)
 
 
-scene.render()
+scene.render(camera="frontal", interactive=False, zoom=1.5)
+scene.screenshot(name="probes_3d_1")
+
+scene.render(camera="sagittal", interactive=False, zoom=1.5)
+scene.screenshot(name="probes_3d_2")
+scene.render(zoom=1.0)
+scene.screenshot(name="probes_3d_3")
