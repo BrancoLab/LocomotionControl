@@ -132,7 +132,7 @@ for rec in recordings:
         clean_axes(fig)
         fig.tight_layout()
         region = unit.brain_region.replace("\\", "_")
-        if "RSPagl" in region:
+        if "RSP" in region:
             region = "RSP"
 
         fig.savefig(rec_svg_fld / f"unit_{unit.unit_id}_{region}.svg")
