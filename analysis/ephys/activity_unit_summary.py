@@ -1,8 +1,10 @@
 # imports
+from re import M
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from scipy.signal import medfilt
 
 sys.path.append("./")
 
@@ -14,14 +16,15 @@ from analysis.ephys.utils import (
     get_data,
     get_clean_walking_onsets,
     get_walking_from_body,
-    bin_variable,
+    # bin_variable,
 )
 from analysis.ephys.viz import (
     time_aligned_raster,
-    plot_frate_binned_by_var,
+    # plot_frate_binned_by_var,
     bouts_raster,
+    plot_tuning_curves,
 )
-
+from analysis.ephys.tuning_curves import get_tuning_curves, upsample_farmes_to_ms
 
 """
 Makes a summary plot with various views of a single unit's activity.
@@ -32,7 +35,8 @@ params = dict(
     MIN_PAUSE_DURATION=1.0,  # when the mouse pauses < before a walking bout than this we ignore it (seconds)
     SPEED_TH=10,  # speed threshold for walking (cm/s)
     min_delta_gcoord=0.5,
-    tuning_curves_nbins=20,
+    speed_tuning_curve_bins=np.arange(0, 80, 10),
+    avel_tuning_curve_bins=np.arange(-450, 450, 10),
 )
 
 base_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys")
@@ -54,14 +58,13 @@ for rec in recordings:
         walking, params["MIN_WAKING_DURATION"], params["MIN_PAUSE_DURATION"]
     )
 
-    # bin data for tuning curves
-    n_bins = params["tuning_curves_nbins"]
-    in_bin_speed, bin_values_speed = bin_variable(
-        body.speed, bins=np.linspace(-85 / n_bins, 85, n_bins) + 85 / n_bins
-    )
-    in_bin_avel, bin_values_avel = bin_variable(
-        body.thetadot, bins=np.linspace(-500, 500, n_bins) + 500 / n_bins
-    )
+    # smooth data for tuning curves
+    speed = medfilt(body.speed, 11)
+    avel = medfilt(body.thetadot, 11)
+
+    # upsample to ms
+    speed_ms = upsample_farmes_to_ms(speed)
+    avel_ms = upsample_farmes_to_ms(avel)
 
     # get locomotion bouts
     bouts = LocomotionBouts.get_session_bouts(rec)
@@ -101,21 +104,28 @@ for rec in recordings:
         )
 
         # plot tuning curves
-        plot_frate_binned_by_var(
-            axes["D"],
-            unit,
-            in_bin_speed,
-            bin_values_speed,
-            xlabel="Speed (cm/s)",
-        )
-        plot_frate_binned_by_var(
-            axes["E"],
-            unit,
-            in_bin_avel,
-            bin_values_avel,
-            color="black",
-            xlabel="Angular velocity (deg/s)",
-        )
+        speed_tuning_curves = get_tuning_curves(unit.spikes_ms, speed_ms, params["speed_tuning_curve_bins"])
+        plot_tuning_curves(axes["D"], speed_tuning_curves, unit.color)
+
+        avel_tuning_curves = get_tuning_curves(unit.spikes_ms, avel_ms, params["avel_tuning_curve_bins"])
+        plot_tuning_curves(axes["D"], avel_tuning_curves, "black")
+
+
+        # plot_frate_binned_by_var(
+        #     axes["D"],
+        #     unit,
+        #     in_bin_speed,
+        #     bin_values_speed,
+        #     xlabel="Speed (cm/s)",
+        # )
+        # plot_frate_binned_by_var(
+        #     axes["E"],
+        #     unit,
+        #     in_bin_avel,
+        #     bin_values_avel,
+        #     color="black",
+        #     xlabel="Angular velocity (deg/s)",
+        # )
 
         # plot locomotion bouts raster
         if len(bouts):
@@ -137,10 +147,10 @@ for rec in recordings:
 
         fig.savefig(rec_svg_fld / f"unit_{unit.unit_id}_{region}.svg")
         fig.savefig(rec_fld / f"unit_{unit.unit_id}_{region}.png", dpi=400)
-        plt.close(fig)
+        # plt.close(fig)
 
-    #     plt.show()
+        plt.show()
 
-    #     break
+        break
 
-    # break
+    break

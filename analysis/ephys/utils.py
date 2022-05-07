@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.signal import medfilt
 
 from fcutils.maths.signals import get_onset_offset
-
+from fcutils.maths import derivative
 
 from data.data_utils import convolve_with_gaussian
 from data.dbase.db_tables import Probe, Unit, Tracking
@@ -41,6 +41,34 @@ def get_data(REC):
         limb.speed = get_speed(limb.x, limb.y)
 
     return units, left_fl, right_fl, left_hl, right_hl, body
+
+
+def cleanup_running_bouts(bouts, tracking,  min_delta_gcoord=.5):
+    """
+        Remove bouts that are too short
+        and cleans up start/end times
+    """
+    # filter bouts
+    bouts = bouts.loc[
+        (bouts.gcoord_delta > min_delta_gcoord)
+        & (bouts.direction == "outbound")
+        & (bout.duration < 12)
+    ]
+
+    correct_start_frame, correct_stop_frame = [], []
+    for i, bout in bouts.iterrows():
+        gcoord = tracking.global_coord[bout.start_frame: bout.end_frame] * 260
+        g0 = gcoord[0]
+        gf = gcoord[-1]
+
+        correct_start_frame.append(np.where(gcoord >= g0)[0][0])
+        correct_stop_frame.append(np.where(gcoord >= gf)[0][0])
+    bouts["start_frame"] = correct_start_frame
+    bouts["stop_frame"] = correct_stop_frame
+
+    # sort but gcoord at start frame
+    bouts["gcoord0"] = [tracking.global_coord[f] for f in bouts.start_frame]
+    bouts = bouts.sort_values("gcoord0").reset_index()
 
 
 # ---------------------------------------------------------------------------- #
