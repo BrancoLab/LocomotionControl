@@ -173,11 +173,12 @@ def place_probe_recording_sites(
             rid = atlas.structure_from_coords(coords, microns=True)
             if rid == 0:
                 acro = "unknown"
-                color = rgb2hex([0.1, 0.1, 0.1])
+                color = rgb2hex([0.3, 0.3, 0.3])
             else:
                 acro = atlas.structure_from_coords(
                     coords, microns=True, as_acronym=True
                 )
+
                 color = rgb2hex(
                     [
                         c / 255
@@ -197,25 +198,95 @@ def place_probe_recording_sites(
         )
 
     # assign to undefined structures the closest well defined structure
-    excluded = ("P", "MB", "scp", "II", "APr")
+    excluded = (
+        "P",
+        "MB",
+        "scp",
+        "II",
+        "APr",
+        "unknown",
+        "PPY",
+        "MRN",
+        "P5",
+        "MY",
+        "scwm",
+        "bic",
+        "OUT",
+        "tb",
+    )
     for n, esite in enumerate(recording_sites):
         if esite["brain_region"] in excluded:
             shift = 1
             while True:
-                if recording_sites[n - shift]["brain_region"] not in excluded:
-                    for key in ("brain_region", "brain_region_id", "color"):
-                        esite[key] = recording_sites[n - shift][key]
-                    break
-                elif (
-                    recording_sites[n + shift]["brain_region"] not in excluded
+                if (
+                    n + shift < len(recording_sites)
+                    and recording_sites[n + shift]["brain_region"]
+                    not in excluded
                 ):
                     for key in ("brain_region", "brain_region_id", "color"):
                         esite[key] = recording_sites[n + shift][key]
                     break
-                elif n - shift < 0 or n + shift > len(recording_sites):
+
+                if (
+                    n - shift > 0
+                    and recording_sites[n - shift]["brain_region"]
+                    not in excluded
+                ):
+                    for key in ("brain_region", "brain_region_id", "color"):
+                        esite[key] = recording_sites[n - shift][key]
                     break
-                else:
-                    shift += 1
+
+                if n + shift > len(recording_sites) and n - shift < 0:
+                    break
+                shift += 1
+
+        elif (
+            "RSP" not in esite["brain_region"]
+            and "VISp" not in esite["brain_region"]
+            and "ICe" not in esite["brain_region"]
+        ):
+            if n + 6 < len(recording_sites) and n > 6:
+                for i in range(3):
+                    i *= 2
+                    if recording_sites[n + i]["brain_region"] in (
+                        "PPN",
+                        "CUN",
+                        "GRN",
+                    ):
+                        if (
+                            abs(
+                                esite["probe_coordinates"]
+                                - recording_sites[n + i]["probe_coordinates"]
+                            )
+                            < 75
+                        ):
+                            for key in (
+                                "brain_region",
+                                "brain_region_id",
+                                "color",
+                            ):
+                                esite[key] = recording_sites[n + i][key]
+
+                    elif recording_sites[n - i]["brain_region"] in (
+                        "PPN",
+                        "CUN",
+                        "GRN",
+                    ):
+                        if (
+                            abs(
+                                esite["probe_coordinates"]
+                                - recording_sites[n - i]["probe_coordinates"]
+                            )
+                            < 75
+                        ):
+                            for key in (
+                                "brain_region",
+                                "brain_region_id",
+                                "color",
+                            ):
+                                esite[key] = recording_sites[n - i][key]
+
+        recording_sites[n] = esite
 
     if len(recording_sites) != n_sites:
         raise ValueError(

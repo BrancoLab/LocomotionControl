@@ -3,7 +3,6 @@ import pandas as pd
 from scipy.signal import medfilt
 
 from fcutils.maths.signals import get_onset_offset
-from fcutils.maths import derivative
 
 from data.data_utils import convolve_with_gaussian
 from data.dbase.db_tables import Probe, Unit, Tracking
@@ -43,7 +42,7 @@ def get_data(REC):
     return units, left_fl, right_fl, left_hl, right_hl, body
 
 
-def cleanup_running_bouts(bouts, tracking,  min_delta_gcoord=.5):
+def cleanup_running_bouts(bouts, tracking, min_delta_gcoord=0.5):
     """
         Remove bouts that are too short
         and cleans up start/end times
@@ -52,23 +51,34 @@ def cleanup_running_bouts(bouts, tracking,  min_delta_gcoord=.5):
     bouts = bouts.loc[
         (bouts.gcoord_delta > min_delta_gcoord)
         & (bouts.direction == "outbound")
-        & (bout.duration < 12)
+        & (bouts.duration < 15)
     ]
 
     correct_start_frame, correct_stop_frame = [], []
+    keep = []
     for i, bout in bouts.iterrows():
-        gcoord = tracking.global_coord[bout.start_frame: bout.end_frame] * 260
-        g0 = gcoord[0]
-        gf = gcoord[-1]
+        gcoord = tracking.global_coord[bout.start_frame : bout.end_frame] * 260
+        gcoord = medfilt(gcoord, 11)
 
-        correct_start_frame.append(np.where(gcoord >= g0)[0][0])
-        correct_stop_frame.append(np.where(gcoord >= gf)[0][0])
-    bouts["start_frame"] = correct_start_frame
-    bouts["stop_frame"] = correct_stop_frame
+        gf = np.max(gcoord)
+        stop = np.where(gcoord >= gf - 1)[0][0]
+        start = np.argmin(gcoord[:stop])
+
+        if np.max(np.diff(gcoord[start:stop])) < 10:
+            keep.append(i)
+
+            correct_start_frame.append(start)
+            correct_stop_frame.append(stop)
+
+    bouts = bouts.loc[keep]
+
+    bouts["start_frame"] = np.array(correct_start_frame) + bouts.start_frame
+    bouts["stop_frame"] = np.array(correct_stop_frame) + bouts.start_frame
 
     # sort but gcoord at start frame
     bouts["gcoord0"] = [tracking.global_coord[f] for f in bouts.start_frame]
     bouts = bouts.sort_values("gcoord0").reset_index()
+    return bouts
 
 
 # ---------------------------------------------------------------------------- #
