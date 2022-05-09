@@ -1100,7 +1100,7 @@ if have_dj:
             #     if key["mouse_id"] in self._tips.keys()
             #     else 175
             # )
-            tip = 175
+            tip = 150
             for configuration in self.possible_configurations:
                 recording_sites = _probe.place_probe_recording_sites(
                     probe_key, configuration, tip=tip
@@ -1381,7 +1381,7 @@ if __name__ == "__main__":
     # Session().drop()
     # ValidatedSession().drop()
     # Unit().drop()
-    # Recording().drop()
+    # Probe().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1416,7 +1416,7 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
     # Movement().populate(display_progress=True)
     # ROICrossing().populate(display_progress=True)
     # ROICrossingTracking().populate(display_progress=True)
@@ -1424,10 +1424,10 @@ if __name__ == "__main__":
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=False)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=False)
 
-    # Unit().populate(display_progress=True)
+    Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 
