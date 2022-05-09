@@ -93,7 +93,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            1.5;
+            1.75;
             track=track,
             icond=initial_state,
             fcond=:minimal,
@@ -175,7 +175,7 @@ end
 """
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
-function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=660, Δt=.01)
+function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1000, Δt=.01)
     # check if a solution was already saved and skip
     name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
     # destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
@@ -219,6 +219,7 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=6
             # run simulation and store results
             initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
             shouldstop && i != 32 && begin
+                @warn "Stopping because should stop"
                 extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
                 break
             end
@@ -226,15 +227,17 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=6
 
             # plot stuff
             p1 = draw(:arena)
-            plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_darker, lw=6, alpha=.8, label=nothing)
-            draw!(FULLTRACK; border_alpha=.25, alpha=0.0)
-
-            draw!(track; color=colors[i], border_lw=5, alpha=0.0)
-            plot_bike_trajectory!(solution, bike; showbike=false, label=nothing, color=colors[i], alpha=.8, lw=4)
-            draw!(initial_state; color=colors[i], alpha=1)
+            # plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_darker, lw=6, alpha=.8, label=nothing)
+            draw!(FULLTRACK; border_alpha=.0, alpha=0.0)
+            
+            color = "black"  # colors[i]
+            draw!(track; color=color, border_lw=5, alpha=0.0)
+            plot_bike_trajectory!(solution, bike; showbike=false, label=nothing, color=color, alpha=.6, lw=4)
+            draw!(initial_state; color=color, alpha=1)
             plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
             simtracker.s > sf && i != 32 && begin
+                @info "Stopping because we're beyond sf ($(sf))"
                 extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
                 break
             end
@@ -244,11 +247,11 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=6
 
         @info "SAVING ANIMATIONS"       
         gifpath = joinpath(FOLDER, "$name.gif")
-        gif(anim, gifpath, fps=(Int ∘ round)(1/Δt))
+        gif(anim, gifpath, fps=(Int ∘ round)(.25/Δt))
 
         # save video
         vidpath = joinpath(FOLDER, "$name.mp4")
-        mp4(anim, vidpath, fps=(Int ∘ round)(1/Δt))
+        mp4(anim, vidpath, fps=(Int ∘ round)(.25/Δt))
 
         # save short horizon solution
         data = DataFrame(toDict(solutiontracker))
@@ -281,4 +284,4 @@ end
 #     end
 # end
 
-results = run_simulation(planning_horizon=1.0, s0=0.0, sf=250)
+results = run_simulation(planning_horizon=.6, s0=0.0, sf=240, Δt=.025)

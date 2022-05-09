@@ -90,6 +90,10 @@ model.
     # track errors 
     n::Number = 0
     ψ::Number = 0
+
+    # track variables
+    track_idx = 0
+    s = 0
 end
 
 """
@@ -99,7 +103,7 @@ Get `State` from experimental data at a frame
 """
 function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
     if smoothing_window == 1
-        _x, _y, _ω, _u, _θ = _x, trial.y, trial.ω, trial.u, trial.θ
+        _x, _y, _ω, _u, _θ = trial.x, trial.y, trial.ω, trial.u, trial.θ
     else
         _x = movingaverage(trial.x, smoothing_window)
         _y = movingaverage(trial.y, smoothing_window)
@@ -115,7 +119,7 @@ function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
     ψ = track.θ[idx] - _θ[frame]
     # ψ = mod(abs(ψ), 2π)
 
-    return State(; x=x, y=y, θ=_θ[frame], ω=_ω[frame], u=_u[frame], n=n, ψ=ψ, kwargs...)
+    return State(; x=x, y=y, θ=_θ[frame], ω=_ω[frame], u=_u[frame], n=n, ψ=ψ, track_idx=idx, s=track.S[idx], kwargs...)
 end
 
 """
