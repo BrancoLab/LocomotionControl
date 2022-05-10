@@ -16,13 +16,18 @@ from data.dbase.db_tables import (
 )
 
 save_path = (
-    Path(
-        "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
-    )
+    Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior")
     / "random_frames_tracking.json"
 )
 
-tracking = {"x": [], "y": [], "u": [], "omega": []}
+tracking = {
+    "x": [],
+    "y": [],
+    "speed": [],
+    "thetadot": [],
+    "thetadotdot": [],
+    "acceleration": [],
+}
 
 bouts = pd.DataFrame(
     (
@@ -32,7 +37,7 @@ bouts = pd.DataFrame(
     ).fetch()
 )
 
-sessions = bouts["session_id"].unique()
+sessions = bouts["name"].unique()
 
 for sess in sessions:
     # get tracking data
@@ -41,13 +46,14 @@ for sess in sessions:
     )
 
     # append trackingdata to tracking
-    for key in tracking_data.keys():
+    for key in tracking.keys():
         tracking[key].extend(medfilt(tracking_data[key], 11))
 
 print(f"Got {len(tracking['x'])} tracking data frame")
 
 # randomly sample frames
 tracking = pd.DataFrame(tracking)
+tracking = tracking.loc[tracking.speed > 5]
 tracking = tracking.sample(N_frames)
 
 # save to json at save_path
