@@ -9,6 +9,8 @@ import torch.utils.data as data
 import sys
 from rich.progress import track
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
 
 """
     Locomotion task.
@@ -33,6 +35,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         self.max_dataset_length = max_dataset_length
 
         self.load_data()
+        self.fit_normalizers()
 
         # get n inputs/outputs and sequence length
         self.n_inputs = len(self._raw_data[0].keys()) - 2
@@ -68,6 +71,20 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         lengths = [len(t["n"]) for t in self._raw_data]
         assert len(set(lengths)) == 1, "found trials with unequal length"
 
+    def fit_normalizers(self):
+        """
+        Fit the normalization parameters.
+        """
+        logger.info("Fitting normalization parameters")
+
+        self.normalizers = {
+            k: StandardScaler() for k in self._raw_data[0].columns
+        }
+
+        for k, scaler in self.normalizers.items():
+            values = np.hstack([t[k].values for t in self._raw_data])
+            scaler.fit(values.reshape(-1, 1))
+
     def make_trials(self):
         """
             Generate batches of data.
@@ -89,12 +106,16 @@ class GoalDirectedLocomotionDataset(data.Dataset):
             # get inputs
             for i in range(self.n_inputs):
                 k = self._inputs[i]
-                X_batch[:, i] = torch.tensor(trial[k])
+                X_batch[:, i] = torch.tensor(
+                    self.normalizers[k].trasform(trial[k])
+                )
 
             # get outputs
             for o in range(self.n_outputs):
                 k = self._outputs[o]
-                Y_batch[:, o] = torch.tensor(trial[k])
+                Y_batch[:, o] = torch.tensor(
+                    self.normalizers[k].trasform(trial[k])
+                )
 
             self.items[i] = (X_batch, Y_batch)
 
