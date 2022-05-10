@@ -236,6 +236,11 @@ function load_global_solution()
     return Solution(fix_solution_dtype(globalsolution));
 end
 
+function load_global_solution(gsol_path)
+    globalsolution = DataFrame(CSV.File(gsol_path))
+    return Solution(fix_solution_dtype(globalsolution));
+end
+
 function load_horizons_solutions()
     # load individual solutions
     files = sort(glob("multiple_horizons_mtm_horizon_length*.csv", PATHS["horizons_sims_cache"]), lt=natural)
