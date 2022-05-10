@@ -1,23 +1,23 @@
 import numpy as np
-from numpy import random as rnd
+from loguru import logger
 import matplotlib.pyplot as plt
+from pathlib import Path
 import torch
-from myterial import salmon, light_green_dark, indigo_light
+from myterial import light_green_dark, indigo_light
 from pyrnn._plot import clean_axes
 import torch.utils.data as data
 import sys
 from rich.progress import track
+import pandas as pd
 
 """
-    3 bit memory task
-        input is a 3xN tensor with (0, 1, -1) values
-        output is a 3xN tensor with (1, -1) values
+    Locomotion task.
 
-    each input corresponds to noe output, the output
-    is a `memory` of which state the input is in (1, -1)
+    The RNN receives two sets of inputs at each frame:
+        - state in curvilinear coordinates n, psi, s, V, omega
+        - track curvature at N points k_1, k_2, ..., k_N equally spaced along the track in fron of the mouse.
 
-    ThreeBitDataset creates a pytorch dataset for loading
-    the data during training.
+    The task is to predict the acceleration and angular acceleration of the mouse.
 """
 
 is_win = sys.platform == "win32"
@@ -29,65 +29,73 @@ class GoalDirectedLocomotionDataset(data.Dataset):
     the data during training.
     """
 
-    def __init__(self, sequence_length, dataset_length=1):
-        self.sequence_length = sequence_length
-        self.dataset_length = dataset_length
+    def __init__(self, max_dataset_length=-1):
+        self.max_dataset_length = max_dataset_length
+
+        self.load_data()
+
+        # get n inputs/outputs and sequence length
+        self.n_inputs = len(self._raw_data[0].keys()) - 2
+        self.n_outputs = 2
+        self.sequence_length = len(self._raw_data[0]["n"])
+
+        self._inputs = [
+            k for k in self._raw_data[0].keys if k not in ("v̇", "ω̇")
+        ]
+        self._outputs = ("v̇", "ω̇")
 
         self.make_trials()
 
     def __len__(self):
-        return self.dataset_length
+        return len(self._raw_data)
+
+    def load_data(self):
+        """
+        Load the data into the dataset
+        """
+        logger.info("Loading dataset data")
+        data_folder = Path(
+            "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/dataset"
+        )
+
+        self._raw_data = [
+            pd.read_json(f)
+            for f in list(data_folder.glob("*.json"))[
+                : self.max_dataset_length
+            ]
+        ]
+
+        lengths = [len(t["n"]) for t in self._raw_data]
+        assert len(set(lengths)) == 1, "found trials with unequal length"
 
     def make_trials(self):
         """
-        Generate the set of trials to be used fpr traomomg
+            Generate batches of data.
         """
+        logger.info("Generating dataset batches")
         seq_len = self.sequence_length
 
         self.items = {}
         for i in track(
-            range(self.dataset_length * 2),
+            range(len(self)),
             description="Generating data...",
-            total=self.dataset_length * 2,
+            total=len(self),
             transient=True,
         ):
-            X_batch = torch.zeros((seq_len, 3))
-            Y_batch = torch.zeros((seq_len, 3))
+            X_batch = torch.zeros((seq_len, self.n_inputs))
+            Y_batch = torch.zeros((seq_len, self.n_outputs))
+            trial = self._raw_data[i]
 
-            for m in range(3):
-                # Define input
-                X = torch.zeros(seq_len)
-                Y = torch.zeros(seq_len)
+            # get inputs
+            for i in range(self.n_inputs):
+                k = self._inputs[i]
+                X_batch[:, i] = torch.tensor(trial[k])
 
-                flips = (
-                    rnd.uniform(1, seq_len - 1, int(seq_len / 200))
-                ).astype(np.int32)
-                flips2 = (
-                    rnd.uniform(1, seq_len - 1, int(seq_len / 200))
-                ).astype(np.int32)
+            # get outputs
+            for o in range(self.n_outputs):
+                k = self._outputs[o]
+                Y_batch[:, o] = torch.tensor(trial["a_" + str(o)])
 
-                X[flips] = 1
-                X[flips2] = -1
-                X[0] = 1
-
-                # Get correct output
-                state = 0
-                for n, x in enumerate(X):
-                    if x == 1:
-                        state = 1
-                    elif x == -1:
-                        state = -1
-
-                    Y[n] = state
-
-                # RNN input: batch size * seq len * n_input
-                X = X.reshape(1, seq_len, 1)
-
-                # out shape = (batch, seq_len, num_directions * hidden_size)
-                Y = Y.reshape(1, seq_len, 1)
-
-                X_batch[:, m] = X.squeeze()
-                Y_batch[:, m] = Y.squeeze()
             self.items[i] = (X_batch, Y_batch)
 
     def __getitem__(self, item):
@@ -96,12 +104,12 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         return X_batch, Y_batch
 
 
-def make_batch(seq_len):
+def make_batch():
     """
     Return a single batch of given length
     """
     dataloader = torch.utils.data.DataLoader(
-        ThreeBitDataset(seq_len, dataset_length=1),
+        GoalDirectedLocomotionDataset(max_dataset_length=1),
         batch_size=1,
         num_workers=0 if is_win else 2,
         shuffle=True,
@@ -112,18 +120,17 @@ def make_batch(seq_len):
     return batch
 
 
-def plot_predictions(model, seq_len, batch_size):
+def plot_predictions(model):
     """
     Run the model on a single batch and plot
     the model's prediction's against the
     input data and labels.
     """
-    X, Y = make_batch(seq_len)
+    X, Y = make_batch()
     o, h = model.predict(X)
 
-    f, axarr = plt.subplots(nrows=3, figsize=(12, 9))
+    f, axarr = plt.subplots(nrows=Y.shape[0], figsize=(12, 9))
     for n, ax in enumerate(axarr):
-        ax.plot(X[0, :, n], lw=2, color=salmon, label="input")
         ax.plot(
             Y[0, :, n],
             lw=3,
