@@ -40,7 +40,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         self.sequence_length = len(self._raw_data[0]["n"])
 
         self._inputs = [
-            k for k in self._raw_data[0].keys if k not in ("v̇", "ω̇")
+            k for k in self._raw_data[0].keys() if k not in ("v̇", "ω̇")
         ]
         self._outputs = ("v̇", "ω̇")
 
@@ -94,7 +94,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
             # get outputs
             for o in range(self.n_outputs):
                 k = self._outputs[o]
-                Y_batch[:, o] = torch.tensor(trial["a_" + str(o)])
+                Y_batch[:, o] = torch.tensor(trial[k])
 
             self.items[i] = (X_batch, Y_batch)
 
@@ -144,3 +144,7 @@ def plot_predictions(model):
 
     f.tight_layout()
     clean_axes(f)
+
+
+if __name__ == "__main__":
+    make_batch()
