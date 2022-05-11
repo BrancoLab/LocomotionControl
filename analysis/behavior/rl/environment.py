@@ -52,6 +52,7 @@ class Boundaries:
     def __getitem__(self, item):
         return getattr(self, item)
 
+
 class MTMEnv(gym.Env):
     """
         RL environment for MTM problem.
@@ -64,11 +65,19 @@ class MTMEnv(gym.Env):
             - s: track progression
         and a vector representing track curvature for N cm ahead at ds space intervals
     """
+
     metadata = {"render.modes": ["human", "rgb_array"]}
 
     _obs_keys = ("psi", "u", "v", "omega", "delta", "n")
 
-    def __init__(self, horizon: float = 20, ds: float = 1, dt: float = 0.001, log_dir=None, max_n_steps=2000):
+    def __init__(
+        self,
+        horizon: float = 20,
+        ds: float = 1,
+        dt: float = 0.001,
+        log_dir=None,
+        max_n_steps=2000,
+    ):
         super(MTMEnv, self).__init__()
 
         self.MAX_N_STEPS = max_n_steps
@@ -93,11 +102,14 @@ class MTMEnv(gym.Env):
         # Define observation space (multiply by N+1 to account for 's')
         assert horizon % ds == 0, "S must be divisible by ds"
         N = int(horizon / ds)
-        _low = np.array([-np.inf] * len(self._obs_keys) + [-np.inf] * (N+1))
+        _low = np.array([-np.inf] * len(self._obs_keys) + [-np.inf] * (N + 1))
         _high = -_low
 
         self.observation_space = spaces.Box(
-            low=np.array(_low), high=np.array(_high), shape=(len(_high),), dtype=np.float64
+            low=np.array(_low),
+            high=np.array(_high),
+            shape=(len(_high),),
+            dtype=np.float64,
         )
 
         self.n_curv_obs = N
@@ -106,18 +118,20 @@ class MTMEnv(gym.Env):
 
         # get a bike object
         self.dt = dt
-        self.bike = Bicycle(self.track, self.boundaries,  *self.initial_conditions(), dt=dt)
+        self.bike = Bicycle(
+            self.track, self.boundaries, *self.initial_conditions(), dt=dt
+        )
 
         logger.debug("Environment initialized")
 
     def initial_conditions(self):
         # returns the bike's state at the beginning of the track
         state = [
-            20.0, # u
-            0.0, # delta
-            0.0, # v
-            0.0, # omega
-            0.0, # s
+            20.0,  # u
+            0.0,  # delta
+            0.0,  # v
+            0.0,  # omega
+            0.0,  # s
         ]
         return state
 
@@ -145,10 +159,14 @@ class MTMEnv(gym.Env):
     def get_observation(self) -> np.ndarray:
         obs = self.bike.state()
         # obs["s"] = self.track.s(obs["x"], obs["y"])
-        del obs["x"]; del obs["y"]; del obs["theta"]
-        
+        del obs["x"]
+        del obs["y"]
+        del obs["theta"]
+
         # get curvature observations
-        svals = np.linspace(obs["s"], obs["s"]+self.horizon, self.n_curv_obs+1)[0:-1]
+        svals = np.linspace(
+            obs["s"], obs["s"] + self.horizon, self.n_curv_obs + 1
+        )[0:-1]
         for i, s in enumerate(svals):
             obs[f"curv_{i}"] = self.track.curvature(s)
 
@@ -165,12 +183,15 @@ class MTMEnv(gym.Env):
             # logger.info(f"done because max steps reached: {self.n_steps}")
             return True
 
-        width = (self.track.w(bike_s) - self.bike.width)/2
+        width = (self.track.w(bike_s) - self.bike.width) / 2
         if self.bike.n > width or self.bike.n < -width:
             # logger.info("done because out of track width")
             return True
 
-        if self.bike.psi > self.boundaries.psi.high or self.bike.psi < self.boundaries.psi.low:
+        if (
+            self.bike.psi > self.boundaries.psi.high
+            or self.bike.psi < self.boundaries.psi.low
+        ):
             # logger.info("done because out of psi range")
             return True
 
@@ -190,7 +211,7 @@ class MTMEnv(gym.Env):
 
         # get reward
         bike_s = self.bike.s
-        reward = bike_s #  - self._bike_prev_s
+        reward = bike_s - self._bike_prev_s
         self._bike_prev_s = bike_s
 
         # get other info
@@ -241,14 +262,17 @@ class MTMEnv(gym.Env):
         self.img = plt.imread(imgpath)
         self.axes["A"].imshow(self.img, extent=[0, 40, 0, 60])
 
-    def render(self, mode='rgb_array'):
+    def render(self, mode="rgb_array"):
         # plot bike
         x, y, theta = self.bike.x, self.bike.y, self.bike.theta
 
+        print({**self.bike.state(), **{"k": self.bike.k()}})
 
-        print({**self.bike.state(), **{"k":self.bike.k()}})
-        
-        self.axes["A"].plot([x, x+2*np.cos(theta)], [y, y+2*np.sin(theta)], color="black")
+        self.axes["A"].plot(
+            [x, x + 2 * np.cos(theta)],
+            [y, y + 2 * np.sin(theta)],
+            color="black",
+        )
         self.axes["A"].plot(x, y, "o", color="red")
         self.axes["A"].set(xticks=[], yticks=[])
         self.axes["A"].axis("off")
