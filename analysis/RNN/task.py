@@ -32,6 +32,15 @@ class GoalDirectedLocomotionDataset(data.Dataset):
     def __init__(self, max_dataset_length=-1):
         self.max_dataset_length = max_dataset_length
 
+        if is_win:
+            self.data_folder = Path(
+                r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\dataset"
+            )
+        else:
+            self.data_folder = Path(
+                "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/dataset"
+            )
+
         self.load_data()
 
         # get n inputs/outputs and sequence length
@@ -54,13 +63,10 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         Load the data into the dataset
         """
         logger.info("Loading dataset data")
-        data_folder = Path(
-            "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/dataset"
-        )
 
         self._raw_data = [
             pd.read_json(f)
-            for f in list(data_folder.glob("*.json"))[
+            for f in list(self.data_folder.glob("*.json"))[
                 : self.max_dataset_length
             ]
         ]
@@ -76,7 +82,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         seq_len = self.sequence_length
 
         self.items = {}
-        for i in track(
+        for bn in track(
             range(len(self)),
             description="Generating data...",
             total=len(self),
@@ -84,7 +90,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         ):
             X_batch = torch.zeros((seq_len, self.n_inputs))
             Y_batch = torch.zeros((seq_len, self.n_outputs))
-            trial = self._raw_data[i]
+            trial = self._raw_data[bn]
 
             # get inputs
             for i in range(self.n_inputs):
@@ -96,7 +102,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
                 k = self._outputs[o]
                 Y_batch[:, o] = torch.tensor(trial[k])
 
-            self.items[i] = (X_batch, Y_batch)
+            self.items[bn] = (X_batch, Y_batch)
 
     def __getitem__(self, item):
         X_batch, Y_batch = self.items[item]
@@ -129,7 +135,8 @@ def plot_predictions(model):
     X, Y = make_batch()
     o, h = model.predict(X)
 
-    f, axarr = plt.subplots(nrows=Y.shape[0], figsize=(12, 9))
+    f, axarr = plt.subplots(nrows=Y.shape[-1], figsize=(12, 9))
+
     for n, ax in enumerate(axarr):
         ax.plot(
             Y[0, :, n],
@@ -144,6 +151,7 @@ def plot_predictions(model):
 
     f.tight_layout()
     clean_axes(f)
+    plt.show()
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 atlas = BrainGlobeAtlas("allen_mouse_25um")
 
 
-source = Path(r"W:\swc\branco\BrainSaw\YI_0000012b\brainreg")
+source = Path(r"W:\swc\branco\BrainSaw\YI_1101192\brainreg")
 
 track_files = list(
     (source / "manual_segmentation" / "sample_space" / "tracks").glob(
@@ -83,24 +83,6 @@ def spline_fit(points, smoothing=0.2, k=3, n_points=100):
     return np.array(spline_fit_points).T
 
 
-# def upsample_points(points, track_length):
-#     x = points[:, 0]
-#     y = points[:, 1]
-#     z = points[:, 2]
-
-#     t = np.arange(len(x))
-#     qs_x = CubicSpline(t, x)
-#     qs_y = CubicSpline(t, y)
-#     qs_z = CubicSpline(t, z)
-
-#     upsampled_t = np.linspace(0, len(x), int(track_length))
-#     upsampled_x = qs_x(upsampled_t)
-#     upsampled_y = qs_y(upsampled_t)
-#     upsampled_z = qs_z(upsampled_t)
-
-#     return np.vstack((upsampled_x, upsampled_y, upsampled_z)).T
-
-
 scene = Scene()
 scene.add_brain_region("MOs", alpha=0.3)
 for track_file in track_files:
@@ -116,6 +98,6 @@ for track_file in track_files:
     scene.add(Points(track * 25, colors="black"))
 
     # save track to file
-    np.save(track_file.with_suffix(".npy"), track)
+    np.save(track_file.with_suffix(".npy"), track * 25)
 
 scene.render()

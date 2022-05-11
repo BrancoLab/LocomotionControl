@@ -52,7 +52,11 @@ recordings = Recording().fetch("name")
 for rec in recordings:
     print(f"Processing {rec}")
     # get data
-    units, left_fl, right_fl, left_hl, right_hl, body = get_data(rec)
+    try:
+        units, left_fl, right_fl, left_hl, right_hl, body = get_data(rec)
+    except KeyError:
+        print(f"No data for {rec}")
+        continue
     nunits = len(units)
 
     # get walking (onset/offset in frames)
