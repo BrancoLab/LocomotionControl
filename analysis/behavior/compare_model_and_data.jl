@@ -21,10 +21,10 @@ function compare(;  problemtype=:dynamics)
 
     coptions = ControlOptions(;
     u_bounds=Bounds(10, 80),
-    δ_bounds=Bounds(-60, 60, :angle),
-    δ̇_bounds=Bounds(-4, 4),
+    δ_bounds=Bounds(-45, 45, :angle),
+    δ̇_bounds=Bounds(-2, 2),
     ω_bounds=Bounds(-600, 600, :angle),
-    v_bounds=Bounds(-10, 10),
+    v_bounds=Bounds(-12, 12),
     Fu_bounds=Bounds(-4000, 4500),
     )
 
@@ -48,7 +48,7 @@ function compare(;  problemtype=:dynamics)
 
     # -------------------------- do comparison with data ------------------------- #
     # load data
-    trials = load_cached_trials(; keep_n = nothing,)
+    trials = load_cached_trials(; keep_n = 100,)
     cpoints = ComparisonPoints(track; δs=5, trials=trials)
     fasttrials = filter(t -> t.duration <= solution.t[end], trials)
 
