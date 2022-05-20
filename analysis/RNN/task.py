@@ -9,7 +9,7 @@ import torch.utils.data as data
 import sys
 from rich.progress import track
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 
 """
@@ -36,7 +36,8 @@ class GoalDirectedLocomotionDataset(data.Dataset):
 
         if is_win:
             self.data_folder = Path(
-                r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\dataset"
+                # r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\dataset"
+                r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\artificial_dataset"
             )
         else:
             self.data_folder = Path(
@@ -84,7 +85,8 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         logger.info("Fitting normalization parameters")
 
         self.normalizers = {
-            k: StandardScaler() for k in self._raw_data[0].columns
+            k: MinMaxScaler(feature_range=[-1, 1])
+            for k in self._raw_data[0].columns
         }
 
         for k, scaler in self.normalizers.items():
@@ -113,14 +115,18 @@ class GoalDirectedLocomotionDataset(data.Dataset):
             for i in range(self.n_inputs):
                 k = self._inputs[i]
                 X_batch[:, i] = torch.tensor(
-                    self.normalizers[k].trasform(trial[k])
+                    self.normalizers[k]
+                    .transform(trial[k].values.reshape(-1, 1))
+                    .squeeze()
                 )
 
             # get outputs
             for o in range(self.n_outputs):
                 k = self._outputs[o]
                 Y_batch[:, o] = torch.tensor(
-                    self.normalizers[k].trasform(trial[k])
+                    self.normalizers[k]
+                    .transform(trial[k].values.reshape(-1, 1))
+                    .squeeze()
                 )
 
             self.items[bn] = (X_batch, Y_batch)
@@ -166,13 +172,19 @@ def plot_predictions(model):
             ls="--",
             label="correct output",
         )
-        ax.plot(o[0, :, n], lw=2, color=light_green_dark, label="model output")
+        ax.plot(
+            o[0, :, n],
+            lw=2,
+            alpha=0.5,
+            color=light_green_dark,
+            label="model output",
+        )
         ax.set(title=f"Input {n}")
         ax.legend()
 
     f.tight_layout()
     clean_axes(f)
-    plt.show()
+    return f
 
 
 if __name__ == "__main__":

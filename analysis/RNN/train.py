@@ -1,18 +1,17 @@
 import matplotlib.pyplot as plt
-import os
-
+from torch import nn
 import sys
 
 sys.path.append("./")
 from pathlib import Path
 
-from pyrnn import CTRNN as RNN
+from pyrnn import RNN
 from analysis.RNN.task import (
     GoalDirectedLocomotionDataset,
     plot_predictions,
 )
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+# os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 # save_folder = Path(
 #     "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/trained_networks"
@@ -24,15 +23,16 @@ save_folder = Path(
 plt.ion()
 
 # ---------------------------------- params ---------------------------------- #
-n_units = 128
-batch_size = 512
-epochs = 5000
-lr_milestones = [2500, 5000, 350_000, 450_000]
-lr = 0.25
+n_units = 256
+batch_size = 256
+epochs = 10_000
+lr_milestones = [800, 10000, 10000000]
+lr = 0.003
+save_every = 1000
 
 # ---------------------------------- Fit RNN --------------------------------- #
 
-dataset = GoalDirectedLocomotionDataset(max_dataset_length=512)
+dataset = GoalDirectedLocomotionDataset(max_dataset_length=256)
 
 
 rnn = RNN(
@@ -44,8 +44,8 @@ rnn = RNN(
     on_gpu=True,
     w_in_train=True,
     w_out_train=True,
-    tau=50,
-    dt=5,
+    # tau=50,
+    # dt=5,
 )
 
 try:
@@ -58,10 +58,14 @@ try:
         lr_milestones=lr_milestones,
         l2norm=0,
         save_at_min_loss=True,
-        save_path=str(save_folder / "gdl_minloss.pt"),
+        save_path=save_folder,
+        loss_fn=nn.SmoothL1Loss,
+        save_every=save_every,
+        gamma=0.5,
     )
 
 except KeyboardInterrupt:
-    rnn.save(str(save_folder / "gld.pt"))
-    plot_predictions(rnn)
-    plt.show()
+    pass
+
+fig = plot_predictions(rnn)
+rnn.recorder.add_figure(fig, "predictions")
