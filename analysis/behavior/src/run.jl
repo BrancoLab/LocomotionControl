@@ -28,7 +28,8 @@ function run_mtm(
     timed::Bool=false,
     showplots::Bool=true,
     quiet::Bool=false,
-    α::Float64=1.0,
+    α::Float64=0.0, # cost of Fu
+    γ::Float64=0.0,  # cost of δ̇
     bike::Union{Nothing, Bicycle}=nothing,
     waypoint=nothing
 )
@@ -53,7 +54,7 @@ function run_mtm(
     @assert control_options isa ControlOptions "Control options is not a ControlOptions type: $(typeof(control_options)) $control_options"
 
     # define initial and final conditions
-    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=25, ω=3, ψ=.25) : icond
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=25, ω=2, ψ=.1) : icond
     # fcond = isnothing(fcond) ? State(; u=40, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #
@@ -75,6 +76,7 @@ function run_mtm(
         verbose=verbose,
         quiet=quiet,
         α=α,
+        γ=γ,
         waypoint=waypoint,
     )
 
