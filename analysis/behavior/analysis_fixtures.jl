@@ -180,16 +180,17 @@ for (i, curve) in enumerate(curves)
     
 end
 
-# mark trials that are clean at each curve
-clean_trials["wholetrial"] = .*(values(clean_trials)...)
+# # mark trials that are clean at each curve
+# clean_trials["wholetrial"] = .*(values(clean_trials)...)
 
-tot = length(all_trials)
-discarded = length(filter(i->clean_trials["wholetrial"][i] == 0, 1:tot))
-@info "After tortuosity analysis, discarded $(round(discarded/tot * 100; digits=3))% of trials | $(tot - discarded) trials left"
+# tot = length(all_trials)
+# discarded = length(filter(i->clean_trials["wholetrial"][i] == 0, 1:tot))
+# @info "After tortuosity analysis, discarded $(round(discarded/tot * 100; digits=3))% of trials | $(tot - discarded) trials left"
 
 # filter trials
-trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i]]
-high_torosity_trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i] == 0]
+# trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i]]
+trials = all_trials
+# high_torosity_trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i] == 0]
 
 # compute quantities on clean trials
 S = getfield.(trials, :s)
@@ -233,26 +234,27 @@ function load_global_solution()
     fld = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
     gsol_path = joinpath(fld, "globalsolution.csv")
     globalsolution = DataFrame(CSV.File(gsol_path))
-    return Solution(fix_solution_dtype(globalsolution));
+    return Solution((df2sol ∘ fix_solution_dtype)(globalsolution));
 end
 
 function load_global_solution(gsol_path)
     globalsolution = DataFrame(CSV.File(gsol_path))
-    return Solution(fix_solution_dtype(globalsolution));
+    return Solution((df2sol ∘ fix_solution_dtype)(globalsolution));
 end
 
-function load_horizons_solutions()
+function load_mtm_solutions(; folder=nothing, name="multiple_horizons_mtm_horizon_length")
     # load individual solutions
-    files = sort(glob("multiple_horizons_mtm_horizon_length*.csv", PATHS["horizons_sims_cache"]), lt=natural)
+    folder = isnothing(folder) ? PATHS["horizons_sims_cache"] : folder
+    files = sort(glob("$(name)*.csv", folder), lt=natural)
 
     solutions_df = map(file->DataFrame(CSV.File(file)), files)
     solutions_df = map(sol -> fix_solution_dtype(sol), solutions_df)
 
     solutions = df2sol.(solutions_df)
-    _names = map(file -> split(file, "_")[end][1:end-4], files);
+    # _names = map(file -> split(file, "_")[end][1:end-4], files);
+    _names = map(file -> basename(file), files)
     return solutions, _names
 end
-
 
 
 # ---------------------------------------------------------------------------- #

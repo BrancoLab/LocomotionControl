@@ -356,7 +356,8 @@ function create_and_solve_control(
     n_iter::Int=1000,
     tollerance::Float64=1e-4,
     verbose::Int=0,
-    α::Float64=1.0,
+    α::Float64=0.0, # cost of Fu
+    γ::Float64=0.0,  # cost of δ̇
     waypoint=nothing,  # pass (s, State) to set the state at a track.s value
 )
     
@@ -506,10 +507,10 @@ function create_and_solve_control(
     end
 
     # --------------------------------- optimize --------------------------------- #
-    # set_all_derivative_methods(model, FiniteDifference(Backward())) # less dependent on final conditions
     set_all_derivative_methods(model, OrthogonalCollocation(3))
-    @objective(model, Min, ∫(α*SF + (1-α)*u, s))
+    @objective(model, Min, ∫(SF + α*Fu + γ*δ̇, s))
 
+    # @objective(model, Min, ∫(SF, s))
     optimize!(model)
 
     # print info
