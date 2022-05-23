@@ -33,9 +33,9 @@ struct Bicycle
     function Bicycle(; 
         l_f::Number=3,
         l_r::Number=2,
-        width::Number=1.8,
-        m_f=10, 
-        m_r=12, 
+        width::Number=2,
+        m_f=12, 
+        m_r=11, 
         c=4e3
         )
 

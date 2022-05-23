@@ -6,7 +6,15 @@ Collection of plotting functions, used mostly in Thesis.
 using Plots
 using KernelDensity
 using StatsBase
+using Colors
 
+"""
+Makes a palette interpolating between two colors returning 
+an array of length=length(x)
+"""
+function make_palette(x)
+    return range(HSL(217, .64, .55), stop=HSL(320, .73, .78), length=length(x))
+end
 
 
 """
@@ -33,7 +41,7 @@ end
 """
 Plot the KDE of X as a density plot with the 95th CI underneath a a bar
 """
-function plot_kde_and_CI(X; bandwidth=1.0, xlabel="", color="black", ylabel="", label=nothing)
+function plot_kde_and_CI(X; bandwidth=1.0, xlabel="", color="black", ylabel="", label=nothing, kwargs...)
     B = kde(Vector{Float64}(X); bandwidth=bandwidth)
     low, med, high = percentile(X, [2.5, 50, 97.5])
 
@@ -45,7 +53,7 @@ function plot_kde_and_CI(X; bandwidth=1.0, xlabel="", color="black", ylabel="", 
         fillalpha=.2,
         fillcolor=color,
         fillrange=zeros(length(B.density)),
-        xlabel="", ylabel="", label=label
+        xlabel="", ylabel="", label=label, kwargs...
     )
 
     y = -maximum(B.density) / 20

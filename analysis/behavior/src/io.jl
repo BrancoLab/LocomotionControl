@@ -31,8 +31,9 @@ If method==:efficient only a subset of the keys are kept
 If keep_n isa number: only the first keep_n bouts (sorted by duration) are kept
 """
 function load_trials(;
-    keep_n::Union{Nothing,Int}=nothing, method::Symbol=:complete
+    folder=nothing, keep_n::Union{Nothing,Int}=nothing, method::Symbol=:complete
 )::DataFrame
+    folder = isnothing(folder) ? io.PATHS["exp_data_folder"] : folder
     files::Vector{String} = []
     try
         files = glob("*_bout.json", io.PATHS["exp_data_folder"])
@@ -79,7 +80,7 @@ function load_trials(;
         end
         for (k, v) in zip(KEYS, cleanvec.(filtervals(contents)))
 
-            # # fix data misalignment
+            # fix data misalignment
             if contains(k, "_x")
                 v .-= .5
             end

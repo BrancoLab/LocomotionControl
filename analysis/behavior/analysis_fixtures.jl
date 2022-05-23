@@ -9,6 +9,7 @@ using MultiKDE
 using DataFrames: DataFrame
 using CSV
 using Glob, NaturalSort
+using Interpolations
 
 using Term
 import Term: install_term_logger
@@ -19,7 +20,9 @@ import MyterialColors: salmon, green_dark, grey, grey_dark, grey_darker, black, 
 import jcontrol.comparisons: ComparisonPoints, ComparisonPoint
 import jcontrol: FULLTRACK, Solution
 import jcontrol.io: load_cached_trials
+import jcontrol.trial: Trial
 using jcontrol.visuals
+import jcontrol: interpolate_wrt_to
 
 """
 Useful things for behavior analysis. Mostly Used in Thesis/Chpt3 analyses.
@@ -180,17 +183,17 @@ for (i, curve) in enumerate(curves)
     
 end
 
-# # mark trials that are clean at each curve
-# clean_trials["wholetrial"] = .*(values(clean_trials)...)
+# mark trials that are clean at each curve
+clean_trials["wholetrial"] = .*(values(clean_trials)...)
 
-# tot = length(all_trials)
-# discarded = length(filter(i->clean_trials["wholetrial"][i] == 0, 1:tot))
-# @info "After tortuosity analysis, discarded $(round(discarded/tot * 100; digits=3))% of trials | $(tot - discarded) trials left"
+tot = length(all_trials)
+discarded = length(filter(i->clean_trials["wholetrial"][i] == 0, 1:tot))
+@info "After tortuosity analysis, discarded $(round(discarded/tot * 100; digits=3))% of trials | $(tot - discarded) trials left"
 
 # filter trials
-# trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i]]
-trials = all_trials
-# high_torosity_trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i] == 0]
+trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i]]
+# trials = all_trials
+high_torosity_trials = [t for (i,t) in enumerate(all_trials) if clean_trials["wholetrial"][i] == 0]
 
 # compute quantities on clean trials
 S = getfield.(trials, :s)
@@ -257,6 +260,24 @@ function load_mtm_solutions(; folder=nothing, name="multiple_horizons_mtm_horizo
 end
 
 
+"""
+Get a solution's variable value at equaly spaced s values
+between s0 and sf.
+
+Effectively it resamples the selected variable at equally spaced S values.
+"""
+function get_solution_variable_at_s_values(solution::Union{Trial, Solution}, s0::Number, sf::Number, δs::Number, var::Symbol;  stop=nothing)
+    S = collect(s0:δs:sf)
+
+    stop = isnothing(stop) ? length(solution.s) : stop
+    _s = solution.s[1:stop]
+    _s = Interpolations.deduplicate_knots!(_s; move_knots=true)
+    _x = getfield(solution, var)[1:stop]
+
+    # x = interpolate_wrt_to(_s, _x)
+    itp = LinearInterpolation(_s, _x, extrapolation_bc=Flat())
+    return itp.(S)
+end
 # ---------------------------------------------------------------------------- #
 #                                   UTILITIES                                  #
 # ---------------------------------------------------------------------------- #

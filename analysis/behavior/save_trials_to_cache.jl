@@ -12,17 +12,22 @@ import jcontrol.trial: Trial
 Save each "raw" trial from python to a json file
 
 """
+# folder with json files exported from python's database
+TRIALS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/incomplete_bouts"  
 
-trials = load_trials()
-# folder = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache"
-folder = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_trials_cache"
+# folder where processed/cached julia trials will be stored
+CACHE_FOLDER  = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_incomplete_trials_cache"  
 
+@info "Caching data" TRIALS_FOLDER CACHE_FOLDER
 
+# load trials
+trials = load_trials(; folder=TRIALS_FOLDER)
+
+# cache trials
 pbar = ProgressBar()
 job = addjob!(pbar; N=size(trials, 1))
 
 with(pbar) do
-
     for (i, trial) in enumerate(eachrow(trials))
         trial = Trial(trial, FULLTRACK)
 
@@ -39,21 +44,20 @@ with(pbar) do
         )
 
         df = DataFrame(trialdict)
-        # @info objecttable(df)
-        open(joinpath(folder, "trial_$(i).json"), "w") do f
+
+        open(joinpath(CACHE_FOLDER, "trial_$(i).json"), "w") do f
             write(f, objecttable(df))
         end
 
-        # i > 300 && break
         update!(job)
         sleep(0.001)
     end
 end
 
-open(joinpath(folder, "trial_1.json")) do f
-    data = read(f)
-    @time jsontable(data)
-    print(jsontable(data).x)
-end
+# open(joinpath(CACHE_FOLDER, "trial_1.json")) do f
+#     data = read(f)
+#     @time jsontable(data)
+#     print(jsontable(data).x)
+# end
 
 
