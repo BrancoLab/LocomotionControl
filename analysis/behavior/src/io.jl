@@ -31,11 +31,12 @@ If method==:efficient only a subset of the keys are kept
 If keep_n isa number: only the first keep_n bouts (sorted by duration) are kept
 """
 function load_trials(;
-    keep_n::Union{Nothing,Int}=nothing, method::Symbol=:complete
+    folder=nothing, keep_n::Union{Nothing,Int}=nothing, method::Symbol=:complete
 )::DataFrame
+    folder = isnothing(folder) ? io.PATHS["exp_data_folder"] : folder
     files::Vector{String} = []
     try
-        files = glob("*_bout.json", io.PATHS["exp_data_folder"])
+        files = glob("*_bout.json", folder)
     catch
         @warn "Could not load tracking data. Perhaps you don't have the right path to the data?"
         return nothing
@@ -79,7 +80,7 @@ function load_trials(;
         end
         for (k, v) in zip(KEYS, cleanvec.(filtervals(contents)))
 
-            # # fix data misalignment
+            # fix data misalignment
             if contains(k, "_x")
                 v .-= .5
             end
@@ -92,34 +93,42 @@ function load_trials(;
     return isnothing(keep_n) ? data : first(data, keep_n)
 end
 
+
 """
 Load cached pre-processed trials as Trial objects
 """
-function load_cached_trials(; keep_n::Union{Nothing,Int}=nothing)::Vector{Trial}
-    trials = Trial.(glob("trial_*.json", io.PATHS["cached_data_folder"]))
+function load_cached_trials(; folder=nothing, keep_n::Union{Nothing,Int}=nothing, filter_trials::Bool=true)::Vector{Trial}
+    folder = isnothing(folder) ? io.PATHS["cached_data_folder"] : folder
+    trials = Trial.(glob("trial_*.json", folder))
 
     # trim trials based on start ṡ and at end
     trimmed::Vector{Trial} = []
 
     for trial in trials
         ṡ = diff(trial.s)
-        start = findfirst(ṡ .>= .15)
-        start = isnothing(start) ? 1 : start
-        stop = findfirst(trial.s .> 259)
-        stop = isnothing(stop) ? length(trial.s) : stop
+        if filter_trials
+            start = findfirst(ṡ .>= .15)
+            start = isnothing(start) ? 1 : start
+            stop = findfirst(trial.s .> 259)
+            stop = isnothing(stop) ? length(trial.s) : stop
+        else
+            start, stop = 1, length(trial.s)
+        end
+
         _trial = trimtrial(trial, start, stop; by=:space)
         !isnothing(_trial) && push!(trimmed, _trial)
     end
     # @info "Before trimming $(length(trials)) trials, after: $(length(trimmed))"
 
     # sort trials by duration
-    durations = map(t->t.duration, trimmed)
-    trials = trimmed[sortperm(durations)]
-    trials = filter(t -> t.duration <= 9.0, trials)
-    trials = filter(t -> t.s[1] <= 15, trials)
-    trials = filter(t -> t.s[end] >= 255, trials)
-    trials = filter(t->all(t.s .> 0), trials)
-
+    if filter_trials
+        durations = map(t->t.duration, trimmed)
+        trials = trimmed[sortperm(durations)]
+        trials = filter(t -> t.duration <= 9.0, trials)
+        trials = filter(t -> t.s[1] <= 15, trials)
+        trials = filter(t -> t.s[end] >= 255, trials)
+        trials = filter(t->all(t.s .> 0), trials)
+    end
     return isnothing(keep_n) ? trials : trials[1:keep_n]
 end
 

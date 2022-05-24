@@ -28,7 +28,7 @@ _, _, _, globalsolution = run_mtm(
     # bike=bike,
     # control_options=CO,
     n_iter=5000,
-    fcond=State(; u=30, ω=0),
+    # fcond=State(; u=30, ω=0),
     timed=false,
     showplots=true,
 )

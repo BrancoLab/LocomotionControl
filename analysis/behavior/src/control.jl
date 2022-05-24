@@ -54,7 +54,7 @@ other parameters such as bounds on allowed errors.
 
     # control bounds
     u̇_bounds::Bounds = Bounds(-200, 200)
-    δ̇_bounds::Bounds = Bounds(-50, 50, :angle)
+    δ̇_bounds::Bounds = Bounds(-1.5, 1.5)
 
     # varibles bounds
     u_bounds::Bounds = Bounds(5, 100)
@@ -84,12 +84,12 @@ as of 04/04/2022, they're also the very close
 to the realistic values ranges.
 """
 default_control_options = ControlOptions(;
-u_bounds=Bounds(10, 80),
-δ_bounds=Bounds(-45, 45, :angle),
-δ̇_bounds=Bounds(-2, 2),
-ω_bounds=Bounds(-600, 600, :angle),
-v_bounds=Bounds(-12, 12),
-Fu_bounds=Bounds(-4000, 4500),
+    u_bounds=Bounds(10, 80),
+    δ_bounds=Bounds(-50, 50, :angle),
+    δ̇_bounds=Bounds(-6, 6),
+    ω_bounds=Bounds(-400, 400, :angle),
+    v_bounds=Bounds(-15, 15),
+    Fu_bounds=Bounds(-2000, 3000),
 )
 
 

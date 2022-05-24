@@ -79,77 +79,33 @@ end
 """
 Value of the width factor of the track at various svalues
 """
-# width_values = [
-#     [0.0 .9]  # start
-#     [0.05 .8]
-#     [0.07 .8] # first narrow
-#     [0.11 .78] # first narrow
-#     [0.15 .8]  # end of frst narrow
-#     [0.3 .9]  # second curve
-#     [0.4 .9]  # end of second curve
-#     [0.45 .8]  # second narrow
-#     [0.5 .77]  # 
-#     [0.6 .85]  # end of second narrow
-#     [0.63 1.0]  
-#     [0.7 1.5]
-#     [0.85 1.0]  # second part of last curve
-#     [1 .7]  # end
-# ]
-
 width_values = [
     [0.0 1.2]
     [0.01 1.1]
-    [0.05 1.05]
-    [0.07 1.0] # first narrow
-    [0.11 .75] # first narrow
-    [0.15 .95]  # end of frst narrow
+    [0.05 1.00]
+    [0.07 .9] # first narrow
+    [0.11 1.00] # first narrow
+    [0.15 1]  # end of frst narrow
     [0.20 1]
-    [0.25 .95]
-    [0.30 .9]   # middle of second curve
-    [0.36 1]
-    [0.45 .95]  # second narrow
-    [0.5 .8]  # 
-    [0.6 1.00]  # end of second narrow
-    [0.63 1.1]  
-    [0.67 1.1]
-    [0.7 1.0]
-    [0.75 1]
-    [0.80 1]  # second part of last curve
-    [0.9 1]
-    [0.92 1]
-    [0.95 1]
-    [0.98 1]
-    [1 1]  # end
+    [0.25 1.00]
+    [0.30 1.1]   # middle of second curve
+    [0.36 1.2]
+    [0.45 1.1]  # second narrow
+    [0.5 0.9]  # 
+    [0.55 1.05]
+    [0.6 1.0]  # end of second narrow
+    [0.63 1.05]  
+    [0.67 1.05]
+    [0.7 1.1]
+    [0.75 1.1]
+    [0.80 1.1]  # second part of last curve
+    [0.9 1.1]
+    [0.92 1.1]
+    [0.95 1.15]
+    [0.98 1.2]
+    [1 1.2]  # end
 ]
 
-# width_values = [
-#     [0.0 1.0]
-#     [0.01 1.0]
-#     [0.05 1.0]
-#     [0.07 1.0] # first narrow
-#     [0.11 .9] # first narrow
-#     [0.15 .85]  # end of frst narrow
-#     [0.2 .95]
-#     [0.25 1.05]
-#     [0.30 1.05]   # middle of second curve
-#     [0.36 1.05]
-#     [0.42 1.06]
-#     [0.45 .95]  # second narrow
-#     [0.5 .90]  # 
-#     [0.6 .90]  # end of second narrow
-#     [0.63 1.05]  
-#     [0.67 1.05]
-#     [0.7 1.05]
-#     [0.75 1.05]
-#     [0.80 1.05]  # second part of last curve
-#     [0.9 1.05]
-#     [0.92 1.0]
-#     [0.95 1.0]
-#     [0.98 1.0]
-#     [1 1.0]  # end
-#     # [1 .75]  # end
-#     # [1 .75]  # end
-# ]
 
 # ---------------------------------------------------------------------------- #
 #                              TRACK CONSTRUCTORS                              #
