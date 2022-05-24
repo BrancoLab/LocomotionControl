@@ -17,7 +17,7 @@ import jcontrol.bicycle: Bicycle
 
 function compare(;  problemtype=:dynamics)
     # ---------------------------------- run MTM --------------------------------- #
-    track = Track(;start_waypoint=4, keep_n_waypoints=-1)
+    track = Track(; start_waypoint=4, keep_n_waypoints=-1)
 
 
     coptions = ControlOptions(;
@@ -30,7 +30,7 @@ function compare(;  problemtype=:dynamics)
     )
 
     bike = Bicycle(;
-        l_f=3, l_r=2, c=4000, width=2
+        l_f=3, l_r=2, c=4000, width=2.0
     )
 
     track, bike, _, solution = run_mtm(

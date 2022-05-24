@@ -114,7 +114,7 @@ width_values = [
 """
 Construct `Track` out of a set of waypoints
 """
-function Track(XY, s1::Float64; resolution=0.00001)
+function Track(XY, s1::Float64; resolution=0.00001, const_width=false)
     X = movingaverage(XY[:, 1], 3)
     Y = movingaverage(XY[:, 2], 3)
     X, Y = upsample(X, Y; δp=resolution)
@@ -145,10 +145,9 @@ function Track(XY, s1::Float64; resolution=0.00001)
 
     # get width function working for short tracks
     wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=4)
-    wfn(s) = wspline((s - s1) / 261)
-    # wfn(s) = 3.0
+    wfn(s) = const_width ? 3.0 : wspline((s - s1) / 261)
 
-    # return Track
+
     return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, wfn, θ)
 end
 
@@ -160,9 +159,17 @@ Create a track from saved waypoints coordinates.
   - `keep_n_waypoints` can be used to keep only the first N waypoints. Set to -1 to keep all.
   - `resolution` used to upsample track waypoints through interpolation.
 """
-function Track(; start_waypoint=2, keep_n_waypoints=-1, resolution=0.00001)
+function Track(; 
+    start_waypoint=2,
+    keep_n_waypoints=-1,
+    resolution=0.00001,
+    npyfile=nothing,
+    const_width=false,
+    track_length=261,
+    )
     # load data
-    XY = npzread("src/hairpin.npy")
+    npyfile = isnothing(npyfile) ? "src/hairpin.npy" : npyfile
+    XY = npzread(npyfile)
 
     # trim waypoints
     start_waypoint = max(2, start_waypoint)
@@ -171,12 +178,17 @@ function Track(; start_waypoint=2, keep_n_waypoints=-1, resolution=0.00001)
     else
         (size(XY, 1) - start_waypoint)
     end
-    end_idx = min(start_waypoint + keep_n_waypoints - 1, 261)
+
+    if isnothing(track_length)
+        track_length = (Int64 ∘ round)(sum(sqrt.(diff(XY[:, 1]).^2 .+ diff(XY[:, 2]).^2))) * 2
+    end
+
+    end_idx = min(start_waypoint + keep_n_waypoints - 1, track_length)
     XY = XY[start_waypoint:end_idx, :]
 
-    s1 = (start_waypoint) / 261
+    s1 = (start_waypoint) / track_length
 
-    return Track(XY, s1; resolution=resolution)
+    return Track(XY, s1; resolution=resolution, const_width=const_width)
 end
 
 """

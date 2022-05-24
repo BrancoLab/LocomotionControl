@@ -507,10 +507,8 @@ function create_and_solve_control(
     end
 
     # --------------------------------- optimize --------------------------------- #
-    set_all_derivative_methods(model, OrthogonalCollocation(3))
+    set_all_derivative_methods(model, OrthogonalCollocation(2))
     @objective(model, Min, ∫(SF + α*Fu + γ*δ̇, s))
-
-    # @objective(model, Min, ∫(SF, s))
     optimize!(model)
 
     # print info
