@@ -13,10 +13,10 @@ Save each "raw" trial from python to a json file
 
 """
 # folder with json files exported from python's database
-TRIALS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/incomplete_bouts"  
+TRIALS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/inbound_bouts"  
 
 # folder where processed/cached julia trials will be stored
-CACHE_FOLDER  = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_incomplete_trials_cache"  
+CACHE_FOLDER  = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_inbound_trials"  
 
 @info "Caching data" TRIALS_FOLDER CACHE_FOLDER
 
