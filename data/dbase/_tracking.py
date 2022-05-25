@@ -12,6 +12,7 @@ from data import data_utils
 from geometry.angles import orientation, angular_derivative
 from geometry import Path
 from data.paths import processed_tracking
+from data.dbase._kallman_filtering import kalmann
 
 
 def register(x: np.ndarray, y: np.ndarray, M: np.ndarray):
@@ -50,15 +51,19 @@ def process_body_part(
     xy = data_utils.interpolate_nans(x=x, y=y)
     x, y = np.array(list(xy["x"].values())), np.array(list(xy["y"].values()))
 
-    # median filter pass
-    # x = data_utils.convolve_with_gaussian(x, kernel_width=5)
-    # y = data_utils.convolve_with_gaussian(y, kernel_width=5)
+    # use kalmann filtering to smooth XY tracking and estimate speed and accelerations
+    res = kalmann(np.vstack([x, y]))
 
-    # compute speed
-    speed = Path(x, y, fps=60).speed  # in cm/s
+    # compute overall speed based on x/y speed components
+    speed = np.sqrt(res["xdot"] ** 2 + res["ydot"] ** 2)  # already in cm/s
+
+    # compute the angle of the velocity vector
+    beta = np.degrees(np.arctan2(res["ydot"], res["xdot"]))
 
     # make sure there are no nans
-    results = dict(x=x, y=y, bp_speed=speed)
+    results = dict(
+        x=x, y=y, bp_speed=speed, xdot=res["xdot"], ydot=res["ydot"], beta=beta
+    )
     for k, var in results.items():
         if np.any(np.isnan(var)):
             raise ValueError(f"Found NANs in {k}")
@@ -76,16 +81,10 @@ def calc_angular_velocity(angles: np.ndarray) -> np.ndarray:
     return np.rad2deg(diff)
 
 
-def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
+def compute_velocities(body_parts_tracking: dict) -> dict:
     """
         For some things like orientation average across body parts to reduce noise
     """
-
-    # import matplotlib.pyplot as plt
-
-    def unwrap(x):
-        return np.degrees(np.unwrap(np.radians(x)))
-
     # get data
     body = pd.DataFrame(body_parts_tracking["body"]).interpolate(axis=0)
     tail_base = pd.DataFrame(body_parts_tracking["tail_base"]).interpolate(
@@ -96,6 +95,8 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
     results = dict(speed=body.bp_speed.values.copy())
     results["acceleration"] = derivative(results["speed"])
 
+    # get longitudinal speed and acceleration
+
     # get direction of movement
     path = Path(body.x, body.y).smooth(window=3)
     results["theta"] = path.theta
@@ -104,7 +105,7 @@ def compute_averaged_quantities(body_parts_tracking: dict) -> dict:
 
     # compute orientation of the body
     results["orientation"] = orientation(
-        tail_base.x, tail_base.y, body.x, body.y
+        tail_base.x, tail_base.y, body.x, body.y, smooth=False
     )
 
     # compute angular velocity in deg/s
@@ -162,10 +163,10 @@ def process_tracking_data(
         z.update(y)  # modifies z with keys and values of y
         return z
 
-    # try using processed tracking file
-    _key, _data = load_processed_tracking(tracking_file)
-    if _key is not None:
-        return _key, _data, len(_key["orientation"])
+    # # try using processed tracking file
+    # _key, _data = load_processed_tracking(tracking_file)
+    # if _key is not None:
+    #     return _key, _data, len(_key["orientation"])
 
     # load data
     logger.debug(
@@ -184,7 +185,12 @@ def process_tracking_data(
 
     # compute orientation, angular velocity and speed
     logger.debug("      computing body orientation")
-    velocites = compute_averaged_quantities(body_parts_tracking)
+    velocites = compute_velocities(body_parts_tracking)
+
+    # remove extra keys in bodyparts data
+    for k in body_parts_tracking.keys():
+        del body_parts_tracking[k]["xdot"]
+        del body_parts_tracking[k]["ydot"]
 
     # make sure all tracking start at (x,y)=(0, 0) and ends at (x,y)=(40, 60)
     limits = dict(
@@ -207,6 +213,7 @@ def process_tracking_data(
         bp: merge_two_dicts(data, key)
         for bp, data in body_parts_tracking.items()
     }
+
     for bp in body_parts_tracking.keys():
         body_parts_tracking[bp]["bpname"] = bp
         for coord in "xy":

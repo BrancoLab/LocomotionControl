@@ -593,6 +593,8 @@ if have_dj:
             angular_velocity:       longblob  # angular velocityi in deg/sec
             speed:                  longblob  # body speed in cm/sec
             acceleration:           longblob  # in cm/s^2
+            u:                      longblob  # longitudingal component of speed (along mouse direction)
+            udot:                   longblob  # longitudinal component of acceleration
             theta:                  longblob  # angle towards where the mouse is moving next
             thetadot:               longblob  # rate of change of the direction of movement
             thetadotdot:            longblob # in deg/s^2
@@ -606,6 +608,7 @@ if have_dj:
                 x:                          longblob  # body position in cm
                 y:                          longblob  # body position in cm
                 bp_speed:                   longblob  # body speed in cm/s
+                beta:                       logblob   # angle of velocity vector in degrees
             """
 
         class Linearized(dj.Part):

@@ -2,8 +2,6 @@ import sys
 
 sys.path.append("./")
 
-
-import matplotlib.pyplot as plt
 import numpy as np
 
 from data.dbase.db_tables import Tracking
@@ -161,91 +159,85 @@ x, y = data.x.iloc[0], data.y.iloc[0]
 xy = np.vstack([x, y])[:, :T]
 
 
-# ---------------------------------------------------------------------------- #
-#                             DEFINE LINEAR SYSTEM                             #
-# ---------------------------------------------------------------------------- #
+def kalmann(
+    xy: np.ndarray,
+    sigma_a=0.1,  # standard deviation of acceleration
+    sigma_x=0.001,  # standard deviation of x coordinate of position
+    sigma_y=0.001,  # standard deviation of y coordinate of position
+    V0_diag_value0=0.001,  # initial state variance
+    dt=1 / 60,
+) -> dict:
 
+    """
+        Does Kalmann filtering/smoothing as described in: https://github.com/joacorapela/lds_python
 
-sigma_a = 0.1  # standard deviation of acceleration
-sigma_x = 0.001  # standard deviation of x coordinate of position
-sigma_y = 0.001  # standard deviation of y coordinate of position
-V0_diag_value0 = 0.001  # initial state variance
-dt = 1 / 60
+        Arguments:
+            xy: numpy array, 2xT with XY coordinates of a body part at each frame
+    
+        Returns:
+            a dictionary with x,y coordiantes, speed and accelerations.
+            Since it uses `dt` the speed and acceleration quantities are alrady in cm/s
+    """
 
-# Taken from the book
-# barShalomEtAl01-estimationWithApplicationToTrackingAndNavigation.pdf
-# section 6.3.3
-# Eq. 6.3.3-2
-B = np.array(
-    [
-        [1, dt, 0.5 * dt ** 2, 0, 0, 0],
-        [0, 1, dt, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0],
-        [0, 0, 0, 1, dt, 0.5 * dt ** 2],
-        [0, 0, 0, 0, 1, dt],
-        [0, 0, 0, 0, 0, 1],
-    ],
-    dtype=np.double,
-)
-Z = np.array([[1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0]], dtype=np.double)
-# Eq. 6.3.3-4
-Q = (
-    np.array(
+    # ------------------------------ BUILD MATRICES ------------------------------ #
+
+    # Taken from the book
+    # barShalomEtAl01-estimationWithApplicationToTrackingAndNavigation.pdf
+    # section 6.3.3
+    # Eq. 6.3.3-2
+    B = np.array(
         [
-            [dt ** 4 / 4, dt ** 3 / 2, dt ** 2 / 2, 0, 0, 0],
-            [dt ** 3 / 2, dt ** 2, dt, 0, 0, 0],
-            [dt ** 2 / 2, dt, 1, 0, 0, 0],
-            [0, 0, 0, dt ** 4 / 4, dt ** 3 / 2, dt ** 2 / 2],
-            [0, 0, 0, dt ** 3 / 2, dt ** 2, dt],
-            [0, 0, 0, dt ** 2 / 2, dt, 1],
+            [1, dt, 0.5 * dt ** 2, 0, 0, 0],
+            [0, 1, dt, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 1, dt, 0.5 * dt ** 2],
+            [0, 0, 0, 0, 1, dt],
+            [0, 0, 0, 0, 0, 1],
         ],
         dtype=np.double,
     )
-    * sigma_a ** 2
-)
-R = np.diag([sigma_x ** 2, sigma_y ** 2])
+    Z = np.array([[1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0]], dtype=np.double)
+    # Eq. 6.3.3-4
+    Q = (
+        np.array(
+            [
+                [dt ** 4 / 4, dt ** 3 / 2, dt ** 2 / 2, 0, 0, 0],
+                [dt ** 3 / 2, dt ** 2, dt, 0, 0, 0],
+                [dt ** 2 / 2, dt, 1, 0, 0, 0],
+                [0, 0, 0, dt ** 4 / 4, dt ** 3 / 2, dt ** 2 / 2],
+                [0, 0, 0, dt ** 3 / 2, dt ** 2, dt],
+                [0, 0, 0, dt ** 2 / 2, dt, 1],
+            ],
+            dtype=np.double,
+        )
+        * sigma_a ** 2
+    )
+    R = np.diag([sigma_x ** 2, sigma_y ** 2])
 
-m0 = np.array([xy[0, 0], 0, 0, xy[1, 0], 0, 0], dtype=np.double)
-V0 = np.diag(np.ones(len(m0)) * V0_diag_value0)
+    m0 = np.array([xy[0, 0], 0, 0, xy[1, 0], 0, 0], dtype=np.double)
+    V0 = np.diag(np.ones(len(m0)) * V0_diag_value0)
 
+    # ----------------------------- FILTER AND SMOOTH ---------------------------- #
+    filterRes = filterLDS_SS_withMissingValues_np(
+        y=xy, B=B, Q=Q, m0=m0, V0=V0, Z=Z, R=R
+    )
+    smoothRes = smoothLDS_SS(
+        B=B,
+        xnn=filterRes["xnn"],
+        Vnn=filterRes["Vnn"],
+        xnn1=filterRes["xnn1"],
+        Vnn1=filterRes["Vnn1"],
+        m0=m0,
+        V0=V0,
+    )
 
-# ---------------------------------------------------------------------------- #
-#                                  SMOOTH DATA                                 #
-# ---------------------------------------------------------------------------- #
-
-
-filterRes = filterLDS_SS_withMissingValues_np(
-    y=xy, B=B, Q=Q, m0=m0, V0=V0, Z=Z, R=R
-)
-smoothRes = smoothLDS_SS(
-    B=B,
-    xnn=filterRes["xnn"],
-    Vnn=filterRes["Vnn"],
-    xnn1=filterRes["xnn1"],
-    Vnn1=filterRes["Vnn1"],
-    m0=m0,
-    V0=V0,
-)
-
-a = 1
-
-plt.ioff()
-f, axes = plt.subplots(3, 1, figsize=(16, 9))
-
-axes[0].plot(x[:T], y[:T], lw=2, color="k")
-axes[0].plot(smoothRes["xnN"][0, 0, :], smoothRes["xnN"][3, 0, :], color="red")
-axes[0].axis("equal")
-
-axes[1].plot(data.speed.iloc[0][:T], lw=2, color="k")
-xdot, ydot = smoothRes["xnN"][1, 0, :], smoothRes["xnN"][4, 0, :]
-v = np.sqrt(xdot ** 2 + ydot ** 2)
-axes[1].plot(v, color="red")
-
-
-axes[2].plot(data.acceleration.iloc[0][:T], lw=2, color="k")
-xdotdot, ydotdot = smoothRes["xnN"][2, 0, :], smoothRes["xnN"][5, 0, :]
-a = np.sqrt(xdotdot ** 2 + ydotdot ** 2)
-axes[2].plot(a, color="red")
-
-plt.show()
-plt.ion()
+    # prep results
+    res = dict(
+        x=smoothRes["xnN"][0, 0, :],
+        xdot=smoothRes["xnN"][1, 0, :],
+        xdotdot=smoothRes["xnN"][2, 0, :],
+        y=smoothRes["xnN"][3, 0, :],
+        ydot=smoothRes["xnN"][4, 0, :],
+        ydotdot=smoothRes["xnN"][5, 0, :],
+    )
+    return res
