@@ -12,8 +12,12 @@ using Colors
 Makes a palette interpolating between two colors returning 
 an array of length=length(x)
 """
-function make_palette(x)
+function make_palette(x::AbstractVector)
     return range(HSL(217, .64, .55), stop=HSL(320, .73, .78), length=length(x))
+end
+
+function make_palette(n::Int64)
+    return range(HSL(217, .64, .55), stop=HSL(320, .73, .78), length=n)
 end
 
 

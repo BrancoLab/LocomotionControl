@@ -29,9 +29,9 @@ base_folder = Path(
 # )
 
 recorder.start(
-    base_folder=base_folder, folder_name="saved_data", timestamp=False,
+    base_folder=base_folder, folder_name="inbound_bouts", timestamp=False,
 )
-save_folder = base_folder / "saved_data"
+save_folder = base_folder / "inbound_bouts"
 
 
 # ---------------------------------------------------------------------------- #
@@ -88,11 +88,12 @@ def save_bouts_JSON():
         (
             LocomotionBouts * SessionCondition
             & 'complete="true"'
-            & 'direction="outbound"'
+            & 'direction="inbound"'
         ).fetch()
     )
     logger.info(f"Got {len(bouts)} bouts")
 
+    completed = 0
     for i, bout in track(bouts.iterrows(), total=len(bouts)):
         save_name = f"{i}_complete_bout.json"
         if (save_folder / save_name).exists():
@@ -118,6 +119,10 @@ def save_bouts_JSON():
                     bout_dict[k] = list(v)
 
             recorder.add_data(bout_dict, f"{i}_complete_bout", fmt="json")
+            time.sleep(0.2)
+            completed += 1
+        if completed > 400:
+            return
 
 
 def save_bouts_h5():

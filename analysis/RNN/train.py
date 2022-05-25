@@ -25,14 +25,14 @@ plt.ion()
 # ---------------------------------- params ---------------------------------- #
 n_units = 256
 batch_size = 256
-epochs = 10_000
+epochs = 100_000
 lr_milestones = [800, 10000, 10000000]
 lr = 0.003
-save_every = 1000
+save_every = 5000
 
 # ---------------------------------- Fit RNN --------------------------------- #
 
-dataset = GoalDirectedLocomotionDataset(max_dataset_length=256)
+dataset = GoalDirectedLocomotionDataset(max_dataset_length=3000)
 
 
 rnn = RNN(
