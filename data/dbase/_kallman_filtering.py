@@ -1,10 +1,5 @@
-import sys
-
-sys.path.append("./")
-
 import numpy as np
 
-from data.dbase.db_tables import Tracking
 
 # Kallmann filtering of XY tracking data from: https://github.com/joacorapela/lds_python
 
@@ -46,6 +41,7 @@ def smoothLDS_SS(B, xnn, Vnn, xnn1, Vnn1, m0, V0):
             @ (VnN[:, :, n] - Vnn1[:, :, n])
             @ Jn[:, :, n - 1].T
         )
+
     # initial state x00 and V00
     # return the smooth estimates of the state at time 0: x0N and V0N
     J0 = V0 @ B.T @ np.linalg.inv(Vnn1[:, :, 0])
@@ -149,14 +145,6 @@ def filterLDS_SS_withMissingValues_np(y, B, Q, m0, V0, Z, R):
 # ---------------------------------------------------------------------------- #
 #                                   LOAD DATA                                  #
 # ---------------------------------------------------------------------------- #
-
-data = Tracking.get_session_tracking(
-    "FC_210722_AAA1110750_hairpin", body_only=False
-)
-
-T = 1000
-x, y = data.x.iloc[0], data.y.iloc[0]
-xy = np.vstack([x, y])[:, :T]
 
 
 def kalmann(

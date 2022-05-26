@@ -14,6 +14,7 @@ if Sys.iswindows()
     PATHS = Dict(
     "exp_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\saved_data",
     "cached_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache",
+    "horizons_sims_cache" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims",
     )
 else
     PATHS = Dict(

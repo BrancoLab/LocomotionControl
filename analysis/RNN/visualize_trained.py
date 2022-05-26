@@ -1,4 +1,3 @@
-import os
 import matplotlib.pyplot as plt
 import sys
 from pathlib import Path
@@ -14,16 +13,19 @@ from analysis.RNN.task import (
     plot_predictions,
 )
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
-# save_folder = Path(
-#     "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/trained_networks"
-# )
-save_folder = Path(
-    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\trained_networks\CTRNN_220514_091010"
+# os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
+
+SESSION = "RNN_220525_164401"
+n_units = 64
+
+
+save_folder = (
+    Path(
+        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\trained_networks"
+    )
+    / SESSION
 )
-n_units = 256
-
-
 dataset = GoalDirectedLocomotionDataset(max_dataset_length=1)
 
 

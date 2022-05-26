@@ -34,7 +34,13 @@ import jcontrol: interpolate_wrt_to
 """
 Useful things for behavior analysis. Mostly Used in Thesis/Chpt3 analyses.
 """
-PLOTS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Writings/THESIS/Chpt3/Plots"
+
+
+if Sys.iswindows() 
+    PLOTS_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Writings\\THESIS\\Chpt3\\Plots"
+else
+    PLOTS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Writings/THESIS/Chpt3/Plots"
+end
 
 
 # ---------------------------------------------------------------------------- #
@@ -240,8 +246,14 @@ end
 
 
 function load_global_solution()
-    # gsol_path = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims_wholetrack/global_solution.csv"
-    fld = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
+    
+
+    if Sys.iswindows()
+        fld = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior"
+    else
+        fld = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
+    end
+
     gsol_path = joinpath(fld, "globalsolution.csv")
     globalsolution = DataFrame(CSV.File(gsol_path))
     return Solution((df2sol ∘ fix_solution_dtype)(globalsolution));

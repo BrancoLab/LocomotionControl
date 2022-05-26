@@ -93,7 +93,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            1.75;
+            2.5;
             track=track,
             icond=initial_state,
             fcond=:minimal,
@@ -147,7 +147,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     try
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            1.75;
+            2.5;
             track=track,
             icond=initial_state,
             fcond=final_state,
@@ -179,17 +179,18 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
     # destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
 
     # FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Writings/THESIS/Chpt3/Videos"
-    FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims"
+    # FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims"
+    FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims"
 
     destination = joinpath(FOLDER, "$name.csv")
     isfile(destination) && return
-;
+
     # run global solution
     track = Track(;start_waypoint=4, keep_n_waypoints=-1)
 
     _, bike, _, globalsolution = run_mtm(
         :dynamics,
-        1.75;
+        2.5;
         showtrials=nothing,
         track=track,
         n_iter=5000,
@@ -268,7 +269,7 @@ end
 
 
 horizons = vcat(collect(.08:.01:.38), collect(.38:.02:.54), collect(.5:.05:1.2))
-starts = [0.0, 45.0, 98.0, 160.0]
+starts = [0.0, 45.0, 98.0, 150.0]
 ends = [38.0, 96.0, 142.0, 220.0]
 
 for i in 1:length(starts)

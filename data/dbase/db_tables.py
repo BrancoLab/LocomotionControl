@@ -33,13 +33,11 @@ from data.dbase import (
     _probe,
     _triggers,
     _recording,
-    _roi,
     _locomotion_bouts,
 )
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata  # , load_bin
 from data import data_utils
-from data import arena
 
 DO_RECORDINGS_ONLY = False
 
@@ -176,6 +174,9 @@ if have_dj:
         @staticmethod
         def get_session_tracking_file(session_name):
             tracking_files_folder = raw_data_folder / "tracking"
+            if not tracking_files_folder.exists():
+                tracking_files_folder = Path(r"K:\tracking")
+
             video_name = Path(
                 (Session & f'name="{session_name}"').fetch1("video_file_path")
             ).stem
@@ -586,6 +587,17 @@ if have_dj:
             "right_hip",
         )
 
+        bparts_to_process = (
+            "snout",
+            "body",
+            "neck",
+            "tail_base",
+            "left_fl",
+            "left_hl",
+            "right_fl",
+            "right_hl",
+        )
+
         definition = """
             -> ValidatedSession
             ---
@@ -608,7 +620,7 @@ if have_dj:
                 x:                          longblob  # body position in cm
                 y:                          longblob  # body position in cm
                 bp_speed:                   longblob  # body speed in cm/s
-                beta:                       logblob   # angle of velocity vector in degrees
+                beta:                       longblob   # angle of velocity vector in degrees
             """
 
         class Linearized(dj.Part):
@@ -663,6 +675,7 @@ if have_dj:
                 M,
                 likelihood_th=self.likelihood_threshold,
                 cm_per_px=self.cm_per_px,
+                bparts_to_process=self.bparts_to_process,
             )
 
             # check number of frames
@@ -708,157 +721,6 @@ if have_dj:
     # ---------------------------------------------------------------------------- #
     #                                  locomotion bouts                            #
     # ---------------------------------------------------------------------------- #
-    @schema
-    class ROICrossing(dj.Imported):
-        min_speed = 20  # cm/s, only roi enters with this speed are considered
-        max_duration = 8  # roi crossing must last <= this
-
-        definition = """
-            # when the mouse enters a ROI
-            -> ValidatedSession
-            -> SessionCondition
-            roi:  varchar(64)
-            start_frame:    int
-            end_frame:      int
-            crossing_id:    int
-            ---
-            mouse_exits: int  # 1 if the mouse exists the ROI in time
-            duration: float
-            gcoord:             longblob
-            x:                  longblob
-            y:                  longblob
-            speed:              longblob
-            acceleration:       longblob
-            theta:              longblob
-            thetadot:           longblob
-            thetadotdot:        longblob
-        """
-
-        class InitialCondition(dj.Part):
-            definition = """
-                # stores the conditions at the time of enter
-                -> ROICrossing
-                ---
-                x_init:               float
-                y_init:               float
-                speed_init:           float
-                acceleration_init:    float
-                theta_init:           float
-                thetadot_init:        float
-            """
-
-        def make(self, key):
-            if not Session.on_hairpin(key["name"]):
-                return
-
-            # get tracking data
-            tracking = Tracking.get_session_tracking(
-                key["name"], body_only=True, movement=False
-            )
-            if tracking.empty:
-                return
-            else:
-                logger.info(f'Getting ROI crossings for session {key["name"]}')
-
-            # get bouts
-            crossings = []
-            for ROI in arena.ROIs:
-                crossings.extend(
-                    _roi.get_rois_crossings(
-                        tracking,
-                        ROI,
-                        int(self.max_duration * 60),
-                        min_speed=self.min_speed,
-                    )
-                )
-
-            # insert in table
-            logger.debug(f"Foun {len(crossings)} crossings")
-            for cross in crossings:
-                cross["crossing_id"] = len(self) + 1
-                self.insert1({**key, **cross})
-
-            # insert in part table
-            for cross in crossings:
-                part_key = key.copy()
-                for k in ("roi", "start_frame", "end_frame", "crossing_id"):
-                    part_key[k] = cross[k]
-
-                for k in (
-                    "x",
-                    "y",
-                    "speed",
-                    "acceleration",
-                    "theta",
-                    "thetadot",
-                ):
-                    part_key[k + "_init"] = (
-                        cross[k][0] if not np.isnan(cross[k][0]) else 0
-                    )
-                self.InitialCondition.insert1(part_key)
-
-        @staticmethod
-        def get_crossing_tracking(
-            crossing: pd.Series, session_tracking: pd.DataFrame
-        ) -> dict:
-            """
-                Returns a dictionary with tracking cut to the start/end of the locomotion bout
-            """
-            columns = ("x", "y", "bp_speed")
-            results = {
-                bp: {k: [] for k in columns}
-                for bp in session_tracking.bpname.values
-            }
-
-            for bp in results.keys():
-                for col in columns:
-                    results[bp][col] = session_tracking.loc[
-                        session_tracking.bpname == bp
-                    ][col].iloc[0][
-                        crossing["start_frame"] : crossing["end_frame"]
-                    ]
-            return results
-
-    @schema
-    class ROICrossingTracking(dj.Imported):
-        definition = """
-            -> ROICrossing
-            bpname:  varchar(64)
-            ---
-            x:                          longblob  # body position in cm
-            y:                          longblob  # body position in cm
-            bp_speed:                   longblob  # body speed in cm/s
-        """
-
-        def make(self, key):
-            tracking = ROICrossing.get_crossing_tracking(key["crossing_id"])
-            for bp, bp_tracking in tracking.items():
-                bpkey = {**key, **bp_tracking}
-                bpkey["bpname"] = bp
-                self.insert1(bpkey)
-
-    @schema
-    class RoiCrossingsTwins(dj.Imported):
-        definition = """
-            # for each roi crossing, find a twin crossing with same initial conditions
-            -> ROICrossing
-            twin_id:  int  # ID of ROICrossing thin to the selected one.
-        """
-
-        def make(self, key):
-            # get all crossings from the same session
-            session = key["name"]
-            crossings = pd.DataFrame(
-                ROICrossing * ROICrossing.InitialCondition
-                & f'name="{session}"'
-            )
-
-            key["twin_id"] = _roi.select_twin_crossing(
-                crossings, key["crossing_id"]
-            )
-            if key["twin_id"]:
-                self.insert1(key)
-
     @schema
     class LocomotionBouts(dj.Imported):
         definition = """
@@ -1418,19 +1280,19 @@ if __name__ == "__main__":
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    # Tracking().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
-    # Movement().populate(display_progress=True)
+    Tracking().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
+    Movement().populate(display_progress=True)
     # ROICrossing().populate(display_progress=True)
     # ROICrossingTracking().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
-    Recording().populate(display_progress=False)
+    # Probe().populate(display_progress=True)
+    # Recording().populate(display_progress=False)
 
-    Unit().populate(display_progress=True)
+    # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 

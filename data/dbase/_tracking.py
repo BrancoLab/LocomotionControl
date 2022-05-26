@@ -3,6 +3,7 @@ import numpy as np
 from scipy.signal import medfilt
 import pandas as pd
 import json
+import pathlib
 
 from fcutils.maths import derivative
 from fcutils.path import size, files
@@ -11,7 +12,8 @@ from data.dbase.io import load_dlc_tracking
 from data import data_utils
 from geometry.angles import orientation, angular_derivative
 from geometry import Path
-from data.paths import processed_tracking
+
+# from data.paths import processed_tracking
 from data.dbase._kallman_filtering import kalmann
 
 
@@ -30,6 +32,7 @@ def register(x: np.ndarray, y: np.ndarray, M: np.ndarray):
 
 
 def process_body_part(
+    bp_name,
     bp_data: dict,
     M: np.ndarray,
     likelihood_th: float = 0.95,
@@ -52,6 +55,7 @@ def process_body_part(
     x, y = np.array(list(xy["x"].values())), np.array(list(xy["y"].values()))
 
     # use kalmann filtering to smooth XY tracking and estimate speed and accelerations
+    print(f"Doing Kalmann filtering on: {bp_name}")
     res = kalmann(np.vstack([x, y]))
 
     # compute overall speed based on x/y speed components
@@ -96,6 +100,9 @@ def compute_velocities(body_parts_tracking: dict) -> dict:
     results["acceleration"] = derivative(results["speed"])
 
     # get longitudinal speed and acceleration
+    cos_beta = np.abs(np.cos(np.radians(body["beta"].values)))
+    results["u"] = results["speed"] * cos_beta
+    results["udot"] = results["acceleration"] * cos_beta
 
     # get direction of movement
     path = Path(body.x, body.y).smooth(window=3)
@@ -127,6 +134,7 @@ def load_processed_tracking(tracking_file):
     """
         Attempt to load a processed tracking file to avoid processing anew
     """
+    processed_tracking = pathlib.Path(r"K:\tracking")
     files_found = files(processed_tracking)
     if files_found is None or not isinstance(files_found, list):
         return None, None
@@ -136,6 +144,8 @@ def load_processed_tracking(tracking_file):
         logger.info(f"Loading processed tracking file: {tracking_file.stem}")
 
         _path = processed_tracking / (tracking_file.stem + ".json")
+        if not _path.exists():
+            return None, None
         # load from json file
         with open(_path, "r") as f:
             data = json.load(f)
@@ -157,6 +167,7 @@ def process_tracking_data(
     M: np.ndarray,
     likelihood_th: float = 0.95,
     cm_per_px: float = 1,
+    bparts_to_process=("body", "tail_base"),
 ):
     def merge_two_dicts(x: dict, y: dict) -> dict:
         z = x.copy()  # start with keys and values of x
@@ -164,27 +175,31 @@ def process_tracking_data(
         return z
 
     # # try using processed tracking file
-    # _key, _data = load_processed_tracking(tracking_file)
-    # if _key is not None:
-    #     return _key, _data, len(_key["orientation"])
+    processed_tracking = pathlib.Path(r"K:\tracking")
+    _key, _data = load_processed_tracking(tracking_file)
+    if _key is not None:
+        return _key, _data, len(_key["orientation"])
 
     # load data
     logger.debug(
         f"Loading tracking data: {tracking_file.name} ({size(tracking_file)})"
     )
     body_parts_tracking: dict = load_dlc_tracking(tracking_file)
+    body_parts_tracking = {
+        k: v for k, v in body_parts_tracking.items() if k in bparts_to_process
+    }
 
     # process each body part
     logger.debug("      processing body parts tracking data")
     body_parts_tracking = {
         k: process_body_part(
-            bp, M, likelihood_th=likelihood_th, cm_per_px=cm_per_px
+            k, bp, M, likelihood_th=likelihood_th, cm_per_px=cm_per_px
         )
         for k, bp in body_parts_tracking.items()
     }
 
     # compute orientation, angular velocity and speed
-    logger.debug("      computing body orientation")
+    logger.debug("      computing velocities")
     velocites = compute_velocities(body_parts_tracking)
 
     # remove extra keys in bodyparts data

@@ -10,6 +10,7 @@ import sys
 from rich.progress import track
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from random import choice
 
 
 """
@@ -142,14 +143,14 @@ def make_batch():
     Return a single batch of given length
     """
     dataloader = torch.utils.data.DataLoader(
-        GoalDirectedLocomotionDataset(max_dataset_length=1),
+        GoalDirectedLocomotionDataset(max_dataset_length=100),
         batch_size=1,
         num_workers=0 if is_win else 2,
         shuffle=True,
         worker_init_fn=lambda x: np.random.seed(),
     )
 
-    batch = [b for b in dataloader][0]
+    batch = choice([b for b in dataloader])
     return batch
 
 
