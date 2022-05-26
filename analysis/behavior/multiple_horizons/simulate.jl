@@ -217,6 +217,13 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
 
             # run simulation and store results
             initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
+
+            if simulation.s[end] >= sf
+                @info "Stopping because step simulation reached the end of the curve"
+                extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
+                break 
+            end
+
             shouldstop && i != 32 && begin
                 @warn "Stopping because should stop"
                 if !isnothing(simtracker.prevsol)
