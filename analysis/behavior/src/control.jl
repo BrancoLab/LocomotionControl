@@ -366,7 +366,7 @@ function create_and_solve_control(
     set_optimizer_attribute(model, "max_iter", n_iter)
     set_optimizer_attribute(model, "acceptable_tol", tollerance)
     set_optimizer_attribute(model, "print_level", verbose)
-    set_optimizer_attribute(model, "max_wall_time", 180.0)
+    # set_optimizer_attribute(model, "max_wall_time", 180.0)
 
     # register curvature function
     κ(s) = track.κ(s)

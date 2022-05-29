@@ -11,6 +11,7 @@ from rich.progress import track
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from random import choice
+import joblib
 
 
 """
@@ -32,21 +33,34 @@ class GoalDirectedLocomotionDataset(data.Dataset):
     the data during training.
     """
 
-    def __init__(self, max_dataset_length=-1):
+    def __init__(
+        self,
+        max_dataset_length=-1,
+        horizon: int = 50,
+        stored_scalers_path=None,
+    ):
         self.max_dataset_length = max_dataset_length
 
+        # get paths
         if is_win:
             self.data_folder = Path(
-                # r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\dataset"
                 r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\artificial_dataset"
             )
         else:
             self.data_folder = Path(
                 "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/dataset"
             )
+        self.data_folder = self.data_folder / f"{horizon}cm"
+        self.horizon = horizon
 
+        # load data
         self.load_data()
-        self.fit_normalizers()
+
+        # either load or fit data pre-processing tools
+        if stored_scalers_path is None:
+            self.fit_normalizers()
+        else:
+            self.load_normalizers(stored_scalers_path)
 
         # get n inputs/outputs and sequence length
         self.n_inputs = len(self._raw_data[0].keys()) - 2
@@ -54,9 +68,11 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         self.sequence_length = len(self._raw_data[0]["n"])
 
         self._inputs = [
-            k for k in self._raw_data[0].keys() if k not in ("v̇", "ω̇")
+            k for k in self._raw_data[0].keys() if k not in ("Fu", "δ̇")
         ]
-        self._outputs = ("v̇", "ω̇")
+        self._outputs = ("Fu", "δ̇")
+        logger.info(self._inputs)
+        logger.info(self._outputs)
 
         self.make_trials()
 
@@ -67,7 +83,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         """
         Load the data into the dataset
         """
-        logger.info("Loading dataset data")
+        logger.info(f"Loading dataset data at: {self.data_folder})")
 
         self._raw_data = [
             pd.read_json(f)
@@ -77,7 +93,9 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         ]
 
         lengths = [len(t["n"]) for t in self._raw_data]
-        assert len(set(lengths)) == 1, "found trials with unequal length"
+        assert (
+            len(set(lengths)) == 1
+        ), f"found trials with unequal length {set(lengths)}"
 
     def fit_normalizers(self):
         """
@@ -93,6 +111,41 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         for k, scaler in self.normalizers.items():
             values = np.hstack([t[k].values for t in self._raw_data])
             scaler.fit(values.reshape(-1, 1))
+
+    def save_normalizers(self, folder):
+        """
+        Save the normalizers to disk.
+        """
+        logger.info("Saving normalizers")
+        for k, scaler in self.normalizers.items():
+            joblib.dump(scaler, folder / f"{k}_scaler.joblib")
+
+    def load_normalizers(self, folder):
+        """
+        Load the normalizers from disk.
+        """
+        logger.info("Loading normalizers")
+        self.normalizers = {
+            k: joblib.load(folder / f"{k}_scaler.joblib")
+            for k in self._raw_data[0].columns
+        }
+
+    @property
+    def metadata(self):
+        """
+            A dict with info about the dataset
+        """
+        return dict(
+            n_inputs=self.n_inputs,
+            n_outputs=self.n_outputs,
+            sequence_length=self.sequence_length,
+            horizon=self.horizon,
+            data_flder=self.data_folder,
+            inputs=self._inputs,
+            outputs=self._outputs,
+            n_trials=self.max_dataset_length,
+            n_batches=len(self.items),
+        )
 
     def make_trials(self):
         """
@@ -138,55 +191,56 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         return X_batch, Y_batch
 
 
-def make_batch():
+def make_batches(horizon=50):
     """
     Return a single batch of given length
     """
     dataloader = torch.utils.data.DataLoader(
-        GoalDirectedLocomotionDataset(max_dataset_length=100),
+        GoalDirectedLocomotionDataset(max_dataset_length=100, horizon=horizon),
         batch_size=1,
         num_workers=0 if is_win else 2,
         shuffle=True,
         worker_init_fn=lambda x: np.random.seed(),
     )
 
-    batch = choice([b for b in dataloader])
-    return batch
+    batches = [b for b in dataloader]
+    return batches
 
 
-def plot_predictions(model):
+def plot_predictions(model, horizon=50):
     """
     Run the model on a single batch and plot
     the model's prediction's against the
     input data and labels.
     """
-    X, Y = make_batch()
-    o, h = model.predict(X)
+    batches = make_batches(horizon=horizon)
+    for i in range(3):
+        X, Y = choice(batches)
+        o, h = model.predict(X)
 
-    f, axarr = plt.subplots(nrows=Y.shape[-1], figsize=(12, 9))
+        f, axarr = plt.subplots(nrows=Y.shape[-1], figsize=(12, 9))
 
-    for n, ax in enumerate(axarr):
-        ax.plot(
-            Y[0, :, n],
-            lw=3,
-            color=indigo_light,
-            ls="--",
-            label="correct output",
-        )
-        ax.plot(
-            o[0, :, n],
-            lw=2,
-            alpha=0.5,
-            color=light_green_dark,
-            label="model output",
-        )
-        ax.set(title=f"Input {n}")
-        ax.legend()
+        for n, ax in enumerate(axarr):
+            ax.plot(
+                Y[0, :, n],
+                lw=3,
+                color=indigo_light,
+                ls="--",
+                label="correct output",
+            )
+            ax.plot(
+                o[0, :, n],
+                lw=2,
+                alpha=0.5,
+                color=light_green_dark,
+                label="model output",
+            )
+            ax.set(title=f"Input {n}")
+            ax.legend()
 
-    f.tight_layout()
-    clean_axes(f)
-    return f
+        f.tight_layout()
+        clean_axes(f)
 
 
 if __name__ == "__main__":
-    make_batch()
+    make_batches()

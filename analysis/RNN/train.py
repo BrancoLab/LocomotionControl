@@ -6,10 +6,7 @@ sys.path.append("./")
 from pathlib import Path
 
 from pyrnn import RNN
-from analysis.RNN.task import (
-    GoalDirectedLocomotionDataset,
-    plot_predictions,
-)
+from analysis.RNN.task import GoalDirectedLocomotionDataset
 
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
@@ -22,17 +19,22 @@ save_folder = Path(
 
 plt.ion()
 
+
 # ---------------------------------- params ---------------------------------- #
 n_units = 64
 batch_size = 256
-epochs = 100_000
+epochs = 30_000
 lr_milestones = None  # [2000, 50000, 10000000]
 lr = 0.005
 save_every = 5000
 
+PLANNING_HORIZON = 0  # cm
+
 # ---------------------------------- Fit RNN --------------------------------- #
 
-dataset = GoalDirectedLocomotionDataset(max_dataset_length=3000)
+dataset = GoalDirectedLocomotionDataset(
+    max_dataset_length=3000, horizon=PLANNING_HORIZON
+)
 
 
 rnn = RNN(
@@ -44,10 +46,10 @@ rnn = RNN(
     on_gpu=True,
     w_in_train=True,
     w_out_train=True,
-    # tau=50,
-    # dt=5,
 )
 
+
+# train
 try:
     loss_history = rnn.fit(
         dataset,
@@ -56,16 +58,19 @@ try:
         batch_size=batch_size,
         input_length=dataset.sequence_length,
         lr_milestones=lr_milestones,
-        l2norm=0,
+        l2norm=5e-5,
         save_at_min_loss=True,
         save_path=save_folder,
         loss_fn=nn.SmoothL1Loss,
         save_every=save_every,
         gamma=0.5,
+        save_name=f"rnn_{PLANNING_HORIZON}cm",
     )
 
 except KeyboardInterrupt:
     pass
 
-fig = plot_predictions(rnn)
-rnn.recorder.add_figure(fig, "predictions")
+
+# save data normalizers and dataset metatapython add_data
+dataset.save_normalizers(rnn.recorder.folder)
+rnn.recorder.add_data(dataset.metadata, "dataset_metadata", fmt="yaml")

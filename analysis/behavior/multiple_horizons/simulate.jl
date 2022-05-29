@@ -61,10 +61,26 @@ end
 """
 take states at Δt interval while 0 < t < tf and store in tracker
 """
-function extend_with_sol(tracker::SolutionTracker, sol::Solution, Δt::Float64, tf::Float64)
+function extend_with_sol!(tracker::SolutionTracker, sol::Solution, Δt::Float64, tf::Float64)
+    @info "Before extend with sol" length(tracker.s) tracker.s[end-4:end]
     Δt > tf && return
 
-    for t in 0:Δt:tf
+    for t in Δt:Δt:tf
+        state = solution2state(t, sol; at=:time)
+        s = solution2s(t, sol)
+        add!(tracker, t, state, s)
+    end
+    @info "After extend with sol" length(tracker.s) tracker.s[end-4:end]
+end
+
+"""
+Extends the tracker's solution with a whole other solution
+"""
+function extend_with_sol!(tracker::SolutionTracker, sol::Solution, Δt::Float64)
+    N = (Int64 ∘ floor)(Δt / sol.δt)
+
+    for i in 1:N:length(sol.s)
+        t = sol.t[i]
         state = solution2state(t, sol; at=:time)
         s = solution2s(t, sol)
         add!(tracker, t, state, s)
@@ -79,7 +95,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
     # try again , either shortening or lengthening the planning window
     solution = nothing
-    for i in 1:6
+    for i in 1:3
         _sign  = i < 3 ? +1 : -1
         len = sqrt(initial_state.v^2 + initial_state.u^2) * (planning_horizon + (_sign * .01 * i))
         if len < 4
@@ -93,7 +109,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
 
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            2.5;
+            1.75;
             track=track,
             icond=initial_state,
             fcond=:minimal,
@@ -147,7 +163,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     try
         _, _, control_model, solution = run_mtm(
             :dynamics,
-            2.5;
+            1.75;
             track=track,
             icond=initial_state,
             fcond=final_state,
@@ -176,10 +192,6 @@ Run a simulation in which the model can only plan for `planning_horizon` seconds
 function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1000, Δt=.01)
     # check if a solution was already saved and skip
     name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
-    # destination = joinpath(PATHS["horizons_sims_cache"], "$name.csv")
-
-    # FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Writings/THESIS/Chpt3/Videos"
-    # FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims"
     FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims"
 
     destination = joinpath(FOLDER, "$name.csv")
@@ -199,12 +211,6 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
         showplots=false,
     )
 
-    # plot background & global trajectory
-    colors = [
-            range(HSL(colorant"red"), stop=HSL(colorant"green"), length=(Int ∘ floor)(n_iter/2))...,
-            range(HSL(colorant"green"), stop=HSL(colorant"blue"), length=(Int ∘ ceil)(n_iter/2))...
-    ]
-
     simtracker = SimTracker(s0=s0, Δt=Δt)
     solutiontracker = SolutionTracker()
     pbar = ProgressBar(; expand=true, columns=:detailed)
@@ -218,24 +224,18 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
             # run simulation and store results
             initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
 
-            if simulation.s[end] >= sf
-                @info "Stopping because step simulation reached the end of the curve"
-                extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
+            # extend tracked solution with planned solution
+            if solution.s[end] >= (sf+5) || shouldstop
+                @info "Stopping because step simulation reached the end of the curve or shouldstop"
+                extend_with_sol!(solutiontracker, simtracker.prevsol, Δt)
                 break 
             end
 
-            shouldstop && i != 32 && begin
-                @warn "Stopping because should stop"
-                if !isnothing(simtracker.prevsol)
-                    extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
-                end
-                break
-            end
+            # extend tracked solution
             add!(solutiontracker, simtracker.t, initial_state, simtracker.s)
 
             # plot stuff
-            p1 = draw(:arena)
-            # plot_bike_trajectory!(globalsolution, bike; showbike=false, color=blue_grey_darker, lw=6, alpha=.8, label=nothing)
+            draw(:arena)
             draw!(FULLTRACK; border_alpha=.0, alpha=0.0)
             
             color = "black"  # colors[i]
@@ -244,9 +244,9 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
             draw!(initial_state; color=color, alpha=1)
             plot!(; title="T: $(round(simtracker.t; digits=2))s | horizon: $planning_horizon s")
 
-            simtracker.s > sf && i != 32 && begin
+            simtracker.s > sf && begin
                 @info "Stopping because we're beyond sf ($(sf))"
-                extend_with_sol(solutiontracker, simtracker.prevsol, Δt, planning_horizon)
+                extend_with_sol!(solutiontracker, simtracker.prevsol, Δt)
                 break
             end
             update!(job)
@@ -261,8 +261,10 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
             # gif(anim, gifpath, fps=(Int ∘ round)(.25/Δt))
 
             # save video
-            vidpath = joinpath(FOLDER, "$name.mp4")
-            mp4(anim, vidpath, fps=(Int ∘ round)(.25/Δt))
+            if simtracker.iter > 2
+                vidpath = joinpath(FOLDER, "$name.mp4")
+                mp4(anim, vidpath, fps=(Int ∘ round)(.25/Δt))
+            end
 
             # save short horizon solution
             data = DataFrame(toDict(solutiontracker))
@@ -277,7 +279,7 @@ end
 
 horizons = vcat(collect(.08:.01:.38), collect(.38:.02:.54), collect(.5:.05:1.2))
 starts = [0.0, 45.0, 98.0, 150.0]
-ends = [38.0, 96.0, 142.0, 220.0]
+ends = [40.0, 96.0, 144.0, 205.0]
 
 for i in 1:length(starts)
     # if i != 4

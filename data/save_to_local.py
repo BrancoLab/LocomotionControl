@@ -13,12 +13,10 @@ sys.path.append("./")
 
 
 from data.dbase.db_tables import (
-    ROICrossing,
     LocomotionBouts,
     Tracking,
     SessionCondition,
 )
-from data import arena
 
 
 base_folder = Path(
@@ -29,52 +27,9 @@ base_folder = Path(
 # )
 
 recorder.start(
-    base_folder=base_folder, folder_name="inbound_bouts", timestamp=False,
+    base_folder=base_folder, folder_name="saved_data", timestamp=False,
 )
-save_folder = base_folder / "inbound_bouts"
-
-
-# ---------------------------------------------------------------------------- #
-#                              save roi crossings                              #
-# ---------------------------------------------------------------------------- #
-def save_rois():
-    tracking = {}
-    for ROI in arena.ROIs_dict.keys():
-        # fetch from database
-        crossings = pd.DataFrame(
-            (
-                ROICrossing * ROICrossing.InitialCondition
-                & f'roi="{ROI}"'
-                & "mouse_exits=1"
-            ).fetch()
-        )
-        logger.info(f"Loaded {len(crossings)} crossings for: '{ROI}'")
-
-        for i, crossing in track(crossings.iterrows(), total=len(crossings)):
-            save_name = f"crossing_{ROI}_{i}.json"
-            if (save_folder / save_name).exists():
-                continue
-
-            if crossing["name"] not in tracking.keys():
-                tracking[crossing["name"]] = Tracking.get_session_tracking(
-                    crossing["name"], movement=False, body_only=False
-                )
-                time.sleep(1)
-
-            crossing_trk = ROICrossing.get_crossing_tracking(
-                crossing, tracking[crossing["name"]]
-            )
-            roi_crossing_dict = {**crossing.to_dict(), **crossing_trk}
-
-            for k, v in roi_crossing_dict.items():
-                if isinstance(v, np.ndarray):
-                    roi_crossing_dict[k] = list(v)
-
-            recorder.add_data(
-                roi_crossing_dict, f"crossing_{ROI}_{i}", fmt="json"
-            )
-
-        recorder.add_data(crossings, f"{ROI}_crossings", fmt="h5")
+save_folder = base_folder / "saved_data"
 
 
 # ---------------------------------------------------------------------------- #
@@ -88,7 +43,7 @@ def save_bouts_JSON():
         (
             LocomotionBouts * SessionCondition
             & 'complete="true"'
-            & 'direction="inbound"'
+            & 'direction="outbound"'
         ).fetch()
     )
     logger.info(f"Got {len(bouts)} bouts")
@@ -140,6 +95,5 @@ def save_bouts_h5():
 
 
 if __name__ == "__main__":
-    # save_rois()
     save_bouts_JSON()
     # save_bouts_h5()

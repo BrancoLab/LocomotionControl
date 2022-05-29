@@ -31,6 +31,10 @@ class TrackingData:
     thetadotdot: np.ndarray = None
     segment: np.ndarray = None
     global_coord: np.ndarray = None
+    u: np.ndarray = None
+    udot: np.ndarray = None
+    beta: np.ndarray = None
+
     _columns: list = None
 
     @classmethod
