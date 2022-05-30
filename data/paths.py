@@ -9,7 +9,7 @@ processed_tracking = Path(
 )
 
 probes_surgeries_metadata = Path(
-    r"W:\swc\branco\Federico\Locomotion\raw\recordings_surgery_metadata.ods"
+    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_surgery_metadata.ods"
 )
 
 

@@ -99,6 +99,7 @@ def get_recording_filepaths(
     rec_name = rec_metadata.loc[
         rec_metadata["recording folder"] == rec_folder
     ]["recording folder"].iloc[0]
+
     rec_path = recordings_folder / Path(rec_name) / Path(rec_name + "_imec0")
     key["concatenated"] = -1
 

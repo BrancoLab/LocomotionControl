@@ -118,10 +118,7 @@ if have_dj:
         """
         too_early_date = 210412  # sessions before this have weird arenas and tracking doesnt do well
         recordings_metadata_path = Path(
-            r"W:\swc\branco\Federico\Locomotion\raw\recordings_metadata.ods"
-        )
-        recordings_raw_data_path = Path(
-            r"W:\swc\branco\Federico\Locomotion\raw\recordings"
+            r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_metadata.ods"
         )
 
         def fill(self):
@@ -897,7 +894,17 @@ if have_dj:
         _tips = {
             "AAA1110750": 400,
         }
-        possible_configurations = ["b0", "longcolumn"]
+        possible_configurations = [
+            "b0",
+            "longcolumn",
+            "r32",
+            "r48",
+            "r64",
+            "r72",
+            "r96",
+            "r128",
+        ]
+
         definition = """
             # relevant probe information + surgery metadata
             -> Mouse
@@ -909,6 +916,15 @@ if have_dj:
             angle_ap:                                       longblob
             target:                                         varchar(128)  # eg "MOs" or "CUN/GRN"
         """
+
+        class Shank(dj.Part):
+            definition = """
+                # metadata about shank position
+                -> Probe
+                ---
+                shank_id:                                    int
+                shank_points:                                longblob  # position of points along each shank
+            """
 
         class RecordingSite(dj.Part):
             definition = """
@@ -940,6 +956,8 @@ if have_dj:
             if key["mouse_id"] in self._skip:
                 return
 
+            logger.info(f"Adding Probe for: {key['mouse_id']}")
+
             metadata = get_probe_metadata(key["mouse_id"])
             if metadata is None:
                 return
@@ -959,16 +977,32 @@ if have_dj:
                 )
                 return
 
-            # get recording sites in each possible configuration
-            # tip = (
-            #     self._tips[key["mouse_id"]]
-            #     if key["mouse_id"] in self._tips.keys()
-            #     else 175
-            # )
+            if not probe_key["reconstructed_track_filepath"]:
+                # it's a MOs probe, get files in folder for electrodes placement
+                tracks_folder = (
+                    Path(
+                        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
+                    )
+                    / probe_key["mouse_id"][-3:]
+                )
+                if not tracks_folder.exists():
+                    raise FileNotFoundError(
+                        f"Could not find tracks folder for {probe_key['mouse_id']}"
+                    )
+
+                probe_key["reconstructed_track_filepath"] = files(
+                    tracks_folder
+                )
+                probe_type = "np24"
+                possible_configurations = self.possible_configurations[2:]
+            else:
+                probe_type = "np1"
+                possible_configurations = self.possible_configurations[:2]
+
             tip = 150
-            for configuration in self.possible_configurations:
+            for configuration in possible_configurations:
                 recording_sites = _probe.place_probe_recording_sites(
-                    probe_key, configuration, tip=tip
+                    probe_key, configuration, tip=tip, probe_type=probe_type
                 )
                 if recording_sites is None:
                     continue
@@ -1281,15 +1315,15 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
-    Movement().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
+    # Movement().populate(display_progress=True)
     # ROICrossing().populate(display_progress=True)
     # ROICrossingTracking().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
+    Probe().populate(display_progress=True)
     # Recording().populate(display_progress=False)
 
     # Unit().populate(display_progress=True)
@@ -1305,8 +1339,9 @@ if __name__ == "__main__":
         ValidatedSession,
         SessionCondition,
         Probe,
+        Probe.RecordingSite,
         Recording,
-        Movement,
+        # Movement,
     ]
     NAMES = [
         "Mouse",
@@ -1315,8 +1350,9 @@ if __name__ == "__main__":
         "ValidatedSession",
         "SessionCondition",
         "Probe",
+        "RecordingSites",
         "Recording",
-        "Movement",
+        # "Movement",
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)

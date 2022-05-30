@@ -12,6 +12,8 @@ from myterial.utils import rgb2hex
 class ActiveElectrode:
     idx: int
     probe_position: int  # distance in um along the Y axis of the probe
+    shank: int = 0  # shank number
+    x_position: int = 0  # distance in um along the X axis , between shanks
 
 
 def prepare_electrodes_positions(
@@ -30,6 +32,31 @@ def prepare_electrodes_positions(
         # odd numbers for bank 0 and even for bank 1
         _ids = np.arange(n_sites + 1)
         ids = np.hstack([_ids[1::2], _ids[2::2]])
+    elif configuration in ["r32", "r48", "r64", "r72", "r96", "r128"]:
+        row = int(configuration[1:])
+
+        # get coordinates on the 4 shanks of a np24 with a horizontal row starting at row channel.
+        one = np.ones(96)
+        shank_id = np.hstack([one * 0, one * 1, one * 2, one * 3])
+
+        geometry = np.zeros((384, 2))
+        geometry[:, 0] = shank_id * 250  # x coordinates
+        geometry[1::2, 0] = geometry[::2, 0] + 32
+
+        v_half = np.arange(0, 96 / 2)
+        geometry[::2, 1] = (
+            np.hstack([v_half, v_half, v_half, v_half]) * 15 + row * 15
+        )  # y coordinates
+        geometry[1::2, 1] = geometry[::2, 1]
+
+        ids = np.arange(1, n_sites + 1)
+
+        return [
+            ActiveElectrode(
+                i, geometry[i - 1, 1], shank_id[i - 1], geometry[i - 1, 0]
+            )
+            for i in ids
+        ]
     else:
         raise NotImplementedError(
             f'Probe configuration "{configuration}" not supported'
@@ -58,7 +85,7 @@ def reconstructed_track_quality_check(
     return True
 
 
-def place_probe_recording_sites(
+def place_probe_recording_sites_np1(
     probe_metadata: dict,
     configuration: str,
     n_sites: int = 384,
@@ -107,7 +134,6 @@ def place_probe_recording_sites(
             points = np.load(rec_file)[
                 ::-1
             ]  # flipped so that the first point is at the bottom of the probe like in brain
-            # and exclude tip of probe
         except TypeError:
             logger.warning("Could not load reconstructed track file")
             return
@@ -141,12 +167,12 @@ def place_probe_recording_sites(
                     np.full(3, np.nan)
                 )
                 outside_brain[electrode.idx] = True
-
-            # get the point closest to the electrode
-            point_idx = np.argmin(
-                abs(point_distances - electrode.probe_position)
-            )
-            electrodes_coordinates[electrode.idx].append(points[point_idx])
+            else:
+                # get the point closest to the electrode
+                point_idx = np.argmin(
+                    abs(point_distances - electrode.probe_position)
+                )
+                electrodes_coordinates[electrode.idx].append(points[point_idx])
 
             if point_distances[point_idx] < -1:
                 raise ValueError("Cant select points on the tip")
@@ -293,4 +319,111 @@ def place_probe_recording_sites(
             f"Expected {n_sites} recordiing sites, found: {len(recording_sites)}"
         )
 
+    return recording_sites
+
+
+def place_probe_recording_sites_np24(
+    probe_metadata: dict,
+    configuration: str,
+    n_sites: int = 384,
+    tip: int = 375,
+) -> list:
+    atlas = BrainGlobeAtlas("allen_mouse_25um")
+
+    # get electrode coordinates on the probe
+    active_electrodes = prepare_electrodes_positions(configuration, n_sites)
+    indices = [x.idx for x in active_electrodes]
+
+    # get the coordinates of each electrode in the brain
+    electrodes_coordinates = {id: 0 for id in indices}
+    outside_brain = {idx: False for idx in indices}
+
+    for shank in [0, 1, 2, 3]:
+        points = np.load(probe_metadata["reconstructed_track_filepath"][shank])
+
+        # get the distance of each point along the probe
+        # the point corresponding to the first point on the track
+        point_distances = np.apply_along_axis(
+            np.linalg.norm, 1, points - points[0]
+        ).astype(np.int32)
+
+        # exclude points on the tip of the probe
+        first_non_tip = np.where(point_distances > tip)[0][0]
+        points = points[first_non_tip:]
+
+        # compute points distances again but with 0 at first electrode now
+        point_distances = np.apply_along_axis(
+            np.linalg.norm, 1, points - points[0]
+        ).astype(np.int32)
+
+        # get the coordinates of each electrode
+        for electrode in active_electrodes:
+            if electrode.shank != shank:
+                continue
+
+            # check if electrode is outside the brain
+            if electrode.probe_position > np.max(point_distances):
+                electrodes_coordinates[electrode.idx] = np.full(3, np.nan)
+                outside_brain[electrode.idx] = True
+            else:
+                # get the point closest to the electrode
+                point_idx = np.argmin(
+                    abs(point_distances - electrode.probe_position)
+                )
+                electrodes_coordinates[electrode.idx] = points[point_idx]
+
+    # get final info like brain region etc..
+    sites_probe_coords = {e.idx: e.probe_position for e in active_electrodes}
+    recording_sites = []
+    for e_idx, coords in electrodes_coordinates.items():
+        # reconstruct position in brain
+        if outside_brain[e_idx]:
+            acro = "OUT"
+            color = rgb2hex([0.1, 0.1, 0.1])
+        else:
+            rid = atlas.structure_from_coords(coords, microns=True)
+            if rid == 0:
+                acro = "unknown"
+                color = rgb2hex([0.3, 0.3, 0.3])
+            else:
+                acro = atlas.structure_from_coords(
+                    coords, microns=True, as_acronym=True
+                )
+
+                color = rgb2hex(
+                    [
+                        c / 255
+                        for c in atlas._get_from_structure(acro, "rgb_triplet")
+                    ]
+                )
+
+        recording_sites.append(
+            {
+                "site_id": e_idx,
+                "registered_brain_coordinates": coords,
+                "brain_region": acro,
+                "brain_region_id": rid,
+                "probe_coordinates": sites_probe_coords[e_idx],
+                "color": color,
+            }
+        )
+
+    return recording_sites
+
+
+def place_probe_recording_sites(
+    probe_metadata: dict,
+    configuration: str,
+    n_sites: int = 384,
+    tip: int = 375,
+    probe_type: str = "np1",
+) -> list:
+    if probe_type == "np1":
+        recording_sites = place_probe_recording_sites_np1(
+            probe_metadata, configuration, n_sites, tip
+        )
+    elif probe_type == "np24":
+        recording_sites = place_probe_recording_sites_np24(
+            probe_metadata, configuration, n_sites, tip
+        )
     return recording_sites

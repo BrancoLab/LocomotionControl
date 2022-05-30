@@ -32,6 +32,12 @@ TARGETS = (
     "RSPagl6",
     "RSPd1",
     "RSPd2",
+    "MOs",
+    "MOs1",
+    "MOs2/3",
+    "MOs5",
+    "MOs6a",
+    "MOs6b",
 )
 
 # get data
@@ -40,7 +46,9 @@ probes = pd.DataFrame((Probe * Probe.RecordingSite).fetch())
 n_probes = len(probes.mouse_id.unique())
 
 # create figure
-f, axes = plt.subplots(ncols=n_probes, figsize=(6 * n_probes, 12), sharey=True)
+f, axes = plt.subplots(
+    ncols=n_probes, figsize=(8 * n_probes, 12), sharey=False
+)
 f._save_name = f"probes"
 if not isinstance(axes, (list, np.ndarray)):
     axes = [axes]
@@ -53,9 +61,8 @@ for probe_n in range(n_probes):
     rsites = probes.loc[probes.mouse_id == mouse]
 
     # plot
-    for config_n, config in enumerate(
-        rsites.probe_configuration.unique()[::-1]
-    ):
+    configurations = rsites.probe_configuration.unique()[::-1]
+    for config_n, config in enumerate(configurations):
         config_sites = rsites.loc[rsites.probe_configuration == config]
         plot_probe_electrodes(
             config_sites,
@@ -68,7 +75,12 @@ for probe_n in range(n_probes):
 
         axes[probe_n].text(config_n / 4 + 1, 7800, config)
 
-    axes[probe_n].set(title=mouse, xlim=[0.5, 1.25 + config_n / 4])
+    axes[probe_n].set(
+        title=mouse,
+        xlim=[0.5, 1.25 + config_n / 4],
+        xticks=np.arange(len(configurations)) / 2,
+        xticklabels=configurations,
+    )
 
     # mark probe implanted depth (-175 because of TIP)
     axes[probe_n].axhline(probes_depths[probe_n], lw=4, color="k", alpha=0.5)
