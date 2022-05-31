@@ -44,7 +44,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         # get paths
         if is_win:
             self.data_folder = Path(
-                r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\artificial_dataset"
+                r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\datasets"
             )
         else:
             self.data_folder = Path(
@@ -68,22 +68,22 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         self.sequence_length = len(self._raw_data[0]["n"])
 
         self._inputs = [
-            k for k in self._raw_data[0].keys() if k not in ("Fu", "δ̇")
+            k for k in self._raw_data[0].keys() if k not in ("V̇", "ω̇")
         ]
-        self._outputs = ("Fu", "δ̇")
+        self._outputs = ("V̇", "ω̇")
         logger.info(self._inputs)
         logger.info(self._outputs)
 
         self.make_trials()
 
     def __len__(self):
-        return len(self._raw_data)
+        return len(self._raw_train)
 
     def load_data(self):
         """
         Load the data into the dataset
         """
-        logger.info(f"Loading dataset data at: {self.data_folder})")
+        logger.info(f"Loading dataset data at: '{self.data_folder}')")
 
         self._raw_data = [
             pd.read_json(f)
@@ -91,11 +91,20 @@ class GoalDirectedLocomotionDataset(data.Dataset):
                 : self.max_dataset_length
             ]
         ]
+        if not self._raw_data:
+            raise ValueError(f"Did not load any data from {self.data_folder}")
 
         lengths = [len(t["n"]) for t in self._raw_data]
         assert (
             len(set(lengths)) == 1
         ), f"found trials with unequal length {set(lengths)}"
+
+        # split test/train sets
+        I = int(len(self._raw_data) * 0.77)
+        self._raw_train, self._raw_test = (
+            self._raw_data[:I],
+            self._raw_data[I:],
+        )
 
     def fit_normalizers(self):
         """
@@ -111,6 +120,8 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         for k, scaler in self.normalizers.items():
             values = np.hstack([t[k].values for t in self._raw_data])
             scaler.fit(values.reshape(-1, 1))
+
+        logger.info(f"Fitted normalizers for: {self.normalizers.keys()}")
 
     def save_normalizers(self, folder):
         """
@@ -147,23 +158,28 @@ class GoalDirectedLocomotionDataset(data.Dataset):
             n_batches=len(self.items),
         )
 
-    def make_trials(self):
+    def make_trials(self, dataset="train"):
         """
             Generate batches of data.
         """
         logger.info("Generating dataset batches")
         seq_len = self.sequence_length
 
-        self.items = {}
+        if dataset == "train":
+            data = self._raw_train
+        else:
+            data = self._raw_test
+
+        items = {}
         for bn in track(
-            range(len(self)),
+            range(len(data)),
             description="Generating data...",
             total=len(self),
             transient=True,
         ):
             X_batch = torch.zeros((seq_len, self.n_inputs))
             Y_batch = torch.zeros((seq_len, self.n_outputs))
-            trial = self._raw_data[bn]
+            trial = data[bn]
 
             # get inputs
             for i in range(self.n_inputs):
@@ -183,7 +199,12 @@ class GoalDirectedLocomotionDataset(data.Dataset):
                     .squeeze()
                 )
 
-            self.items[bn] = (X_batch, Y_batch)
+            items[bn] = (X_batch, Y_batch)
+
+        if dataset == "train":
+            self.items = items
+        else:
+            self.test_items = items
 
     def __getitem__(self, item):
         X_batch, Y_batch = self.items[item]

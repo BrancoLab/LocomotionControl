@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from torch import nn
 import sys
+from torch.utils.data import Subset
+from sklearn.model_selection import train_test_split
 
 sys.path.append("./")
 from pathlib import Path
@@ -25,18 +27,33 @@ n_units = 64
 batch_size = 256
 epochs = 30_000
 lr_milestones = None  # [2000, 50000, 10000000]
-lr = 0.005
+lr = 0.0005
 save_every = 5000
 
 PLANNING_HORIZON = 0  # cm
 
-# ---------------------------------- Fit RNN --------------------------------- #
+
+# --------------------------------- get data --------------------------------- #
+def train_val_dataset(dataset, val_split=0.25):
+    train_idx, val_idx = train_test_split(
+        list(range(len(dataset))), test_size=val_split
+    )
+    datasets = {}
+    datasets["train"] = Subset(dataset, train_idx)
+    datasets["test"] = Subset(dataset, val_idx)
+    return datasets
+
 
 dataset = GoalDirectedLocomotionDataset(
     max_dataset_length=3000, horizon=PLANNING_HORIZON
 )
 
 
+# split train/test sets
+datasets = train_val_dataset(dataset)
+
+
+# ---------------------------------- Fit RNN --------------------------------- #
 rnn = RNN(
     input_size=dataset.n_inputs,
     output_size=dataset.n_outputs,
@@ -52,7 +69,8 @@ rnn = RNN(
 # train
 try:
     loss_history = rnn.fit(
-        dataset,
+        datasets["train"],
+        test_dataset=datasets["test"],
         n_epochs=epochs,
         lr=lr,
         batch_size=batch_size,

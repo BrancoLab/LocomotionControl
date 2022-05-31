@@ -16,7 +16,7 @@ from analysis.RNN.task import (
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
-SESSION = "rnn_0cm_220527_113043"
+SESSION = "rnn_0cm_220531_134303"
 HORIZON = 0
 n_units = 64
 
@@ -51,3 +51,6 @@ plt.ion()
 # X, Y = make_batch()
 # o, h = rnn.predict_with_history(X)
 # render_state_history_pca_3d(h, alpha=0.01, lw=0.3)
+
+
+# TODO dataset with future

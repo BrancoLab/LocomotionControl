@@ -121,6 +121,10 @@ if have_dj:
             r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_metadata.ods"
         )
 
+        recordings_raw_data_path = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\recordings"
+        )
+
         def fill(self):
             # fill
             _session.fill_session_table(self)
@@ -301,11 +305,11 @@ if have_dj:
                 return
 
             has_rec = Session.has_recording(key["name"])
-            if int(session["date"]) > 220229 and has_rec:
-                logger.warning(
-                    f'Skipping because "{key["name"]}" is a NP2.0 recording {session["date"]}.\n\n'
-                )
-                return
+            # if int(session["date"]) > 220229 and has_rec:
+            #     logger.warning(
+            #         f'Skipping because "{key["name"]}" is a NP2.0 recording {session["date"]}.\n\n'
+            #     )
+            #     return
 
             if has_rec:
                 previously_validated_path = (
@@ -1302,11 +1306,11 @@ if __name__ == "__main__":
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
-    # ValidatedSession().populate(display_progress=True)
+    ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
-    # CCM().populate(display_progress=True)
+    CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
     # Behavior().populate(display_progress=True)
@@ -1314,9 +1318,9 @@ if __name__ == "__main__":
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    # Tracking().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
-    # Movement().populate(display_progress=True)
+    Tracking().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
+    Movement().populate(display_progress=True)
     # ROICrossing().populate(display_progress=True)
     # ROICrossingTracking().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
@@ -1324,7 +1328,7 @@ if __name__ == "__main__":
     # ? EPHYS
     logger.info("#####    Filling Probe")
     Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=False)
+    Recording().populate(display_progress=False)
 
     # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)

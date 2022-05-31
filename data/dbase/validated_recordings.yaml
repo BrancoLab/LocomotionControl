@@ -297,3 +297,16 @@ FC_220120_BAA110517_hairpin:
     n_frames: 214956
     name: FC_220120_BAA110517_hairpin
     tscale: 1.0000898962446036
+FC_220406_BAA1101192_hairpin2:
+    bonsai_cut_end: 80935856
+    bonsai_cut_start: 7856
+    duration: 2697.6916333333334
+    ephys_cut_end: 80949469
+    ephys_cut_start: 30000
+    frame_to_drop_post: 6
+    frame_to_drop_pre: 0
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 161862
+    name: FC_220406_BAA1101192_hairpin2
+    tscale: 1.0001054258030289

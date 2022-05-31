@@ -111,11 +111,22 @@ function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
         _u = movingaverage(trial.u, smoothing_window)
         _θ = movingaverage(trial.θ, smoothing_window)
     end
+
     # get track errors
     x, y = _x[frame], _y[frame]
-    idx = closest_point_idx(track.X, x, track.Y, y)
+    dist = sqrt.((track.X.-x).^2 + (track.Y.-y).^2)
+    idx = argmin(dist)
 
-    n = euclidean(track.X[idx], x, track.Y[idx], y)
+    n = dist[idx]
+
+    # get the sign of n right based on which side of the track the mouse is
+    if idx > 2 && idx < length(track.X) - 2
+        x1, y1, x2, y2 = track.X[idx-1], track.Y[idx-1], track.X[idx+1], track.Y[idx+1]
+        d = (x - x1)*(y2 - y1) - (y - y1)*(x2 - x1)
+        n *= sign(d)
+    end
+
+
     ψ = track.θ[idx] - _θ[frame]
     # ψ = mod(abs(ψ), 2π)
 
