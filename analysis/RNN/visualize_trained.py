@@ -16,8 +16,8 @@ from analysis.RNN.task import (
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
-SESSION = "rnn_0cm_220531_134303"
-HORIZON = 0
+SESSION = "rnn_50cm_220531_204710"
+HORIZON = 50
 n_units = 64
 
 

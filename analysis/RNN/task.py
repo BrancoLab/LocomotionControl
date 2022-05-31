@@ -63,13 +63,13 @@ class GoalDirectedLocomotionDataset(data.Dataset):
             self.load_normalizers(stored_scalers_path)
 
         # get n inputs/outputs and sequence length
-        self.n_inputs = len(self._raw_data[0].keys()) - 2
         self.n_outputs = 2
         self.sequence_length = len(self._raw_data[0]["n"])
 
         self._inputs = [
-            k for k in self._raw_data[0].keys() if k not in ("V̇", "ω̇")
+            k for k in self._raw_data[0].keys() if k not in ("V̇", "ω̇", "V")
         ]
+        self.n_inputs = len(self._inputs)
         self._outputs = ("V̇", "ω̇")
         logger.info(self._inputs)
         logger.info(self._outputs)

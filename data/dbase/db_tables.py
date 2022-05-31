@@ -149,7 +149,6 @@ if have_dj:
                     logger.warning(
                         f"Recording session not in table:\n{session}"
                     )
-                    # )
 
         @staticmethod
         def on_hairpin(session_name):
@@ -170,7 +169,26 @@ if have_dj:
                     session_name: str. Session name
             """
             session = pd.Series((Session & f'name="{session_name}"').fetch1())
-            return session.is_recording
+
+            if session.is_recording:
+                return True
+            else:
+                # see perhaps it wes added later
+                if (
+                    "BAA1101192" in session_name
+                    or "BAA0000012" in session_name
+                ):
+                    session_name = session_name.replace("_hairpin", "")
+                    recorded_sessions = pd.read_excel(
+                        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_metadata.ods",
+                        engine="odf",
+                    )
+                    return (
+                        session_name
+                        in recorded_sessions["bonsai filename"].values
+                    )
+                else:
+                    return False
 
         @staticmethod
         def get_session_tracking_file(session_name):
@@ -257,7 +275,7 @@ if have_dj:
             ephys_cut_end:              int  # end of last ephys sync pulse
             frame_to_drop_pre:          int  # number of frames to drop before the first sync pulse
             frame_to_drop_post:         int  # number of frames to drop after the last sync pulse
-            tscale:                     int  # time scaleing factor for ephys
+            tscale:                     float  # time scaleing factor for ephys
         """
         analog_sampling_rate = 30000
         spikeglx_sampling_rate = 30000.616484
@@ -555,8 +573,14 @@ if have_dj:
             # Get path to video
             videopath = (Session & key).fetch1("video_file_path")
 
+            # replac with local copy path
+            videopath = Path("K:\\vids") / Path(videopath).name
+            if not videopath.exists():
+                logger.info(f"Could not find video file: {videopath}")
+                return
+
             # get matrix
-            key["correction_matrix"] = _ccm.get_matrix(videopath, arena)
+            key["correction_matrix"] = _ccm.get_matrix(str(videopath), arena)
             self.insert1(key)
 
     # ---------------------------------------------------------------------------- #
@@ -1029,15 +1053,17 @@ if have_dj:
             recording_probe_configuration:      varchar(256)  # longcol, b_0 ...
             reference:                          varchar(256)  # interf, extref
         """
-        recordings_folder = Path(
-            r"W:\swc\branco\Federico\Locomotion\raw\recordings"
-        )
+        # recordings_folder = Path(
+        #     r"W:\swc\branco\Federico\Locomotion\raw\recordings"
+        # )
+        recordings_folder = Path(r"M:\recordings_temp")
 
         spikeglx_sampling_rate = 30000.616484
 
         def make(self, key):
             # check if the session has a recording
             if not Session.has_recording(key["name"]):
+                logger.info(f"No recording for {key['name']}")
                 return
 
             # load recordings metadata
@@ -1046,9 +1072,17 @@ if have_dj:
             )
 
             # get recording folder
-            rec_folder = Path(
-                (Session & key).fetch1("ephys_ap_data_path")
-            ).parent.parent.name
+            ephis_path = (Session & key).fetch1("ephys_ap_data_path")
+            if ephis_path:
+                rec_folder = Path(
+                    (Session & key).fetch1("ephys_ap_data_path")
+                ).parent.parent.name
+            else:
+                # get it from the recording metadata
+                session_name = key["name"].replace("_hairpin", "")
+                rec_folder = rec_metadata.loc[
+                    rec_metadata["bonsai filename"] == session_name
+                ].iloc[0]["recording folder"]
 
             # get paths and other metadata
             key = _recording.get_recording_filepaths(
@@ -1190,7 +1224,7 @@ if have_dj:
             # load behavior camera triggers
             triggers = (Session * ValidatedSession & key).fetch1()
 
-            # get time scaliing factors
+            # get time scaling factors
             tscale = _recording.get_tscale(
                 triggers["ephys_ap_data_path"], triggers["ai_file_path"]
             )
@@ -1306,11 +1340,11 @@ if __name__ == "__main__":
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
-    ValidatedSession().populate(display_progress=True)
+    # ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
-    CCM().populate(display_progress=True)
+    # CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
     # Behavior().populate(display_progress=True)
@@ -1318,19 +1352,19 @@ if __name__ == "__main__":
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    Tracking().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
-    Movement().populate(display_progress=True)
+    # Tracking().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
+    # Movement().populate(display_progress=True)
     # ROICrossing().populate(display_progress=True)
     # ROICrossingTracking().populate(display_progress=True)
     # RoiCrossingsTwins().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
-    Recording().populate(display_progress=False)
+    # Probe().populate(display_progress=True)
+    # Recording().populate(display_progress=False)
 
-    # Unit().populate(display_progress=True)
+    Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # FiringRate().check_complete()
 

@@ -25,12 +25,12 @@ plt.ion()
 # ---------------------------------- params ---------------------------------- #
 n_units = 64
 batch_size = 256
-epochs = 30_000
+epochs = 500
 lr_milestones = None  # [2000, 50000, 10000000]
-lr = 0.0005
+lr = 0.00025
 save_every = 5000
 
-PLANNING_HORIZON = 0  # cm
+PLANNING_HORIZON = 50  # cm
 
 
 # --------------------------------- get data --------------------------------- #

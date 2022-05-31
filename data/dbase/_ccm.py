@@ -40,7 +40,10 @@ def get_matrix(videopath, template):
 
     # manually create registration matrix
     M = create_matrix(frame, template, TEMPLATE_POINTS, save_path)
-    np.save(save_path, M)
+    try:
+        np.save(save_path, M)
+    except FileNotFoundError:
+        logger.warning(f"Could not save CCM matrix at: {save_path}")
     return M
 
 

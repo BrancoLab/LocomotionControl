@@ -152,6 +152,16 @@ def load_cluster_curation_results(
         what the annotation was
     """
     clusters_annotations = {}
+
+    if not Path(results_filepath).exists():
+        results_filepath = str(
+            Path(r"M:\recordings_temp") / Path(results_filepath).name
+        )
+
+        results_csv_path = str(
+            Path(r"M:\recordings_temp") / Path(results_csv_path).name
+        )
+
     with h5py.File(results_filepath, "r") as mat:
         for clst in range(len(mat["clusterNotes"])):
             vals = mat[mat["clusterNotes"][()][clst][0]][()]
