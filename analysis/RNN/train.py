@@ -23,11 +23,11 @@ plt.ion()
 
 
 # ---------------------------------- params ---------------------------------- #
-n_units = 64
-batch_size = 256
-epochs = 500
+n_units = 256
+batch_size = 4048
+epochs = 50
 lr_milestones = None  # [2000, 50000, 10000000]
-lr = 0.00025
+lr = 4e-4
 save_every = 5000
 
 PLANNING_HORIZON = 50  # cm
@@ -45,7 +45,9 @@ def train_val_dataset(dataset, val_split=0.25):
 
 
 dataset = GoalDirectedLocomotionDataset(
-    max_dataset_length=3000, horizon=PLANNING_HORIZON
+    max_dataset_length=100,
+    horizon=PLANNING_HORIZON,
+    data_folder=r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\datasets\0cm_pred_0",
 )
 
 
@@ -76,10 +78,10 @@ try:
         batch_size=batch_size,
         input_length=dataset.sequence_length,
         lr_milestones=lr_milestones,
-        l2norm=5e-5,
+        l2norm=1e-5,
         save_at_min_loss=True,
         save_path=save_folder,
-        loss_fn=nn.SmoothL1Loss,
+        loss_fn=nn.MSELoss,
         save_every=save_every,
         gamma=0.5,
         save_name=f"rnn_{PLANNING_HORIZON}cm",

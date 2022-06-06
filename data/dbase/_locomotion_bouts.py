@@ -162,7 +162,7 @@ def get_bout_complete_and_rois(
         tracking.body.global_coord[bstart],
         tracking.body.global_coord[bend],
     )
-    complete = abs(gend - gstart) > 0.8
+    complete = abs(gend - gstart) > 0.6
 
     # get start and end rois
     segstart = tracking.body.segment[bstart]

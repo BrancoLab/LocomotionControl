@@ -112,6 +112,12 @@ function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
         _θ = movingaverage(trial.θ, smoothing_window)
     end
 
+    if _θ[1] < 0
+        θ = _θ .+ 2π
+    else
+        θ = _θ
+    end
+
     # get track errors
     x, y = _x[frame], _y[frame]
     dist = sqrt.((track.X.-x).^2 + (track.Y.-y).^2)
@@ -127,10 +133,10 @@ function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
     end
 
 
-    ψ = track.θ[idx] - _θ[frame]
-    # ψ = mod(abs(ψ), 2π)
+    ψ = track.θ[idx] - θ[frame]
+    # ψ = mod(abs(ψ), 2π) 
 
-    return State(; x=x, y=y, θ=_θ[frame], ω=_ω[frame], u=_u[frame], n=n, ψ=ψ, track_idx=idx, s=track.S[idx], kwargs...)
+    return State(; x=x, y=y, θ=θ[frame], ω=_ω[frame], u=_u[frame], n=n, ψ=ψ, track_idx=idx, s=track.S[idx], kwargs...)
 end
 
 """

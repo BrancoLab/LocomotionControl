@@ -16,9 +16,9 @@ from analysis.RNN.task import (
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
-SESSION = "rnn_50cm_220531_204710"
-HORIZON = 50
-n_units = 64
+SESSION = "rnn_50cm_220602_212847"
+HORIZON = int(SESSION.split("_")[1].replace("cm", ""))
+n_units = 256
 
 
 folder = (

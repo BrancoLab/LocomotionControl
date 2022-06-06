@@ -28,7 +28,9 @@ save_fld = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys")
 # ---------------------------------------------------------------------------- #
 recordings = (db_tables.Recording).fetch(as_dict=True)
 all_units = []
+count = 0
 for recording in recordings:
+    print(f"Doing: {recording['name']}")
     cf = recording["recording_probe_configuration"]
     units = db_tables.Unit.get_session_units(
         recording["name"],
@@ -37,8 +39,8 @@ for recording in recordings:
         firing_rate=False,
         frate_window=100,
     )
-    units["probe_configuration"] = [cf] * len(units)
-    units["recording"] = [recording["mouse_id"]] * len(units)
+    # units["probe_configuration"] = [cf] * len(units)
+    # units["recording"] = [recording["mouse_id"]] * len(units)
 
     units_regions = []
     for i, unit in units.iterrows():
@@ -50,6 +52,7 @@ for recording in recordings:
             units_regions.append(unit.brain_region)
 
     units["brain_region"] = units_regions
+    count += len(units.loc[units.brain_region == "PRNc"])
 
     # rsites = pd.DataFrame(
     #     (

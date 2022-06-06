@@ -141,7 +141,7 @@ def load_processed_tracking(tracking_file):
 
     processed = [f.stem for f in files_found]
     if tracking_file.stem in processed:
-        logger.info(f"Loading processed tracking file: {tracking_file.stem}")
+        logger.info(f"Loading processed tracking file for: '{tracking_file}'")
 
         _path = processed_tracking / (tracking_file.stem + ".json")
         if not _path.exists():
@@ -185,6 +185,10 @@ def process_tracking_data(
         f"Loading tracking data: {tracking_file.name} ({size(tracking_file)})"
     )
     body_parts_tracking: dict = load_dlc_tracking(tracking_file)
+    if len(body_parts_tracking["body"]["x"]) < 60 * 60 * 10:
+        logger.warning(f"Tracking file {tracking_file.name} is too short")
+        return None, None, None
+
     body_parts_tracking = {
         k: v for k, v in body_parts_tracking.items() if k in bparts_to_process
     }

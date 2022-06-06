@@ -21,6 +21,9 @@ import jcontrol.forwardmodel: solution2state, solution2s
 import jcontrol.io: PATHS
 
 
+
+
+
 @Base.kwdef mutable struct SimTracker
     s0::Float64      = 0
     s::Float64      = 0
@@ -90,7 +93,7 @@ end
 """
 Repeate MTM with windows of decreasing length
 """
-function attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
+function attempt_step(simtracker, control_model, s0, initial_state, planning_horizon; A=0)
     @warn "Could not solve $(simtracker.iter)" termination_status(control_model) s0
 
     # try again , either shortening or lengthening the planning window
@@ -116,6 +119,7 @@ function attempt_step(simtracker, control_model, s0, initial_state, planning_hor
             showplots=false,
             n_iter=5000,
             quiet=true,
+            α=A,
         )
 
         converged(control_model) && break
@@ -131,7 +135,7 @@ fail() = nothing, nothing, true, nothing
 """
 Perform a simulation step
 """
-function step(simtracker, globalsolution, planning_horizon::Float64,)
+function step(simtracker, globalsolution, planning_horizon::Float64; A=5e-5)
     # get initial conditions
     if simtracker.iter == 1
         initial_state =  solution2state(simtracker.s0, globalsolution)
@@ -170,6 +174,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
             showplots=false,
             n_iter=5000,
             quiet=true,
+            α=A,
         )
     catch
         return initial_state, solution, true, track
@@ -178,7 +183,7 @@ function step(simtracker, globalsolution, planning_horizon::Float64,)
     # failed -> try alternative strategies
     if !converged(control_model)
         # try to recover a solution by shortening the planning window
-        success, solution = attempt_step(simtracker, control_model, s0, initial_state, planning_horizon)
+        success, solution = attempt_step(simtracker, control_model, s0, initial_state, planning_horizon; A=A)
         success || return initial_state, solution, true, track
     end
     simtracker.prevsol = solution
@@ -189,10 +194,11 @@ end
 """
 Run a simulation in which the model can only plan for `planning_horizon` seconds ahead.
 """
-function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1000, Δt=.01)
+function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1000, Δt=.01, A=0)
     # check if a solution was already saved and skip
     name = (@sprintf "s0_%.2f_horizon_length_%.2f" s0 planning_horizon)
-    FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims"
+    # FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims_alpha\\$A"
+    FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims_alpha\\low_decel"
 
     destination = joinpath(FOLDER, "$name.csv")
     isfile(destination) && return
@@ -209,6 +215,7 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
         fcond=State(; u=20, ψ=0),
         timed=false,
         showplots=false,
+        α = A,
     )
 
     simtracker = SimTracker(s0=s0, Δt=Δt)
@@ -222,7 +229,7 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
             simtracker.iter = i
 
             # run simulation and store results
-            initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon)
+            initial_state, solution, shouldstop, track = step(simtracker, globalsolution, planning_horizon; A=A)
 
             # extend tracked solution with planned solution
             if solution.s[end] >= (sf+5) || shouldstop
@@ -260,7 +267,7 @@ function run_simulation(; s0=0.0, sf=258, planning_horizon::Float64=.5, n_iter=1
             # gifpath = joinpath(FOLDER, "$name.gif")
             # gif(anim, gifpath, fps=(Int ∘ round)(.25/Δt))
 
-            # save video
+            # # save video
             if simtracker.iter > 2
                 vidpath = joinpath(FOLDER, "$name.mp4")
                 mp4(anim, vidpath, fps=(Int ∘ round)(.25/Δt))
@@ -287,7 +294,7 @@ for i in 1:length(starts)
     # end
     for horizon in horizons
         @info "Running horizon length $horizon seconds on curve $i"
-        results = run_simulation(planning_horizon=horizon, s0=starts[i], sf=ends[i])
+        results = run_simulation(planning_horizon=horizon, s0=starts[i], sf=ends[i], A=0.0)
     end
 end
 

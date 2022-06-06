@@ -205,6 +205,7 @@ if have_dj:
 
             if not tracking_files:
                 logger.warning(f"No tracking data found for {session_name}")
+
             elif isinstance(tracking_files, list):
                 raise ValueError("Found too many tracking files")
             return tracking_files
@@ -590,7 +591,7 @@ if have_dj:
     class Tracking(dj.Imported):
         """
             tracking data from DLC. The
-            entries in the main table reflect the mouse's body\body axis
+            entries in the main table reflect the mouse's body \ body axis
             and a sub table is used for each body part.
         
         """
@@ -657,8 +658,6 @@ if have_dj:
             """
 
         def make(self, key):
-            _key = key.copy()
-
             if "_t" in key["name"] and "training" not in key["name"]:
                 logger.warning(
                     f'Skipping session {key["name"]} because its a test session'
@@ -711,24 +710,10 @@ if have_dj:
 
             # insert into table
             self.insert1(key)
-            for bpkey in bparts_keys.values():
-                self.BodyPart.insert1(bpkey)
-
-            # Get linearized position
-            if Session.on_hairpin(key["name"]):
-                hp = HairpinTrace()
-                lin_key = _key.copy()
-                (
-                    lin_key["segment"],
-                    lin_key["global_coord"],
-                ) = hp.assign_tracking(
-                    bparts_keys["body"]["x"], bparts_keys["body"]["y"]
-                )
-                self.Linearized.insert1(lin_key)
 
         @staticmethod
         def get_session_tracking(session_name, body_only=True, movement=True):
-            query = Tracking * Tracking.BodyPart & f'name="{session_name}"'
+            query = Tracking * TrackingBP2 & f'name="{session_name}"'
             if movement:
                 query = query * Movement
 
@@ -736,12 +721,77 @@ if have_dj:
                 query = query & f"bpname='body'"
 
             if Session.on_hairpin(session_name):
-                query = query * Tracking.Linearized
+                query = query * LinTrk2
 
             if len(query) == 1:
                 return pd.DataFrame(query.fetch()).iloc[0]
             else:
                 return pd.DataFrame(query.fetch())
+
+    @schema
+    class TrackingBP2(dj.Imported):
+        definition = """
+            -> ValidatedSession
+            bpname:  varchar(64)
+            ---
+            x:                          longblob  # body position in cm
+            y:                          longblob  # body position in cm
+            bp_speed:                   longblob  # body speed in cm/s
+            beta:                       longblob   # angle of velocity vector in degrees
+        """
+
+        def make(self, key):
+            if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
+                return
+
+            # get tracking data file
+            tracking_file = Session.get_session_tracking_file(key["name"])
+            if tracking_file is None:
+                logger.warning("No tracking file found")
+                return
+
+            # get CCM registration matrix
+            M = (CCM & key).fetch1("correction_matrix")
+
+            # process data
+            (
+                key,
+                bparts_keys,
+                tracking_n_frames,
+            ) = _tracking.process_tracking_data(
+                key,
+                tracking_file,
+                M,
+                likelihood_th=Tracking.likelihood_threshold,
+                cm_per_px=Tracking.cm_per_px,
+                bparts_to_process=Tracking.bparts_to_process,
+            )
+
+            if key is not None:
+                for bpkey in bparts_keys.values():
+                    self.insert1(bpkey)
+
+    @schema
+    class LinTrk2(dj.Imported):
+        definition = """
+            -> Tracking
+            ---
+            segment:        longblob  # index of hairpin arena segment
+            global_coord:   longblob # values in range 0-1 with position along the arena
+        """
+
+        def make(self, key):
+            if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
+                return
+
+            # Get linearized position
+            if Session.on_hairpin(key["name"]):
+                body = (TrackingBP2 & key & "bpname='body'").fetch1()
+                hp = HairpinTrace()
+                (key["segment"], key["global_coord"],) = hp.assign_tracking(
+                    body["x"], body["y"]
+                )
+                self.insert1(key)
 
     # ---------------------------------------------------------------------------- #
     #                                  locomotion bouts                            #
@@ -833,19 +883,13 @@ if have_dj:
             if "open" in key["name"]:
                 return
 
-            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
-                logger.debug(
-                    f'Skipping {key["name"]} because it doesnt have a recording'
-                )
-                return
-
             # get tracking data
             tracking = Tracking.get_session_tracking(
                 key["name"], body_only=False, movement=False
             )
             if tracking.empty:
                 logger.warning(
-                    f'Failed to get tracking data for session {key["name"]}'
+                    f'Failed to get tracking data for session {key["name"]} - empty df'
                 )
                 return
             else:
@@ -1211,6 +1255,15 @@ if have_dj:
             logger.info(f'Procesing: "{key["name"]}"')
             recording = (Session * Recording & key).fetch1()
 
+            conf = recording["recording_probe_configuration"]
+            rsites = pd.DataFrame(
+                (
+                    Probe * Probe.RecordingSite
+                    & recording
+                    & f"probe_configuration='{conf}'"
+                ).fetch()
+            )
+
             # load units data
             try:
                 units = _recording.load_cluster_curation_results(
@@ -1224,14 +1277,89 @@ if have_dj:
             # load behavior camera triggers
             triggers = (Session * ValidatedSession & key).fetch1()
 
+            # for M2 recordings manually set the path
+            if not triggers["ephys_ap_data_path"]:
+                triggers["ephys_ap_data_path"] = (
+                    Path("M:\\recordings_temp")
+                    / Path(recording["spike_sorting_params_file_path"])
+                    .with_suffix(".bin")
+                    .name
+                )
+                if not triggers["ephys_ap_data_path"].exists():
+                    logger.warning(
+                        f"Could not find the file {triggers['ephys_ap_data_path']}"
+                    )
+                    return
+                else:
+                    triggers["ephys_ap_data_path"] = str(
+                        triggers["ephys_ap_data_path"]
+                    )
+
             # get time scaling factors
-            tscale = _recording.get_tscale(
+            tscale, ai_file_path = _recording.get_tscale(
                 triggers["ephys_ap_data_path"], triggers["ai_file_path"]
             )
+
+            # for M2 triggers get the triggers anew
+            if triggers["bonsai_cut_start"] == -1:
+                (
+                    is_ok,
+                    bonsai_cut_start,
+                    bonsai_cut_end,
+                    ephys_cut_start,
+                    ephys_cut_end,
+                    frame_to_drop_pre,
+                    frame_to_drop_post,
+                    tscale,
+                    reason,
+                ) = qc.validate_recording(
+                    ai_file_path,
+                    triggers["ephys_ap_data_path"],
+                    1,
+                    sampling_rate=ValidatedSession.analog_sampling_rate,
+                    ephys_sampling_rate=ValidatedSession.spikeglx_sampling_rate,
+                    DO_CHECKS=False,
+                )
+                triggers["bonsai_cut_start"] = bonsai_cut_start
+                triggers["bonsai_cut_end"] = bonsai_cut_end
+                triggers["ephys_cut_start"] = ephys_cut_start
+                triggers["ephys_cut_end"] = ephys_cut_end
+                triggers["frame_to_drop_pre"] = frame_to_drop_pre
+                triggers["frame_to_drop_post"] = frame_to_drop_post
 
             # fill in units
             for nu, unit in enumerate(units):
                 logger.debug(f"processing unit {nu+1}/{len(units)}")
+
+                # for units "outside" the brain - get the site_id of the closest site
+                if (
+                    rsites.loc[rsites.site_id == unit["recording_site_id"]]
+                    .iloc[0]
+                    .brain_region
+                    == "OUT"
+                ):
+                    logger.info("Fixing site_id for unit outside the brain")
+                    candidates = rsites.loc[
+                        (rsites.site_id.isin(unit["secondary_sites_ids"]))
+                        & (rsites.brain_region != "OUT")
+                    ]
+                    if len(candidates):
+                        unit["recording_site_id"] = candidates.iloc[0].site_id
+                    else:
+                        valid_rsites = rsites.loc[rsites.brain_region != "OUT"]
+                        unit_rsite = rsites.loc[
+                            rsites.site_id == unit["recording_site_id"]
+                        ].iloc[0]
+                        selected = np.argmin(
+                            (
+                                valid_rsites.probe_coordinates.values
+                                - unit_rsite.probe_coordinates
+                            )
+                            ** 2
+                        )
+                        unit["recording_site_id"] = valid_rsites.iloc[
+                            selected
+                        ].site_id
 
                 # enter info in main table
                 unit_key = key.copy()
@@ -1315,10 +1443,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Session().drop()
-    # ValidatedSession().drop()
-    # Unit().drop()
-    # Probe().drop()
+    # LocomotionBouts().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1353,16 +1478,15 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
-    # Movement().populate(display_progress=True)
-    # ROICrossing().populate(display_progress=True)
-    # ROICrossingTracking().populate(display_progress=True)
-    # RoiCrossingsTwins().populate(display_progress=True)
+    TrackingBP2().populate(display_progress=True)
+    LinTrk2().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
+    Movement().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=False)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=False)
 
     Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)

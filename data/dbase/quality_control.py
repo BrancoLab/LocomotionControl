@@ -21,11 +21,19 @@ def load_or_open(
         Tries to load a previously saved .npy file with some relevant data,
         otherwise it opens a .bin file and saves it to .npy for future use
     """
+    if not bin_file.exists():
+        logger.info(
+            f"Couldnt read .bin file because it doesn't exist:\n{bin_file}"
+        )
+        return None
+
     savepath = Path(base_path).parent / (
         Path(base_path).stem + f"_{data_type}_sync.npy"
     )
     if savepath.exists():
-        logger.debug("Loading previously extracted signal from .npy")
+        logger.debug(
+            f"Loading previously extracted signal from .npy: '{savepath}'"
+        )
         return np.load(savepath)
     else:
         logger.debug("Opening binary and saving to numpy")
@@ -149,6 +157,7 @@ def validate_recording(
     video_duration_s,
     sampling_rate=30000,
     ephys_sampling_rate=30000,
+    DO_CHECKS=True,
 ):
     """
         Checks that an ephys recording and bonsai behavior recording
@@ -301,154 +310,156 @@ def validate_recording(
     # plt.show()
 
     # check that the number of pulses makes sense
-    if len(bonsai_sync_onsets) != len(ephys_sync_onsets):
-        logger.warning(
-            f"Unequal number of sync pulses, bonsai: {len(bonsai_sync_onsets)} and ephys: {len(ephys_sync_onsets)}"
-        )
-        return (
-            False,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            f"Different number of sync pulses between bonsai and ephys",
-        )
-
-    if len(ephys_sync_onsets) != len(ephys_sync_offsets):
-        logger.warning(
-            f"Unequal number of ephys onset/offset, onset: {len(ephys_sync_onsets)} and offset: {len(ephys_sync_offsets)}"
-        )
-        return (
-            False,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            f"Ephys: different # onset and offsets",
-        )
-
-    if len(bonsai_sync_onsets) != len(bonsai_sync_offsets):
-        logger.warning(
-            f"Unequal number of bonsai onset/offset, onset: {len(bonsai_sync_onsets)} and offset: {len(bonsai_sync_offsets)}"
-        )
-        return (
-            False,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            f"Bonsai: different # onset and offsets",
-        )
-
-    # check that the number of pulses makes sense given the video duration
-    if frame_to_drop_post > 0:
-        video_duration_s = (
-            len(
-                bonsai_probe_sync[
-                    bonsai_vid_onsets[frame_to_drop_pre] : bonsai_vid_offsets[
-                        -frame_to_drop_post
-                    ]
-                ]
+    if DO_CHECKS:
+        if len(bonsai_sync_onsets) != len(ephys_sync_onsets):
+            logger.warning(
+                f"Unequal number of sync pulses, bonsai: {len(bonsai_sync_onsets)} and ephys: {len(ephys_sync_onsets)}"
             )
-            / sampling_rate
-        )
-    else:
-        video_duration_s = (
-            len(
-                bonsai_probe_sync[
-                    bonsai_vid_onsets[frame_to_drop_pre] : bonsai_vid_offsets[
-                        -1
-                    ]
-                ]
+            return (
+                False,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                f"Different number of sync pulses between bonsai and ephys",
             )
-            / sampling_rate
-        )
-    expected_n_pulses = int(
-        video_duration_s
-    )  # (there should be a pulse every second)
-    if abs(len(bonsai_sync_onsets) - expected_n_pulses) > 1:
-        logger.warning(
-            f"Expected {expected_n_pulses} based on video duration, but got {len(bonsai_sync_onsets)}"
-        )
-        return (
-            False,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            f"Wrong number of sync pulses based on video duration",
-        )
 
-    if (
-        abs(
-            (bonsai_sync_offsets[-1] - bonsai_sync_onsets[0]) / sampling_rate
-            - video_duration_s
-        )
-        > 1
-    ):
-        logger.warning(
-            f"Video duration {video_duration_s} doesnt match interval between bonsai pulses"
-        )
-        return (
-            False,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            f"Video duration {video_duration_s} doesnt match interval between bonsai pulses",
-        )
+        if len(ephys_sync_onsets) != len(ephys_sync_offsets):
+            logger.warning(
+                f"Unequal number of ephys onset/offset, onset: {len(ephys_sync_onsets)} and offset: {len(ephys_sync_offsets)}"
+            )
+            return (
+                False,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                f"Ephys: different # onset and offsets",
+            )
 
-    # check that the delta-t between pulses is correct
-    bonsai_dt = np.diff(bonsai_sync_onsets)
-    bonsai_dt_s = np.mean(bonsai_dt) / sampling_rate
-    if abs(bonsai_dt_s - 1) > 0.05:
-        logger.warning(
-            f"Bonsai sync pulses are not 1s apart (got {bonsai_dt_s} instead of 1)"
-        )
-        return (
-            False,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            f"Unexpected bonsai sync pulse spacing",
-        )
+        if len(bonsai_sync_onsets) != len(bonsai_sync_offsets):
+            logger.warning(
+                f"Unequal number of bonsai onset/offset, onset: {len(bonsai_sync_onsets)} and offset: {len(bonsai_sync_offsets)}"
+            )
+            return (
+                False,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                f"Bonsai: different # onset and offsets",
+            )
 
-    ephys_dt = np.diff(ephys_sync_onsets)
-    ephys_dt_s = np.mean(ephys_dt) / sampling_rate
-    if abs(ephys_dt_s - 1) > 0.05:
-        logger.warning(
-            f"Ephys sync pulses are not 1s apart (got {ephys_dt_s} instead of 1)"
-        )
-        return (
-            False,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            f"Unexpected ephys sync pulse spacing",
-        )
+        # check that the number of pulses makes sense given the video duration
+        if frame_to_drop_post > 0:
+            video_duration_s = (
+                len(
+                    bonsai_probe_sync[
+                        bonsai_vid_onsets[
+                            frame_to_drop_pre
+                        ] : bonsai_vid_offsets[-frame_to_drop_post]
+                    ]
+                )
+                / sampling_rate
+            )
+        else:
+            video_duration_s = (
+                len(
+                    bonsai_probe_sync[
+                        bonsai_vid_onsets[
+                            frame_to_drop_pre
+                        ] : bonsai_vid_offsets[-1]
+                    ]
+                )
+                / sampling_rate
+            )
+        expected_n_pulses = int(
+            video_duration_s
+        )  # (there should be a pulse every second)
+        if abs(len(bonsai_sync_onsets) - expected_n_pulses) > 1:
+            logger.warning(
+                f"Expected {expected_n_pulses} based on video duration, but got {len(bonsai_sync_onsets)}"
+            )
+            return (
+                False,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                f"Wrong number of sync pulses based on video duration",
+            )
+
+        if (
+            abs(
+                (bonsai_sync_offsets[-1] - bonsai_sync_onsets[0])
+                / sampling_rate
+                - video_duration_s
+            )
+            > 1
+        ):
+            logger.warning(
+                f"Video duration {video_duration_s} doesnt match interval between bonsai pulses"
+            )
+            return (
+                False,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                f"Video duration {video_duration_s} doesnt match interval between bonsai pulses",
+            )
+
+        # check that the delta-t between pulses is correct
+        bonsai_dt = np.diff(bonsai_sync_onsets)
+        bonsai_dt_s = np.mean(bonsai_dt) / sampling_rate
+        if abs(bonsai_dt_s - 1) > 0.05:
+            logger.warning(
+                f"Bonsai sync pulses are not 1s apart (got {bonsai_dt_s} instead of 1)"
+            )
+            return (
+                False,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                f"Unexpected bonsai sync pulse spacing",
+            )
+
+        ephys_dt = np.diff(ephys_sync_onsets)
+        ephys_dt_s = np.mean(ephys_dt) / sampling_rate
+        if abs(ephys_dt_s - 1) > 0.05:
+            logger.warning(
+                f"Ephys sync pulses are not 1s apart (got {ephys_dt_s} instead of 1)"
+            )
+            return (
+                False,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                f"Unexpected ephys sync pulse spacing",
+            )
 
     # keep the sample number of first onset and last offset for each data stream
     bonsai_first_onset = bonsai_sync_onsets[0]

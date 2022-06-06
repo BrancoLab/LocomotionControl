@@ -26,6 +26,10 @@ def get_tscale(ephys_ap_data_path, ai_file_path, sampling_rate=30000):
             "220220_517", "220120_517"
         )
 
+    ai_file_path = Path(ai_file_path)
+    if not ai_file_path.exists():
+        ai_file_path = Path(r"K:\analog_inputs_temp") / ai_file_path.name
+
     # load analog from bonsai
     try:
         bonsai_probe_sync = load_or_open(
@@ -69,7 +73,7 @@ def get_tscale(ephys_ap_data_path, ai_file_path, sampling_rate=30000):
         ephys_sync_offsets[-1] - ephys_sync_onsets[0]
     )
     print("done getting tscale")
-    return tscale
+    return tscale, ai_file_path
 
 
 def get_recording_filepaths(

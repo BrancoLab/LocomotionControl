@@ -30,7 +30,7 @@ def plot_n_units_per_channel(rname, units, rsites, TARGETS):
     f._save_name = f"activity_units_per_channel"
 
     # draw probe
-    plot_probe_electrodes(rsites, axes[0], TARGETS)
+    plot_probe_electrodes(rsites, axes[0], TARGETS, annotate_every=16)
 
     # draw barplot of # units per channel
     counts = units.groupby("site_id").count()["name"]
@@ -110,7 +110,10 @@ if __name__ == "__main__":
             continue
 
         f = plot_n_units_per_channel(
-            recording["name"], units, rsites, ["CUN", "PRNc", "PRNr", "GRN"]
+            recording["name"],
+            units,
+            rsites,
+            ["CUN", "PRNc", "PRNr", "GRN", "MOs2/3", "MOs5", "MOs6a", "MOs6b"],
         )
         f.savefig(save_fld / f'{recording["name"]}_units_probe_position.png')
 

@@ -38,19 +38,26 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         max_dataset_length=-1,
         horizon: int = 50,
         stored_scalers_path=None,
+        data_folder=None,
     ):
         self.max_dataset_length = max_dataset_length
 
         # get paths
-        if is_win:
-            self.data_folder = Path(
-                r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\datasets"
-            )
+        if data_folder is None:
+            if is_win:
+                self.data_folder = Path(
+                    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\RNN\datasets"
+                )
+            else:
+                self.data_folder = Path(
+                    "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/dataset"
+                )
+            self.data_folder = self.data_folder / f"{horizon}cm"
         else:
-            self.data_folder = Path(
-                "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/RNN/dataset"
-            )
-        self.data_folder = self.data_folder / f"{horizon}cm"
+            if not Path(data_folder).exists():
+                raise ValueError(f"{data_folder} does not exist")
+            self.data_folder = Path(data_folder)
+
         self.horizon = horizon
 
         # load data
@@ -67,7 +74,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
         self.sequence_length = len(self._raw_data[0]["n"])
 
         self._inputs = [
-            k for k in self._raw_data[0].keys() if k not in ("V̇", "ω̇", "V")
+            k for k in self._raw_data[0].keys() if k not in ("V̇", "ω̇")
         ]
         self.n_inputs = len(self._inputs)
         self._outputs = ("V̇", "ω̇")
@@ -114,6 +121,7 @@ class GoalDirectedLocomotionDataset(data.Dataset):
 
         self.normalizers = {
             k: MinMaxScaler(feature_range=[-1, 1])
+            # k : StandardScaler()
             for k in self._raw_data[0].columns
         }
 
@@ -239,7 +247,19 @@ def plot_predictions(model, horizon=50):
         X, Y = choice(batches)
         o, h = model.predict(X)
 
-        f, axarr = plt.subplots(nrows=Y.shape[-1], figsize=(12, 9))
+        f, axarr = plt.subplots(
+            nrows=Y.shape[-1], figsize=(12, 9), sharex=True
+        )
+
+        axarr[0].set(title="V̇")
+        axarr[1].set(
+            title="ω̇",
+            xticks=np.linspace(0, X.shape[1], 5),
+            xticklabels=[
+                round(x, 2) for x in np.linspace(0, X.shape[1], 5) * 0.005
+            ],
+            xlabel="s",
+        )
 
         for n, ax in enumerate(axarr):
             ax.plot(
@@ -249,6 +269,7 @@ def plot_predictions(model, horizon=50):
                 ls="--",
                 label="correct output",
             )
+
             ax.plot(
                 o[0, :, n],
                 lw=2,

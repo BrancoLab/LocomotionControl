@@ -21,7 +21,7 @@ save_fld = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys")
 
 scene = Scene(screenshots_folder=save_fld)
 
-regions = ["CUN", "PPN"]
+regions = ["PRNc", "PRNr"]
 regions_meshes = scene.add_brain_region(*regions, alpha=0.3, silhouette=False)
 scene.slice(plane="frontal", actors=[scene.root])
 
