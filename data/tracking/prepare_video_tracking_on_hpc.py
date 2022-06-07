@@ -27,6 +27,7 @@ to_track = []
 for video in videos:
     tracked = [f for f in trackings if video.stem in f]
     if not tracked:
+        logger.info(f"Video {video.stem} not tracked yet")
         to_track.append(video)
 
 

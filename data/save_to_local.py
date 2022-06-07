@@ -15,12 +15,11 @@ sys.path.append("./")
 from data.dbase.db_tables import (
     LocomotionBouts,
     Tracking,
-    SessionCondition,
 )
 
 
 base_folder = Path(
-    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior"
+    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys\locomotion_bouts"
 )
 # base_folder = Path(
 #     "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
@@ -41,9 +40,10 @@ def save_bouts_JSON():
 
     bouts = pd.DataFrame(
         (
-            LocomotionBouts * SessionCondition
-            & 'complete="true"'
-            & 'direction="outbound"'
+            LocomotionBouts
+            # & 'complete="true"'
+            # & 'direction="outbound"'
+            & 'mouse_id="BAA1101192"'
         ).fetch()
     )
     logger.info(f"Got {len(bouts)} bouts")

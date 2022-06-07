@@ -180,3 +180,4 @@ for pos in positions:
     ).plot(cbar_label="# cells", save_fld=True)
 
     f.savefig(save_fld / f"n_units_heatmap_{pos}.png", dpi=600)
+    break

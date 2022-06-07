@@ -10,6 +10,7 @@ from pathlib import Path
 import cv2
 from typing import List, Tuple
 import numpy as np
+import json
 
 from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
@@ -914,6 +915,60 @@ if have_dj:
                 self.insert1(bout)
 
     @schema
+    class ProcessedLocomotionBouts2(dj.Manual):
+        definition = """
+            # processed locomotion bouts exported by Julia (from locomotion bouts from here)
+            -> ValidatedSession
+            start_frame:        int
+            end_frame:          int  # last frame of locomotion bout
+            ---
+            duration:           float  # duration in seconds
+            direction:          varchar(64)   # 'outbound' or 'inbound' or 'none'
+            complete:           varchar(32)    # True if its form reward to trigger ROIs
+            s:                  longblob  # track position [just body tracking] 
+            x:                  longblob  # x position
+            y:                  longblob  # y position
+            speed:              longblob  # speed in cm/s
+            angvel:             longblob  # angular velocity in deg/s
+        """
+        exported_bouts_folder = Path(
+            r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys\locomotion_bouts\processed"
+        )
+
+        def fill(self):
+            """
+                Loads all locomotion bouts and adds them to the table.
+
+                #TODO add part tables for tracking of other body parts
+            """
+
+            in_table = self.fetch("name", "start_frame", "end_frame")
+            in_table = [f"{n}_{s}_{e}" for n, s, e in zip(*in_table)]
+
+            all_files = [f for f in self.exported_bouts_folder.glob("*.json")]
+            for f in track(all_files):
+                bout = json.load(open(f))
+
+                key = dict(
+                    mouse_id=bout["mouse_id"][0],
+                    name=bout["name"][0],
+                    start_frame=bout["start_frame"][0],
+                    end_frame=bout["end_frame"][0],
+                    duration=bout["duration"][0],
+                    direction=bout["direction"][0],
+                    complete=bout["complete"][0],
+                    s=bout["s"],
+                    x=bout["x"],
+                    y=bout["y"],
+                    speed=bout["speed"],
+                    angvel=bout["Î¸"],
+                )
+
+                name = f"{key['name']}_{key['start_frame']}_{key['end_frame']}"
+                if name not in in_table:
+                    self.insert1(key)
+
+    @schema
     class Movement(dj.Imported):
         turning_threshold: float = 20  # deg/sec
         moving_threshold: float = 2.5  # cm/sec
@@ -1137,7 +1192,7 @@ if have_dj:
 
     @schema
     class Unit(dj.Imported):
-        precomputed_firing_rate_windows = [33, 100]  # in ms - I think
+        precomputed_firing_rate_windows = [10, 25, 100]  # in ms
 
         definition = """
             # a single unit's spike sorted data
@@ -1181,21 +1236,12 @@ if have_dj:
             # augment
             if firing_rate:
                 if frate_window not in Unit.precomputed_firing_rate_windows:
-                    triggers = (
-                        Session * ValidatedSession * BonsaiTriggers
-                        & f'name="{session_name}"'
-                    ).fetch1()
-                    units = _recording.get_units_firing_rate(
-                        units,
-                        frate_window,
-                        triggers,
-                        ValidatedSession.analog_sampling_rate,
-                    )
+                    raise NotImplementedError()
                 else:
                     # load pre-computed firing rates
                     units["firing_rate"] = list(
                         (
-                            query * FiringRate & f"bin_width={frate_window}"
+                            query * FiringRate3 & f"bin_width={frate_window}"
                         ).fetch("firing_rate")
                     )
             return units
@@ -1392,7 +1438,7 @@ if have_dj:
                 self.Spikes.insert1(spikes_key)
 
     @schema
-    class FiringRate(dj.Imported):
+    class FiringRate3(dj.Imported):
         definition = """
             # spike times in milliseconds and video frame number
             -> Unit
@@ -1402,8 +1448,7 @@ if have_dj:
         """
 
         def make(self, key):
-            unit = (Unit * Unit.Spikes & key).fetch1()
-            triggers = (ValidatedSession * BonsaiTriggers & key).fetch1()
+            unit = (Unit * Unit.Spikes * ValidatedSession & key).fetch1()
             logger.info(
                 f"Processing: {unit['name']} - unit: {unit['unit_id']}"
             )
@@ -1411,21 +1456,12 @@ if have_dj:
             # get firing rates
             for frate_window in Unit.precomputed_firing_rate_windows:
                 unit_frate = _recording.get_units_firing_rate(
-                    unit,
-                    frate_window,
-                    triggers,
-                    ValidatedSession.analog_sampling_rate,
+                    key, unit, frate_window,
                 )
-                frate_key = {**key.copy(), **unit_frate}
-                frate_key["unit_id"] = unit["unit_id"]
-                frate_key["bin_width"] = frate_window
-                del frate_key["site_id"]
-                del frate_key["secondary_sites_ids"]
-                del frate_key["spikes"]
-                del frate_key["spikes_ms"]
-                del frate_key["probe_configuration"]
+                key["firing_rate"] = unit_frate
+                key["bin_width"] = frate_window
 
-                self.insert1(frate_key)
+                self.insert1(key)
                 # time.sleep(5)
 
         def check_complete(self):
@@ -1434,7 +1470,7 @@ if have_dj:
             n_units = len(Unit())
             expected = n_per_unit * n_units
 
-            if len(FiringRate()) != expected:
+            if len(FiringRate3()) != expected:
                 raise ValueError("Not all units have all firing rates  :(")
             else:
                 logger.info("Firing rate has everything")
@@ -1443,7 +1479,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # LocomotionBouts().drop()
+    # FiringRate().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1478,18 +1514,19 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    TrackingBP2().populate(display_progress=True)
-    LinTrk2().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
-    Movement().populate(display_progress=True)
+    # TrackingBP2().populate(display_progress=True)
+    # LinTrk2().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
+    ProcessedLocomotionBouts2().fill()
+    # Movement().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
-    Recording().populate(display_progress=False)
+    # Probe().populate(display_progress=True)
+    # Recording().populate(display_progress=False)
 
-    Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
+    # Unit().populate(display_progress=True)
+    # FiringRate3().populate(display_progress=True)
     # FiringRate().check_complete()
 
     # -------------------------------- print stuff ------------------------------- #
@@ -1501,7 +1538,7 @@ if __name__ == "__main__":
         ValidatedSession,
         SessionCondition,
         Probe,
-        Probe.RecordingSite,
+        # Probe.RecordingSite,
         Recording,
         # Movement,
     ]
@@ -1512,7 +1549,7 @@ if __name__ == "__main__":
         "ValidatedSession",
         "SessionCondition",
         "Probe",
-        "RecordingSites",
+        # "RecordingSites",
         "Recording",
         # "Movement",
     ]

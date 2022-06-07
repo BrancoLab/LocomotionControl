@@ -14,11 +14,11 @@ Save each "raw" trial from python to a json file
 """
 # folder with json files exported from python's database
 # TRIALS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/inbound_bouts"  
-TRIALS_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\saved_data"
+TRIALS_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\locomotion_bouts\\saved_data"
 
 # folder where processed/cached julia trials will be stored
 # CACHE_FOLDER  = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_inbound_trials"  
-CACHE_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache"
+CACHE_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\locomotion_bouts\\processed"
 
 @info "Caching data" TRIALS_FOLDER CACHE_FOLDER
 
@@ -29,9 +29,12 @@ trials = load_trials(; folder=TRIALS_FOLDER)
 pbar = ProgressBar()
 job = addjob!(pbar; N=size(trials, 1))
 
+
+metadata_keys = ("mouse_id", "name", "condition", "direction", "duration", "start_frame", "end_frame", "complete")
+paws_keys = ("left_fl_x", "left_fl_y", "right_fl_x", "right_fl_y", "left_hl_x", "left_hl_y", "right_hl_x", "right_hl_y")
 with(pbar) do
-    for (i, trial) in enumerate(eachrow(trials))
-        trial = Trial(trial, FULLTRACK)
+    for (i, rawtrial) in enumerate(eachrow(trials))
+        trial = Trial(rawtrial, FULLTRACK; fixstart=false)
 
         trialdict = Dict(
             "x" => trial.x,
@@ -44,6 +47,13 @@ with(pbar) do
             "v" => trial.v,
             "duration" => trial.duration,
         )
+        for k in metadata_keys
+            trialdict[k] = rawtrial[k]
+        end
+        for k in paws_keys
+            trialdict[k] = rawtrial[k]
+        end
+        @assert length(trial.x) == length(rawtrial["body_x"]) "$(length(trial.x)) $(length(rawtrial["body_x"]))"
 
         df = DataFrame(trialdict)
 

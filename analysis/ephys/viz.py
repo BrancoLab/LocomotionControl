@@ -2,7 +2,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
 from myterial import grey_dark
-
+import matplotlib.patheffects as path_effects
+from matplotlib.artist import Artist
 from fcutils.plot.elements import plot_mean_and_error
 
 from analysis.ephys.utils import get_frate_per_bin
@@ -76,7 +77,7 @@ def bouts_raster(ax, unit, bouts, tracking, ds=5):
 
     # get avg number of spikes per bin
     counts, _ = np.histogram(S, bins=bins)
-    avg_counts = counts / n
+    avg_counts = counts  # / n
 
     # get the avg number of frames per bin
     gcoord_values = (
@@ -89,7 +90,7 @@ def bouts_raster(ax, unit, bouts, tracking, ds=5):
         * 260
     )
     frames_count, _ = np.histogram(gcoord_values, bins=bins)
-    frames_avg = frames_count / n
+    frames_avg = frames_count  # / n
 
     # now get the avg number of spikes divided by number of frames
     frate = avg_counts / frames_avg
@@ -111,14 +112,9 @@ def bouts_raster(ax, unit, bouts, tracking, ds=5):
         yticklabels=(np.arange(0, 1, 10 / n) * n).astype(int),
         xlim=[0, 260],
         ylabel="trial",
+        xlabel="track position (cm)",
     )
     cax.set(ylabel="Firing rate", xticks=[], xlim=[0, 260])
-    # tax.set(
-    #     ylabel="Speed (cm/s)",
-    #     xticks=[],
-    #     xlim=[0, 260],
-    #     xlabel="track progression (cm)",
-    # )
 
 
 def time_aligned_raster(ax, unit, timestamps, t_before=1, t_after=1, dt=0.1):
@@ -128,6 +124,8 @@ def time_aligned_raster(ax, unit, timestamps, t_before=1, t_after=1, dt=0.1):
     """
     ax.plot([0, 0], [0, 1], lw=3, color="k", alpha=0.3)
     n = len(timestamps)
+    if n == 0:
+        return
     h = 1 / n
 
     spikes = unit.spikes_ms / 1000
@@ -139,7 +137,7 @@ def time_aligned_raster(ax, unit, timestamps, t_before=1, t_after=1, dt=0.1):
 
         Y.extend(y)
         perievent_spikes.extend(trial_spikes - t)
-    ax.scatter(perievent_spikes, Y, s=4, color=grey_dark, alpha=1, marker="|")
+    ax.scatter(perievent_spikes, Y, s=6, color=grey_dark, alpha=1, marker="|")
 
     # add horizontal cax to axis
     cax = raster_histo(
@@ -198,3 +196,9 @@ def plot_tuning_curves(ax, tuning_curves: dict, color: str, xlabel: str = ""):
     #     ax.scatter(x, v, s=4, color=color, alpha=0.3)
 
     ax.set(ylabel="Firing rate (Hz)", xlabel=xlabel)
+
+
+def outline(artist: Artist, lw: float = 1, color: str = "white"):
+    artist.set_path_effects(
+        [path_effects.withStroke(linewidth=lw, foreground=color,)]
+    )

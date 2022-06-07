@@ -1,16 +1,138 @@
 import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
-
 from fcutils.maths.signals import get_onset_offset
+import sys
+from loguru import logger
+from dataclasses import dataclass
+from myterial import light_blue_light, blue, indigo_dark, purple
+
+sys.path.append("./")
+sys.path.append(r"C:\Users\Federico\Documents\GitHub\pysical_locomotion")
+
+from data.dbase.db_tables import (
+    Probe,
+    Unit,
+    Recording,
+    Tracking,
+    ProcessedLocomotionBouts2,
+)
 
 from data.data_utils import convolve_with_gaussian
-from data.dbase.db_tables import Probe, Unit, Tracking
+
+
+# ---------------------------------------------------------------------------- #
+#                                    CURVES                                    #
+# ---------------------------------------------------------------------------- #
+@dataclass
+class Curve:
+    s0: float  # position of "start"
+    s: float  # position of apex
+    sf: float  # position of end
+    name: str
+    color: str
+
+
+curves = dict(
+    first=Curve(0.0, 33.0, 40.0, "first", light_blue_light),
+    second=Curve(45.0, 87, 96.0, "second", blue),
+    third=Curve(98.0, 140.0, 144.0, "third", indigo_dark),
+    fourth=Curve(150.0, 194.0, 205.0, "fourth", purple),
+)
+
+
+def get_roi_crossings(
+    bouts: pd.DataFrame, curve: str, ds: int = 30, direction="out"
+) -> pd.DataFrame:
+    """
+        Get all the times the mouse crossed a curve ROI in the outward/inwrard direction, 
+        from bouts
+    """
+    crossings = dict(
+        enter_frame=[],
+        exit_frame=[],
+        bout_start_frame=[],
+        bout_end_frame=[],
+        session_start_frame=[],
+        session_end_frame=[],
+        at_apex=[],
+        bout_idx=[],
+    )
+
+    # get all the times the mouse goes through a curve
+    sapex = curves[curve].s
+
+    # for each bout, get the frame at which the mouse enters and exit
+    for i, bout in bouts.iterrows():
+        S = np.array(bout.s)
+        if direction == "out":
+            enter = np.where(S < (sapex - ds))[0]
+        else:
+            enter = np.where(S > (sapex + ds))[0]
+
+        if not len(enter):
+            enter = 0
+        else:
+            enter = enter[-1]
+
+        if direction == "out":
+            exit = np.where(S[enter:] < sapex + ds)[0] + enter
+        else:
+            exit = np.where(S[enter:] > sapex - ds)[0] + enter
+
+        if not len(exit):
+            continue
+        else:
+            exit = exit[-1]
+
+        if exit < enter:
+            raise ValueError(f"exit before enter: {exit} < {enter}")
+
+        if abs(exit - enter) > 100:
+            continue
+
+        # if np.any(np.array(bout.speed[enter:exit]) < 5):
+        #     continue
+
+        # check that the entiire ROI is covered in the bout
+        if direction == "out":
+            if bout.s[enter] > sapex - ds + 5:
+                continue
+            if bout.s[exit] < sapex + ds - 5:
+                continue
+        else:
+            if bout.s[enter] < sapex + ds - 5:
+                continue
+            if bout.s[exit] > sapex - ds + 5:
+                continue
+
+        # get when at curve apex
+        d = (S[enter:exit] - sapex) ** 2
+        idx = np.argmin(d)
+
+        crossings["enter_frame"].append(enter)
+        crossings["exit_frame"].append(exit)
+        crossings["bout_start_frame"].append(bout.start_frame)
+        crossings["bout_end_frame"].append(bout.end_frame)
+        crossings["session_start_frame"].append(enter + bout.start_frame)
+        crossings["session_end_frame"].append(exit + bout.start_frame)
+        crossings["at_apex"].append(enter + idx + bout.start_frame)
+        crossings["bout_idx"].append(i)
+    return pd.DataFrame(crossings)
 
 
 # ---------------------------------------------------------------------------- #
 #                                   GET DATA                                   #
 # ---------------------------------------------------------------------------- #
+
+
+def get_recording_names():
+    """
+        Get the names of the recordings (M2)
+    """
+    return (Recording * Probe & "target='MOs'").fetch("name")
+
+
 def get_speed(x, y):
     """
         Compute speed at each frame from XY coordinates, somehow 
@@ -22,13 +144,18 @@ def get_speed(x, y):
     return convolve_with_gaussian(rawspeed, 9)
 
 
-def get_data(REC):
-    tracking = Tracking.get_session_tracking(REC, body_only=False)
-
-    units = pd.DataFrame(
-        Unit * Unit.Spikes * Probe.RecordingSite & f'name="{REC}"'
+def get_data(recording: str):
+    """
+        Get all relevant data for a recording.
+        Gets the ephys data and tracking data for all limbs
+    """
+    tracking = Tracking.get_session_tracking(
+        recording, body_only=False, movement=True
     )
-    units = units.sort_values("brain_region", inplace=False).reset_index()
+
+    if len(tracking) == 0:
+        logger.warning(f"No tracking data for {recording}")
+        return None, None, None, None, None, None
 
     left_fl = tracking.loc[tracking.bpname == "left_fl"].iloc[0]
     right_fl = tracking.loc[tracking.bpname == "right_fl"].iloc[0]
@@ -36,10 +163,41 @@ def get_data(REC):
     right_hl = tracking.loc[tracking.bpname == "right_hl"].iloc[0]
     body = tracking.loc[tracking.bpname == "body"].iloc[0]
 
-    for limb in (left_fl, right_fl, left_hl, right_hl):
-        limb.speed = get_speed(limb.x, limb.y)
+    logger.info(f"Got tracking data for {recording}")
+
+    # get units
+    recording = (Recording & f"name='{recording}'").fetch1()
+    cf = recording["recording_probe_configuration"]
+    units = Unit.get_session_units(
+        recording["name"], cf, spikes=True, firing_rate=True, frate_window=100,
+    )
+    if len(units):
+        units = units.sort_values("brain_region", inplace=False).reset_index()
+        logger.info(f"Got {len(units)} units for {recording['name']}")
+    else:
+        logger.info(f"No units for {recording['name']}")
 
     return units, left_fl, right_fl, left_hl, right_hl, body
+
+
+def get_session_bouts(
+    session: str, complete: str = "true", direction: str = "outbound"
+):
+    """
+        Get bouts (complete/all - in/out bound) for a session
+    """
+    query = ProcessedLocomotionBouts2 & f'name="{session}"'
+    if complete is not None:
+        query = query & f"complete='{complete}'"
+
+    if direction is not None:
+        query = query & f"direction='{direction}'"
+
+    bouts = pd.DataFrame(query.fetch())
+    logger.info(
+        f"Got {len(bouts)} bouts for {session} | {complete} | {direction}"
+    )
+    return bouts
 
 
 def cleanup_running_bouts(bouts, tracking, min_delta_gcoord=0.5):

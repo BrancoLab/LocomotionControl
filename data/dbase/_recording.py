@@ -5,7 +5,6 @@ from typing import Union
 from loguru import logger
 import h5py
 import numpy as np
-from scipy import stats
 from rich.prompt import Confirm
 
 sys.path.append("./")
@@ -246,81 +245,55 @@ def get_unit_spike_times(
 # -------------------------------- firing rate ------------------------------- #
 
 
+def gaussian(x, s):
+    return (
+        1.0
+        / np.sqrt(2.0 * np.pi * s ** 2)
+        * np.exp(-(x ** 2) / (2.0 * s ** 2))
+    )
+
+
+def calc_firing_rate(spikes_train: np.ndarray, dt: int = 10):
+    """
+        Computes the firing rate given a spikes train (wether there is a spike or not at each ms).
+        Using a gaussian kernel with standard deviation = dt/2 [dt is in ms]
+    """
+    # create kernel & get area under the curve
+    k = np.array([gaussian(x, dt / 2) for x in np.linspace(-dt, dt, dt * 2)])
+    auc = np.trapz(k)
+
+    # get firing rate
+    frate = (
+        np.convolve(spikes_train, k, mode="same") / auc * 1000
+    )  # times 1000 to go from ms to seconds
+    return frate
+
+
 def get_units_firing_rate(
-    units: Union[pd.DataFrame, dict],
-    frate_window: float,
-    triggers: dict,
-    sampling_rate: int,
-) -> Union[pd.DataFrame, dict]:
+    info: dict, unit: dict, frate_window: float,
+) -> np.ndarray:
     """
         Computs the firing rate of a unit by binnig spikes with bins
         of width = frate_window milliseconds. It also samples the resulting firing rate array
         to the firing rate at frame times
     """
-    # prepare arrays
-    logger.debug(f"Getting firing rate with window width {frate_window}ms")
-    trigger_times_ms = np.int32(
-        triggers["trigger_times"] / sampling_rate * 1000
-    )
-    trigger_times_ms[-1] = trigger_times_ms[-1] - 1
-    n_ms = int(triggers["trigger_times"][-1] / sampling_rate * 1000)
-    time_array = np.zeros(n_ms)
+    n_ms = unit["duration"] * 1000
+    spikes_ms = unit["spikes_ms"].astype(np.int64)
+    spikes = np.zeros(np.max([n_ms, spikes_ms[-1] + 1]))
+    spikes[spikes_ms] = 1
 
-    # check if we are dealing with a single unit
-    if isinstance(units, dict):
-        units_list = [pd.Series(units)]
-    else:
-        units_list = [unit for i, unit in units.iterrows()]
+    # get frate at each millisecond
+    frate = calc_firing_rate(spikes, dt=frate_window)
 
-    # define gaussian kernel with unit area under the curve
-    norm = stats.norm(0, frate_window)
-    X = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), frate_window)
-    kernel = norm.pdf(X)
-    kernel /= np.sum(kernel)  # normalize area under the curve to 1
-    kernel = kernel * 1 / np.max(kernel)  # ensure peak at 1
-
-    # define number of bins
-    # n_bins = int(n_ms / frate_window)
-
-    # iterate over units
-    rates, rates_frames = [], []
-    for i, unit in enumerate(units_list):
-        spikes_ms = unit.spikes_ms.astype(np.int32)
-        if spikes_ms.max() > n_ms:
-            raise ValueError("spikes times after max duration")
-
-        # get an array with number of spikes per ms
-        spikes_ms_counts = pd.Series(spikes_ms).value_counts()
-        spikes_counts = time_array.copy()
-        spikes_counts[spikes_ms_counts.index] = spikes_ms_counts.values
-
-        # convolve with gaussian
-        spike_rate = np.convolve(spikes_counts, kernel, mode="same")
-
-        # get density with histogram
-        # spikes_density, bin_edges = np.histogram(spikes_ms, n_bins, density=True)
-
-        # spike_rate = time_array.copy()
-        # for rate, start, end in zip(spikes_density, bin_edges, bin_edges[1:]):
-        #     spike_rate[int(start):int(end)] = rate
-
-        if not len(spike_rate) == n_ms:
-            raise ValueError("Should be of length n milliseconds")
-
-        # get spike rate at frame times
-        spike_rate_frames = spike_rate[trigger_times_ms]
-        if len(spike_rate_frames) != len(triggers["trigger_times"]):
-            raise ValueError("Mismatched array length")
-
-        rates.append(spike_rate)
-        rates_frames.append(spike_rate_frames)
-
-    if isinstance(units, dict):
-        units["firing_rate"] = rates_frames[0]
-    else:
-        units["firing_rate"] = rates_frames
-
-    return units
+    # get frate at each frame
+    ms_per_frame = 1000 / 60
+    idxs = np.round(np.arange(0, n_ms, step=ms_per_frame)).astype(np.int64)
+    frate_frames = frate[idxs]
+    if len(frate_frames) < unit["n_frames"]:
+        frate_frames = np.pad(
+            frate_frames, (0, unit["n_frames"] - len(frate_frames)), "constant"
+        )
+    return frate_frames
 
 
 if __name__ == "__main__":

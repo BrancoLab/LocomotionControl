@@ -55,9 +55,7 @@ for dataset_dir in subdirs(datasetes_folder):
 
     logger.info(f"Doing {dataset_dir}")
 
-    dataset = GoalDirectedLocomotionDataset(
-        max_dataset_length=3000, data_folder=dataset_dir
-    )
+    dataset = GoalDirectedLocomotionDataset(data_folder=dataset_dir)
 
     # split train/test sets
     datasets = train_val_dataset(dataset)

@@ -45,7 +45,7 @@ Base.show(io::IO, trial::Trial) = print(io, "Trial: $(round(trial.duration; digi
 """
 Construct Trial out of a dataframe entry.
 """
-function Trial(trial::DataFrameRow, track::Track)
+function Trial(trial::DataFrameRow, track::Track; fixstart=true)
     s = get_trial_s(trial, track)
 
     # get orientation
@@ -64,8 +64,12 @@ function Trial(trial::DataFrameRow, track::Track)
     ω[abs.(ω) .> 15] .= 0
 
     # trim start to when speed is high enough
-    start = findfirst(speed .> 15)
-    start = isnothing(start) ? 1 : start
+    if fixstart
+        start = findfirst(speed .> 15)
+        start = isnothing(start) ? 1 : start
+    else
+        start = 1
+    end
 
     return Trial(
         trial.body_x[start:end],    # x
