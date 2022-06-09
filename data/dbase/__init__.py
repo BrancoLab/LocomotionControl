@@ -10,4 +10,5 @@ except Exception as e:
 else:
     logger.debug(f"Connected to database: {dbname}")
     connected = True
+
 from data.dbase import db_tables

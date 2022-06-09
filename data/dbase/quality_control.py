@@ -21,15 +21,16 @@ def load_or_open(
         Tries to load a previously saved .npy file with some relevant data,
         otherwise it opens a .bin file and saves it to .npy for future use
     """
-    if not bin_file.exists():
+    savepath = Path(base_path).parent / (
+        Path(base_path).stem + f"_{data_type}_sync.npy"
+    )
+
+    if not bin_file.exists() and not savepath.exists():
         logger.info(
             f"Couldnt read .bin file because it doesn't exist:\n{bin_file}"
         )
         return None
 
-    savepath = Path(base_path).parent / (
-        Path(base_path).stem + f"_{data_type}_sync.npy"
-    )
     if savepath.exists():
         logger.debug(
             f"Loading previously extracted signal from .npy: '{savepath}'"

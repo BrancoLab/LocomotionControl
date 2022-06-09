@@ -323,13 +323,12 @@ if have_dj:
                     f'Skipping session "{session["name"]}" because its in the excluded sessions list'
                 )
                 return
-
             has_rec = Session.has_recording(key["name"])
-            # if int(session["date"]) > 220229 and has_rec:
-            #     logger.warning(
-            #         f'Skipping because "{key["name"]}" is a NP2.0 recording {session["date"]}.\n\n'
-            #     )
-            #     return
+
+            if has_rec:
+                # see perhaps it wes added later
+                if "BAA1101192" in key["name"] or "BAA0000012" in key["name"]:
+                    has_rec = False
 
             if has_rec:
                 previously_validated_path = (
@@ -575,11 +574,10 @@ if have_dj:
             # Get path to video
             videopath = (Session & key).fetch1("video_file_path")
 
-            # replac with local copy path
+            # replace with local copy path
             videopath = Path("K:\\vids") / Path(videopath).name
             if not videopath.exists():
                 logger.info(f"Could not find video file: {videopath}")
-                return
 
             # get matrix
             key["correction_matrix"] = _ccm.get_matrix(str(videopath), arena)
@@ -639,25 +637,6 @@ if have_dj:
             thetadotdot:            longblob # in deg/s^2
         """
 
-        class BodyPart(dj.Part):
-            definition = """
-                -> Tracking
-                bpname:  varchar(64)
-                ---
-                x:                          longblob  # body position in cm
-                y:                          longblob  # body position in cm
-                bp_speed:                   longblob  # body speed in cm/s
-                beta:                       longblob   # angle of velocity vector in degrees
-            """
-
-        class Linearized(dj.Part):
-            definition = """
-                -> Tracking
-                ---
-                segment:        longblob  # index of hairpin arena segment
-                global_coord:   longblob # values in range 0-1 with position along the arena
-            """
-
         def make(self, key):
             if "_t" in key["name"] and "training" not in key["name"]:
                 logger.warning(
@@ -714,7 +693,7 @@ if have_dj:
 
         @staticmethod
         def get_session_tracking(session_name, body_only=True, movement=True):
-            query = Tracking * TrackingBP2 & f'name="{session_name}"'
+            query = Tracking * TrackingBP & f'name="{session_name}"'
             if movement:
                 query = query * Movement
 
@@ -722,7 +701,7 @@ if have_dj:
                 query = query & f"bpname='body'"
 
             if Session.on_hairpin(session_name):
-                query = query * LinTrk2
+                query = query * TrackingLinearized
 
             if len(query) == 1:
                 return pd.DataFrame(query.fetch()).iloc[0]
@@ -730,7 +709,7 @@ if have_dj:
                 return pd.DataFrame(query.fetch())
 
     @schema
-    class TrackingBP2(dj.Imported):
+    class TrackingBP(dj.Imported):
         definition = """
             -> ValidatedSession
             bpname:  varchar(64)
@@ -773,7 +752,7 @@ if have_dj:
                     self.insert1(bpkey)
 
     @schema
-    class LinTrk2(dj.Imported):
+    class TrackingLinearized(dj.Imported):
         definition = """
             -> Tracking
             ---
@@ -787,7 +766,7 @@ if have_dj:
 
             # Get linearized position
             if Session.on_hairpin(key["name"]):
-                body = (TrackingBP2 & key & "bpname='body'").fetch1()
+                body = (TrackingBP & key & "bpname='body'").fetch1()
                 hp = HairpinTrace()
                 (key["segment"], key["global_coord"],) = hp.assign_tracking(
                     body["x"], body["y"]
@@ -915,7 +894,7 @@ if have_dj:
                 self.insert1(bout)
 
     @schema
-    class ProcessedLocomotionBouts2(dj.Manual):
+    class ProcessedLocomotionBouts(dj.Manual):
         definition = """
             # processed locomotion bouts exported by Julia (from locomotion bouts from here)
             -> ValidatedSession
@@ -961,7 +940,7 @@ if have_dj:
                     x=bout["x"],
                     y=bout["y"],
                     speed=bout["speed"],
-                    angvel=bout["Î¸"],
+                    angvel=bout["Ï‰"],
                 )
 
                 name = f"{key['name']}_{key['start_frame']}_{key['end_frame']}"
@@ -1113,9 +1092,10 @@ if have_dj:
                     / probe_key["mouse_id"][-3:]
                 )
                 if not tracks_folder.exists():
-                    raise FileNotFoundError(
+                    logger.warning(
                         f"Could not find tracks folder for {probe_key['mouse_id']}"
                     )
+                    return
 
                 probe_key["reconstructed_track_filepath"] = files(
                     tracks_folder
@@ -1241,7 +1221,7 @@ if have_dj:
                     # load pre-computed firing rates
                     units["firing_rate"] = list(
                         (
-                            query * FiringRate3 & f"bin_width={frate_window}"
+                            query * FiringRate & f"bin_width={frate_window}"
                         ).fetch("firing_rate")
                     )
             return units
@@ -1335,16 +1315,18 @@ if have_dj:
                     logger.warning(
                         f"Could not find the file {triggers['ephys_ap_data_path']}"
                     )
-                    return
-                else:
-                    triggers["ephys_ap_data_path"] = str(
-                        triggers["ephys_ap_data_path"]
-                    )
+                #     return
+                # else:
+                triggers["ephys_ap_data_path"] = str(
+                    triggers["ephys_ap_data_path"]
+                )
 
             # get time scaling factors
             tscale, ai_file_path = _recording.get_tscale(
                 triggers["ephys_ap_data_path"], triggers["ai_file_path"]
             )
+            if tscale is None:
+                return
 
             # for M2 triggers get the triggers anew
             if triggers["bonsai_cut_start"] == -1:
@@ -1437,8 +1419,8 @@ if have_dj:
                     )
                 self.Spikes.insert1(spikes_key)
 
-    @schema
-    class FiringRate3(dj.Imported):
+    #     @schema
+    class FiringRate(dj.Imported):
         definition = """
             # spike times in milliseconds and video frame number
             -> Unit
@@ -1464,22 +1446,11 @@ if have_dj:
                 self.insert1(key)
                 # time.sleep(5)
 
-        def check_complete(self):
-            # checks that all units have all firing rates
-            n_per_unit = len(Unit.precomputed_firing_rate_windows)
-            n_units = len(Unit())
-            expected = n_per_unit * n_units
-
-            if len(FiringRate3()) != expected:
-                raise ValueError("Not all units have all firing rates  :(")
-            else:
-                logger.info("Firing rate has everything")
-
 
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # FiringRate().drop()
+    # Session().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1514,10 +1485,10 @@ if __name__ == "__main__":
     # ? tracking data
     logger.info("#####    Filling Tracking")
     # Tracking().populate(display_progress=True)
-    # TrackingBP2().populate(display_progress=True)
-    # LinTrk2().populate(display_progress=True)
+    # TrackingBP().populate(display_progress=True)
+    # TrackingLinearized().populate(display_progress=True)
     # LocomotionBouts().populate(display_progress=True)
-    ProcessedLocomotionBouts2().fill()
+    ProcessedLocomotionBouts().fill()
     # Movement().populate(display_progress=True)
 
     # ? EPHYS
@@ -1526,8 +1497,7 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=False)
 
     # Unit().populate(display_progress=True)
-    # FiringRate3().populate(display_progress=True)
-    # FiringRate().check_complete()
+    # FiringRate().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents

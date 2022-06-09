@@ -30,7 +30,7 @@ pbar = ProgressBar()
 job = addjob!(pbar; N=size(trials, 1))
 
 
-metadata_keys = ("mouse_id", "name", "condition", "direction", "duration", "start_frame", "end_frame", "complete")
+metadata_keys = ("mouse_id", "name", "direction", "duration", "start_frame", "end_frame", "complete")
 paws_keys = ("left_fl_x", "left_fl_y", "right_fl_x", "right_fl_y", "left_hl_x", "left_hl_y", "right_hl_x", "right_hl_y")
 with(pbar) do
     for (i, rawtrial) in enumerate(eachrow(trials))

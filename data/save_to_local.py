@@ -12,10 +12,7 @@ from fcutils.path import files, from_json
 sys.path.append("./")
 
 
-from data.dbase.db_tables import (
-    LocomotionBouts,
-    Tracking,
-)
+from data.dbase.db_tables import LocomotionBouts, Tracking, SessionCondition
 
 
 base_folder = Path(
@@ -40,7 +37,7 @@ def save_bouts_JSON():
 
     bouts = pd.DataFrame(
         (
-            LocomotionBouts
+            LocomotionBouts * SessionCondition
             # & 'complete="true"'
             # & 'direction="outbound"'
             & 'mouse_id="BAA1101192"'

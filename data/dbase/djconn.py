@@ -22,7 +22,7 @@ def start_connection():
 
     """
     if have_dj:
-        dbname = "LOCOMOTION"  # Name of the database subfolder with data
+        dbname = "LOCOMOTION3"  # Name of the database subfolder with data
         if dj.config["database.user"] != "root":
 
             dj.config["database.host"] = ip
@@ -35,6 +35,7 @@ def start_connection():
             dj.conn()
 
         schema = dj.schema(dbname)
+        dj.ERD(schema)
         return dbname, schema
     else:
         return None, None
@@ -42,7 +43,7 @@ def start_connection():
 
 def print_erd():
     _, schema = start_connection()
-    dj.ERD(schema).draw()
+    dj.ERD(schema)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from loguru import logger
 import pandas as pd
+from pathlib import Path
 
 from fcutils.path import from_yaml, files
 from fcutils.progress import track
@@ -19,11 +20,13 @@ def fill_session_table(table):
     )
 
     # Get the videos of all sessions
-    vids = [f for f in files(raw_data_folder / "video") if ".avi" in f.name]
+    # vids = [f for f in files(raw_data_folder / "video") if ".avi" in f.name]
+    vids = [f for f in files(Path(r"K:\analog_inputs_temp"), "*.BIN")]
 
     for video in track(vids, description="Adding sessions", transient=True):
         # Get session data
-        name = video.name.split("_video")[0]
+        # name = video.name.split("_video")[0]
+        name = video.name.split("_analog")[0]
         if name in in_table:
             continue
 
@@ -77,13 +80,13 @@ def fill_session_table(table):
             raw_data_folder / "analog_inputs" / (name + "_data.csv")
         )
 
-        if (
-            not key["video_file_path"].exists()
-            or not key["ai_file_path"].exists()
-        ):
-            raise FileNotFoundError(
-                f"Either video or AI files not found for session: {name} with data:\n{key}"
-            )
+        # if (
+        #     not key["video_file_path"].exists()
+        #     or not key["ai_file_path"].exists()
+        # ):
+        #     raise FileNotFoundError(
+        #         f"Either video or AI files not found for session: {name} with data:\n{key}"
+        #     )
 
         # get ephys files & arena type
         if name in recorded_sessions["bonsai filename"].values:

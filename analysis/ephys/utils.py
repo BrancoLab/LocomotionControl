@@ -5,7 +5,15 @@ from fcutils.maths.signals import get_onset_offset
 import sys
 from loguru import logger
 from dataclasses import dataclass
-from myterial import light_blue_light, blue, indigo_dark, purple
+from myterial import (
+    light_blue_light,
+    blue,
+    indigo_dark,
+    purple,
+    green_light,
+    green_dark,
+    teal,
+)
 
 sys.path.append("./")
 sys.path.append(r"C:\Users\Federico\Documents\GitHub\pysical_locomotion")
@@ -15,7 +23,7 @@ from data.dbase.db_tables import (
     Unit,
     Recording,
     Tracking,
-    ProcessedLocomotionBouts2,
+    ProcessedLocomotionBouts,
 )
 
 from data.data_utils import convolve_with_gaussian
@@ -35,9 +43,12 @@ class Curve:
 
 curves = dict(
     first=Curve(0.0, 33.0, 40.0, "first", light_blue_light),
+    first_straight=Curve(36, 55, 70, "first_straight", green_light),
     second=Curve(45.0, 87, 96.0, "second", blue),
+    second_straight=Curve(80, 115, 110, "second_straight", green_dark),
     third=Curve(98.0, 140.0, 144.0, "third", indigo_dark),
-    fourth=Curve(150.0, 194.0, 205.0, "fourth", purple),
+    third_straight=Curve(120, 170, 200, "third_straight", teal),
+    fourth=Curve(150.0, 192.0, 205.0, "fourth", purple),
 )
 
 
@@ -163,19 +174,23 @@ def get_data(recording: str):
     right_hl = tracking.loc[tracking.bpname == "right_hl"].iloc[0]
     body = tracking.loc[tracking.bpname == "body"].iloc[0]
 
-    logger.info(f"Got tracking data for {recording}")
+    # logger.info(f"Got tracking data for {recording}")
 
     # get units
     recording = (Recording & f"name='{recording}'").fetch1()
     cf = recording["recording_probe_configuration"]
     units = Unit.get_session_units(
-        recording["name"], cf, spikes=True, firing_rate=True, frate_window=100,
+        recording["name"],
+        cf,
+        spikes=True,
+        firing_rate=False,
+        frate_window=100,
     )
     if len(units):
         units = units.sort_values("brain_region", inplace=False).reset_index()
-        logger.info(f"Got {len(units)} units for {recording['name']}")
-    else:
-        logger.info(f"No units for {recording['name']}")
+        # logger.info(f"Got {len(units)} units for {recording['name']}")
+    # else:
+    # logger.info(f"No units for {recording['name']}")
 
     return units, left_fl, right_fl, left_hl, right_hl, body
 
@@ -186,7 +201,7 @@ def get_session_bouts(
     """
         Get bouts (complete/all - in/out bound) for a session
     """
-    query = ProcessedLocomotionBouts2 & f'name="{session}"'
+    query = ProcessedLocomotionBouts & f'name="{session}"'
     if complete is not None:
         query = query & f"complete='{complete}'"
 
@@ -194,9 +209,9 @@ def get_session_bouts(
         query = query & f"direction='{direction}'"
 
     bouts = pd.DataFrame(query.fetch())
-    logger.info(
-        f"Got {len(bouts)} bouts for {session} | {complete} | {direction}"
-    )
+    # logger.info(
+    #     f"Got {len(bouts)} bouts for {session} | {complete} | {direction}"
+    # )
     return bouts
 
 
