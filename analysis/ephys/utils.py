@@ -180,11 +180,7 @@ def get_data(recording: str):
     recording = (Recording & f"name='{recording}'").fetch1()
     cf = recording["recording_probe_configuration"]
     units = Unit.get_session_units(
-        recording["name"],
-        cf,
-        spikes=True,
-        firing_rate=False,
-        frate_window=100,
+        recording["name"], cf, spikes=True, firing_rate=True, frate_window=100,
     )
     if len(units):
         units = units.sort_values("brain_region", inplace=False).reset_index()
@@ -193,6 +189,30 @@ def get_data(recording: str):
     # logger.info(f"No units for {recording['name']}")
 
     return units, left_fl, right_fl, left_hl, right_hl, body
+
+
+def trim_bouts(bouts: pd.DataFrame):
+    """ 
+        Trim bouts to times where the speed is high enough.
+    """
+
+    starts, ends = [], []
+    for i, bout in bouts.iterrows():
+        speed = np.array(bout["speed"])
+        start = np.where(speed > 10)[0][0]
+        end = np.where(speed[start + 20 :] < 10)[0]
+        if len(end):
+            end = end[0] + start + 20
+        else:
+            end = len(speed) - 1
+
+        assert end > start
+        starts.append(start)
+        ends.append(end)
+
+    bouts["trim_start"] = np.array(starts) + bouts["start_frame"].values
+    bouts["trim_end"] = np.array(ends) + bouts["start_frame"].values
+    return bouts
 
 
 def get_session_bouts(

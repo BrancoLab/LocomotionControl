@@ -37,10 +37,11 @@ def save_bouts_JSON():
 
     bouts = pd.DataFrame(
         (
-            LocomotionBouts * SessionCondition
+            LocomotionBouts
+            * SessionCondition
             # & 'complete="true"'
             # & 'direction="outbound"'
-            & 'mouse_id="BAA1101192"'
+            # & 'mouse_id="BAA1101192"'
         ).fetch()
     )
     logger.info(f"Got {len(bouts)} bouts")

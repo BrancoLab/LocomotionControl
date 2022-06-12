@@ -721,8 +721,8 @@ if have_dj:
         """
 
         def make(self, key):
-            if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
-                return
+            # if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
+            #     return
 
             # get tracking data file
             tracking_file = Session.get_session_tracking_file(key["name"])
@@ -761,8 +761,8 @@ if have_dj:
         """
 
         def make(self, key):
-            if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
-                return
+            # if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
+            #     return
 
             # Get linearized position
             if Session.on_hairpin(key["name"]):
@@ -1419,7 +1419,7 @@ if have_dj:
                     )
                 self.Spikes.insert1(spikes_key)
 
-    #     @schema
+    @schema
     class FiringRate(dj.Imported):
         definition = """
             # spike times in milliseconds and video frame number
