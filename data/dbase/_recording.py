@@ -264,7 +264,9 @@ def calc_firing_rate(spikes_train: np.ndarray, dt: int = 10):
         Using a gaussian kernel with standard deviation = dt/2 [dt is in ms]
     """
     # create kernel & get area under the curve
-    k = np.array([gaussian(x, dt / 2) for x in np.linspace(-dt, dt, dt * 2)])
+    k = np.array(
+        [gaussian(x, dt / 2) for x in np.linspace(-2 * dt, 2 * dt, dt)]
+    )
     auc = np.trapz(k)
 
     # get firing rate

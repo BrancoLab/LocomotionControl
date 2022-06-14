@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
-from fcutils.maths.signals import get_onset_offset
+from fcutils.maths.signals import get_onset_offset, rolling_mean
+from fcutils.maths import derivative
 import sys
 from loguru import logger
 from dataclasses import dataclass
@@ -174,7 +175,12 @@ def get_data(recording: str):
     right_hl = tracking.loc[tracking.bpname == "right_hl"].iloc[0]
     body = tracking.loc[tracking.bpname == "body"].iloc[0]
 
-    # logger.info(f"Got tracking data for {recording}")
+    # fix angular velocity
+    body.theta = rolling_mean(
+        np.rad2deg(np.unwrap(np.deg2rad(body.theta))), 30
+    )
+    body.thetadot = derivative(body.theta) * 60
+    body.thetadotdot = derivative(body.thetadot) * 60
 
     # get units
     recording = (Recording & f"name='{recording}'").fetch1()
