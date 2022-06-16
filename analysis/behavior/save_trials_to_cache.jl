@@ -1,4 +1,4 @@
-using Term.progress
+using Term.Progress
 using DataFrames
 import JSONTables: objecttable, jsontable
 
@@ -13,12 +13,12 @@ Save each "raw" trial from python to a json file
 
 """
 # folder with json files exported from python's database
-# TRIALS_FOLDER = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/inbound_bouts"  
-TRIALS_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\locomotion_bouts\\saved_data"
+TRIALS_FOLDER = raw"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior\saved_data"
+# TRIALS_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\locomotion_bouts\\saved_data"
 
 # folder where processed/cached julia trials will be stored
-# CACHE_FOLDER  = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_inbound_trials"  
-CACHE_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\locomotion_bouts\\processed"
+CACHE_FOLDER  = raw"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior\jl_trials_cache"
+# CACHE_FOLDER = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\locomotion_bouts\\processed"
 
 @info "Caching data" TRIALS_FOLDER CACHE_FOLDER
 
@@ -62,7 +62,6 @@ with(pbar) do
         end
 
         update!(job)
-        sleep(0.001)
     end
 end
 

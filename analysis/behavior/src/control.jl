@@ -7,7 +7,7 @@ using InfiniteOpt
 import Parameters: @with_kw
 using IOCapture: IOCapture
 import Term: Panel, RenderableText
-import Term.style: apply_style
+import Term.Style: apply_style
 import MyterialColors: blue_light
 
 import jcontrol: Track

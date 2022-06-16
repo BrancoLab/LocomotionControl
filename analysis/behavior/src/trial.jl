@@ -52,16 +52,16 @@ function Trial(trial::DataFrameRow, track::Track; fixstart=true)
     θ = unwrap(
         atan.(trial.snout_y .- trial.tail_base_y, trial.snout_x .- trial.tail_base_x)
     )
-    θ = movingaverage(θ, 3)
+    θ = movingaverage(θ, 30)
 
     # get velocities
     speed, u, v, ω = kinematics_from_position(
-        trial.body_x, trial.body_y, θ; fps=60, smooth=true, smooth_wnd=0.05
+        trial.body_x, trial.body_y, θ, trial.body_speed; fps=60, smooth=true, smooth_wnd=0.05
     )
 
     # remove artifacts
-    ω = ω
-    ω[abs.(ω) .> 15] .= 0
+    # ω = ω
+    # ω[abs.(ω) .> 15] .= 0
 
     # trim start to when speed is high enough
     if fixstart

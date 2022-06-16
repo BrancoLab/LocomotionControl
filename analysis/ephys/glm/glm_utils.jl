@@ -11,7 +11,7 @@ install_term_repr()
 install_term_logger()
 
 
-base_folder = raw"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys\GLM"
+base_folder = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\GLM"
 metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 
 
@@ -19,11 +19,18 @@ metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 Load a unit's .parquet dataset
 """
 function load_data(unit::Dict)::DataFrame 
-    data = DataFrame(read_parquet(unit["unit_data"]));
+    data = DataFrame(read_parquet(unit["unit_data"]))
     data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
     return data
 end
 
+""" load dataset for a unit's shuffled data """
+function load_data(unit::Dict, shuffle::Int)::DataFrame 
+    path = joinpath(unit["folder"], "shuffles", "shuffle_$(shuffle).parquet")
+    data = DataFrame(read_parquet(path))
+    data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
+    return data
+end
 
 """
     get_fold_data(df::DataFrame, fold::Int)
@@ -108,7 +115,7 @@ function predict(model::FittedModel, x::Matrix)
     return ŷ
 end
 
-function predict(model::FittedModel, data::DataFrame)
+function predict(model::FittedModel, data::SubDataFrame)
     # get entries from dataset
     x = Matrix(data[:, collect(getfield.(model.formula.rhs, :sym))])
 

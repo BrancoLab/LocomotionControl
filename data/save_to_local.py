@@ -16,7 +16,7 @@ from data.dbase.db_tables import LocomotionBouts, Tracking, SessionCondition
 
 
 base_folder = Path(
-    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys\locomotion_bouts"
+    r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\behavior\saved_data"
 )
 # base_folder = Path(
 #     "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior"
@@ -37,10 +37,9 @@ def save_bouts_JSON():
 
     bouts = pd.DataFrame(
         (
-            LocomotionBouts
-            * SessionCondition
-            # & 'complete="true"'
-            # & 'direction="outbound"'
+            LocomotionBouts * SessionCondition
+            & 'complete="true"'
+            & 'direction="outbound"'
             # & 'mouse_id="BAA1101192"'
         ).fetch()
     )

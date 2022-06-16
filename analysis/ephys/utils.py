@@ -27,7 +27,7 @@ from data.dbase.db_tables import (
     ProcessedLocomotionBouts,
 )
 
-from data.data_utils import convolve_with_gaussian
+# from data.data_utils import convolve_with_gaussian
 
 
 # ---------------------------------------------------------------------------- #
@@ -143,17 +143,6 @@ def get_recording_names():
         Get the names of the recordings (M2)
     """
     return (Recording * Probe & "target='MOs'").fetch("name")
-
-
-def get_speed(x, y):
-    """
-        Compute speed at each frame from XY coordinates, somehow 
-        its missing for paws in database
-    """
-    rawspeed = (
-        np.hstack([[0], np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2)]) * 60
-    )
-    return convolve_with_gaussian(rawspeed, 9)
 
 
 def get_data(recording: str):
