@@ -5,7 +5,6 @@ using Parquet
 import YAML
 import GLM: coeftable
 import GLM
-using Term.Progress
 import Term: tprint
 
 include(raw"C:\Users\Federico\Documents\GitHub\pysical_locomotion\analysis\ephys\glm\glm_utils.jl")
@@ -50,32 +49,27 @@ function fit_model(doing::Dict, data::DataFrame, formulas::Dict)
     correlations = Dict{String, Vector}(name => zeros(Float64, 5) for name in keys(formulas))
 
     # fit each model on all folders
-    # pbar = ProgressBar(; columns=:detailed, expand=true)
-    # job = addjob!(pbar; N=length(formulas))
-    # with(pbar) do
-    #     for (name, formula) in formulas
-    #         for fold in 0:4
-    #             # fit model
-    #             train, test = get_fold_data(data, fold)
-    #             model = glm(formula, train, Binomial(), LogitLink())
-        
-    #             # save coefficients
-    #             coefficients = coeftable(model) |> DataFrame
-    #             CSV.write(joinpath(coefficients_folder, "$(name)_$(fold).csv"), coefficients)
-        
-    #             # save predictions
-    #             y = test[:,:p_spike]
-    #             ŷ = GLM.predict(model, test)
-    #             CSV.write(joinpath(predictions_folder, "$(name)_$(fold).csv"), DataFrame(
-    #                         :y=>y, :ŷ=>ŷ)
-    #             )
-        
-    #             # get Pearson's correlation coefficient
-    #             correlations[name][fold+1] = cor(y, ŷ)
-    #         end
-    #         update!(job)
-    #     end
-    # end
+    for (name, formula) in formulas
+        for fold in 0:4
+            # fit model
+            train, test = get_fold_data(data, fold)
+            model = glm(formula, train, Binomial(), LogitLink())
+    
+            # save coefficients
+            coefficients = coeftable(model) |> DataFrame
+            CSV.write(joinpath(coefficients_folder, "$(name)_$(fold).csv"), coefficients)
+    
+            # save predictions
+            y = test[:,:p_spike]
+            ŷ = GLM.predict(model, test)
+            CSV.write(joinpath(predictions_folder, "$(name)_$(fold).csv"), DataFrame(
+                        :y=>y, :ŷ=>ŷ)
+            )
+    
+            # get Pearson's correlation coefficient
+            correlations[name][fold+1] = cor(y, ŷ)
+        end
+    end
 
 
     # fit on each shuffled dataset
@@ -85,7 +79,7 @@ function fit_model(doing::Dict, data::DataFrame, formulas::Dict)
     X_train  = map(i-> df2mtx(get_fold_data(data, i)[1], F), 0:4)  # vector of matrices
     X_test = map(i-> df2mtx(get_fold_data(data, i)[2], F), 0:4)
 
-    for i in 0:10
+    for i in 0:99
         y = Vector{Float64}(load_data(doing, i).p_spike)  # get p spike for new unit
         for fold in 0:4
             # fit model
@@ -93,6 +87,10 @@ function fit_model(doing::Dict, data::DataFrame, formulas::Dict)
             y_test = view(y, data.fold .== fold)
 
             model = GLM.fit(GeneralizedLinearModel, X_train[fold+1], y_train, Binomial(), LogitLink())
+
+            # save coefficients
+            coefficients = coeftable(model) |> DataFrame
+            CSV.write(joinpath(coefficients_folder, "shuffle_$(i)_fold_$(fold).csv"), coefficients)
     
             # get Pearson's correlation coefficient
             shuffled_correlations[string(i)][fold+1] = cor(y_test, GLM.predict(model, X_test[fold+1]))
@@ -111,21 +109,23 @@ end
 function main()
     formulas = generate_formulas()    
 
-    to_run = collect(filter(
-        k -> !metadata[k]["glm_fitted"], keys(metadata)
-    ))
+    # to_run = filter(
+    #     k -> !metadata[k]["glm_fitted"], keys(metadata)
+    # ) |> collect
+    to_run = collect(keys(metadata))
     @info "Fitting GLM on $(length(to_run)) cells on $(Threads.nthreads()) threads"
     @info "This means {bold red}$(length(metadata) - length(to_run)){/bold red} cells have already been fitted"
-
 
     done = []
     count = 0
     try
-        Threads.@threads for key in to_run[1:8]
+        Threads.@threads for key in to_run
+        # for key in to_run
             doing = metadata[key]
-            doing["glm_fitted"] && continue
+            # doing["glm_fitted"] && continue
+
             count += 1
-            tprint("Doing: '$(doing["recording"])' > $(doing["unit"]) on thread $(Threads.threadid()) | $(count)/$(length(to_run))\n")
+            tprint("Doing: '$(doing["recording"])' --> $(doing["unit"]) on thread $(Threads.threadid()) | $(count)/$(length(to_run))\n")
 
             # load data
             data = load_data(doing)
@@ -134,6 +134,11 @@ function main()
             correlations, shuffled_correlations = fit_model(doing, data, formulas)
             wrapup(metadata, key, correlations, shuffled_correlations, formulas)
             push!(done, key)
+
+            length(done) % 25 == 0 && begin
+                @info "Saving metadata ($(length(done)) done so far)"    
+                YAML.write_file(joinpath(base_folder, "metadata.yaml"), metadata)
+            end
         end
     catch err
         @warn err
