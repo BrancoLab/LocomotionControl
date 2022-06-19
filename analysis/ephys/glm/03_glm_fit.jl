@@ -36,7 +36,12 @@ end
 #                                      FIT                                     #
 # ---------------------------------------------------------------------------- #
 
-df2mtx(df::SubDataFrame, F::FormulaTerm) = Matrix{Float64}(df[:, collect(getfield.(F.rhs, :sym))])
+df2mtx(df::SubDataFrame, F::FormulaTerm) = Matrix{Float64}(
+                    hcat(
+                        df[:, collect(getfield.(F.rhs, :sym))],
+                        ones(Float64, size(df, 1))
+                    )
+            )
 
 function fit_model(doing::Dict, data::DataFrame, formulas::Dict)
     coefficients_folder = joinpath(doing["folder"], "coefficients")
@@ -109,10 +114,12 @@ end
 function main()
     formulas = generate_formulas()    
 
-    # to_run = filter(
-    #     k -> !metadata[k]["glm_fitted"], keys(metadata)
-    # ) |> collect
-    to_run = collect(keys(metadata))
+
+    to_run = filter(
+        k -> !metadata[k]["glm_fitted"], keys(metadata)
+    ) |> collect
+    # to_run = collect(keys(metadata))
+
     @info "Fitting GLM on $(length(to_run)) cells on $(Threads.nthreads()) threads"
     @info "This means {bold red}$(length(metadata) - length(to_run)){/bold red} cells have already been fitted"
 
@@ -122,7 +129,6 @@ function main()
         Threads.@threads for key in to_run
         # for key in to_run
             doing = metadata[key]
-            # doing["glm_fitted"] && continue
 
             count += 1
             tprint("Doing: '$(doing["recording"])' --> $(doing["unit"]) on thread $(Threads.threadid()) | $(count)/$(length(to_run))\n")
@@ -135,7 +141,7 @@ function main()
             wrapup(metadata, key, correlations, shuffled_correlations, formulas)
             push!(done, key)
 
-            length(done) % 25 == 0 && begin
+            length(done) % 20 == 0 && begin
                 @info "Saving metadata ($(length(done)) done so far)"    
                 YAML.write_file(joinpath(base_folder, "metadata.yaml"), metadata)
             end

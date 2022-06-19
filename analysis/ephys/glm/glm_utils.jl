@@ -77,7 +77,7 @@ function load_fitted(unit::Dict)
 end
 
 """ load best model in a given class """
-function load_fitted(unit::Dict, class::String, formulas)
+function load_fitted(unit::Dict, class::String, formulas=nothing)
     formulas = something(nothing, generate_formulas())
     correlations = DataFrame(CSV.File(
         joinpath(unit["folder"], "correlations.csv")
@@ -98,12 +98,31 @@ function load_fitted(unit::Dict, class::String, formulas)
 end
 
 
+""" load a model in a given shuffle """
+function load_fitted(unit::Dict, shuffle::Int, formulas=nothing)
+    formulas = something(formulas, generate_formulas())
+    F = formulas["complete"]
+
+       
+    # load coefficients
+    coefficients = DataFrame(CSV.File(joinpath(
+        unit["folder"], "coefficients", "shuffle_$(shuffle)_fold_1.csv"
+    )))
+    β = coefficients[:, "Coef."]
+    
+    return FittedModel(
+        "shuffle_$shuffle", F, 1, coefficients, β, unit["folder"]
+    )
+end
+
+
 
 """
 Load a unit's .parquet dataset
 """
 function load_data(unit::Dict)::DataFrame 
-    data = DataFrame(read_parquet(unit["unit_data"]))
+    data = DataFrame(read_parquet(unit["unit_data"]))#
+    data.p_spike = clamp.(data.p_spike, 0, 1)
     data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
     return data
 end
@@ -112,6 +131,7 @@ end
 function load_data(unit::Dict, shuffle::Int)::DataFrame 
     path = joinpath(unit["folder"], "shuffles", "shuffle_$(shuffle).parquet")
     data = DataFrame(read_parquet(path))
+    data.p_spike = clamp.(data.p_spike, 0, 1)
     data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
     return data
 end
@@ -121,6 +141,7 @@ end
 function load_data(unit::FittedModel)
     path = joinpath(unit.folder, "data.parquet")
     data = DataFrame(read_parquet(path))
+    data.p_spike = clamp.(data.p_spike, 0, 1)
     return data
 end
 
