@@ -23,7 +23,7 @@ metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 function generate_formulas()::Dict
     Y = Term(:p_spike)
     variables = Term.([
-        :s, :v, :v_squared, :dv_250ms, :dv_500ms, :dv_1000ms, :omega, :omega_squared, :domega_250ms, :domega_500ms, :domega_1000ms, :curv_0cm, :curv_10cm, :curv_20cm, :curv_30cm
+        :s, :v, :v_squared, :dv_250ms, :dv_500ms, :dv_1000ms, :omega, :omega_squared, :domega_250ms, :domega_500ms, :domega_1000ms,:curv_5cm, :curv_15cm, :curv_25cm
     ])
 
     # have a formula missing each individual predictor
@@ -35,9 +35,11 @@ function generate_formulas()::Dict
     formulas["complete"] = Y  ~ sum(variables)
 
     # have a formula missing each class of predictors
-    formulas["missing_speed_class"] = @formula(p_spike ~ s + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_0cm + curv_10cm + curv_20cm + curv_30cm)
+    formulas["missing_speed_class"] = @formula(p_spike ~ s + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
+    formulas["missing_Δspeed_class"] = @formula(p_spike ~ s + v + v_squared + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
     formulas["missing_curv_class"] = @formula(p_spike ~ s + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms)
-    formulas["missing_omega_class"] = @formula(p_spike ~ s + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + curv_0cm + curv_10cm + curv_20cm + curv_30cm)
+    formulas["missing_omega_class"] = @formula(p_spike ~ s + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + curv_5cm + curv_15cm + curv_25cm)
+    formulas["missing_Δomega_class"] = @formula(p_spike ~ s + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + curv_5cm + curv_15cm + curv_25cm)
     return formulas
 end
 
@@ -121,7 +123,7 @@ end
 Load a unit's .parquet dataset
 """
 function load_data(unit::Dict)::DataFrame 
-    data = DataFrame(read_parquet(unit["unit_data"]))#
+    data = DataFrame(read_parquet(unit["unit_data"]))
     data.p_spike = clamp.(data.p_spike, 0, 1)
     data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
     return data

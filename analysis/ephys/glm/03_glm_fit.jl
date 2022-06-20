@@ -58,7 +58,7 @@ function fit_model(doing::Dict, data::DataFrame, formulas::Dict)
         for fold in 0:4
             # fit model
             train, test = get_fold_data(data, fold)
-            model = glm(formula, train, Binomial(), LogitLink())
+            model = glm(formula, train, Binomial(), LogitLink(); maxiter=100)
     
             # save coefficients
             coefficients = coeftable(model) |> DataFrame
@@ -91,7 +91,7 @@ function fit_model(doing::Dict, data::DataFrame, formulas::Dict)
             y_train = view(y, data.fold .!= fold)
             y_test = view(y, data.fold .== fold)
 
-            model = GLM.fit(GeneralizedLinearModel, X_train[fold+1], y_train, Binomial(), LogitLink())
+            model = GLM.fit(GeneralizedLinearModel, X_train[fold+1], y_train, Binomial(), LogitLink(); maxiter=100)
 
             # save coefficients
             coefficients = coeftable(model) |> DataFrame
