@@ -20,8 +20,14 @@ sys.path.append(r"C:\Users\Federico\Documents\GitHub\pysical_locomotion")
 
 from analysis.ephys.utils import get_recording_names
 
-for rec in get_recording_names():
-    df = pd.read_hdf(cache / (rec + "_bouts.h5")).reset_index()
+recs = get_recording_names(region="CUN")
+for i, rec in enumerate(recs):
+    print(f"Processing {rec} ({i+1}/{len(recs)})")
+    try:
+        df = pd.read_hdf(cache / (rec + "_bouts.h5")).reset_index()
+    except:
+        print(f"    no file")
+        continue
 
     df = df.groupby(df.index // 5).mean()  # average every 25ms, data at 200fps
 

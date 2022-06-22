@@ -138,11 +138,14 @@ def get_roi_crossings(
 # ---------------------------------------------------------------------------- #
 
 
-def get_recording_names():
+def get_recording_names(region="MOs"):
     """
         Get the names of the recordings (M2)
     """
-    return (Recording * Probe & "target='MOs'").fetch("name")
+    if region == "MOs":
+        return (Recording * Probe & "target='MOs'").fetch("name")
+    else:
+        return (Recording * Probe - "target='MOs'").fetch("name")
 
 
 def get_data(recording: str):
@@ -175,7 +178,11 @@ def get_data(recording: str):
     recording = (Recording & f"name='{recording}'").fetch1()
     cf = recording["recording_probe_configuration"]
     units = Unit.get_session_units(
-        recording["name"], cf, spikes=True, firing_rate=True, frate_window=100,
+        recording["name"],
+        cf,
+        spikes=True,
+        firing_rate=False,
+        frate_window=100,
     )
     if len(units):
         units = units.sort_values("brain_region", inplace=False).reset_index()

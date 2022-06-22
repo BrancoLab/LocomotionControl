@@ -23,23 +23,38 @@ metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 function generate_formulas()::Dict
     Y = Term(:p_spike)
     variables = Term.([
-        :s, :v, :v_squared, :dv_250ms, :dv_500ms, :dv_1000ms, :omega, :omega_squared, :domega_250ms, :domega_500ms, :domega_1000ms,:curv_5cm, :curv_15cm, :curv_25cm
+        :s, :apex_distance, :curv_5cm, :curv_15cm, :curv_25cm, :v, :v_squared, :dv_250ms, :dv_500ms, :dv_1000ms, :omega, :omega_squared, :domega_250ms, :domega_500ms, :domega_1000ms, 
     ])
 
-    # have a formula missing each individual predictor
+    # # have a formula missing each individual predictor
+    # formulas = Dict{String, Any}(
+    #     "missing_$(variables[i])" => (Y ~ sum(variables[1:end .!= i])) for i = 1:length(variables)
+    # )
+
+
+    # # have a formula missing each class of predictors
+    # formulas["missing_speed_class"] = @formula(p_spike ~ s + apex_distance + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
+    # formulas["missing_Δspeed_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
+    # formulas["missing_curv_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms)
+    # formulas["missing_omega_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + curv_5cm + curv_15cm + curv_25cm)
+    # formulas["missing_Δomega_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + curv_5cm + curv_15cm + curv_25cm)
+
+
+    # make formulas with a single predictor
     formulas = Dict{String, Any}(
-        "missing_$(variables[i])" => (Y ~ sum(variables[1:end .!= i])) for i = 1:length(variables)
+        "with_$(variables[i])" => (Y ~ variables[i]) for i = 1:length(variables)
     )
 
+    # make formulas with classes of predictors
+    formulas["with_speed_class"] = @formula(p_spike ~ v + v_squared)
+    formulas["with_Δspeed_class"] = @formula(p_spike ~ dv_250ms + dv_500ms + dv_1000ms)
+    formulas["with_curv_class"] = @formula(p_spike ~ curv_5cm + curv_15cm + curv_25cm)
+    formulas["with_omega_class"] = @formula(p_spike ~ omega + omega_squared)
+    formulas["with_Δomega_class"] = @formula(p_spike ~ domega_250ms + domega_500ms + domega_1000ms)
+    
+    
     # have a complete formula
     formulas["complete"] = Y  ~ sum(variables)
-
-    # have a formula missing each class of predictors
-    formulas["missing_speed_class"] = @formula(p_spike ~ s + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
-    formulas["missing_Δspeed_class"] = @formula(p_spike ~ s + v + v_squared + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
-    formulas["missing_curv_class"] = @formula(p_spike ~ s + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms)
-    formulas["missing_omega_class"] = @formula(p_spike ~ s + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + curv_5cm + curv_15cm + curv_25cm)
-    formulas["missing_Δomega_class"] = @formula(p_spike ~ s + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + curv_5cm + curv_15cm + curv_25cm)
     return formulas
 end
 
@@ -177,7 +192,11 @@ end
 
 function predict(model::FittedModel, data::Union{DataFrame, SubDataFrame})
     # get entries from dataset
-    x = Matrix(data[:, collect(getfield.(model.formula.rhs, :sym))])
+    if !isa(model.formula.rhs, Term)
+        x = Matrix(data[:, collect(getfield.(model.formula.rhs, :sym))])
+    else
+        x = Vector(data[:, model.formula.rhs.sym])
+    end
 
     # add intercept
     x = hcat(ones(Float64, size(x, 1)), x)

@@ -27,7 +27,12 @@ def get_tscale(ephys_ap_data_path, ai_file_path, sampling_rate=30000):
 
     ai_file_path = Path(ai_file_path)
     if not ai_file_path.exists():
+        # adjust paths to local cache if necessary
         ai_file_path = Path(r"K:\analog_inputs_temp") / ai_file_path.name
+
+        ephys_ap_data_path = (
+            Path(r"M:\recordings_temp") / Path(ephys_ap_data_path).name
+        )
 
     # load analog from bonsai
     try:

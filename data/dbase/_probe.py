@@ -1,5 +1,6 @@
 import numpy as np
-from pathlib import Path
+
+# from pathlib import Path
 from typing import List
 from loguru import logger
 from dataclasses import dataclass
@@ -95,21 +96,26 @@ def place_probe_recording_sites_np1(
     atlas = BrainGlobeAtlas("allen_mouse_25um")
 
     # find multiple reconstructions files paths
-    try:
-        mouse = probe_metadata["mouse_id"][-3:]
-        files = Path(
-            r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
-        ).glob(mouse + "_atlas_space_0.npy")
-        rec_path = list(files)[0]
-    except IndexError:
-        logger.warning(
-            f"Did not find reconstructed track filepath for mouse {mouse}"
-        )
-        return
+    # try:
+    #     mouse = probe_metadata["mouse_id"][-3:]
+    #     files = Path(
+    #         r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
+    #     ).glob(mouse + "_atlas_space_0.npy")
+    #     rec_path = list(files)[0]
+    # except IndexError:
+    #     logger.warning(
+    #         f"Did not find reconstructed track filepath for mouse {mouse}"
+    #     )
+    #     return
 
     # _, name = rec_path.parent, rec_path.stem
     # reconstruction_files = files(fld, pattern=f"{name}_*.npy")
-    reconstruction_files = [rec_path]
+    # reconstruction_files = [rec_path]
+    reconstruction_files = [
+        f
+        for f in probe_metadata["reconstructed_track_filepath"]
+        if str(f).endswith(".npy")
+    ]
 
     if reconstruction_files is None:
         logger.warning("Did not find any reconstruction files!")

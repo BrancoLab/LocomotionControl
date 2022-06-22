@@ -9,7 +9,7 @@ import Term: tprint
 
 include(raw"C:\Users\Federico\Documents\GitHub\pysical_locomotion\analysis\ephys\glm\glm_utils.jl")
 
-
+DO_SHUFFLES = false
 
 
 function wrapup(metadata, key, correlations, shuffled_correlations, formulas)
@@ -18,8 +18,10 @@ function wrapup(metadata, key, correlations, shuffled_correlations, formulas)
     CSV.write(joinpath(metadata[key]["folder"], "correlations.csv"), correlations)
 
     # save shuffled correlations
-    shuffled_correlations = DataFrame(shuffled_correlations)
-    CSV.write(joinpath(metadata[key]["folder"], "shuffled_correlations.csv"), shuffled_correlations)
+    if DO_SHUFFLES
+        shuffled_correlations = DataFrame(shuffled_correlations)
+        CSV.write(joinpath(metadata[key]["folder"], "shuffled_correlations.csv"), shuffled_correlations)
+    end
 
     # get the average cross validated correlation of each formula
     mean_corr = mean.(eachcol(correlations))
@@ -80,25 +82,27 @@ function fit_model(doing::Dict, data::DataFrame, formulas::Dict)
     # fit on each shuffled dataset
     shuffled_correlations = Dict{String, Vector}(string(i) => zeros(Float64, 5) for i in 0:99)
 
-    F = formulas["complete"]
-    X_train  = map(i-> df2mtx(get_fold_data(data, i)[1], F), 0:4)  # vector of matrices
-    X_test = map(i-> df2mtx(get_fold_data(data, i)[2], F), 0:4)
+    if DO_SHUFFLES
+        F = formulas["complete"]
+        X_train  = map(i-> df2mtx(get_fold_data(data, i)[1], F), 0:4)  # vector of matrices
+        X_test = map(i-> df2mtx(get_fold_data(data, i)[2], F), 0:4)
 
-    for i in 0:99
-        y = Vector{Float64}(load_data(doing, i).p_spike)  # get p spike for new unit
-        for fold in 0:4
-            # fit model
-            y_train = view(y, data.fold .!= fold)
-            y_test = view(y, data.fold .== fold)
+        for i in 0:99
+            y = Vector{Float64}(load_data(doing, i).p_spike)  # get p spike for new unit
+            for fold in 0:4
+                # fit model
+                y_train = view(y, data.fold .!= fold)
+                y_test = view(y, data.fold .== fold)
 
-            model = GLM.fit(GeneralizedLinearModel, X_train[fold+1], y_train, Binomial(), LogitLink(); maxiter=100)
+                model = GLM.fit(GeneralizedLinearModel, X_train[fold+1], y_train, Binomial(), LogitLink(); maxiter=100)
 
-            # save coefficients
-            coefficients = coeftable(model) |> DataFrame
-            CSV.write(joinpath(coefficients_folder, "shuffle_$(i)_fold_$(fold).csv"), coefficients)
-    
-            # get Pearson's correlation coefficient
-            shuffled_correlations[string(i)][fold+1] = cor(y_test, GLM.predict(model, X_test[fold+1]))
+                # save coefficients
+                coefficients = coeftable(model) |> DataFrame
+                CSV.write(joinpath(coefficients_folder, "shuffle_$(i)_fold_$(fold).csv"), coefficients)
+        
+                # get Pearson's correlation coefficient
+                shuffled_correlations[string(i)][fold+1] = cor(y_test, GLM.predict(model, X_test[fold+1]))
+            end
         end
     end
 
@@ -118,7 +122,7 @@ function main()
     to_run = filter(
         k -> !metadata[k]["glm_fitted"], keys(metadata)
     ) |> collect
-    # to_run = collect(keys(metadata))
+    to_run = collect(keys(metadata))
 
     @info "Fitting GLM on $(length(to_run)) cells on $(Threads.nthreads()) threads"
     @info "This means {bold red}$(length(metadata) - length(to_run)){/bold red} cells have already been fitted"
