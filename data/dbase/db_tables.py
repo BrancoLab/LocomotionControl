@@ -1000,6 +1000,7 @@ if have_dj:
         _tips = {
             "AAA1110750": 400,
         }
+
         possible_configurations = [
             "b0",
             "longcolumn",
@@ -1022,15 +1023,6 @@ if have_dj:
             angle_ap:                                       longblob
             target:                                         varchar(128)  # eg "MOs" or "CUN/GRN"
         """
-
-        class Shank(dj.Part):
-            definition = """
-                # metadata about shank position
-                -> Probe
-                ---
-                shank_id:                                    int
-                shank_points:                                longblob  # position of points along each shank
-            """
 
         class RecordingSite(dj.Part):
             definition = """
@@ -1062,17 +1054,15 @@ if have_dj:
             if key["mouse_id"] in self._skip:
                 return
 
-            logger.info(f"Adding Probe for: {key['mouse_id']}")
-
             metadata = get_probe_metadata(key["mouse_id"])
             if metadata is None:
                 return
-            probe_key = {**key, **metadata}
-            del probe_key["date"]
 
-            logger.info(
-                f'\n\================    Getting reconstructed probe position for mouse {key["mouse_id"]}'
-            )
+            logger.info(f"Adding Probe for: {key['mouse_id']}")
+            probe_key = {**key, **metadata}
+
+            probe_type = "np1" if probe_key["date"] < 220200 else "np24"
+            del probe_key["date"]
 
             # insert into main table
             try:
@@ -1084,7 +1074,7 @@ if have_dj:
                 return
 
             if not probe_key["reconstructed_track_filepath"]:
-                # it's a MOs probe, get files in folder for electrodes placement
+                #  get files in folder for electrodes placement
                 tracks_folder = (
                     Path(
                         r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
@@ -1100,14 +1090,15 @@ if have_dj:
                 probe_key["reconstructed_track_filepath"] = files(
                     tracks_folder
                 )
-                probe_type = "np24"
+
+            if probe_type == "np24":
                 possible_configurations = self.possible_configurations[2:]
             else:
-                probe_type = "np1"
                 possible_configurations = self.possible_configurations[:2]
 
             tip = 150
             for configuration in possible_configurations:
+                logger.info(f"Getting probe configuration: {configuration}")
                 recording_sites = _probe.place_probe_recording_sites(
                     probe_key, configuration, tip=tip, probe_type=probe_type
                 )
@@ -1488,7 +1479,7 @@ if __name__ == "__main__":
     # TrackingBP().populate(display_progress=True)
     # TrackingLinearized().populate(display_progress=True)
     # LocomotionBouts().populate(display_progress=True)
-    ProcessedLocomotionBouts().fill()
+    # ProcessedLocomotionBouts().fill()
     # Movement().populate(display_progress=True)
 
     # ? EPHYS
@@ -1496,7 +1487,7 @@ if __name__ == "__main__":
     # Probe().populate(display_progress=True)
     # Recording().populate(display_progress=False)
 
-    # Unit().populate(display_progress=True)
+    Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
@@ -1510,6 +1501,7 @@ if __name__ == "__main__":
         Probe,
         # Probe.RecordingSite,
         Recording,
+        Unit,
         # Movement,
     ]
     NAMES = [
@@ -1521,6 +1513,7 @@ if __name__ == "__main__":
         "Probe",
         # "RecordingSites",
         "Recording",
+        "Unit",
         # "Movement",
     ]
     for tb, name in zip(TABLES, NAMES):
