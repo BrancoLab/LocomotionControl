@@ -17,9 +17,9 @@ using Interpolations
 
 using Term
 import Term: install_term_logger
-import Term: install_stacktrace
+import Term: instalterm_l_stacktrace
 install_term_logger()
-install_stacktrace()
+install_term_stacktrace()
 
 
 import MyterialColors: salmon, green_dark, grey, grey_dark, grey_darker, black, blue_grey_darker, blue_dark

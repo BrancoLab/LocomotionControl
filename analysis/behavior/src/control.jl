@@ -3,6 +3,7 @@ module control
 
 using Ipopt
 using InfiniteOpt
+import InfiniteOpt: value, transcription_variable
 
 import Parameters: @with_kw
 using IOCapture: IOCapture
@@ -509,7 +510,17 @@ function create_and_solve_control(
 
     # --------------------------------- optimize --------------------------------- #
     set_all_derivative_methods(model, OrthogonalCollocation(2))
-    @objective(model, Min, ∫(SF + α*Fu + γ*δ̇, s))
+    Fu₀ = options.Fu_bounds.lower
+    Fu₁ = options.Fu_bounds.upper
+
+    one(x) = (0.00040) * exp(- x / (-453.95) + 0.00059)
+    two(x) = (0.0028) * exp(- x / (209.936) + -0.0124)
+    # c0(x) = -1/Fu₀ * x
+    # c1(x) = 1/Fu₁ * x
+    # cost(x) = max(c0(x), c1(x))
+    # @register(model, cost(Fu))
+
+    @objective(model, Min, ∫(SF + α*(one(Fu) + two(Fu)) + γ*δ̇, s))
     optimize!(model)
 
     # print info
