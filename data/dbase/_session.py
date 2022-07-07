@@ -21,7 +21,7 @@ def fill_session_table(table):
 
     # Get the videos of all sessions
     # vids = [f for f in files(raw_data_folder / "video") if ".avi" in f.name]
-    vids = [f for f in files(Path(r"K:\analog_inputs_temp"), "*.BIN")]
+    vids = [f for f in files(Path(r"K:\analog_inputs_temp"), "*.csv")]
 
     for video in track(vids, description="Adding sessions", transient=True):
         # Get session data

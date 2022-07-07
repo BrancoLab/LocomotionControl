@@ -11,6 +11,7 @@ import cv2
 from typing import List, Tuple
 import numpy as np
 import json
+from time import sleep
 
 from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
@@ -131,7 +132,7 @@ if have_dj:
             _session.fill_session_table(self)
 
             # check everything went okay
-            self.check_recordings_complete()
+            # self.check_recordings_complete()
 
         def check_recordings_complete(self):
             """
@@ -200,6 +201,8 @@ if have_dj:
             video_name = Path(
                 (Session & f'name="{session_name}"').fetch1("video_file_path")
             ).stem
+
+            video_name = video_name.replace("_data.csv_video", "_video")
             tracking_files = files(
                 tracking_files_folder, pattern=f"{video_name}*.h5"
             )
@@ -302,7 +305,7 @@ if have_dj:
                 failed = {}
 
             if "openarena" in key["name"].lower():
-                logger.info(f"Skipping openarena session {key['name']}")
+                # logger.info(f"Skipping openarena session {key['name']}")
                 return
 
             if key["name"] in failed.keys():
@@ -318,7 +321,8 @@ if have_dj:
             session = (Session & key).fetch1()
 
             # check if session has known problems and should be excluded
-            if session["name"] in self.excluded_sessions:
+            session_name = session["name"][:-9]
+            if session_name in self.excluded_sessions:
                 logger.info(
                     f'Skipping session "{session["name"]}" because its in the excluded sessions list'
                 )
@@ -344,19 +348,21 @@ if have_dj:
             previously_validated = previously_validated or {}
 
             # check if validation was already executed on this session
-            if session["name"] in previously_validated.keys():
+            if session_name in previously_validated.keys():
                 logger.debug(
                     f'Session {session["name"]} was previously validated, loading results'
                 )
-                key = previously_validated[session["name"]]
+                key = previously_validated[session_name]
                 if "frame_to_drop_pre" not in key.keys():
                     key["frame_to_drop_pre"] = 0
                 if "frame_to_drop_post" not in key.keys():
                     key["frame_to_drop_post"] = 0
                 if "tscale" not in key.keys():
                     key["tscale"] = 1
+
+                key["name"] = key["name"] + "_data.csv"
             else:
-                logger.debug(f'Validating session: {session["name"]}')
+                logger.debug(f"Validating session: {session_name}")
 
                 # check bonsai recording was correct
                 (
@@ -575,13 +581,16 @@ if have_dj:
             videopath = (Session & key).fetch1("video_file_path")
 
             # replace with local copy path
-            videopath = Path("K:\\vids") / Path(videopath).name
-            if not videopath.exists():
-                logger.info(f"Could not find video file: {videopath}")
+            name = Path(videopath).name
+            name = name[:-19] + "_video.avi"
+            videopath = Path("K:\\vids") / name
+            # if not videopath.exists():
+            #     logger.info(f"Could not find video file: {videopath}")
 
             # get matrix
             key["correction_matrix"] = _ccm.get_matrix(str(videopath), arena)
-            self.insert1(key)
+            if key["correction_matrix"] is not None:
+                self.insert1(key)
 
     # ---------------------------------------------------------------------------- #
     #                                 tracking data                                #
@@ -663,10 +672,14 @@ if have_dj:
                 return
 
             # get number of frames in session
-            n_frames = (ValidatedSession & key).fetch1("n_frames")
+            # n_frames = (ValidatedSession & key).fetch1("n_frames")
 
             # get CCM registration matrix
-            M = (CCM & key).fetch1("correction_matrix")
+            try:
+                M = (CCM & key).fetch1("correction_matrix")
+            except:
+                logger.warning(f"No CCM found for {key['name']}")
+                return
 
             # process data
             (
@@ -683,13 +696,20 @@ if have_dj:
             )
 
             # check number of frames
-            if n_frames != tracking_n_frames:
-                raise ValueError(
-                    "Number of frames in video and tracking dont match!!"
-                )
+            # if n_frames != tracking_n_frames:
+            #     raise ValueError(
+            #         "Number of frames in video and tracking dont match!!"
+            #     )
 
             # insert into table
-            self.insert1(key)
+            key["name"] += "_data.csv"
+
+            try:
+                self.insert1(key)
+            except Exception as e:
+                logger.warning(f"Failed to insert {key['name']}")
+                logger.warning(e)
+                return
 
         @staticmethod
         def get_session_tracking(session_name, body_only=True, movement=True):
@@ -731,7 +751,11 @@ if have_dj:
                 return
 
             # get CCM registration matrix
-            M = (CCM & key).fetch1("correction_matrix")
+            try:
+                M = (CCM & key).fetch1("correction_matrix")
+            except:
+                logger.warning(f"No CCM found for {key['name']}")
+                return
 
             # process data
             (
@@ -749,7 +773,16 @@ if have_dj:
 
             if key is not None:
                 for bpkey in bparts_keys.values():
-                    self.insert1(bpkey)
+
+                    try:
+                        self.insert1(bpkey)
+                    except:
+                        bpkey["name"] += "_data.csv"
+                        try:
+                            self.insert1(bpkey)
+                        except:
+                            logger.warning(f"Failed to insert {bpkey['name']}")
+                            return
 
     @schema
     class TrackingLinearized(dj.Imported):
@@ -771,7 +804,12 @@ if have_dj:
                 (key["segment"], key["global_coord"],) = hp.assign_tracking(
                     body["x"], body["y"]
                 )
-                self.insert1(key)
+                # key["name"] += "_data.csv"
+                try:
+                    self.insert1(key)
+                except:
+                    logger.warning(f"Failed to insert {key['name']}")
+                    return
 
     # ---------------------------------------------------------------------------- #
     #                                  locomotion bouts                            #
@@ -987,6 +1025,7 @@ if have_dj:
             key = _tracking.get_movements(
                 key, tracking, self.moving_threshold, self.turning_threshold
             )
+            sleep(1)
 
             self.insert1(key)
 
@@ -1460,7 +1499,7 @@ if __name__ == "__main__":
     logger.info("#####    Filling Session")
     # Session().fill()
     # Surgery().populate(display_progress=True)
-    # SessionCondition().populate(display_progress=True)
+    SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
     # ValidatedSession().populate(display_progress=True)
@@ -1486,8 +1525,7 @@ if __name__ == "__main__":
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
     # Recording().populate(display_progress=False)
-
-    Unit().populate(display_progress=True)
+    # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
@@ -1518,3 +1556,21 @@ if __name__ == "__main__":
     ]
     for tb, name in zip(TABLES, NAMES):
         print_table_content_to_file(tb, name)
+
+    N = len(
+        (
+            LocomotionBouts
+            & 'complete="true"'
+            & 'direction="outbound"'
+            # & 'mouse_id="BAA1101192"'
+        )
+    )
+
+    print(
+        f"Number of sesssions: {len(Session())}",
+        f"Number of validated sessions: {len(ValidatedSession())}",
+        f"Number of sessions with CCM: {len(CCM())}",
+        f"Number of sessions with tracking: {len(Tracking())}",
+        f"Number of complete locomotion bouts: {N}",
+        sep="\n",
+    )

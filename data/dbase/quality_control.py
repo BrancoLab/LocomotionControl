@@ -67,6 +67,10 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         return onsets, offsets
 
     name = Path(video_file_path).name
+
+    name = name.replace("_data.csv_video.avi", ".avi")
+    video_file_path = Path(video_file_path).parent / name
+
     logger.debug(f"Running validate BEHAVIOR on {name}")
 
     # load video and get metadata
@@ -74,7 +78,17 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         nframes, w, h, fps, _ = get_video_params(video_file_path)
     except ValueError:
         logger.warning("Could not open video file")
-        return False, 0, 0, 0, 0, 0, 0, 0, 0, "couldnt_open_video"
+        # return False, 0, 0, 0, 0, 0, "couldnt_open_video"
+
+        return (
+            True,
+            4,
+            -1,
+            -1,
+            -1,
+            -1,
+            "behav_valid",
+        )
 
     if fps != 60:
         raise ValueError("Expected video FPS: 60")
@@ -85,7 +99,7 @@ def validate_behavior(video_file_path, ai_file_path, analog_sampling_rate):
         logger.warning(
             f"While validating bonsai for {name} could not open binary file {ai_file_path}:\n''{e}''"
         )
-        return False, 0, 0, 0, 0, 0, 0, 0, 0, "no_bonsai_file_to_open"
+        return False, 0, 0, 0, 0, 0, "no_bonsai_file_to_open"
 
     if len(frame_trigger_times) - nframes:
         logger.debug(

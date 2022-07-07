@@ -22,6 +22,9 @@ def get_matrix(videopath, template):
     if save_path.exists():
         logger.debug(f"Found CCM matrix at: {save_path}")
         return np.load(save_path)
+    elif not Path(videopath).exists():
+        logger.warning(f"Video not found: {videopath}")
+        return None
 
     # didn't find a matrix, make one manually
     # Get the background (first frame) of the video being processed
