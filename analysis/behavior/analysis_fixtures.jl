@@ -17,11 +17,7 @@ using Interpolations
 
 using Term
 import Term: install_term_logger
-<<<<<<< HEAD
 import Term: install_term_stacktrace
-=======
-import Term: instalterm_l_stacktrace
->>>>>>> a6b179194bf08ffc0b8757d1946cd244a1af1215
 install_term_logger()
 install_term_stacktrace()
 
