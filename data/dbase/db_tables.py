@@ -1171,6 +1171,7 @@ if have_dj:
 
         def make(self, key):
             # check if the session has a recording
+            # _name = key["name"].replace("_data.csv", "")
             if not Session.has_recording(key["name"]):
                 logger.info(f"No recording for {key['name']}")
                 return
@@ -1312,10 +1313,12 @@ if have_dj:
             recording = (Session * Recording & key).fetch1()
 
             conf = recording["recording_probe_configuration"]
+            mouse = recording["mouse_id"]
             rsites = pd.DataFrame(
                 (
                     Probe * Probe.RecordingSite
-                    & recording
+                    # & recording
+                    & f"mouse_id='{mouse}'"
                     & f"probe_configuration='{conf}'"
                 ).fetch()
             )
@@ -1499,7 +1502,7 @@ if __name__ == "__main__":
     logger.info("#####    Filling Session")
     # Session().fill()
     # Surgery().populate(display_progress=True)
-    SessionCondition().populate(display_progress=True)
+    # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
     # ValidatedSession().populate(display_progress=True)

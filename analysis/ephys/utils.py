@@ -186,9 +186,7 @@ def get_data(recording: str):
     )
     if len(units):
         units = units.sort_values("brain_region", inplace=False).reset_index()
-        # logger.info(f"Got {len(units)} units for {recording['name']}")
-    # else:
-    # logger.info(f"No units for {recording['name']}")
+    logger.info(f"Got {len(units)} units for {recording['name']}")
 
     return units, left_fl, right_fl, left_hl, right_hl, body
 
@@ -203,6 +201,7 @@ def trim_bouts(bouts: pd.DataFrame):
         speed = np.array(bout["speed"])
         start = np.where(speed > 10)[0][0]
         end = np.where(speed[start + 20 :] < 10)[0]
+
         if len(end):
             end = end[0] + start + 20
         else:
@@ -214,6 +213,10 @@ def trim_bouts(bouts: pd.DataFrame):
 
     bouts["trim_start"] = np.array(starts) + bouts["start_frame"].values
     bouts["trim_end"] = np.array(ends) + bouts["start_frame"].values
+    bouts["trim_duration"] = bouts["trim_end"] - bouts["trim_start"]
+
+    # keep only bouts longer than 1 seconds
+    bouts = bouts.loc[bouts["trim_duration"] > 3 * 60]
     return bouts
 
 
@@ -224,6 +227,7 @@ def get_session_bouts(
         Get bouts (complete/all - in/out bound) for a session
     """
     query = ProcessedLocomotionBouts & f'name="{session}"'
+
     if complete is not None:
         query = query & f"complete='{complete}'"
 

@@ -14,7 +14,7 @@ install_term_repr()
 install_term_logger()
 
 
-base_folder = "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\ephys\\GLM"
+base_folder = "D:\\GLM"
 metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 
 
@@ -23,21 +23,8 @@ metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 function generate_formulas()::Dict
     Y = Term(:p_spike)
     variables = Term.([
-        :s, :apex_distance, :curv_5cm, :curv_15cm, :curv_25cm, :v, :v_squared, :dv_250ms, :dv_500ms, :dv_1000ms, :omega, :omega_squared, :domega_250ms, :domega_500ms, :domega_1000ms, 
+        :apex_distance, :v, :v_squared, :dv_300ms, :omega, :omega_squared, :domega_300ms
     ])
-
-    # # have a formula missing each individual predictor
-    # formulas = Dict{String, Any}(
-    #     "missing_$(variables[i])" => (Y ~ sum(variables[1:end .!= i])) for i = 1:length(variables)
-    # )
-
-
-    # # have a formula missing each class of predictors
-    # formulas["missing_speed_class"] = @formula(p_spike ~ s + apex_distance + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
-    # formulas["missing_Δspeed_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms + curv_5cm + curv_15cm + curv_25cm)
-    # formulas["missing_curv_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + domega_250ms + domega_500ms + domega_1000ms)
-    # formulas["missing_omega_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + curv_5cm + curv_15cm + curv_25cm)
-    # formulas["missing_Δomega_class"] = @formula(p_spike ~ s + apex_distance + v + v_squared + dv_250ms + dv_500ms + dv_1000ms + omega + omega_squared + curv_5cm + curv_15cm + curv_25cm)
 
 
     # make formulas with a single predictor
@@ -47,11 +34,8 @@ function generate_formulas()::Dict
 
     # make formulas with classes of predictors
     formulas["with_speed_class"] = @formula(p_spike ~ v + v_squared)
-    formulas["with_Δspeed_class"] = @formula(p_spike ~ dv_250ms + dv_500ms + dv_1000ms)
-    formulas["with_curv_class"] = @formula(p_spike ~ curv_5cm + curv_15cm + curv_25cm)
     formulas["with_omega_class"] = @formula(p_spike ~ omega + omega_squared)
-    formulas["with_Δomega_class"] = @formula(p_spike ~ domega_250ms + domega_500ms + domega_1000ms)
-    
+   
     
     # have a complete formula
     formulas["complete"] = Y  ~ sum(variables)
@@ -132,13 +116,18 @@ function load_fitted(unit::Dict, shuffle::Int, formulas=nothing)
     )
 end
 
-
+function convert_df(df)
+    for c ∈ names(df)
+        df[!, c]= Float64.(df[:, c])
+    end
+    return df
+end
 
 """
 Load a unit's .parquet dataset
 """
 function load_data(unit::Dict)::DataFrame 
-    data = DataFrame(read_parquet(unit["unit_data"]))
+    data = DataFrame(read_parquet(unit["unit_data"])) |> convert_df
     data.p_spike = clamp.(data.p_spike, 0, 1)
     data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
     return data
@@ -147,7 +136,7 @@ end
 """ load dataset for a unit's shuffled data """
 function load_data(unit::Dict, shuffle::Int)::DataFrame 
     path = joinpath(unit["folder"], "shuffles", "shuffle_$(shuffle).parquet")
-    data = DataFrame(read_parquet(path))
+    data = DataFrame(read_parquet(path)) |> convert_df
     data.p_spike = clamp.(data.p_spike, 0, 1)
     data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
     return data
@@ -157,7 +146,7 @@ end
 """ load dataset for a fitted unit. No k-fold """
 function load_data(unit::FittedModel)
     path = joinpath(unit.folder, "data.parquet")
-    data = DataFrame(read_parquet(path))
+    data = DataFrame(read_parquet(path)) |> convert_df
     data.p_spike = clamp.(data.p_spike, 0, 1)
     return data
 end
