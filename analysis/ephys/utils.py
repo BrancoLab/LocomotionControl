@@ -221,7 +221,10 @@ def trim_bouts(bouts: pd.DataFrame):
 
 
 def get_session_bouts(
-    session: str, complete: str = "true", direction: str = "outbound"
+    session: str,
+    complete: str = "true",
+    direction: str = "outbound",
+    duration: int = 10,
 ):
     """
         Get bouts (complete/all - in/out bound) for a session
@@ -234,10 +237,13 @@ def get_session_bouts(
     if direction is not None:
         query = query & f"direction='{direction}'"
 
+    if duration is not None:
+        query = query & f"duration < {duration}"
+
     bouts = pd.DataFrame(query.fetch())
-    # logger.info(
-    #     f"Got {len(bouts)} bouts for {session} | {complete} | {direction}"
-    # )
+    logger.info(
+        f"Got {len(bouts)} bouts for {session} | {complete} | {direction}"
+    )
     return bouts
 
 

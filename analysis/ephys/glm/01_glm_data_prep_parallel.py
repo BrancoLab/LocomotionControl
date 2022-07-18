@@ -25,7 +25,7 @@ from analysis.ephys.utils import (
 save_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys")
 cache = Path(r"D:\GLM\data")
 
-REGION = "CUN/PPN"
+REGION = "MOs"
 
 
 # ---------------------------------- params ---------------------------------- #
@@ -78,7 +78,7 @@ def get_track_data():
     k = rolling_mean(np.abs(track_data.curvature.values), 251)
     peaks, _ = find_peaks(k, prominence=0.02)
 
-    peaks_idxs, _ = find_peaks(k, prominence=0.02)
+    # peaks_idxs, _ = find_peaks(k, prominence=0.02)
     peaks = track_data.iloc[peaks]
     peaks
 
@@ -138,7 +138,9 @@ def load_get_recording_data(REC):
         logger.warning(f"No units found for {REC}")
         return None, None, None, None, None, None, None
 
-    bouts = trim_bouts(get_session_bouts(REC, complete=None, direction=None))
+    bouts = trim_bouts(
+        get_session_bouts(REC, complete="true", direction="outbound")
+    )
     n = len(bouts)
     bouts["ds"] = [abs(b.s[-1] - b.s[0]) for i, b in bouts.iterrows()]
     bouts = bouts.loc[bouts.ds >= minimum_bout_ds]
