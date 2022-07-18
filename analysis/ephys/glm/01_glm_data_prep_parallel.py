@@ -6,6 +6,8 @@ from scipy import interpolate
 from loguru import logger
 from fcutils.maths.signals import rolling_mean
 import warnings
+from scipy.ndimage.filters import gaussian_filter1d
+
 
 warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
@@ -23,7 +25,7 @@ from analysis.ephys.utils import (
 save_folder = Path(r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys")
 cache = Path(r"D:\GLM\data")
 
-REGION = "MOs"
+REGION = "CUN/PPN"
 
 
 # ---------------------------------- params ---------------------------------- #
@@ -36,7 +38,7 @@ curv_sample_points = np.arange(
 )
 minimum_bout_ds = 100
 track_downsample_factor = 25
-firing_rate_gaussian = 250  # width in ms
+firing_rate_gaussian = 100  # width in ms
 
 
 def get_track_data():
@@ -120,24 +122,12 @@ def upsample_frames_to_ms(var):
     return interpolated_variable_values
 
 
-def gaussian(x, s):
-    return (
-        1.0
-        / np.sqrt(2.0 * np.pi * s ** 2)
-        * np.exp(-(x ** 2) / (2.0 * s ** 2))
-    )
-
-
 def calc_firing_rate(spikes_train: np.ndarray, dt: int = 10):
     """
         Computes the firing rate given a spikes train (wether there is a spike or not at each ms).
         Using a gaussian kernel with standard deviation = dt/2 [dt is in ms]
     """
-    # create kernel & get area under the curve
-    k = np.array([gaussian(x, dt) for x in np.arange(-4 * dt, 4 * dt)])
-
-    # get firing rate
-    return np.convolve(spikes_train, k, mode="same") * dt * 2.5
+    return gaussian_filter1d(spikes_train, dt) * 1000
 
 
 # upsample
@@ -231,6 +221,8 @@ def dorec(REC):
     if units_names is None:
         return
 
+    # units_data = {unit: np.load(f"D:\\GLM\\tmp\\{unit}") for unit in units_names}
+
     # for i, bout in track(bouts.iterrows(), total=len(bouts), description=REC):
     for i, bout in bouts.iterrows():
         bout_savepath = cache / f"{REC}_bout_{bout.start_frame}.feather"
@@ -264,9 +256,9 @@ def dorec(REC):
         # get firing rate
         for i, unit in enumerate(units_names):
             fr = np.load(f"D:\\GLM\\tmp\\{unit}")
+            # fr = units_data[unit]
             unit_id = unit.split("hairpin_")[-1][:-4]
             data[unit_id] = fr[start_ms:end_ms].astype(np.float32)
-            del fr
 
         # ensure all entries have the same number of samples
         lengths = set([len(v) for v in data.values()])
@@ -284,7 +276,7 @@ if __name__ == "__main__":
 
     pool = Pool(6)
 
-    recordings = get_recording_names(region=REGION)[::-1]
+    recordings = get_recording_names(region=REGION)
     pool.map(dorec, recordings)
 
     # for rec in get_recording_names(region=REGION):

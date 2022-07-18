@@ -14,7 +14,7 @@ from fcutils.path import files
 
 settings.SHOW_AXES = False
 
-TARGET = "CUN/GRN"
+TARGET = "MOs"
 
 probes = (Probe).fetch(as_dict=True)
 
@@ -22,7 +22,7 @@ probes = (Probe).fetch(as_dict=True)
 save_fld = Path("D:\Dropbox (UCL)\Rotation_vte\Writings\THESIS\Chpt4\Plots")
 scene = Scene(screenshots_folder=save_fld)
 
-regions = ("MOs", "CUN", "PPN")
+regions = ("MOs",) if TARGET == "MOs" else ("CUN", "PPN")
 regions_meshes = scene.add_brain_region(*regions, alpha=0.3, silhouette=False)
 # scene.slice(plane="frontal", actors=[scene.root])
 
