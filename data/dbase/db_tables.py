@@ -647,6 +647,7 @@ if have_dj:
         """
 
         def make(self, key):
+            raise NotImplementedError("All body parts are mushed together")
             if "_t" in key["name"] and "training" not in key["name"]:
                 logger.warning(
                     f'Skipping session {key["name"]} because its a test session'
