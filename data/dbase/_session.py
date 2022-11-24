@@ -27,6 +27,7 @@ def fill_session_table(table):
         # Get session data
         # name = video.name.split("_video")[0]
         name = video.name.split("_analog")[0]
+        name = name.replace("_data.csv", "")
         if name in in_table:
             continue
 
@@ -89,6 +90,7 @@ def fill_session_table(table):
         #     )
 
         # get ephys files & arena type
+        print(name)
         if name in recorded_sessions["bonsai filename"].values:
             rec = recorded_sessions.loc[
                 recorded_sessions["bonsai filename"] == name

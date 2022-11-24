@@ -25,7 +25,7 @@ def load_or_open(
         Path(base_path).stem + f"_{data_type}_sync.npy"
     )
 
-    if not bin_file.exists() and not savepath.exists():
+    if not Path(bin_file).exists() and not Path(savepath).exists():
         logger.info(
             f"Couldnt read .bin file because it doesn't exist:\n{bin_file}"
         )

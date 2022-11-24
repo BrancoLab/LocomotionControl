@@ -41,7 +41,7 @@ from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata  # , load_bin
 from data import data_utils
 
-DO_RECORDINGS_ONLY = False
+DO_RECORDINGS_ONLY = True
 
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
@@ -308,6 +308,12 @@ if have_dj:
                 # logger.info(f"Skipping openarena session {key['name']}")
                 return
 
+            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+                logger.debug(
+                    f'Skipping {key["name"]} because it is not a recording'
+                )
+                return
+
             if key["name"] in failed.keys():
                 reason = failed[key["name"]]["__REASON"]
                 rec = failed[key["name"]]["__IS_RECORDING"]
@@ -321,7 +327,7 @@ if have_dj:
             session = (Session & key).fetch1()
 
             # check if session has known problems and should be excluded
-            session_name = session["name"][:-9]
+            session_name = session["name"]
             if session_name in self.excluded_sessions:
                 logger.info(
                     f'Skipping session "{session["name"]}" because its in the excluded sessions list'
@@ -359,8 +365,6 @@ if have_dj:
                     key["frame_to_drop_post"] = 0
                 if "tscale" not in key.keys():
                     key["tscale"] = 1
-
-                key["name"] = key["name"] + "_data.csv"
             else:
                 logger.debug(f"Validating session: {session_name}")
 
@@ -444,7 +448,10 @@ if have_dj:
 
             # fill in table
             logger.info(f'Inserting session data in table: {key["name"]}')
-            self.insert1(key)
+            try:
+                self.insert1(key)
+            except:
+                logger.warning("FAILED TO INSERT")
 
     @schema
     class BonsaiTriggers(dj.Imported):
@@ -581,11 +588,13 @@ if have_dj:
             videopath = (Session & key).fetch1("video_file_path")
 
             # replace with local copy path
-            name = Path(videopath).name
-            name = name[:-19] + "_video.avi"
-            videopath = Path("K:\\vids") / name
-            # if not videopath.exists():
-            #     logger.info(f"Could not find video file: {videopath}")
+            name = key["name"] + "_video.avi"
+            # name = name[:-19] + "_video.avi"
+            videopath = (
+                Path(r"W:\swc\branco\Federico\Locomotion\raw\video") / name
+            )
+            if not videopath.exists():
+                logger.info(f"Could not find video file: {videopath}")
 
             # get matrix
             key["correction_matrix"] = _ccm.get_matrix(str(videopath), arena)
@@ -647,7 +656,7 @@ if have_dj:
         """
 
         def make(self, key):
-            raise NotImplementedError("All body parts are mushed together")
+            # raise NotImplementedError("All body parts are mushed together")
             if "_t" in key["name"] and "training" not in key["name"]:
                 logger.warning(
                     f'Skipping session {key["name"]} because its a test session'
@@ -703,14 +712,13 @@ if have_dj:
             #     )
 
             # insert into table
-            key["name"] += "_data.csv"
+            # key["name"] += "_data.csv"
 
-            try:
-                self.insert1(key)
-            except Exception as e:
-                logger.warning(f"Failed to insert {key['name']}")
-                logger.warning(e)
-                return
+            key["u"] = key["speed"]
+            key["udot"] = key["acceleration"]
+            # del key["speed"], key["acceleration"]
+
+            self.insert1(key)
 
         @staticmethod
         def get_session_tracking(session_name, body_only=True, movement=True):
@@ -745,6 +753,12 @@ if have_dj:
             # if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
             #     return
 
+            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
+                logger.info(
+                    f'Skipping {key["name"]} because its not a recording'
+                )
+                return
+
             # get tracking data file
             tracking_file = Session.get_session_tracking_file(key["name"])
             if tracking_file is None:
@@ -778,7 +792,7 @@ if have_dj:
                     try:
                         self.insert1(bpkey)
                     except:
-                        bpkey["name"] += "_data.csv"
+                        # bpkey["name"] += "_data.csv"
                         try:
                             self.insert1(bpkey)
                         except:
@@ -1163,10 +1177,10 @@ if have_dj:
             recording_probe_configuration:      varchar(256)  # longcol, b_0 ...
             reference:                          varchar(256)  # interf, extref
         """
-        # recordings_folder = Path(
-        #     r"W:\swc\branco\Federico\Locomotion\raw\recordings"
-        # )
-        recordings_folder = Path(r"M:\recordings_temp")
+        recordings_folder = Path(
+            r"W:\swc\branco\Federico\Locomotion\raw\recordings"
+        )
+        # recordings_folder = Path(r"M:\recordings_temp")
 
         spikeglx_sampling_rate = 30000.616484
 
@@ -1204,7 +1218,7 @@ if have_dj:
 
     @schema
     class Unit(dj.Imported):
-        precomputed_firing_rate_windows = [10, 25, 100]  # in ms
+        precomputed_firing_rate_windows = [25, 100, 250]  # in ms
 
         definition = """
             # a single unit's spike sorted data
@@ -1484,7 +1498,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Session().drop()
+    # Recording().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1494,9 +1508,6 @@ if __name__ == "__main__":
     # sort_files()
 
     # -------------------------------- fill dbase -------------------------------- #
-
-    # TODO check why some recordings are not in the table!!
-
     logger.info("#####    Filling mouse data")
     # Mouse().fill()
 
@@ -1510,7 +1521,7 @@ if __name__ == "__main__":
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
-    # CCM().populate(display_progress=True)
+    CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
     # Behavior().populate(display_progress=True)
@@ -1527,10 +1538,10 @@ if __name__ == "__main__":
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=False)
-    # Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=False)
+    Unit().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
