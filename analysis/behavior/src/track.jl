@@ -2,8 +2,6 @@ using NPZ
 using Dierckx: Spline1D, derivative
 using Interpolations
 
-
-
 # -------------------------------- TRACK TYPE -------------------------------- #
 struct Track
     X::Vector
@@ -21,10 +19,7 @@ struct Track
 end
 
 function Base.show(io::IO, track::Track)
-    return print(
-        io,
-        "Track. \e[2m$(round(track.S_f)) cm long, $(track.N) waypoints.\e[0m",
-    )
+    return print(io, "Track. \e[2m$(round(track.S_f)) cm long, $(track.N) waypoints.\e[0m")
 end
 
 struct Border
@@ -83,7 +78,7 @@ width_values = [
     [0.0 1.2]
     [0.01 1.1]
     [0.05 1.00]
-    [0.07 .9] # first narrow
+    [0.07 0.9] # first narrow
     [0.11 1.00] # first narrow
     [0.15 1]  # end of frst narrow
     [0.20 1]
@@ -94,7 +89,7 @@ width_values = [
     [0.5 0.9]  # 
     [0.55 1.05]
     [0.6 1.0]  # end of second narrow
-    [0.63 1.05]  
+    [0.63 1.05]
     [0.67 1.05]
     [0.7 1.1]
     [0.75 1.1]
@@ -105,7 +100,6 @@ width_values = [
     [0.98 1.2]
     [1 1.2]  # end
 ]
-
 
 # ---------------------------------------------------------------------------- #
 #                              TRACK CONSTRUCTORS                              #
@@ -118,7 +112,6 @@ function Track(XY, s1::Float64; resolution=0.00001, const_width=false)
     X = movingaverage(XY[:, 1], 3)
     Y = movingaverage(XY[:, 2], 3)
     X, Y = upsample(X, Y; δp=resolution)
-
 
     # @assert length(X) == size(XY, 1)
     # get new points locations thorugh interpolation
@@ -147,7 +140,6 @@ function Track(XY, s1::Float64; resolution=0.00001, const_width=false)
     wspline = Spline1D(width_values[:, 1], width_values[:, 2] .* 3; k=4)
     wfn(s) = const_width ? 3.0 : wspline((s - s1) / 261)
 
-
     return Track(X, Y, Array([X Y]'), curvature, N, P, S_f, S, δs, K, wfn, θ)
 end
 
@@ -159,14 +151,14 @@ Create a track from saved waypoints coordinates.
   - `keep_n_waypoints` can be used to keep only the first N waypoints. Set to -1 to keep all.
   - `resolution` used to upsample track waypoints through interpolation.
 """
-function Track(; 
+function Track(;
     start_waypoint=2,
     keep_n_waypoints=-1,
     resolution=0.00001,
     npyfile=nothing,
     const_width=false,
     track_length=261,
-    )
+)
     # load data
     npyfile = isnothing(npyfile) ? "src/hairpin.npy" : npyfile
     XY = npzread(npyfile)
@@ -180,7 +172,8 @@ function Track(;
     end
 
     if isnothing(track_length)
-        track_length = (Int64 ∘ round)(sum(sqrt.(diff(XY[:, 1]).^2 .+ diff(XY[:, 2]).^2))) * 2
+        track_length =
+            (Int64 ∘ round)(sum(sqrt.(diff(XY[:, 1]) .^ 2 .+ diff(XY[:, 2]) .^ 2))) * 2
     end
 
     end_idx = min(start_waypoint + keep_n_waypoints - 1, track_length)
@@ -204,7 +197,6 @@ function Track(state; keep_n_waypoints=-1, resolution=0.00001)
     )
 end
 
-
 const FULLTRACK = Track(; start_waypoint=4)
 
 """
@@ -212,7 +204,7 @@ Trim the full track from a start value keeping a given length
 """
 function trim(track::Track, svalue, length)
     # svalue = svalue < 1 ? svalue * 259 : svalue
-    
+
     first = findfirst(track.S .>= (svalue))
 
     last = findlast(track.S .<= (svalue + length))

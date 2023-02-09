@@ -15,74 +15,91 @@ import ..trial: Trial
 export draw, draw!, summary_plot
 export plot_bike_trajectory!
 
-
-
 # ---------------------------------------------------------------------------- #
 #                                     ARENA                                    #
 # ---------------------------------------------------------------------------- #
 arena = Images.load("src/arena.png")
 
-
 """
 Set figure and ax properties for showing the Track.
 """
 function draw!()
-    plot!(;
-    xlabel="X (cm)",
-    ylabel="Y (cm)",
-    aspect_ratio=:equal,
-    size=(1200, 1200),
-    xlim=[-5, 45],
-    ylim=[-5, 65],
-)
+    return plot!(;
+        xlabel="X (cm)",
+        ylabel="Y (cm)",
+        aspect_ratio=:equal,
+        size=(1200, 1200),
+        xlim=[-5, 45],
+        ylim=[-5, 65],
+    )
 end
 
 """ draw various things by name """
 function draw!(what::Symbol; kwargs...)
     if what == :arena
-        plt =  plot!(
+        plt = plot!(
             [-8, 47],
             [-12, 66],
             reverse(arena; dims=1);
             yflip=false,
             xlim=[-5, 45],
             ylim=[-5, 65],
-            kwargs...
+            kwargs...,
         )
         draw!()
         return plt
     end
 end
-
 
 function draw(what::Symbol; kwargs...)
     if what == :arena
-        plt =  plot(
+        plt = plot(
             [-8, 47],
             [-12, 66],
             reverse(arena; dims=1);
             yflip=false,
             xlim=[-5, 45],
             ylim=[-5, 65],
-            kwargs...
+            kwargs...,
         )
         draw!()
         return plt
     end
 end
 
-
-
 # ----------------------------------- track ---------------------------------- #
 """ Draw track and track borders """
-function draw!(track::Track; title="", Δp=500, color=black, lw=5, border_lw=3, alpha=.2, border_alpha=.8)
-    plot!(track.X[1:Δp:end], track.Y[1:Δp:end]; lw=lw, lc=color, label=nothing, ls=:dash, alpha=alpha)
+function draw!(
+    track::Track;
+    title="",
+    Δp=500,
+    color=black,
+    lw=5,
+    border_lw=3,
+    alpha=0.2,
+    border_alpha=0.8,
+)
+    plot!(
+        track.X[1:Δp:end],
+        track.Y[1:Δp:end];
+        lw=lw,
+        lc=color,
+        label=nothing,
+        ls=:dash,
+        alpha=alpha,
+    )
 
     for border in get_track_borders(track)
-        plot!(border.X[1:Δp:end], border.Y[1:Δp:end]; lw=border_lw, lc=color, label=nothing, alpha=border_alpha)
+        plot!(
+            border.X[1:Δp:end],
+            border.Y[1:Δp:end];
+            lw=border_lw,
+            lc=color,
+            label=nothing,
+            alpha=border_alpha,
+        )
     end
 end
-
 
 # ------------------------------- tracking data ------------------------------ #
 """
@@ -97,7 +114,8 @@ end
 
 function draw!(trial::Trial; lw=1.5, color=grey, asscatter=false, kwargs...)
     asscatter || plot!(trial.x, trial.y; color=color, lw=lw, label=nothing, kwargs...)
-    asscatter && scatter!(trial.x, trial.y; color=color, lw=lw, label=nothing, kwargs...)
+    return asscatter &&
+           scatter!(trial.x, trial.y; color=color, lw=lw, label=nothing, kwargs...)
 end
 # -------------------------------- comparisons ------------------------------- #
 """
@@ -121,26 +139,35 @@ end
     Draw a track segment
 """
 function draw!(segment::TrackSegment)
-    draw!(
-        segment.track; border_lw=6,alpha=1, border_alpha=1.0, color=segment.color
-    )
+    draw!(segment.track; border_lw=6, alpha=1, border_alpha=1.0, color=segment.color)
 
-    draw!.(segment.checkpoints; lw=4, alpha=.25)
+    return draw!.(segment.checkpoints; lw=4, alpha=0.25)
 end
 
 # ----------------------------------- bike ----------------------------------- #
 function draw!(state::State; color=black, alpha=1.0)
     plot!(
         [state.x, state.x + 2 * cos(state.θ)],
-        [state.y, state.y + 2 * sin(state.θ)],
-        lw=6, color="black", label=nothing,
+        [state.y, state.y + 2 * sin(state.θ)];
+        lw=6,
+        color="black",
+        label=nothing,
     )
 
-    scatter!([state.x], [state.y], ms=12, color="white", mlc="white", msc="white", lw=0.01, label=nothing, alpha=alpha)
+    scatter!(
+        [state.x],
+        [state.y];
+        ms=12,
+        color="white",
+        mlc="white",
+        msc="white",
+        lw=0.01,
+        label=nothing,
+        alpha=alpha,
+    )
 
-    scatter!([state.x], [state.y], ms=8, color=color, label=nothing, alpha=alpha)
+    return scatter!([state.x], [state.y]; ms=8, color=color, label=nothing, alpha=alpha)
 end
-
 
 # ---------------------------------------------------------------------------- #
 #                                 MTM SOLUTION                                 #
@@ -225,13 +252,14 @@ end
 Plot the trajectory of the model (forward solution)
 showing also the bike's posture
 """
-function plot_bike_trajectory!(model, bike; showbike=true, color=salmon_dark, lw=6, alpha=1.0, label="model")
+function plot_bike_trajectory!(
+    model, bike; showbike=true, color=salmon_dark, lw=6, alpha=1.0, label="model"
+)
     plot!(model.x, model.y; color=color, lw=lw, label=label, alpha=alpha)
 
     # plot bike's posture
     return showbike && plot_bike!(model, bike, 20)
 end
-
 
 """
 Simulation summary plot with the bike's trajectory and various
@@ -247,10 +275,7 @@ function summary_plot(
     nsupports = length(value(controlmodel[:u]))
     # plot the track + XY trajectory
     xyplot = draw(:arena)
-    draw!(
-        track;
-        title="Duration: $(round(model.t[end]; digits=3))s | $nsupports supports",
-    )
+    draw!(track; title="Duration: $(round(model.t[end]; digits=3))s | $nsupports supports")
 
     # plot trials
     if !isnothing(trials)
@@ -309,14 +334,12 @@ function summary_plot(
         "control δ̇dot";
         subplot=6,
     )
-    plot_two!(t, _t, model.Fu, value(controlmodel[:Fu]), "ODE u̇", "control u̇", subplot=5)
+    plot_two!(t, _t, model.Fu, value(controlmodel[:Fu]), "ODE u̇", "control u̇"; subplot=5)
 
     display(fig)
     display(xyplot)
     return nothing
 end
-
-
 
 # ---------------------------------------------------------------------------- #
 #                                     BIKE                                     #
@@ -363,7 +386,5 @@ function plot_bike!(model::Solution, bike::Bicycle, n::Int)
         )
     end
 end
-
-
 
 end

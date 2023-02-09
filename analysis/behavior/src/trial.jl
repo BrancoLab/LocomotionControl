@@ -56,7 +56,13 @@ function Trial(trial::DataFrameRow, track::Track; fixstart=true)
 
     # get velocities
     speed, u, v, ω = kinematics_from_position(
-        trial.body_x, trial.body_y, θ, trial.body_speed; fps=60, smooth=true, smooth_wnd=0.05
+        trial.body_x,
+        trial.body_y,
+        θ,
+        trial.body_speed;
+        fps=60,
+        smooth=true,
+        smooth_wnd=0.05,
     )
 
     # remove artifacts
@@ -84,24 +90,22 @@ function Trial(trial::DataFrameRow, track::Track; fixstart=true)
     )
 end
 
-
 function Trial(filepath::String)
     open(filepath) do f
         data = jsontable(read(f))
         return Trial(
-                data.x,             # x
-                data.y,             # y
-                data.s,             # s
-                data.θ,             # θ
-                data.ω,             # ω
-                data.speed,         # speed
-                data.u,             # u
-                data.v,             # v
-                data.duration[1]    # duration
-            )
+            data.x,             # x
+            data.y,             # y
+            data.s,             # s
+            data.θ,             # θ
+            data.ω,             # ω
+            data.speed,         # speed
+            data.u,             # u
+            data.v,             # v
+            data.duration[1],    # duration
+        )
     end
 end
-
 
 # ----------------------------------- utils ---------------------------------- #
 """
@@ -127,22 +131,26 @@ function trimtrial(trial::Trial, s0, s1; by=:space)
         trial.speed[start:stop],    # speed
         trial.u[start:stop],        # u
         trial.v[start:stop],        # v
-        (stop-start)/60,            # duration
+        (stop - start) / 60,            # duration
     )
 end
 
-trimtrial(trial::Trial, seg::TrackSegment) = trimtrial(trial,260 * ( seg.s₀ - .01), 260 * (seg.s₁ - .01))
-
+function trimtrial(trial::Trial, seg::TrackSegment)
+    return trimtrial(trial, 260 * (seg.s₀ - 0.01), 260 * (seg.s₁ - 0.01))
+end
 
 """
     Get the value of each trial's variable at a frame index
 """
-get_varvalue_at_frameidx(trials::Vector{Trial}, variable::Symbol, frame::Int) = map(t->getfield(t, variable)[frame], trials)
+function get_varvalue_at_frameidx(trials::Vector{Trial}, variable::Symbol, frame::Int)
+    return map(t -> getfield(t, variable)[frame], trials)
+end
 
 """
     Get the value of each trial's variable at the last frame
 """
-get_varvalue_at_frameidx(trials::Vector{Trial}, variable::Symbol) = map(t->getfield(t, variable)[end], trials)
-
+function get_varvalue_at_frameidx(trials::Vector{Trial}, variable::Symbol)
+    return map(t -> getfield(t, variable)[end], trials)
+end
 
 end

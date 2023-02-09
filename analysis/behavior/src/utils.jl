@@ -3,18 +3,14 @@ using ForwardDiff
 using Dierckx
 
 function toDict(res)
-    return Dict(
-        fieldnames(typeof(res)) .=> getfield.(Ref(res), fieldnames(typeof(res)))
-    )
+    return Dict(fieldnames(typeof(res)) .=> getfield.(Ref(res), fieldnames(typeof(res))))
 end
-
 
 function naturalsort(x::Vector{String})
     f = text -> all(isnumeric, text) ? Char(parse(Int, text)) : text
     sorter = key -> join(f(c) for c in eachmatch(r"[0-9]+|[^0-9]+", key))
-    sort(x, by=sorter)
+    return sort(x; by=sorter)
 end
-
 
 # ------------------------------ interpolations ------------------------------ #
 

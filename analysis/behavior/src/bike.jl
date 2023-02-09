@@ -30,14 +30,7 @@ struct Bicycle
     body_lw::Number
     body_color::String
 
-    function Bicycle(; 
-        l_f::Number=3,
-        l_r::Number=2,
-        width::Number=2,
-        m_f=12, 
-        m_r=11, 
-        c=4e3
-        )
+    function Bicycle(; l_f::Number=3, l_r::Number=2, width::Number=2, m_f=12, m_r=11, c=4e3)
 
         # convert units g->Kg, cm->m
         mfKg = m_f # / 100
@@ -120,23 +113,35 @@ function State(trial, frame::Int, track::Track; smoothing_window=1, kwargs...)
 
     # get track errors
     x, y = _x[frame], _y[frame]
-    dist = sqrt.((track.X.-x).^2 + (track.Y.-y).^2)
+    dist = sqrt.((track.X .- x) .^ 2 + (track.Y .- y) .^ 2)
     idx = argmin(dist)
 
     n = dist[idx]
 
     # get the sign of n right based on which side of the track the mouse is
     if idx > 2 && idx < length(track.X) - 2
-        x1, y1, x2, y2 = track.X[idx-1], track.Y[idx-1], track.X[idx+1], track.Y[idx+1]
-        d = (x - x1)*(y2 - y1) - (y - y1)*(x2 - x1)
+        x1, y1, x2, y2 = track.X[idx - 1],
+        track.Y[idx - 1], track.X[idx + 1],
+        track.Y[idx + 1]
+        d = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1)
         n *= sign(d)
     end
-
 
     ψ = track.θ[idx] - θ[frame]
     # ψ = mod(abs(ψ), 2π) 
 
-    return State(; x=x, y=y, θ=θ[frame], ω=_ω[frame], u=_u[frame], n=n, ψ=ψ, track_idx=idx, s=track.S[idx], kwargs...)
+    return State(;
+        x=x,
+        y=y,
+        θ=θ[frame],
+        ω=_ω[frame],
+        u=_u[frame],
+        n=n,
+        ψ=ψ,
+        track_idx=idx,
+        s=track.S[idx],
+        kwargs...,
+    )
 end
 
 """
@@ -159,7 +164,7 @@ function State(solution, Δt::Float64)
         v=solution.v[frame],
         n=solution.n[frame],
         ψ=solution.ψ[frame],
-        Fu = solution.Fu[frame]
+        Fu=solution.Fu[frame],
     )
 end
 end

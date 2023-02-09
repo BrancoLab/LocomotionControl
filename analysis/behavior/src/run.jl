@@ -19,7 +19,7 @@ function run_mtm(
     supports_density::Number;
     track::Union{Nothing,Track}=nothing,
     icond::Union{Nothing,State}=nothing,
-    fcond::Union{Nothing,State, Symbol}=nothing,
+    fcond::Union{Nothing,State,Symbol}=nothing,
     control_options::Union{ControlOptions,Symbol}=:default,
     showtrials::Union{Nothing,Int64}=nothing,
     n_iter::Int=1000,
@@ -30,8 +30,8 @@ function run_mtm(
     quiet::Bool=false,
     α::Float64=0.0, # cost of Fu
     γ::Float64=0.0,  # cost of δ̇
-    bike::Union{Nothing, Bicycle}=nothing,
-    waypoint=nothing
+    bike::Union{Nothing,Bicycle}=nothing,
+    waypoint=nothing,
 )
     problemtype = problemtype == :kinematics ? KinematicsProblem() : DynamicsProblem()
     δt = 0.01 # Δt for forward integration
@@ -54,7 +54,7 @@ function run_mtm(
     @assert control_options isa ControlOptions "Control options is not a ControlOptions type: $(typeof(control_options)) $control_options"
 
     # define initial and final conditions
-    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=25, ω=2, ψ=.1) : icond
+    icond = isnothing(icond) ? State(; x=track.X[1], y=track.Y[1], u=25, ω=2, ψ=0.1) : icond
     # fcond = isnothing(fcond) ? State(; u=40, n=0, ψ=0) : fcond
 
     # ---------------------------------------------------------------------------- #

@@ -1,6 +1,5 @@
 module control
 
-
 using Ipopt
 using InfiniteOpt
 import InfiniteOpt: value, transcription_variable
@@ -78,7 +77,6 @@ realistict_control_options = ControlOptions(;
     v_bounds=Bounds(-125, 125),
 )
 
-
 """
 These are th best controls for the Dynamic model
 as of 04/04/2022, they're also the very close
@@ -93,7 +91,6 @@ default_control_options = ControlOptions(;
     # Fu_bounds=Bounds(-2000, 3000),
     Fu_bounds=Bounds(-750, 3000),
 )
-
 
 # ---------------------------------------------------------------------------- #
 #                                KINEMATIC MODEL                               #
@@ -353,7 +350,7 @@ function create_and_solve_control(
     bike::Bicycle,
     options::ControlOptions,
     initial_conditions::State,
-    final_conditions::Union{Nothing, State, Symbol};
+    final_conditions::Union{Nothing,State,Symbol};
     quiet::Bool=false,
     n_iter::Int=1000,
     tollerance::Float64=1e-4,
@@ -362,7 +359,7 @@ function create_and_solve_control(
     γ::Float64=0.0,  # cost of δ̇
     waypoint=nothing,  # pass (s, State) to set the state at a track.s value
 )
-    
+
     # initialize optimizer
     model = InfiniteModel(Ipopt.Optimizer)
     set_optimizer_attribute(model, "max_iter", n_iter)
@@ -375,7 +372,9 @@ function create_and_solve_control(
     @register(model, κ(s))
 
     # ----------------------------- define variables ----------------------------- #
-    @infinite_parameter(model, s ∈ [track.S[1], track.S[end]], num_supports = max(5, num_supports))
+    @infinite_parameter(
+        model, s ∈ [track.S[1], track.S[end]], num_supports = max(5, num_supports)
+    )
 
     @variables(
         model,
@@ -397,9 +396,9 @@ function create_and_solve_control(
             options.Fu_bounds.lower ≤ Fu ≤ options.Fu_bounds.upper, Infinite(s)  # control 
 
             # time
-            0 ≤ t ≤ 60, Infinite(s), (start = 3)   
-       end
-   )
+            0 ≤ t ≤ 60, Infinite(s), (start = 3)
+        end
+    )
 
     # -------------------------- track width constraints ------------------------- #
     @parameter_function(model, allowed_track_width == track.width(s))
@@ -415,9 +414,8 @@ function create_and_solve_control(
     SF = (1 - n * κ(s)) / (V ⋅ cos(ψ + β))  # time -> space domain conversion factor
 
     # lateral forces
-    Ff = c⋅(δ - (l_f⋅ω + v)/u)
-    Fr = c⋅(l_r⋅ω - v)/u
-
+    Ff = c ⋅ (δ - (l_f ⋅ ω + v) / u)
+    Fr = c ⋅ (l_r ⋅ ω - v) / u
 
     @constraints(
         model,
@@ -428,9 +426,9 @@ function create_and_solve_control(
 
             # EOM
             ∂(δ, s) == SF * δ̇
-            ∂(u, s) == SF / m * (m⋅ω⋅v - Ff⋅sin(δ) + Fu)
-            ∂(v, s) == SF / m * (-m⋅ω⋅u + Ff⋅cos(δ) + Fr)
-            ∂(ω, s) == SF / Iz * (l_f⋅Ff⋅cos(δ) - l_r⋅Fr)
+            ∂(u, s) == SF / m * (m ⋅ ω ⋅ v - Ff ⋅ sin(δ) + Fu)
+            ∂(v, s) == SF / m * (-m ⋅ ω ⋅ u + Ff ⋅ cos(δ) + Fr)
+            ∂(ω, s) == SF / Iz * (l_f ⋅ Ff ⋅ cos(δ) - l_r ⋅ Fr)
 
             # time
             ∂(t, s) == SF
@@ -461,70 +459,64 @@ function create_and_solve_control(
     if !isnothing(final_conditions)
         if final_conditions == :minimal
             @constraints(
-                model, 
+                model,
                 begin
-                n(track.S[end]) == 0
-                ψ(track.S[end]) == 0
-
+                    n(track.S[end]) == 0
+                    ψ(track.S[end]) == 0
                 end
             )
         else
             @constraints(
-                model, 
+                model,
                 begin
-                n(track.S[end]) == final_conditions.n
-                ψ(track.S[end]) == final_conditions.ψ
+                    n(track.S[end]) == final_conditions.n
+                    ψ(track.S[end]) == final_conditions.ψ
 
-                δ(track.S[end]) == final_conditions.δ
-                δ̇(track.S[end]) == final_conditions.δ̇
+                    δ(track.S[end]) == final_conditions.δ
+                    δ̇(track.S[end]) == final_conditions.δ̇
 
-                u(track.S[end]) == final_conditions.u
-                v(track.S[end]) == final_conditions.v
-                ω(track.S[end]) == final_conditions.ω
-                Fu(track.S[end]) == final_conditions.Fu
+                    u(track.S[end]) == final_conditions.u
+                    v(track.S[end]) == final_conditions.v
+                    ω(track.S[end]) == final_conditions.ω
+                    Fu(track.S[end]) == final_conditions.Fu
                 end
             )
-            end
         end
-
+    end
 
     # additional waypoint
     if !isnothing(waypoint)
         sval, constraint = waypoint
         @constraints(
-            model, 
+            model,
             begin
-            n(sval) == constraint.n
-            ψ(sval) == constraint.ψ
+                n(sval) == constraint.n
+                ψ(sval) == constraint.ψ
 
-            δ(sval) == constraint.δ
-            δ̇(sval) == constraint.δ̇
+                δ(sval) == constraint.δ
+                δ̇(sval) == constraint.δ̇
 
-            u(sval) == constraint.u
-            v(sval) == constraint.v
-            ω(sval) == constraint.ω
-            Fu(sval) == constraint.Fu
+                u(sval) == constraint.u
+                v(sval) == constraint.v
+                ω(sval) == constraint.ω
+                Fu(sval) == constraint.Fu
             end
         )
     end
 
     # --------------------------------- optimize --------------------------------- #
     set_all_derivative_methods(model, OrthogonalCollocation(2))
-<<<<<<< HEAD
-    @objective(model, Min, ∫(SF + α*Fu^2 + γ*δ̇, s))
-=======
     Fu₀ = options.Fu_bounds.lower
     Fu₁ = options.Fu_bounds.upper
 
-    one(x) = (0.00040) * exp(- x / (-453.95) + 0.00059)
-    two(x) = (0.0028) * exp(- x / (209.936) + -0.0124)
+    one(x) = (0.00040) * exp(-x / (-453.95) + 0.00059)
+    two(x) = (0.0028) * exp(-x / (209.936) + -0.0124)
     # c0(x) = -1/Fu₀ * x
     # c1(x) = 1/Fu₁ * x
     # cost(x) = max(c0(x), c1(x))
     # @register(model, cost(Fu))
 
-    @objective(model, Min, ∫(SF + α*(one(Fu) + two(Fu)) + γ*δ̇, s))
->>>>>>> a6b179194bf08ffc0b8757d1946cd244a1af1215
+    @objective(model, Min, ∫(SF + α * (one(Fu) + two(Fu)) + γ * δ̇, s))
     optimize!(model)
 
     # print info

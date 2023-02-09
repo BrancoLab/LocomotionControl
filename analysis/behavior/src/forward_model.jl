@@ -41,7 +41,7 @@ end
 function Solution(df::DataFrame)::Solution
     _keys = filter!(k -> Symbol(k) != :δt, names(df))
     dt = "δt" ∈ names(df) ? df[1, :δt] : 0.0
-    return Solution(; Dict(map(k -> Symbol(k)=>df[:, k], _keys))..., δt=dt)
+    return Solution(; Dict(map(k -> Symbol(k) => df[:, k], _keys))..., δt=dt)
 end
 
 """
@@ -107,12 +107,9 @@ function run_forward_model(
         u̇s = map(ξ(value(model[:u̇])), svalues)
     else
         vs = map(ξ(value(model[:v])), svalues)
-        βs = map(
-                ξ(atan.(vs ./ (us .+ eps()))), svalues
-            )
+        βs = map(ξ(atan.(vs ./ (us .+ eps()))), svalues)
         Fus = map(ξ(value(model[:Fu])), svalues)
     end
-
 
     # get values at regular Δt
     Ts = map(ξ(value(model[:t])), svalues)
@@ -136,10 +133,10 @@ function run_forward_model(
         ψ[i] = ψs[idx]
         β[i] = βs[idx]
 
-        if problemtype isa KinematicsProblem            
+        if problemtype isa KinematicsProblem
             u̇[i] = u̇s[idx]
         else
-        v[i] = vs[idx]
+            v[i] = vs[idx]
             Fu[i] = Fus[idx]
         end
     end
@@ -150,28 +147,27 @@ function run_forward_model(
         # get the closest track point
         idx = closest_point_idx(track.X, X[i], track.Y, Y[i])
         push!(S, track.S[idx])
-    end 
+    end
 
-    return Solution(
+    return Solution(;
         δt=δt,
-        t = T,
-        s = S,
-        x = X,
-        y = Y,
-        θ = θ,
-        u = u,
-        ω = ω,
-        δ = δ,
-        δ̇ = δ̇,
-        u̇ = u̇,
-        n = n,
-        ψ = ψ,
-        β = β,
-        v = v,
+        t=T,
+        s=S,
+        x=X,
+        y=Y,
+        θ=θ,
+        u=u,
+        ω=ω,
+        δ=δ,
+        δ̇=δ̇,
+        u̇=u̇,
+        n=n,
+        ψ=ψ,
+        β=β,
+        v=v,
         Fu=Fu,
     )
 end
-
 
 function trimsolution(sol::Solution, s0, s1)
     start = findfirst(sol.s .>= s0)
@@ -180,23 +176,23 @@ function trimsolution(sol::Solution, s0, s1)
     stop = findlast(sol.s .<= s1)
     isnothing(start) && return nothing
 
-    return Solution(
-        δt= sol.δt,
-        t = sol.t[start:stop],
-        s = sol.s[start:stop],
-        x = sol.x[start:stop],
-        y = sol.y[start:stop],
-        θ = sol.θ[start:stop],
-        u = sol.u[start:stop],
-        ω = sol.ω[start:stop],
-        δ = sol.δ[start:stop],
-        δ̇ =  sol.δ̇[start:stop],
+    return Solution(;
+        δt=sol.δt,
+        t=sol.t[start:stop],
+        s=sol.s[start:stop],
+        x=sol.x[start:stop],
+        y=sol.y[start:stop],
+        θ=sol.θ[start:stop],
+        u=sol.u[start:stop],
+        ω=sol.ω[start:stop],
+        δ=sol.δ[start:stop],
+        δ̇=sol.δ̇[start:stop],
         # u̇ =  sol.u̇[start:stop],
-        n = sol.n[start:stop],
-        ψ = sol.ψ[start:stop],
-        β = sol.β[start:stop],
-        v = sol.v[start:stop],
-        Fu= sol.Fu[start:stop],
+        n=sol.n[start:stop],
+        ψ=sol.ψ[start:stop],
+        β=sol.β[start:stop],
+        v=sol.v[start:stop],
+        Fu=sol.Fu[start:stop],
     )
 end
 
@@ -204,16 +200,10 @@ function Base.lastindex(solution::Solution)::Int
     return length(solution.x)
 end
 
-
 function Base.getindex(solution::Solution, state)
-    vars =  (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
-    return State(;
-        Dict(
-            map(v -> v=>getfield(solution, v)[state], vars)
-        )...
-    )
+    vars = (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
+    return State(; Dict(map(v -> v => getfield(solution, v)[state], vars))...)
 end
-
 
 """
 Take the value of a forward model solution at a given svalue or timestep
@@ -230,12 +220,8 @@ function solution2state(svalue::Number, solution::Solution; at=:place)::State
         idx = isnothing(idx) ? 1 : idx
     end
 
-    vars =  (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
-    state = State(;
-        Dict(
-            map(v -> v=>getfield(solution, v)[idx], vars)
-        )...
-    )
+    vars = (:x, :y, :θ, :δ, :δ̇, :ω, :u, :β, :v, :n, :ψ, :Fu)
+    state = State(; Dict(map(v -> v => getfield(solution, v)[idx], vars))...)
     # state.ψ = mod(2π - state.ψ, 2π)
     return state
 end

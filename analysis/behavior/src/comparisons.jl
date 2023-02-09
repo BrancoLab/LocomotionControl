@@ -8,12 +8,9 @@ import DataFrames: DataFrame
 import MyterialColors: salmon, blue, green, purple, teal, indigo_dark
 import Statistics: mean, std, median
 
-
 import jcontrol: Track, trim, interpolate_wrt_to, closest_point_idx, int, FULLTRACK
 
 export ComparisonPoint, ComparisonPoints, TrackSegment, track_segments
-
-
 
 # ---------------------------------------------------------------------------- #
 #                               COMPARISON POINTS                              #
@@ -23,20 +20,24 @@ export ComparisonPoint, ComparisonPoints, TrackSegment, track_segments
 Store parametersof normal distribution
 """
 struct Dist
-    name::Union{String, Symbol}
+    name::Union{String,Symbol}
     μ
     med
     σ
     values::Vector{Float64}
 end
-Base.show(io::IO, dist::Dist) = print(io, "Dist: $(dist.name)(μ: $(round(dist.μ; digits=2)), σ: $(round(dist.σ; digits=2)))")
+function Base.show(io::IO, dist::Dist)
+    return print(
+        io,
+        "Dist: $(dist.name)(μ: $(round(dist.μ; digits=2)), σ: $(round(dist.σ; digits=2)))",
+    )
+end
 Dist(name, data::Vector) = Dist(name, mean(data), median(data), std(data), data)
-
 
 """
 Get the number of standard deviations away from the mean
 """
-σ(x::Number, dist::Dist; use=:μ) = (x - getfield(dist, use))/dist.σ
+σ(x::Number, dist::Dist; use=:μ) = (x - getfield(dist, use)) / dist.σ
 
 """
 Store values of kinematics variables from tracking data
@@ -66,7 +67,7 @@ struct ComparisonPoint
     η::Float64
     w::Float64
 
-    kinematics::Union{KinematicsValues, Nothing}
+    kinematics::Union{KinematicsValues,Nothing}
 end
 
 function Base.show(io::IO, p::ComparisonPoint)
@@ -76,19 +77,11 @@ function Base.show(io::IO, p::ComparisonPoint)
     )
 end
 
-
-function ComparisonPoint(s, x, y, θ, η, w; trials::Union{Nothing, Vector}=nothing)
+function ComparisonPoint(s, x, y, θ, η, w; trials::Union{Nothing,Vector}=nothing)
     isnothing(trials) && return ComparisonPoint(s, x, y, θ, η, w, nothing)
 
     # get kinematic variables values at comparison point
-    data = Dict(
-        :x => [],
-        :y => [],
-        :θ => [],
-        :ω => [],
-        :u => [],
-        :v => [],
-    )
+    data = Dict(:x => [], :y => [], :θ => [], :ω => [], :u => [], :v => [])
 
     for trial in trials
         idx = closest_point_idx(trial.x, x, trial.y, y)
@@ -96,16 +89,18 @@ function ComparisonPoint(s, x, y, θ, η, w; trials::Union{Nothing, Vector}=noth
         for var in keys(data)
             push!(data[var], eval(:($trial.$var[$idx])))
         end
-    end    
+    end
     # Store mean and standard deviation
     kv = KinematicsValues(
-        Dist(:x, data[:x]), Dist(:y, data[:y]), Dist(:θ, data[:θ]), Dist(:ω, data[:ω]), Dist(:u, data[:u]),  Dist(:v, data[:v])
+        Dist(:x, data[:x]),
+        Dist(:y, data[:y]),
+        Dist(:θ, data[:θ]),
+        Dist(:ω, data[:ω]),
+        Dist(:u, data[:u]),
+        Dist(:v, data[:v]),
     )
     return ComparisonPoint(s, x, y, θ, η, w, kv)
 end
-
-
-
 
 """
 Store a bunch of comparison points
@@ -126,7 +121,7 @@ function ComparisonPoints(
     track::Track; δs=10.04, s₀=nothing, s₁=nothing, kwargs...
 )::ComparisonPoints
     # get values of s for comparisons
-    s₀ = isnothing(s₀) ? δs : (s₀-δs)
+    s₀ = isnothing(s₀) ? δs : (s₀ - δs)
     s₁ = isnothing(s₁) ? track.S_f : s₁
     ŝ = s₀:δs:s₁
 
@@ -135,7 +130,9 @@ function ComparisonPoints(
     return ComparisonPoints(track, collect(ŝ); kwargs...)
 end
 
-function ComparisonPoints(track::Track, svalues::Vector{Float64}; trials::Union{Nothing, Vector}=nothing)
+function ComparisonPoints(
+    track::Track, svalues::Vector{Float64}; trials::Union{Nothing,Vector}=nothing
+)
     # create interpolation objects for each varianle
     x = interpolate_wrt_to(track.S, track.X)
     y = interpolate_wrt_to(track.S, track.Y)
@@ -144,11 +141,13 @@ function ComparisonPoints(track::Track, svalues::Vector{Float64}; trials::Union{
     width = 2 # hardcoded
 
     # get points and return ComparisonPoints
-    pts = map((_s) -> ComparisonPoint(_s, x(_s), y(_s), θ(_s), η(_s), width; trials=trials), svalues)
+    pts = map(
+        (_s) -> ComparisonPoint(_s, x(_s), y(_s), θ(_s), η(_s), width; trials=trials),
+        svalues,
+    )
 
     return ComparisonPoints(svalues, pts)
 end
-
 
 # ---------------------------------------------------------------------------- #
 #                                 TRACK SEGMENT                                #
@@ -168,21 +167,23 @@ function TrackSegment(s₀::Float64, s₁::Float64, color::String; δs=5)
     # rack(; start_waypoint=wp₀, keep_n_waypoints=nwp)
 
     return TrackSegment(
-        track, 
+        track,
         s₀,
         s₁,
-        ComparisonPoints(FULLTRACK; δs=δs, s₀=(s₀+.01)*FULLTRACK.S_f, s₁=(s₁-.01)*FULLTRACK.S_f).points,
-        color
+        ComparisonPoints(
+            FULLTRACK; δs=δs, s₀=(s₀ + 0.01) * FULLTRACK.S_f, s₁=(s₁ - 0.01) * FULLTRACK.S_f
+        ).points,
+        color,
     )
 end
 
 track_segments = [
-    TrackSegment(0.15, .30, salmon),
-    TrackSegment(0.24, .43, blue),
-    TrackSegment(0.40, .61, green),
-    TrackSegment(0.55, .72, purple),
-    TrackSegment(0.71, .86, indigo_dark),
-    TrackSegment(0.82, .975, teal),
+    TrackSegment(0.15, 0.30, salmon),
+    TrackSegment(0.24, 0.43, blue),
+    TrackSegment(0.40, 0.61, green),
+    TrackSegment(0.55, 0.72, purple),
+    TrackSegment(0.71, 0.86, indigo_dark),
+    TrackSegment(0.82, 0.975, teal),
 ]
 
 end

@@ -12,15 +12,15 @@ export PATHS, load_trials, load_cached_trials
 
 if Sys.iswindows()
     PATHS = Dict(
-    "exp_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\saved_data",
-    "cached_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache",
-    "horizons_sims_cache" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims",
+        "exp_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\saved_data",
+        "cached_data_folder" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\jl_trials_cache",
+        "horizons_sims_cache" => "D:\\Dropbox (UCL)\\Rotation_vte\\Locomotion\\analysis\\behavior\\horizons_mtm_sims",
     )
 else
     PATHS = Dict(
-    "exp_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data",
-    "cached_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_trials_cache",
-    "horizons_sims_cache" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims",
+        "exp_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/saved_data",
+        "cached_data_folder" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/jl_trials_cache",
+        "horizons_sims_cache" => "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Locomotion/analysis/behavior/horizons_mtm_sims",
     )
 end
 
@@ -83,7 +83,7 @@ function load_trials(;
 
             # fix data misalignment
             if contains(k, "_x")
-                v .-= .5
+                v .-= 0.5
             end
             push!(data[k], v)
         end
@@ -94,11 +94,12 @@ function load_trials(;
     return isnothing(keep_n) ? data : first(data, keep_n)
 end
 
-
 """
 Load cached pre-processed trials as Trial objects
 """
-function load_cached_trials(; folder=nothing, keep_n::Union{Nothing,Int}=nothing, filter_trials::Bool=true)::Vector{Trial}
+function load_cached_trials(;
+    folder=nothing, keep_n::Union{Nothing,Int}=nothing, filter_trials::Bool=true
+)::Vector{Trial}
     folder = isnothing(folder) ? io.PATHS["cached_data_folder"] : folder
     trials = Trial.(glob("trial_*.json", folder))
 
@@ -108,7 +109,7 @@ function load_cached_trials(; folder=nothing, keep_n::Union{Nothing,Int}=nothing
     for trial in trials
         ṡ = diff(trial.s)
         if filter_trials
-            start = findfirst(ṡ .>= .15)
+            start = findfirst(ṡ .>= 0.15)
             start = isnothing(start) ? 1 : start
             stop = findfirst(trial.s .> 259)
             stop = isnothing(stop) ? length(trial.s) : stop
@@ -123,12 +124,12 @@ function load_cached_trials(; folder=nothing, keep_n::Union{Nothing,Int}=nothing
 
     # sort trials by duration
     if filter_trials
-        durations = map(t->t.duration, trimmed)
+        durations = map(t -> t.duration, trimmed)
         trials = trimmed[sortperm(durations)]
         trials = filter(t -> t.duration <= 9.0, trials)
         trials = filter(t -> t.s[1] <= 15, trials)
         trials = filter(t -> t.s[end] >= 255, trials)
-        trials = filter(t->all(t.s .> 0), trials)
+        trials = filter(t -> all(t.s .> 0), trials)
     end
     return isnothing(keep_n) ? trials : trials[1:keep_n]
 end
