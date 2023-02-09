@@ -1218,7 +1218,7 @@ if have_dj:
 
     @schema
     class Unit(dj.Imported):
-        precomputed_firing_rate_windows = [25, 100, 250]  # in ms
+        precomputed_firing_rate_windows = [25, 50, 100]  # in ms
 
         definition = """
             # a single unit's spike sorted data
@@ -1572,20 +1572,22 @@ if __name__ == "__main__":
     # for tb, name in zip(TABLES, NAMES):
     #     print_table_content_to_file(tb, name)
 
-    N = len(
-        (
-            LocomotionBouts
-            & 'complete="true"'
-            & 'direction="outbound"'
-            # & 'mouse_id="BAA1101192"'
-        )
-    )
+    N = len((LocomotionBouts & 'complete="true"'))
+    n_frates = len((FiringRate & "firing_rate=50"))
 
     print(
-        f"Number of sesssions: {len(Session())}",
+        f"Number of mice: {len(Mouse())}",
+        f"Number of sugeries: {len(Surgery())}",
+        f"Number of sessions: {len(Session())}",
+        f"Number of session conditions: {len(SessionCondition())}",
         f"Number of validated sessions: {len(ValidatedSession())}",
         f"Number of sessions with CCM: {len(CCM())}",
         f"Number of sessions with tracking: {len(Tracking())}",
         f"Number of complete locomotion bouts: {N}",
+        f"Number of processed bouts: {len(ProcessedLocomotionBouts())}",
+        f"Number of implanted probes {len(Probe())}",
+        f"Number of recordings {len(Recording())}",
+        f"Number of units {len(Unit())}",
+        f"Number of firing rates {n_frates}",
         sep="\n",
     )
