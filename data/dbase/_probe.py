@@ -4,6 +4,8 @@ import numpy as np
 from typing import List
 from loguru import logger
 from dataclasses import dataclass
+from pathlib import Path
+from fcutils.path import files
 
 from bg_atlasapi.bg_atlas import BrainGlobeAtlas
 from myterial.utils import rgb2hex
@@ -95,22 +97,18 @@ def place_probe_recording_sites_np1(
     # get brainglobe atlas
     atlas = BrainGlobeAtlas("allen_mouse_25um")
 
-    # find multiple reconstructions files paths
-    # try:
-    #     mouse = probe_metadata["mouse_id"][-3:]
-    #     files = Path(
-    #         r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
-    #     ).glob(mouse + "_atlas_space_0.npy")
-    #     rec_path = list(files)[0]
-    # except IndexError:
-    #     logger.warning(
-    #         f"Did not find reconstructed track filepath for mouse {mouse}"
-    #     )
-    #     return
+    if probe_metadata["reconstructed_track_filepath"] is None:
+        probe_metadata["reconstructed_track_filepath"] = files(
+            Path(
+                r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\reconstructed_probe_location"
+            )
+            / probe_metadata["mouse_id"][-3:]
+        )
+    # else:
+    #     probe_metadata["reconstructed_track_filepath"] = probe_metadata["reconstructed_track_filepath"]
 
-    # _, name = rec_path.parent, rec_path.stem
-    # reconstruction_files = files(fld, pattern=f"{name}_*.npy")
-    # reconstruction_files = [rec_path]
+    # if not probe_metadata["reconstructed_track_filepath"].exists():
+    #     raise FileNotFoundError()
     reconstruction_files = [
         f
         for f in probe_metadata["reconstructed_track_filepath"]

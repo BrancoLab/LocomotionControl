@@ -1,42 +1,266 @@
-FC_210408_AAA1110750_d8_t_data.csv:
+FC_210408_AAA1110750_d8_t:
     __IS_RECORDING: false
     __REASON: couldnt_open_video
-    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210408_AAA1110750_d8_t_data.csv_analog.bin
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210408_AAA1110750_d8_t_analog.bin
     arena: hairpin
-    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210408_AAA1110750_d8_t_data.csv_data.csv
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210408_AAA1110750_d8_t
     date: '210408'
     ephys_ap_data_path: ''
     ephys_ap_meta_path: ''
     is_recording: 0
     mouse_id: AAA1110750
-    name: FC_210408_AAA1110750_d8_t_data.csv
+    name: FC_210408_AAA1110750_d8_t
     nsigs: 0
-    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210408_AAA1110750_d8_t_data.csv_video.avi
-FC_210413_AAA1110750_d11_t2_data.csv:
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210408_AAA1110750_d8_t_video.avi
+FC_210413_AAA1110750_d11_t:
     __IS_RECORDING: false
     __REASON: couldnt_open_video
-    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t2_data.csv_analog.bin
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t_analog.bin
     arena: hairpin
-    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t2_data.csv_data.csv
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t
     date: '210413'
     ephys_ap_data_path: ''
     ephys_ap_meta_path: ''
     is_recording: 0
     mouse_id: AAA1110750
-    name: FC_210413_AAA1110750_d11_t2_data.csv
+    name: FC_210413_AAA1110750_d11_t
     nsigs: 0
-    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210413_AAA1110750_d11_t2_data.csv_video.avi
-FC_210413_AAA1110750_d11_t_data.csv:
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210413_AAA1110750_d11_t_video.avi
+FC_210413_AAA1110750_d11_t2:
     __IS_RECORDING: false
     __REASON: couldnt_open_video
-    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t_data.csv_analog.bin
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t2_analog.bin
     arena: hairpin
-    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t_data.csv_data.csv
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210413_AAA1110750_d11_t2
     date: '210413'
     ephys_ap_data_path: ''
     ephys_ap_meta_path: ''
     is_recording: 0
     mouse_id: AAA1110750
-    name: FC_210413_AAA1110750_d11_t_data.csv
+    name: FC_210413_AAA1110750_d11_t2
     nsigs: 0
-    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210413_AAA1110750_d11_t_data.csv_video.avi
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210413_AAA1110750_d11_t2_video.avi
+FC_210713_AAA1110750_r3_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210713_AAA1110750_r3_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210713_AAA1110750_r3_hairpin
+    date: '210713'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210713_750_longcol_intref_hairpin_g0\210713_750_longcol_intref_hairpin_g0_imec0\210713_750_longcol_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210713_750_longcol_intref_hairpin_g0\210713_750_longcol_intref_hairpin_g0_imec0\210713_750_longcol_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: AAA1110750
+    name: FC_210713_AAA1110750_r3_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210713_AAA1110750_r3_hairpin_video.avi
+FC_210821_BAA1110281_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210821_BAA1110281_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210821_BAA1110281_hairpin_data.csv
+    date: '210821'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210821_281_longcol_intref_hairpin_g0\210821_281_longcol_intref_hairpin_g0_imec0\210821_281_longcol_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210821_281_longcol_intref_hairpin_g0\210821_281_longcol_intref_hairpin_g0_imec0\210821_281_longcol_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA1110281
+    name: FC_210821_BAA1110281_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210821_BAA1110281_hairpin_video.avi
+FC_210915_BAA1110279_hairpin:
+    __IS_RECORDING: true
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210915_BAA1110279_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210915_BAA1110279_hairpin_data.csv
+    date: '210915'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210915_279_b0_intref_hairpin_g0\210915_279_b0_intref_hairpin_g0_imec0\210915_279_b0_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210915_279_b0_intref_hairpin_g0\210915_279_b0_intref_hairpin_g0_imec0\210915_279_b0_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA1110279
+    name: FC_210915_BAA1110279_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210915_BAA1110279_hairpin_video.avi
+FC_210916_BAA1110279_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210916_BAA1110279_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_210916_BAA1110279_hairpin_data.csv
+    date: '210916'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210916_279_b0_intref_hairpin_g0\210916_279_b0_intref_hairpin_g0_imec0\210916_279_b0_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\210916_279_b0_intref_hairpin_g0\210916_279_b0_intref_hairpin_g0_imec0\210916_279_b0_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA1110279
+    name: FC_210916_BAA1110279_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_210916_BAA1110279_hairpin_video.avi
+FC_211020_BAA110516_hairpin:
+    __IS_RECORDING: true
+    __REASON: 'No rec data found [Errno 2] No such file or directory: ''W:\\swc\\branco\\Federico\\Locomotion\\raw\\recordings\\211020_516_longcol_intref_hairpin_g0\\211020_516_longcol_intref_hairpin_g0_imec0\\211020_516_longcol_intref_hairpin_g0_t0.imec0.ap_bonsai_sync.npy'''
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211020_BAA110516_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211020_BAA110516_hairpin
+    date: '211020'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211020_516_longcol_intref_hairpin_g0\211020_516_longcol_intref_hairpin_g0_imec0\211020_516_longcol_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211020_516_longcol_intref_hairpin_g0\211020_516_longcol_intref_hairpin_g0_imec0\211020_516_longcol_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110516
+    name: FC_211020_BAA110516_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211020_BAA110516_hairpin_video.avi
+FC_211028_BAA110516_hairpin:
+    __IS_RECORDING: true
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211028_BAA110516_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211028_BAA110516_hairpin
+    date: '211028'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211028_516_longcol_intref_hairpin_g0\211028_516_longcol_intref_hairpin_g0_imec0\211028_516_longcol_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211028_516_longcol_intref_hairpin_g0\211028_516_longcol_intref_hairpin_g0_imec0\211028_516_longcol_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110516
+    name: FC_211028_BAA110516_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211028_BAA110516_hairpin_video.avi
+FC_211101_BAA110516_hairpin:
+    __IS_RECORDING: true
+    __REASON: 'No rec data found [Errno 2] No such file or directory: ''W:\\swc\\branco\\Federico\\Locomotion\\raw\\recordings\\211101_516_longcol_intref_hairpin_g0\\211101_516_longcol_intref_hairpin_g0_imec0\\211101_516_longcol_intref_hairpin_g0_t0.imec0.ap_bonsai_sync.npy'''
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211101_BAA110516_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211101_BAA110516_hairpin
+    date: '211101'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211101_516_longcol_intref_hairpin_g0\211101_516_longcol_intref_hairpin_g0_imec0\211101_516_longcol_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211101_516_longcol_intref_hairpin_g0\211101_516_longcol_intref_hairpin_g0_imec0\211101_516_longcol_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110516
+    name: FC_211101_BAA110516_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211101_BAA110516_hairpin_video.avi
+FC_211213_BAA110517_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211213_BAA110517_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211213_BAA110517_hairpin
+    date: '211213'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211213_517_longcol_intref_hairpin_g0\211213_517_longcol_intref_hairpin_g0_imec0\211213_517_longcol_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211213_517_longcol_intref_hairpin_g0\211213_517_longcol_intref_hairpin_g0_imec0\211213_517_longcol_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110517
+    name: FC_211213_BAA110517_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211213_BAA110517_hairpin_video.avi
+FC_211215_BAA110517_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211215_BAA110517_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211215_BAA110517_hairpin
+    date: '211215'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211215_517_b0_intref_hairpin_g0\211215_517_b0_intref_hairpin_g0_imec0\211215_517_b0_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211215_517_b0_intref_hairpin_g0\211215_517_b0_intref_hairpin_g0_imec0\211215_517_b0_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110517
+    name: FC_211215_BAA110517_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211215_BAA110517_hairpin_video.avi
+FC_211216_BAA110517_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211216_BAA110517_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211216_BAA110517_hairpin_data.csv
+    date: '211216'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211216_517_b0_intref_hairpin_g0\211216_517_b0_intref_hairpin_g0_imec0\211216_517_b0_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211216_517_b0_intref_hairpin_g0\211216_517_b0_intref_hairpin_g0_imec0\211216_517_b0_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110517
+    name: FC_211216_BAA110517_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211216_BAA110517_hairpin_video.avi
+FC_211217_BAA110517_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211217_BAA110517_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211217_BAA110517_hairpin_data.csv
+    date: '211217'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211217_517_b0_intref_hairpin_g0\211217_517_b0_intref_hairpin_g0_imec0\211217_517_b0_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211217_517_b0_intref_hairpin_g0\211217_517_b0_intref_hairpin_g0_imec0\211217_517_b0_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110517
+    name: FC_211217_BAA110517_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211217_BAA110517_hairpin_video.avi
+FC_211218_BAA110517_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211218_BAA110517_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_211218_BAA110517_hairpin_data.csv
+    date: '211218'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211218_517_b0_intref_hairpin_g0\211218_517_b0_intref_hairpin_g0_imec0\211218_517_b0_intref_hairpin_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\211218_517_b0_intref_hairpin_g0\211218_517_b0_intref_hairpin_g0_imec0\211218_517_b0_intref_hairpin_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA110517
+    name: FC_211218_BAA110517_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211218_BAA110517_hairpin_video.avi
+FC_220209_BAA0000012_hairpin:
+    __IS_RECORDING: true
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220209_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220209_BAA0000012_hairpin
+    date: '220209'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220209_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220209_BAA0000012_hairpin_video.avi
+FC_220214_BAA0000012_hairpin:
+    __IS_RECORDING: true
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220214_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220214_BAA0000012_hairpin
+    date: '220214'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220214_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220214_BAA0000012_hairpin_video.avi
+FC_220215_BAA0000012_hairpin:
+    __IS_RECORDING: true
+    __REASON: no_bonsai_file_to_open
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220215_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220215_BAA0000012_hairpin
+    date: '220215'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220215_BAA0000012_hairpin
+    nsigs: 0
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220215_BAA0000012_hairpin_video.avi
+FC_220219_BAA0000012_hairpin:
+    __IS_RECORDING: true
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220219_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220219_BAA0000012_hairpin
+    date: '220219'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220219_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220219_BAA0000012_hairpin_video.avi

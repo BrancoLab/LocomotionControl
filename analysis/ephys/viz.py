@@ -37,7 +37,7 @@ def raster_histo(ax, X, unit, bins: np.ndarray, n_events: int):
     return cax
 
 
-def bouts_raster(ax, unit, bouts, tracking, ds=5):
+def bouts_raster(ax, unit, bouts, tracking=None, ds=5):
     """
         Plot a unit's spikes aligned to bouts. Unlike time_aligned_raster, this function 
         plots spikes as a function of track progression, not time!
