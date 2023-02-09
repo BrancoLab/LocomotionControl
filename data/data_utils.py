@@ -9,8 +9,6 @@ from fcutils.maths.signals import get_onset_offset
 
 from data.debug_utils import plot_signal_and_events
 
-from kino.locomotion import Locomotion
-
 
 KEYS = (
     "x",
@@ -31,7 +29,7 @@ KEYS = (
 )
 
 
-def merge_locomotion_bouts(bouts: List[Locomotion]) -> Tuple[np.ndarray]:
+def merge_locomotion_bouts(bouts) -> Tuple[np.ndarray]:
     """
         It concats scalar quantities across individual bouts
         X -> x pos

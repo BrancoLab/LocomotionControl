@@ -23,7 +23,7 @@ sys.path.append("./")
 from data.dbase import schema
 from data.dbase._tables import (
     insert_entry_in_table,
-    print_table_content_to_file,
+    # print_table_content_to_file,
 )
 from data.dbase import quality_control as qc
 from data.paths import raw_data_folder
@@ -1538,39 +1538,39 @@ if __name__ == "__main__":
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
-    Recording().populate(display_progress=False)
-    Unit().populate(display_progress=True)
-    FiringRate().populate(display_progress=True)
+    # Probe().populate(display_progress=True)
+    # Recording().populate(display_progress=False)
+    # Unit().populate(display_progress=True)
+    # FiringRate().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
-    TABLES = [
-        Mouse,
-        Surgery,
-        Session,
-        ValidatedSession,
-        SessionCondition,
-        Probe,
-        # Probe.RecordingSite,
-        Recording,
-        Unit,
-        # Movement,
-    ]
-    NAMES = [
-        "Mouse",
-        "Surgery",
-        "Session",
-        "ValidatedSession",
-        "SessionCondition",
-        "Probe",
-        # "RecordingSites",
-        "Recording",
-        "Unit",
-        # "Movement",
-    ]
-    for tb, name in zip(TABLES, NAMES):
-        print_table_content_to_file(tb, name)
+    # TABLES = [
+    #     Mouse,
+    #     Surgery,
+    #     Session,
+    #     ValidatedSession,
+    #     SessionCondition,
+    #     Probe,
+    #     # Probe.RecordingSite,
+    #     Recording,
+    #     Unit,
+    #     # Movement,
+    # ]
+    # NAMES = [
+    #     "Mouse",
+    #     "Surgery",
+    #     "Session",
+    #     "ValidatedSession",
+    #     "SessionCondition",
+    #     "Probe",
+    #     # "RecordingSites",
+    #     "Recording",
+    #     "Unit",
+    #     # "Movement",
+    # ]
+    # for tb, name in zip(TABLES, NAMES):
+    #     print_table_content_to_file(tb, name)
 
     N = len(
         (

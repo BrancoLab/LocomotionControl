@@ -9,11 +9,6 @@ import sys
 
 sys.path.append("./")
 
-from kino.geometry import Trajectory
-from kino.locomotion import Locomotion
-
-from kinematics import track_cordinates_system as TCS
-
 
 @dataclass
 class TrackingData:
@@ -101,10 +96,7 @@ class AtPoint:
         return np.array([loc.body.speed for loc in self.locomotions])
 
     def add(
-        self,
-        locomotion: Locomotion,
-        frame: int,
-        center_line: Optional[Trajectory] = None,
+        self, locomotion, frame: int, center_line=None,
     ):
         """
             Adds a locomotion trace data to the class' data
@@ -116,12 +108,12 @@ class AtPoint:
         self.frame_idx.append(frame)
 
         # project to linearized track
-        if center_line is not None:
-            self.track_distance.append(
-                TCS.point_to_track_coordinates_system(
-                    center_line, (at_frame.body.x, at_frame.body.y)
-                )[0]
-            )
+        # if center_line is not None:
+        #     self.track_distance.append(
+        #         TCS.point_to_track_coordinates_system(
+        #             center_line, (at_frame.body.x, at_frame.body.y)
+        #         )[0]
+        #     )
 
         # get the G_coordinates
         self.G_distance.append(locomotion.gcoord[frame])
