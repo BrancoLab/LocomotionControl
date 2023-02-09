@@ -506,10 +506,6 @@ function create_and_solve_control(
 
     # --------------------------------- optimize --------------------------------- #
     set_all_derivative_methods(model, OrthogonalCollocation(2))
-<<<<<<< HEAD
-=======
-    @objective(model, Min, ∫(SF + α*Fu^2 + γ*δ̇, s))
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
     Fu₀ = options.Fu_bounds.lower
     Fu₁ = options.Fu_bounds.upper
 
@@ -520,11 +516,7 @@ function create_and_solve_control(
     # cost(x) = max(c0(x), c1(x))
     # @register(model, cost(Fu))
 
-<<<<<<< HEAD
     @objective(model, Min, ∫(SF + α * (one(Fu) + two(Fu)) + γ * δ̇, s))
-=======
-    @objective(model, Min, ∫(SF + α*(one(Fu) + two(Fu)) + γ*δ̇, s))
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
     optimize!(model)
 
     # print info
