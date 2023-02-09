@@ -22,7 +22,6 @@ metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 # --------------------------------- formulas --------------------------------- #
 function generate_formulas()::Dict
     Y = Term(:p_spike)
-<<<<<<< HEAD
     variables =
         Term.([
             :s,
@@ -41,11 +40,6 @@ function generate_formulas()::Dict
             :domega_500ms,
             :domega_1000ms,
         ])
-=======
-    variables = Term.([
-        :apex_distance, :v, :v_squared, :dv_300ms, :omega, :omega_squared, :domega_300ms
-    ])
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
 
 
     # make formulas with a single predictor
@@ -56,15 +50,10 @@ function generate_formulas()::Dict
     # make formulas with classes of predictors
     formulas["with_speed_class"] = @formula(p_spike ~ v + v_squared)
     formulas["with_omega_class"] = @formula(p_spike ~ omega + omega_squared)
-<<<<<<< HEAD
     formulas["with_Δomega_class"] =
         @formula(p_spike ~ domega_250ms + domega_500ms + domega_1000ms)
 
 
-=======
-   
-    
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
     # have a complete formula
     formulas["complete"] = Y ~ sum(variables)
     return formulas
@@ -146,13 +135,8 @@ end
 """
 Load a unit's .parquet dataset
 """
-<<<<<<< HEAD
 function load_data(unit::Dict)::DataFrame
     data = DataFrame(read_parquet(unit["unit_data"]))
-=======
-function load_data(unit::Dict)::DataFrame 
-    data = DataFrame(read_parquet(unit["unit_data"])) |> convert_df
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
     data.p_spike = clamp.(data.p_spike, 0, 1)
     data.fold = shuffle!((1:nrow(data)) .% 5)  # 5x k-fold 
     return data

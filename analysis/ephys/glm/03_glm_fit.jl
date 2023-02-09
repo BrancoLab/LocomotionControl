@@ -134,14 +134,8 @@ function main()
 
     metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
 
-<<<<<<< HEAD
     to_run = filter(k -> !metadata[k]["glm_fitted"], keys(metadata)) |> collect
     to_run = collect(keys(metadata))
-=======
-    to_run = filter(
-        k -> metadata[k]["glm_fitted"] == false, keys(metadata)
-    ) |> collect
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
 
     @info "Fitting GLM on $(length(to_run)) cells on $(Threads.nthreads()) threads"
     @info "This means {bold red}$(length(metadata) - length(to_run)){/bold red} cells have already been fitted"
@@ -150,12 +144,7 @@ function main()
     count = 0
     try
         Threads.@threads for key in to_run
-<<<<<<< HEAD
             # for key in to_run
-=======
-        # for key in to_run
-        # [1:2]
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
             doing = metadata[key]
 
             count += 1
@@ -171,13 +160,8 @@ function main()
             wrapup(metadata, key, correlations, shuffled_correlations, formulas)
             push!(done, key)
 
-<<<<<<< HEAD
             length(done) % 20 == 0 && begin
                 @info "Saving metadata ($(length(done)) done so far)"
-=======
-            length(done) % 5 == 0 && begin
-            @info "Saving metadata ($(length(done)) done so far)"    
->>>>>>> 2066bfa38e94a6a54c389b59139ab53f166c6625
                 YAML.write_file(joinpath(base_folder, "metadata.yaml"), metadata)
 
                 metadata = YAML.load_file(joinpath(base_folder, "metadata.yaml"))
