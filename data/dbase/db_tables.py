@@ -41,7 +41,7 @@ from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata  # , load_bin
 from data import data_utils
 
-DO_RECORDINGS_ONLY = True
+DO_RECORDINGS_ONLY = False
 
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
@@ -447,7 +447,7 @@ if have_dj:
                 to_yaml(previously_validated_path, previously_validated)
 
             # fill in table
-            logger.info(f'Inserting session data in table: {key["name"]}')
+            logger.info(f"Inserting session data in table: {key}")
             try:
                 self.insert1(key)
             except:
@@ -466,7 +466,11 @@ if have_dj:
 
         def make(self, key):
             session = (Session * ValidatedSession & key).fetch1()
-            triggers = _triggers.get_triggers(session)
+            try:
+                triggers = _triggers.get_triggers(session)
+            except:
+                logger.warning(f"Failed to get triggers for session {key}")
+                return
 
             key = {**key, **triggers}
             self.insert1(key)
@@ -516,9 +520,13 @@ if have_dj:
                 return
 
             # load, format & insert data
-            key = _behavior.load_session_data(
-                session, key, ValidatedSession.analog_sampling_rate
-            )
+            try:
+                key = _behavior.load_session_data(
+                    session, key, ValidatedSession.analog_sampling_rate
+                )
+            except:
+                logger.warning(f"Failed to load data for {name}")
+                return
             if key is not None:
                 self.insert1(key)
 
@@ -594,12 +602,18 @@ if have_dj:
                 Path(r"W:\swc\branco\Federico\Locomotion\raw\video") / name
             )
             if not videopath.exists():
-                logger.info(f"Could not find video file: {videopath}")
+                logger.warning(f"Could not find video file: {videopath}")
 
             # get matrix
-            key["correction_matrix"] = _ccm.get_matrix(str(videopath), arena)
-            if key["correction_matrix"] is not None:
-                self.insert1(key)
+            try:
+                key["correction_matrix"] = _ccm.get_matrix(
+                    str(videopath), arena
+                )
+                if key["correction_matrix"] is not None:
+                    self.insert1(key)
+            except:
+                logger.warning(f"Failed to get CCM for session: {key}")
+                return
 
     # ---------------------------------------------------------------------------- #
     #                                 tracking data                                #
@@ -714,7 +728,11 @@ if have_dj:
             # insert into table
             # key["name"] += "_data.csv"
 
-            key["u"] = key["speed"]
+            try:
+                key["u"] = key["speed"]
+            except:
+                logger.warning("Could not get speed for session: {key}")
+                return
             key["udot"] = key["acceleration"]
             # del key["speed"], key["acceleration"]
 
@@ -814,7 +832,11 @@ if have_dj:
 
             # Get linearized position
             if Session.on_hairpin(key["name"]):
-                body = (TrackingBP & key & "bpname='body'").fetch1()
+                try:
+                    body = (TrackingBP & key & "bpname='body'").fetch1()
+                except:
+                    logger.warning(f"No body tracking found for {key['name']}")
+                    return
                 hp = HairpinTrace()
                 (key["segment"], key["global_coord"],) = hp.assign_tracking(
                     body["x"], body["y"]
@@ -1521,7 +1543,7 @@ if __name__ == "__main__":
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
-    CCM().populate(display_progress=True)
+    # CCM().populate(display_progress=True)
 
     logger.info("#####    Filling Behavior")
     # Behavior().populate(display_progress=True)
@@ -1538,10 +1560,10 @@ if __name__ == "__main__":
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=False)
-    # Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=False)
+    Unit().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
     # print tables contents
@@ -1582,10 +1604,16 @@ if __name__ == "__main__":
     )
 
     print(
+        f"Number of mice: {len(Mouse())}",
         f"Number of sesssions: {len(Session())}",
+        f"Number of CCM: {len(CCM())}",
         f"Number of validated sessions: {len(ValidatedSession())}",
         f"Number of sessions with CCM: {len(CCM())}",
         f"Number of sessions with tracking: {len(Tracking())}",
         f"Number of complete locomotion bouts: {N}",
+        f"Number of probes: {len(Probe())}",
+        f"Number of recordings: {len(Recording())}",
+        f"Number of units: {len(Unit())}",
+        f"Number of firing rates: {len(FiringRate())}",
         sep="\n",
     )
