@@ -1400,8 +1400,8 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # ValidatedSession().drop()
-    # sys.exit()
+    ProcessedLocomotionBouts().drop()
+    sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
 
@@ -1422,23 +1422,23 @@ if __name__ == "__main__":
     ValidatedSession().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
-    # CCM().populate(display_progress=True)
+    CCM().populate(display_progress=True)
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
-    # Tracking().populate(display_progress=True)
-    # TrackingBP().populate(display_progress=True)
-    # TrackingLinearized().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
-    # ProcessedLocomotionBouts().populate(display_progress=True)
+    Tracking().populate(display_progress=True)
+    TrackingBP().populate(display_progress=True)
+    TrackingLinearized().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
+    ProcessedLocomotionBouts().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    # Probe().populate(display_progress=True)
-    # Recording().populate(display_progress=False)
-    # Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
-    # ProcessedFiringRates().populate(display_progress=True)
+    Probe().populate(display_progress=True)
+    Recording().populate(display_progress=False)
+    Unit().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
+    ProcessedFiringRates().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
 
