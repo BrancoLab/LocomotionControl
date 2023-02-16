@@ -10,8 +10,6 @@ from pathlib import Path
 import cv2
 from typing import List, Tuple
 import numpy as np
-import json
-from time import sleep
 
 from fcutils.path import from_yaml, to_yaml, files
 from fcutils.progress import track
@@ -30,16 +28,13 @@ from data.paths import raw_data_folder
 from data.dbase import (
     _session,
     _ccm,
-    _behavior,
     _tracking,
     _probe,
-    _triggers,
     _recording,
     _locomotion_bouts,
 )
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata  # , load_bin
-from data import data_utils
 
 DO_RECORDINGS_ONLY = True
 
@@ -453,119 +448,6 @@ if have_dj:
             except:
                 logger.warning("FAILED TO INSERT")
 
-    @schema
-    class BonsaiTriggers(dj.Imported):
-        definition = """
-            # stores the time (in samples) of camera triggers in bonsai. To registere spikes to them
-            -> ValidatedSession
-            ---
-            trigger_times:   longblob
-            n_samples:      int         # tot number of samples in recording
-            n_ms:           int         # duration in milliseconds
-        """
-
-        def make(self, key):
-            session = (Session * ValidatedSession & key).fetch1()
-            triggers = _triggers.get_triggers(session)
-
-            key = {**key, **triggers}
-            self.insert1(key)
-
-    # ---------------------------------------------------------------------------- #
-    #                                 behavior data                                #
-    # ---------------------------------------------------------------------------- #
-    @schema
-    class Behavior(dj.Imported):
-        definition = """
-            # stores AI and csv data from Bonsai in a nicely formatted manner
-            -> ValidatedSession
-            ---
-            speaker:                    longblob  # signal sent to speakers (signals in frame times)
-            pump:                       longblob  # signal sent to pump
-            reward_signal:              longblob  # 0 -> 1 when reward is delivered
-            reward_available_signal:    longblob  # 1 when the reward becomes available
-            trigger_roi:                longblob  # 1 when mouse in trigger ROI
-            reward_roi:                 longblob  # 1 when mouse in reward ROI
-        """
-
-        def make(self, key):
-            """
-                loads data from .bin and .csv data saved by bonsai.
-
-                1. get session
-                2. load/cut .bin file from bonsai
-                3. load/cut .csv file from bonsai
-            """
-            if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
-                logger.debug(
-                    f'Skipping {key["name"]} because it is not a recording'
-                )
-                return
-
-            # fetch metadata
-            name = key["name"]
-            try:
-                session = (
-                    Session * ValidatedSession * BonsaiTriggers
-                    & f'name="{name}"'
-                ).fetch1()
-            except Exception:
-                logger.warning(
-                    f"Failed to fetch data for {name} - not validated?"
-                )
-                return
-
-            # load, format & insert data
-            key = _behavior.load_session_data(
-                session, key, ValidatedSession.analog_sampling_rate
-            )
-            if key is not None:
-                self.insert1(key)
-
-    @schema
-    class Tones(dj.Computed):
-        definition = """
-            -> Behavior
-            ---
-            tone_onsets:                 longblob  # tone onset times in frame number
-            tone_offsets:                longblob
-        """
-
-        @staticmethod
-        def get_session_tone_on(session_name: str) -> np.ndarray:
-            n_frames = (ValidatedSession & f'name="{session_name}"').fetch1(
-                "n_frames"
-            )
-            tone_on = np.zeros(n_frames)
-
-            session_tone = (Tones & f'name="{session_name}"').fetch1()
-            for on, off in zip(
-                session_tone["tone_onsets"], session_tone["tone_offsets"]
-            ):
-                tone_on[on:off] = 1
-            return tone_on
-
-        def make(self, key):
-            speaker = (Behavior & key).fetch1("speaker")
-
-            # get tone onsets/offsets times
-            try:
-                (
-                    key["tone_onsets"],
-                    key["tone_offsets"],
-                ) = data_utils.get_event_times(
-                    speaker,
-                    kernel_size=211,
-                    th=0.005,
-                    abs_val=True,
-                    debug=False,
-                    shift=1,
-                )
-            except:
-                logger.warning(f"Failed to get TONES data for session: {key}")
-            else:
-                self.insert1(key)
-
     # ---------------------------------------------------------------------------- #
     #                           COMMON COORDINATES MATRIX                          #
     # ---------------------------------------------------------------------------- #
@@ -723,8 +605,6 @@ if have_dj:
         @staticmethod
         def get_session_tracking(session_name, body_only=True, movement=True):
             query = Tracking * TrackingBP & f'name="{session_name}"'
-            if movement:
-                query = query * Movement
 
             if body_only:
                 query = query & f"bpname='body'"
@@ -947,100 +827,87 @@ if have_dj:
                 self.insert1(bout)
 
     @schema
-    class ProcessedLocomotionBouts(dj.Manual):
+    class ProcessedLocomotionBouts(dj.Imported):
         definition = """
             # processed locomotion bouts exported by Julia (from locomotion bouts from here)
-            -> ValidatedSession
+            -> LocomotionBouts
             start_frame:        int
-            end_frame:          int  # last frame of locomotion bout
+            end_frame:          int  # last frame of locomotion bout relative to session time
             ---
-            duration:           float  # duration in seconds
-            direction:          varchar(64)   # 'outbound' or 'inbound' or 'none'
-            complete:           varchar(32)    # True if its form reward to trigger ROIs
             s:                  longblob  # track position [just body tracking] 
             x:                  longblob  # x position
             y:                  longblob  # y position
             speed:              longblob  # speed in cm/s
+            acceleration:       longblob  # acceleration in cm/s^2
+            orientation:        longblob  # orientation in deg
             angvel:             longblob  # angular velocity in deg/s
+            angaccel:           longblob  # angular acceleration in deg/s^2
         """
-        exported_bouts_folder = Path(
-            r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\analysis\ephys\locomotion_bouts\processed"
-        )
 
-        def fill(self):
-            """
-                Loads all locomotion bouts and adds them to the table.
-
-                #TODO add part tables for tracking of other body parts
-            """
-
-            in_table = self.fetch("name", "start_frame", "end_frame")
-            in_table = [f"{n}_{s}_{e}" for n, s, e in zip(*in_table)]
-
-            all_files = [f for f in self.exported_bouts_folder.glob("*.json")]
-            for f in track(all_files):
-                bout = json.load(open(f))
-
-                key = dict(
-                    mouse_id=bout["mouse_id"][0],
-                    name=bout["name"][0],
-                    start_frame=bout["start_frame"][0],
-                    end_frame=bout["end_frame"][0],
-                    duration=bout["duration"][0],
-                    direction=bout["direction"][0],
-                    complete=bout["complete"][0],
-                    s=bout["s"],
-                    x=bout["x"],
-                    y=bout["y"],
-                    speed=bout["speed"],
-                    angvel=bout["Ï‰"],
-                )
-
-                name = f"{key['name']}_{key['start_frame']}_{key['end_frame']}"
-                if name not in in_table:
-                    self.insert1(key)
-
-    @schema
-    class Movement(dj.Imported):
-        turning_threshold: float = 20  # deg/sec
-        moving_threshold: float = 2.5  # cm/sec
-
-        definition = """
-            # stores information about when the mouse is doing certain types of movements
-            -> ValidatedSession
-            ---
-            moving:         longblob  # moving but not necessarily walking
-            walking:        longblob  # 1 when the mouse is walking
-            turning_left:   longblob
-            turning_right:  longblob
-            left_fl_moving: longblob
-            right_fl_moving: longblob
-            left_hl_moving: longblob
-            right_hl_moving: longblob
-        """
+        gcoord_delta_min = 0.925
+        vmin_start = 8
+        vmin_end = 8
+        gcoord_start_max = 0.1
+        gcoord_end_min = 0.9
 
         def make(self, key):
-            """
-                Gets arrays indicating when the mouse id doing certain kinds of movements
-            """
-            # get data
-            tracking = Tracking.get_session_tracking(
-                key["name"], body_only=False, movement=False
+            name = key["name"]
+            tracking = pd.Series(
+                (
+                    Tracking * TrackingBP * TrackingLinearized
+                    & "bpname='body'"
+                    & f"name='{name}'"
+                ).fetch1()
             )
-            if tracking.empty:
-                logger.warning(
-                    f'Failed to get tracking data for session {key["name"]}'
-                )
+
+            bout = pd.Series(
+                (
+                    LocomotionBouts
+                    & f"name='{name}'"
+                    & f"start_frame={key['start_frame']}"
+                    & f"end_frame={key['end_frame']}"
+                ).fetch1()
+            )
+
+            # get tracking betwen bout start end end
+            speed = tracking.speed[bout.start_frame : bout.end_frame]
+
+            above_speed_th = np.where(speed > self.vmin_start)[0][0]
+            below_speed_th = np.where(speed < self.vmin_end)[0][-1]
+
+            g0 = tracking.global_coord[above_speed_th]
+            g1 = tracking.global_coord[below_speed_th]
+
+            if (
+                g1 - g0 < self.gcoord_delta_min
+                or g0 > self.gcoord_start_max
+                or g1 < self.gcoord_end_min
+            ):
                 return
 
-            # get when walking
-            # key["walking"] = LocomotionBouts.is_locomoting(key["name"])
+            key["start_frame"] = key["start_frame"] + above_speed_th
+            key["end_frame"] = key["start_frame"] + below_speed_th
+            key["s"] = tracking.global_coord[
+                key["start_frame"] : key["end_frame"]
+            ]
+            key["x"] = tracking.x[key["start_frame"] : key["end_frame"]]
+            key["y"] = tracking.y[key["start_frame"] : key["end_frame"]]
+            key["speed"] = tracking.speed[
+                key["start_frame"] : key["end_frame"]
+            ]
+            key["acceleration"] = tracking.acceleration[
+                key["start_frame"] : key["end_frame"]
+            ]
 
-            # get other movements
-            key = _tracking.get_movements(
-                key, tracking, self.moving_threshold, self.turning_threshold
-            )
-            sleep(1)
+            key["orientation"] = tracking.theta[
+                key["start_frame"] : key["end_frame"]
+            ]
+            key["angvel"] = tracking.thetadot[
+                key["start_frame"] : key["end_frame"]
+            ]
+            key["angaccel"] = tracking.thetadotdot[
+                key["start_frame"] : key["end_frame"]
+            ]
 
             self.insert1(key)
 
@@ -1494,6 +1361,21 @@ if have_dj:
                 self.insert1(key)
                 # time.sleep(5)
 
+    @schema
+    class ProcessedFiringRates(dj.Imported):
+        defintion = """
+            # counterpart to ProcessedLocomotionBouts
+            -> FiringRate
+            -> ProcessedLocomotionBouts
+            ---
+            firing_rate:                 longblob  # in video frames number
+        """
+
+        def make(self, key):
+            frate = (FiringRate & key).fetch("firing_rate")[0]
+            key["firing_rate"] = frate[key["bout_start"] : key["bout_end"]]
+            self.insert1(key)
+
 
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
@@ -1518,14 +1400,9 @@ if __name__ == "__main__":
 
     logger.info("#####    Filling Validated Session")
     # ValidatedSession().populate(display_progress=True)
-    # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
     CCM().populate(display_progress=True)
-
-    logger.info("#####    Filling Behavior")
-    # Behavior().populate(display_progress=True)
-    # Tones().populate(display_progress=True)
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
@@ -1533,8 +1410,7 @@ if __name__ == "__main__":
     # TrackingBP().populate(display_progress=True)
     # TrackingLinearized().populate(display_progress=True)
     # LocomotionBouts().populate(display_progress=True)
-    # ProcessedLocomotionBouts().fill()
-    # Movement().populate(display_progress=True)
+    # ProcessedLocomotionBouts().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
@@ -1542,52 +1418,4 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=False)
     # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
-
-    # -------------------------------- print stuff ------------------------------- #
-    # print tables contents
-    # TABLES = [
-    #     Mouse,
-    #     Surgery,
-    #     Session,
-    #     ValidatedSession,
-    #     SessionCondition,
-    #     Probe,
-    #     # Probe.RecordingSite,
-    #     Recording,
-    #     Unit,
-    #     # Movement,
-    # ]
-    # NAMES = [
-    #     "Mouse",
-    #     "Surgery",
-    #     "Session",
-    #     "ValidatedSession",
-    #     "SessionCondition",
-    #     "Probe",
-    #     # "RecordingSites",
-    #     "Recording",
-    #     "Unit",
-    #     # "Movement",
-    # ]
-    # for tb, name in zip(TABLES, NAMES):
-    #     print_table_content_to_file(tb, name)
-
-    N = len((LocomotionBouts & 'complete="true"'))
-    n_frates = len((FiringRate & "firing_rate=50"))
-
-    print(
-        f"Number of mice: {len(Mouse())}",
-        f"Number of sugeries: {len(Surgery())}",
-        f"Number of sessions: {len(Session())}",
-        f"Number of session conditions: {len(SessionCondition())}",
-        f"Number of validated sessions: {len(ValidatedSession())}",
-        f"Number of sessions with CCM: {len(CCM())}",
-        f"Number of sessions with tracking: {len(Tracking())}",
-        f"Number of complete locomotion bouts: {N}",
-        f"Number of processed bouts: {len(ProcessedLocomotionBouts())}",
-        f"Number of implanted probes {len(Probe())}",
-        f"Number of recordings {len(Recording())}",
-        f"Number of units {len(Unit())}",
-        f"Number of firing rates {n_frates}",
-        sep="\n",
-    )
+    # ProcessedFiringRates().populate(display_progress=True)
