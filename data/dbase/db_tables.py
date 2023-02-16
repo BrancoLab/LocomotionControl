@@ -1383,7 +1383,7 @@ if have_dj:
 
     @schema
     class ProcessedFiringRates(dj.Imported):
-        defintion = """
+        definition = """
             # counterpart to ProcessedLocomotionBouts
             -> FiringRate
             -> ProcessedLocomotionBouts
