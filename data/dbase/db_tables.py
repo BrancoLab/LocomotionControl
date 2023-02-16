@@ -851,8 +851,8 @@ if have_dj:
         definition = """
             # processed locomotion bouts exported by Julia (from locomotion bouts from here)
             -> LocomotionBouts
-            start_frame:        int
-            end_frame:          int  # last frame of locomotion bout relative to session time
+            corrected_start_frame:        int
+            corrected_end_frame:          int  # last frame of locomotion bout relative to session time
             ---
             s:                  longblob  # track position [just body tracking] 
             x:                  longblob  # x position
