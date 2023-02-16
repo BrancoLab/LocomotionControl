@@ -20,5 +20,5 @@ from data.dbase.db_tables import (
 
 """
 
-sessions = py"pd.DataFrame(Recording())"
+sessions = py"pd.DataFrame(Session())"
 print(sessions)
