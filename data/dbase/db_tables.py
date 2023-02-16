@@ -41,7 +41,7 @@ from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata  # , load_bin
 from data import data_utils
 
-DO_RECORDINGS_ONLY = False
+DO_RECORDINGS_ONLY = True
 
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
@@ -175,22 +175,22 @@ if have_dj:
             if session.is_recording:
                 return True
             else:
-                # see perhaps it wes added later
-                if (
-                    "BAA1101192" in session_name
-                    or "BAA0000012" in session_name
-                ):
-                    session_name = session_name.replace("_hairpin", "")
-                    recorded_sessions = pd.read_excel(
-                        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_metadata.ods",
-                        engine="odf",
-                    )
-                    return (
-                        session_name
-                        in recorded_sessions["bonsai filename"].values
-                    )
-                else:
-                    return False
+                # # see perhaps it wes added later
+                # if (
+                #     "BAA1101192" in session_name
+                #     or "BAA0000012" in session_name
+                # ):
+                #     session_name = session_name.replace("_hairpin", "")
+                #     recorded_sessions = pd.read_excel(
+                #         r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_metadata.ods",
+                #         engine="odf",
+                #     )
+                #     return (
+                #         session_name
+                #         in recorded_sessions["bonsai filename"].values
+                #     )
+                # else:
+                return False
 
         @staticmethod
         def get_session_tracking_file(session_name):
@@ -245,6 +245,9 @@ if have_dj:
                 Use Surgery to see if the mouse had surgery by this date and update the key accordingly.
                 TODO: add a spreadsheet for nothing special conditions
             """
+            if "_video" in key["name"]:
+                return
+
             session_date = int((Session & key).fetch1("date"))
             # get surgery metadata
             mouse = key["mouse_id"]
@@ -299,6 +302,9 @@ if have_dj:
             to_yaml("data/dbase/validation_failed.yaml", failed)
 
         def make(self, key):
+            if "_video" in key["name"] or "_d" in key["name"]:
+                return
+
             # check if this session has previously failed validatoin
             failed = from_yaml("data/dbase/validation_failed.yaml")
             if failed is None:
@@ -335,10 +341,10 @@ if have_dj:
                 return
             has_rec = Session.has_recording(key["name"])
 
-            if has_rec:
-                # see perhaps it wes added later
-                if "BAA1101192" in key["name"] or "BAA0000012" in key["name"]:
-                    has_rec = False
+            # if has_rec:
+            #     # see perhaps it wes added later
+            #     if "BAA1101192" in key["name"] or "BAA0000012" in key["name"]:
+            #         has_rec = False
 
             if has_rec:
                 previously_validated_path = (
@@ -1520,7 +1526,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Recording().drop()
+    # ValidatedSession().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1539,7 +1545,7 @@ if __name__ == "__main__":
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
-    # ValidatedSession().populate(display_progress=True)
+    ValidatedSession().populate(display_progress=True)
     # BonsaiTriggers().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
@@ -1555,61 +1561,36 @@ if __name__ == "__main__":
     # TrackingBP().populate(display_progress=True)
     # TrackingLinearized().populate(display_progress=True)
     # LocomotionBouts().populate(display_progress=True)
-    # ProcessedLocomotionBouts().fill()
+    # # ProcessedLocomotionBouts().fill()
     # Movement().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
-    Probe().populate(display_progress=True)
-    Recording().populate(display_progress=False)
-    Unit().populate(display_progress=True)
-    FiringRate().populate(display_progress=True)
+    # Probe().populate(display_progress=True)
+    # Recording().populate(display_progress=False)
+    # Unit().populate(display_progress=True)
+    # FiringRate().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
-    # print tables contents
-    # TABLES = [
-    #     Mouse,
-    #     Surgery,
-    #     Session,
-    #     ValidatedSession,
-    #     SessionCondition,
-    #     Probe,
-    #     # Probe.RecordingSite,
-    #     Recording,
-    #     Unit,
-    #     # Movement,
-    # ]
-    # NAMES = [
-    #     "Mouse",
-    #     "Surgery",
-    #     "Session",
-    #     "ValidatedSession",
-    #     "SessionCondition",
-    #     "Probe",
-    #     # "RecordingSites",
-    #     "Recording",
-    #     "Unit",
-    #     # "Movement",
-    # ]
-    # for tb, name in zip(TABLES, NAMES):
-    #     print_table_content_to_file(tb, name)
 
-    N = len((LocomotionBouts & 'complete="true"'))
-    n_frates = len((FiringRate & "firing_rate=50"))
+    print(pd.DataFrame((ValidatedSession & "mouse_id='BAA0000012'")))
 
-    print(
-        f"Number of mice: {len(Mouse())}",
-        f"Number of sugeries: {len(Surgery())}",
-        f"Number of sessions: {len(Session())}",
-        f"Number of session conditions: {len(SessionCondition())}",
-        f"Number of validated sessions: {len(ValidatedSession())}",
-        f"Number of sessions with CCM: {len(CCM())}",
-        f"Number of sessions with tracking: {len(Tracking())}",
-        f"Number of complete locomotion bouts: {N}",
-        f"Number of processed bouts: {len(ProcessedLocomotionBouts())}",
-        f"Number of implanted probes {len(Probe())}",
-        f"Number of recordings {len(Recording())}",
-        f"Number of units {len(Unit())}",
-        f"Number of firing rates {n_frates}",
-        sep="\n",
-    )
+    # N = len((LocomotionBouts & 'complete="true"'))
+    # n_frates = len((FiringRate & "firing_rate=50"))
+
+    # print(
+    #     f"Number of mice: {len(Mouse())}",
+    #     f"Number of sugeries: {len(Surgery())}",
+    #     f"Number of sessions: {len(Session())}",
+    #     f"Number of session conditions: {len(SessionCondition())}",
+    #     f"Number of validated sessions: {len(ValidatedSession())}",
+    #     f"Number of sessions with CCM: {len(CCM())}",
+    #     f"Number of sessions with tracking: {len(Tracking())}",
+    #     f"Number of complete locomotion bouts: {N}",
+    #     f"Number of processed bouts: {len(ProcessedLocomotionBouts())}",
+    #     f"Number of implanted probes {len(Probe())}",
+    #     f"Number of recordings {len(Recording())}",
+    #     f"Number of units {len(Unit())}",
+    #     f"Number of firing rates {n_frates}",
+    #     sep="\n",
+    # )

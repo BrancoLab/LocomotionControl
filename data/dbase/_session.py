@@ -1,6 +1,5 @@
 from loguru import logger
 import pandas as pd
-from pathlib import Path
 
 from fcutils.path import from_yaml, files
 from fcutils.progress import track
@@ -20,14 +19,14 @@ def fill_session_table(table):
     )
 
     # Get the videos of all sessions
-    # vids = [f for f in files(raw_data_folder / "video") if ".avi" in f.name]
-    vids = [f for f in files(Path(r"K:\analog_inputs_temp"), "*.csv")]
+    vids = [f for f in files(raw_data_folder / "video") if ".avi" in f.name]
+    # vids = [f for f in files(Path(r"K:\analog_inputs_temp"), "*.csv")]
 
     for video in track(vids, description="Adding sessions", transient=True):
         # Get session data
-        # name = video.name.split("_video")[0]
-        name = video.name.split("_analog")[0]
-        name = name.replace("_data.csv", "")
+        name = video.name.split("_video")[0]
+        # name = video.name.split("_analog")[0]
+        # name = name.replace("_data.csv", "")
         if name in in_table:
             continue
 
@@ -90,8 +89,12 @@ def fill_session_table(table):
         #     )
 
         # get ephys files & arena type
-        print(name)
-        if name in recorded_sessions["bonsai filename"].values:
+        recs_names = recorded_sessions["bonsai filename"].values
+        if name in recs_names or name.replace("_hairpin", "") in recs_names:
+
+            if name.replace("_hairpin", "") in recs_names:
+                name = name.replace("_hairpin", "")
+
             rec = recorded_sessions.loc[
                 recorded_sessions["bonsai filename"] == name
             ].iloc[0]

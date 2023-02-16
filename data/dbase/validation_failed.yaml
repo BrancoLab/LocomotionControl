@@ -222,6 +222,34 @@ FC_220209_BAA0000012_hairpin:
     name: FC_220209_BAA0000012_hairpin
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220209_BAA0000012_hairpin_video.avi
+FC_220210_BAA0000012_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220210_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220210_BAA0000012_hairpin_data.csv
+    date: '220210'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\220210_012_r32_intref_g0\220210_012_r32_intref_g0_imec0\220210_012_r32_intref_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\220210_012_r32_intref_g0\220210_012_r32_intref_g0_imec0\220210_012_r32_intref_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA0000012
+    name: FC_220210_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220210_BAA0000012_hairpin_video.avi
+FC_220212_BAA0000012_hairpin:
+    __IS_RECORDING: true
+    __REASON: Different number of sync pulses between bonsai and ephys
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220212_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220212_BAA0000012_hairpin_data.csv
+    date: '220212'
+    ephys_ap_data_path: W:\swc\branco\Federico\Locomotion\raw\recordings\220212_012_r64_intref_g0\220212_012_r64_intref_g0_imec0\220212_012_r64_intref_g0_t0.imec0.ap.bin
+    ephys_ap_meta_path: W:\swc\branco\Federico\Locomotion\raw\recordings\220212_012_r64_intref_g0\220212_012_r64_intref_g0_imec0\220212_012_r64_intref_g0_t0.imec0.ap.meta
+    is_recording: 1
+    mouse_id: BAA0000012
+    name: FC_220212_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220212_BAA0000012_hairpin_video.avi
 FC_220214_BAA0000012_hairpin:
     __IS_RECORDING: true
     __REASON: wrong_number_of_triggers_and_frames
