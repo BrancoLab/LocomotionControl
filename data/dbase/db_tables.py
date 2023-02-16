@@ -170,22 +170,22 @@ if have_dj:
             if session.is_recording:
                 return True
             else:
-                # see perhaps it wes added later
-                if (
-                    "BAA1101192" in session_name
-                    or "BAA0000012" in session_name
-                ):
-                    session_name = session_name.replace("_hairpin", "")
-                    recorded_sessions = pd.read_excel(
-                        r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_metadata.ods",
-                        engine="odf",
-                    )
-                    return (
-                        session_name
-                        in recorded_sessions["bonsai filename"].values
-                    )
-                else:
-                    return False
+                # # see perhaps it wes added later
+                # if (
+                #     "BAA1101192" in session_name
+                #     or "BAA0000012" in session_name
+                # ):
+                #     session_name = session_name.replace("_hairpin", "")
+                #     recorded_sessions = pd.read_excel(
+                #         r"D:\Dropbox (UCL)\Rotation_vte\Locomotion\recordings_metadata.ods",
+                #         engine="odf",
+                #     )
+                #     return (
+                #         session_name
+                #         in recorded_sessions["bonsai filename"].values
+                #     )
+                # else:
+                return False
 
         @staticmethod
         def get_session_tracking_file(session_name):
@@ -240,6 +240,9 @@ if have_dj:
                 Use Surgery to see if the mouse had surgery by this date and update the key accordingly.
                 TODO: add a spreadsheet for nothing special conditions
             """
+            if "_video" in key["name"]:
+                return
+
             session_date = int((Session & key).fetch1("date"))
             # get surgery metadata
             mouse = key["mouse_id"]
@@ -294,6 +297,9 @@ if have_dj:
             to_yaml("data/dbase/validation_failed.yaml", failed)
 
         def make(self, key):
+            if "_video" in key["name"] or "_d" in key["name"]:
+                return
+
             # check if this session has previously failed validatoin
             failed = from_yaml("data/dbase/validation_failed.yaml")
             if failed is None:
@@ -330,10 +336,10 @@ if have_dj:
                 return
             has_rec = Session.has_recording(key["name"])
 
-            if has_rec:
-                # see perhaps it wes added later
-                if "BAA1101192" in key["name"] or "BAA0000012" in key["name"]:
-                    has_rec = False
+            # if has_rec:
+            #     # see perhaps it wes added later
+            #     if "BAA1101192" in key["name"] or "BAA0000012" in key["name"]:
+            #         has_rec = False
 
             if has_rec:
                 previously_validated_path = (
@@ -442,7 +448,7 @@ if have_dj:
                 to_yaml(previously_validated_path, previously_validated)
 
             # fill in table
-            logger.info(f'Inserting session data in table: {key["name"]}')
+            logger.info(f"Inserting session data in table: {key}")
             try:
                 self.insert1(key)
             except:
@@ -476,12 +482,18 @@ if have_dj:
                 Path(r"W:\swc\branco\Federico\Locomotion\raw\video") / name
             )
             if not videopath.exists():
-                logger.info(f"Could not find video file: {videopath}")
+                logger.warning(f"Could not find video file: {videopath}")
 
             # get matrix
-            key["correction_matrix"] = _ccm.get_matrix(str(videopath), arena)
-            if key["correction_matrix"] is not None:
-                self.insert1(key)
+            try:
+                key["correction_matrix"] = _ccm.get_matrix(
+                    str(videopath), arena
+                )
+                if key["correction_matrix"] is not None:
+                    self.insert1(key)
+            except:
+                logger.warning(f"Failed to get CCM for session: {key}")
+                return
 
     # ---------------------------------------------------------------------------- #
     #                                 tracking data                                #
@@ -596,7 +608,11 @@ if have_dj:
             # insert into table
             # key["name"] += "_data.csv"
 
-            key["u"] = key["speed"]
+            try:
+                key["u"] = key["speed"]
+            except:
+                logger.warning("Could not get speed for session: {key}")
+                return
             key["udot"] = key["acceleration"]
             # del key["speed"], key["acceleration"]
 
@@ -694,7 +710,11 @@ if have_dj:
 
             # Get linearized position
             if Session.on_hairpin(key["name"]):
-                body = (TrackingBP & key & "bpname='body'").fetch1()
+                try:
+                    body = (TrackingBP & key & "bpname='body'").fetch1()
+                except:
+                    logger.warning(f"No body tracking found for {key['name']}")
+                    return
                 hp = HairpinTrace()
                 (key["segment"], key["global_coord"],) = hp.assign_tracking(
                     body["x"], body["y"]
@@ -1380,7 +1400,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # Recording().drop()
+    # ValidatedSession().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1399,10 +1419,10 @@ if __name__ == "__main__":
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
-    # ValidatedSession().populate(display_progress=True)
+    ValidatedSession().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
-    CCM().populate(display_progress=True)
+    # CCM().populate(display_progress=True)
 
     # ? tracking data
     logger.info("#####    Filling Tracking")
@@ -1419,3 +1439,27 @@ if __name__ == "__main__":
     # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
     # ProcessedFiringRates().populate(display_progress=True)
+
+    # -------------------------------- print stuff ------------------------------- #
+
+    print(pd.DataFrame((ValidatedSession & "mouse_id='BAA0000012'")))
+
+    # N = len((LocomotionBouts & 'complete="true"'))
+    # n_frates = len((FiringRate & "firing_rate=50"))
+
+    # print(
+    #     f"Number of mice: {len(Mouse())}",
+    #     f"Number of sugeries: {len(Surgery())}",
+    #     f"Number of sessions: {len(Session())}",
+    #     f"Number of session conditions: {len(SessionCondition())}",
+    #     f"Number of validated sessions: {len(ValidatedSession())}",
+    #     f"Number of sessions with CCM: {len(CCM())}",
+    #     f"Number of sessions with tracking: {len(Tracking())}",
+    #     f"Number of complete locomotion bouts: {N}",
+    #     f"Number of processed bouts: {len(ProcessedLocomotionBouts())}",
+    #     f"Number of implanted probes {len(Probe())}",
+    #     f"Number of recordings {len(Recording())}",
+    #     f"Number of units {len(Unit())}",
+    #     f"Number of firing rates {n_frates}",
+    #     sep="\n",
+    # )

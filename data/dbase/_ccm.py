@@ -42,6 +42,7 @@ def get_matrix(videopath, template):
     frame = video_utils.get_cap_selected_frame(cap, 0)
 
     # manually create registration matrix
+    logger.info(f"Creating CCM matrix for: {videopath}")
     M = create_matrix(frame, template, TEMPLATE_POINTS, save_path)
     try:
         np.save(save_path, M)
