@@ -22,7 +22,8 @@ def start_connection():
 
     """
     if have_dj:
-        dbname = "loco_data"  # Name of the database subfolder with data
+        # dbname = "loco_data"  # Name of the database subfolder with data
+        dbname = "LOCOMOTION5"
         if dj.config["database.user"] != "root":
 
             dj.config["database.host"] = ip
