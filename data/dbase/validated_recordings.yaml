@@ -440,3 +440,159 @@ FC_220407_BAA1101192_hairpin:
     n_frames: 179352
     name: FC_220407_BAA1101192_hairpin
     tscale: 1.0001053564332723
+FC_220408_BAA1101192_hairpin:
+    bonsai_cut_end: 96737166
+    bonsai_cut_start: 20167
+    duration: 3224.491633333333
+    ephys_cut_end: 96736844
+    ephys_cut_start: 30000
+    frame_to_drop_post: 12
+    frame_to_drop_pre: 24
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 193470
+    name: FC_220408_BAA1101192_hairpin
+    tscale: 1.0001050080798832
+FC_220409_BAA1101192_hairpin:
+    bonsai_cut_end: 67862033
+    bonsai_cut_start: 8034
+    duration: 2262.1916333333334
+    ephys_cut_end: 67876885
+    ephys_cut_start: 30000
+    frame_to_drop_post: 24
+    frame_to_drop_pre: 0
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 135732
+    name: FC_220409_BAA1101192_hairpin
+    tscale: 1.0001048537453119
+FC_220410_BAA1101192_hairpin:
+    bonsai_cut_end: 58678815
+    bonsai_cut_start: 10816
+    duration: 1955.6916333333334
+    ephys_cut_end: 58691847
+    ephys_cut_start: 30000
+    frame_to_drop_post: 0
+    frame_to_drop_pre: 6
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 117342
+    name: FC_220410_BAA1101192_hairpin
+    tscale: 1.0001048722519768
+FC_220411_BAA1101192_hairpin:
+    bonsai_cut_end: 88618907
+    bonsai_cut_start: 7907
+    duration: 2953.7916333333333
+    ephys_cut_end: 88631719
+    ephys_cut_start: 30000
+    frame_to_drop_post: 6
+    frame_to_drop_pre: 0
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 177228
+    name: FC_220411_BAA1101192_hairpin
+    tscale: 1.0001047496606696
+FC_220412_BAA1101192_hairpin:
+    bonsai_cut_end: 51688829
+    bonsai_cut_start: 10829
+    duration: 1722.8916333333334
+    ephys_cut_end: 51702565
+    ephys_cut_start: 30000
+    frame_to_drop_post: 18
+    frame_to_drop_pre: 0
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 103374
+    name: FC_220412_BAA1101192_hairpin
+    tscale: 1.0001051815407267
+FC_220413_BAA1101192_hairpin:
+    bonsai_cut_end: 68516082
+    bonsai_cut_start: 8083
+    duration: 2283.5916333333334
+    ephys_cut_end: 68530819
+    ephys_cut_start: 30000
+    frame_to_drop_post: 0
+    frame_to_drop_pre: 0
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 137016
+    name: FC_220413_BAA1101192_hairpin
+    tscale: 1.0001048162650434
+FC_220414_BAA1101192_hairpin:
+    bonsai_cut_end: 57119139
+    bonsai_cut_start: 17140
+    duration: 1903.5916333333334
+    ephys_cut_end: 57125997
+    ephys_cut_start: 30000
+    frame_to_drop_post: 0
+    frame_to_drop_pre: 12
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 114216
+    name: FC_220414_BAA1101192_hairpin
+    tscale: 1.0001051212049068
+FC_220415_BAA1101192_hairpin:
+    bonsai_cut_end: 65048062
+    bonsai_cut_start: 14063
+    duration: 2168.4916333333335
+    ephys_cut_end: 65057176
+    ephys_cut_start: 30000
+    frame_to_drop_post: 30
+    frame_to_drop_pre: 12
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 130110
+    name: FC_220415_BAA1101192_hairpin
+    tscale: 1.0001049253622825
+FC_220432_BAA1101192_hairpin:
+    bonsai_cut_end: 53747062
+    bonsai_cut_start: 8063
+    duration: 1791.2916333333333
+    ephys_cut_end: 53763344
+    ephys_cut_start: 30000
+    frame_to_drop_post: 0
+    frame_to_drop_pre: 0
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 107478
+    name: FC_220432_BAA1101192_hairpin
+    tscale: 1.0001052419145922
+FC_220433_BAA1101192_hairpin:
+    bonsai_cut_end: 57845109
+    bonsai_cut_start: 20110
+    duration: 1927.8916333333334
+    ephys_cut_end: 57848919
+    ephys_cut_start: 30000
+    frame_to_drop_post: 0
+    frame_to_drop_pre: 24
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 115674
+    name: FC_220433_BAA1101192_hairpin
+    tscale: 1.0001051558919667
+FC_220434_BAA1101192_hairpin:
+    bonsai_cut_end: 62621108
+    bonsai_cut_start: 20109
+    duration: 2087.491633333333
+    ephys_cut_end: 62624426
+    ephys_cut_start: 30000
+    frame_to_drop_post: 30
+    frame_to_drop_pre: 18
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 125250
+    name: FC_220434_BAA1101192_hairpin
+    tscale: 1.0001050093501935
+FC_220435_BAA1101192_hairpin:
+    bonsai_cut_end: 58475095
+    bonsai_cut_start: 14096
+    duration: 1949.0916333333334
+    ephys_cut_end: 58484864
+    ephys_cut_start: 30000
+    frame_to_drop_post: 18
+    frame_to_drop_pre: 6
+    mouse_id: BAA1101192
+    n_analog_channels: 4
+    n_frames: 116946
+    name: FC_220435_BAA1101192_hairpin
+    tscale: 1.000104952771766
