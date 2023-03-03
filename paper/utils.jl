@@ -218,7 +218,7 @@ function get_bout_slow_turn_onsets(bout)
     after_peak = speed[atmax:end]
 
     slow = nothing
-    th = 0.90
+    th = 0.95
     while isnothing(slow) && th > 0.5
         onset = findfirst(after_peak .<= th*max_speed)
         th -= 0.1
@@ -230,7 +230,7 @@ function get_bout_slow_turn_onsets(bout)
     ω = moving_average(abs.(bout.angvel), 5)
     ω = ω[slow:end]
 
-    turn, th = nothing, 0.25
+    turn, th = nothing, 0.3
     while isnothing(turn) && th > 0
         turn = findfirst(ω .> th*maximum(ω))
         th -= 0.05
