@@ -36,7 +36,7 @@ from data.dbase import (
 from data.dbase.hairpin_trace import HairpinTrace
 from data.dbase.io import get_probe_metadata  # , load_bin
 
-DO_RECORDINGS_ONLY = True
+DO_RECORDINGS_ONLY = False
 
 # ---------------------------------------------------------------------------- #
 #                                     mouse                                    #
@@ -297,8 +297,8 @@ if have_dj:
             to_yaml("data/dbase/validation_failed.yaml", failed)
 
         def make(self, key):
-            if "_video" in key["name"] or "_d" in key["name"]:
-                return
+            # if "_video" in key["name"] or "_d" in key["name"]:
+            #     return
 
             # check if this session has previously failed validatoin
             failed = from_yaml("data/dbase/validation_failed.yaml")
@@ -306,7 +306,7 @@ if have_dj:
                 failed = {}
 
             if "openarena" in key["name"].lower():
-                # logger.info(f"Skipping openarena session {key['name']}")
+                logger.info(f"Skipping openarena session {key['name']}")
                 return
 
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
@@ -646,9 +646,6 @@ if have_dj:
         """
 
         def make(self, key):
-            # if key["mouse_id"] not in ("BAA1101192", "BAA0000012"):
-            #     return
-
             if DO_RECORDINGS_ONLY and not Session.has_recording(key["name"]):
                 logger.info(
                     f'Skipping {key["name"]} because its not a recording'
@@ -1400,7 +1397,7 @@ if have_dj:
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # ValidatedSession().drop()
+    # ProcessedLocomotionBouts().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1419,7 +1416,7 @@ if __name__ == "__main__":
     # SessionCondition().populate(display_progress=True)
 
     logger.info("#####    Filling Validated Session")
-    ValidatedSession().populate(display_progress=True)
+    # ValidatedSession().populate(display_progress=True)
 
     logger.info("#####    Filling CCM")
     # CCM().populate(display_progress=True)
@@ -1429,8 +1426,8 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
     # TrackingBP().populate(display_progress=True)
     # TrackingLinearized().populate(display_progress=True)
-    # LocomotionBouts().populate(display_progress=True)
-    # ProcessedLocomotionBouts().populate(display_progress=True)
+    LocomotionBouts().populate(display_progress=True)
+    ProcessedLocomotionBouts().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
@@ -1438,28 +1435,25 @@ if __name__ == "__main__":
     # Recording().populate(display_progress=False)
     # Unit().populate(display_progress=True)
     # FiringRate().populate(display_progress=True)
-    # ProcessedFiringRates().populate(display_progress=True)
+    # ProcessedFiryingRates().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
-
-    print(pd.DataFrame((ValidatedSession & "mouse_id='BAA0000012'")))
 
     # N = len((LocomotionBouts & 'complete="true"'))
     # n_frates = len((FiringRate & "firing_rate=50"))
 
-    # print(
-    #     f"Number of mice: {len(Mouse())}",
-    #     f"Number of sugeries: {len(Surgery())}",
-    #     f"Number of sessions: {len(Session())}",
-    #     f"Number of session conditions: {len(SessionCondition())}",
-    #     f"Number of validated sessions: {len(ValidatedSession())}",
-    #     f"Number of sessions with CCM: {len(CCM())}",
-    #     f"Number of sessions with tracking: {len(Tracking())}",
-    #     f"Number of complete locomotion bouts: {N}",
-    #     f"Number of processed bouts: {len(ProcessedLocomotionBouts())}",
-    #     f"Number of implanted probes {len(Probe())}",
-    #     f"Number of recordings {len(Recording())}",
-    #     f"Number of units {len(Unit())}",
-    #     f"Number of firing rates {n_frates}",
-    #     sep="\n",
-    # )
+    print(
+        f"Number of mice: {len(Mouse())}",
+        f"Number of sugeries: {len(Surgery())}",
+        f"Number of sessions: {len(Session())}",
+        f"Number of session conditions: {len(SessionCondition())}",
+        f"Number of validated sessions: {len(ValidatedSession())}",
+        f"Number of sessions with CCM: {len(CCM())}",
+        f"Number of sessions with tracking: {len(Tracking())}",
+        # # f"Number of complete locomotion bouts: {N}",
+        f"Number of implanted probes {len(Probe())}",
+        f"Number of recordings {len(Recording())}",
+        f"Number of units {len(Unit())}",
+        # f"Number of firing rates {n_frates}",
+        sep="\n",
+    )

@@ -208,6 +208,20 @@ FC_211218_BAA110517_hairpin:
     name: FC_211218_BAA110517_hairpin
     nsigs: 4
     video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_211218_BAA110517_hairpin_video.avi
+FC_220131_BAA0000012_hairpin:
+    __IS_RECORDING: false
+    __REASON: wrong_number_of_triggers_and_frames
+    ai_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220131_BAA0000012_hairpin_analog.bin
+    arena: hairpin
+    csv_file_path: W:\swc\branco\Federico\Locomotion\raw\analog_inputs\FC_220131_BAA0000012_hairpin_data.csv
+    date: '220131'
+    ephys_ap_data_path: ''
+    ephys_ap_meta_path: ''
+    is_recording: 0
+    mouse_id: BAA0000012
+    name: FC_220131_BAA0000012_hairpin
+    nsigs: 4
+    video_file_path: W:\swc\branco\Federico\Locomotion\raw\video\FC_220131_BAA0000012_hairpin_video.avi
 FC_220209_BAA0000012_hairpin:
     __IS_RECORDING: true
     __REASON: wrong_number_of_triggers_and_frames
