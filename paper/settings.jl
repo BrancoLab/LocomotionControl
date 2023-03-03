@@ -1,7 +1,8 @@
 using Pkg
 Pkg.activate("../")
 
-using DataFrames, Plots, Statistics, KernelDensity
+using DataFrames, Plots, Statistics, KernelDensity, StatsPlots
+import MyterialColors: Palette, indigo_light, indigo_darker
 using Term
 install_term_logger()
 install_term_stacktrace()
@@ -24,6 +25,13 @@ from data.dbase.db_tables import (
     LocomotionBouts,
     ProcessedLocomotionBouts,
     SessionCondition,
+    ProcessedFiringRates,
+    Surgery, 
+    Tracking,
+    TrackingBP,
+    FiringRate,
+    Unit,
+    Probe,
 )
 """
 
@@ -33,23 +41,60 @@ from data.dbase.db_tables import (
 
 
 roi_limits = Dict(  # extent of each curve's ROI in global coords
-    1 => (0, 12),   # in global coordinates
-    2 => (12, 24),
-    3 => (24, 36),
-    4 => (36, 48),
+    1 => (0.05, 0.18),   # in global coordinates s ∈ [0, 1] 
+    2 => (0.20, 0.39),
+    3 => (0.41, 0.58),
+    4 => (0.58, 0.75),
 )
 
 
 
-# --------------------------------- plotting --------------------------------- #
-roi_colors = [:red, :green, :blue, :orange]
 
+# --------------------------------- plotting --------------------------------- #
+function palette_from_colors(c1::String, c2::String, n::Int)::Vector{String}
+    palette = Palette(c1, c2; N=n)
+    return getfield.(palette.colors, :string)
+end
+
+roi_colors  = palette_from_colors(indigo_light, indigo_darker, 4)
 
 arena_ax_kwargs = Dict(
     :xlim=>[-5, 45], :ylim=>[-5, 65], :grid=>false, :aspect_ratio=>:equal, 
     :xlabel=>"x [cm]", :ylabel=>"y [cm]"
 )
 
+axes_fontsize= Dict(
+    :xtickfontsize=>16,
+    :ytickfontsize=>16,
+    :ztickfontsize=>16,
+    :xguidefontsize=>16,
+    :yguidefontsize=>16,
+    :zguidefontsize=>16,
+    :legendfontsize=>16,
+)
+
+axes_kwargs = Dict(
+    :right_margin => 12Plots.mm,
+    :left_margin => 12Plots.mm,
+    :top_margin => 12Plots.mm,
+    :bottom_margin => 12Plots.mm,
+    :grid => false,
+)
+
+variables_colors = Dict(
+    :speed => :red,
+    :acceleration => :blue,
+    :angvel => :green,
+    :angaccel => :purple,
+)
+
+variables_legends = Dict(
+    :speed => "cm/s",
+    :acceleration => "cm/s²",
+    :angvel => "°/s",
+    :angaccel => "°/s²",
+)
 
 
 include("utils.jl")
+nothing
