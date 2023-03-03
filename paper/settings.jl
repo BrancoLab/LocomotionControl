@@ -1,4 +1,11 @@
-using DataFrames, Plots
+using Pkg
+Pkg.activate("../")
+
+using DataFrames, Plots, Statistics, KernelDensity
+using Term
+install_term_logger()
+install_term_stacktrace()
+install_term_repr()
 
 # ---------------------------------------------------------------------------- #
 #                                    PYCALL                                    #

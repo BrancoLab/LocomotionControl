@@ -1,6 +1,7 @@
 try:
     import datajoint as dj
 except ImportError:
+    print("Datajoint not installed")
     have_dj = False
 else:
     have_dj = True
@@ -48,4 +49,4 @@ def print_erd():
 
 if __name__ == "__main__":
     start_connection()
-    print_erd()
+    # print_erd()
