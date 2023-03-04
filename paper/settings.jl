@@ -2,7 +2,8 @@ using Pkg
 Pkg.activate("../")
 
 using DataFrames, Plots, Statistics, KernelDensity, StatsPlots
-import MyterialColors: Palette, indigo_light, indigo_darker
+import MyterialColors: Palette
+using MyterialColors
 using Term
 install_term_logger()
 install_term_stacktrace()
@@ -41,10 +42,10 @@ from data.dbase.db_tables import (
 
 
 roi_limits = Dict(  # extent of each curve's ROI in global coords
-    1 => (0.05, 0.18),   # in global coordinates s ∈ [0, 1] 
-    2 => (0.20, 0.39),
-    3 => (0.41, 0.58),
-    4 => (0.58, 0.75),
+    1 => (0.05, 0.18, 0.14),   # in global coordinates s ∈ [0, 1] 
+    2 => (0.20, 0.39, 0.34),   # start, stop, center
+    3 => (0.41, 0.58, 0.54),
+    4 => (0.58, 0.75, 0.73),
 )
 
 

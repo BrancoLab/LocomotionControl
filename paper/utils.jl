@@ -170,6 +170,9 @@ function bin_x_by_y(x::Vector, y::Vector; x₀=minimum(x), x₁=maximum(x), step
 end
 
 
+# ---------------------------------------------------------------------------- #
+#                                     ARENA                                    #
+# ---------------------------------------------------------------------------- #
 """
     get_roi_bouts(roi::Int, bouts)
 
@@ -187,12 +190,21 @@ function get_roi_bouts(roi::Int, bouts)
     )
 
     for (i, bout) in enumerate(eachrow(bouts))
+
+        # make sure all kinematic variable have the same length
+        lengths = map(x -> length(bout[x]), collect(keys(roi_bouts)))
+        @assert length(unique(lengths)) == 1 "Bout $i has different lengths for some variables - $(lengths)"
+
         start = findfirst(bout.s .>= roi_limits[roi][1])
-        stop = findlast(bout.s .<= roi_limits[roi][2])
-        
+        stop = findfirst(bout.s .> roi_limits[roi][2])-1
+        s = bout.s[start:stop]
+
+        # @assert minimum(s) >= roi_limits[roi][1] "Bout $i does not start in ROI $roi - $(roi_limits[roi][1]) > $(minimum(s)) | $(start)-$(stop)"
+        @assert maximum(s) <= roi_limits[roi][2] "Bout $i does not end in ROI $roi - $(roi_limits[roi][2]) < $(maximum(s)) | $(start)-$(stop)"
+
         push!(roi_bouts["x"], bout.x[start:stop])
         push!(roi_bouts["y"], bout.y[start:stop])
-        push!(roi_bouts["s"], bout.s[start:stop])
+        push!(roi_bouts["s"], s)
         push!(roi_bouts["speed"], bout.speed[start:stop])
         push!(roi_bouts["acceleration"], bout.acceleration[start:stop])
         push!(roi_bouts["angvel"], bout.angvel[start:stop])
@@ -202,41 +214,72 @@ function get_roi_bouts(roi::Int, bouts)
 end
 
 
-
 # ---------------------------------------------------------------------------- #
 #                                  KINEMATICS                                  #
 # ---------------------------------------------------------------------------- #
+
 
 """
 Get the time points in which the mouse starts slowing down 
 and turning in a given bout (assumed to be trimmed around an ROI).
 """
 function get_bout_slow_turn_onsets(bout)
+    # slowing onset
     speed = moving_average(bout.speed, 5)
-    max_speed = maximum(speed)
-    atmax = min(argmax(speed), length(speed)-1)
-    after_peak = speed[atmax:end]
+    max_speed = maximum(speed[1:end-15])  # the -15 is to avoid catching speed up after turn midpoint
+    atmax = findfirst(speed .>= max_speed)
+    if atmax == length(speed)
+        slow = length(speed) - 2
+    else
+        after_peak = speed[atmax:end]
 
-    slow = nothing
-    th = 0.95
-    while isnothing(slow) && th > 0.5
-        onset = findfirst(after_peak .<= th*max_speed)
-        th -= 0.1
+        slow = nothing
+        th = 0.85
+        while isnothing(slow) && th > 0.5
+            onset = findfirst(after_peak .<= th*max_speed)
+            th -= 0.1
+        end
+        slow = something(slow, 1) + atmax
     end
-    slow = something(slow, 1) + atmax
+        
     
-    
-
+    # turning onset
     ω = moving_average(abs.(bout.angvel), 5)
     ω = ω[slow:end]
-
-    turn, th = nothing, 0.3
+    turn, th = nothing, 0.5
     while isnothing(turn) && th > 0
         turn = findfirst(ω .> th*maximum(ω))
         th -= 0.05
     end
+    turn += slow -1
 
-    return slow, turn+slow
+    t = length(bout.s)
+    @assert slow > 1 "slow onset should be > 1"
+    @assert slow <= t "slow onset after trial length? $slow $(t)"
+    @assert turn <= t "turn onset after trial length? $turn $(t)"
+
+    return slow, turn
+end
+
+
+"""
+Get movement kinematics at slowing down onset and turning time points 
+for a set of bouts through an ROI.
+"""
+function get_kinematics_at_slow_turn_onsets(bouts::DataFrame)
+    timepoints = map(get_bout_slow_turn_onsets, eachrow(bouts))
+    slowing_onsets, turning_onsets = first.(timepoints), last.(timepoints)
+
+    # store kinematics at timepoints in named tuples
+    kinos = (:s, :x, :y, :speed, :acceleration, :angvel, :angaccel)
+
+    slow = map(k -> map(i -> bouts[i, k][slowing_onsets[i]], 1:size(bouts, 1)), kinos)
+    turn = map(k -> map(i -> bouts[i, k][turning_onsets[i]], 1:size(bouts, 1)), kinos)
+
+    slowing_kinematics = (; zip(kinos, slow)...)
+    turning_kinematics = (; zip(kinos, turn)...)
+
+    return slowing_kinematics, turning_kinematics
 end
 
 
@@ -317,7 +360,8 @@ function plot_density!(p, x, args...; y=0, npoints=2500, boundary=nothing, bandw
 
     plot!(p,
         k.x, k.density,
-        color=color, fill=(0, 0.2, color),
+        color=color, fill=(0, 0.25, color),
+        lw=3,
         args...;
         kwargs...
     )

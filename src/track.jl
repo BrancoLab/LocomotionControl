@@ -160,7 +160,7 @@ function Track(;
     track_length=261,
 )
     # load data
-    npyfile = isnothing(npyfile) ? "src/hairpin.npy" : npyfile
+    npyfile = isnothing(npyfile) ? "../src/hairpin.npy" : npyfile
     XY = npzread(npyfile)
 
     # trim waypoints
