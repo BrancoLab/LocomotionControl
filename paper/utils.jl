@@ -283,6 +283,61 @@ function get_kinematics_at_slow_turn_onsets(bouts::DataFrame)
 end
 
 
+# ---------------------------------------------------------------------------- #
+#                                NEURAL ACTIVITY                               #
+# ---------------------------------------------------------------------------- #
+py"""
+
+def get_bouts_activity(name, bw=25):
+    activity = pd.DataFrame(
+        Probe.RecordingSite * Unit * FiringRate & f"name='{name}'"  & f"bin_width = {bw}"
+    )
+    
+    return activity
+"""
+
+
+regions = Dict(
+    "MOs" => ["MOs1", "MOs2/3", "MOs4", "MOs5", "MOs6a", "MOs6b"],
+    "MRN" => ["CUN", "PPN"]
+)
+
+function add_activity_to_bouts!(bouts::DataFrame; target="MOs", bw=25)
+    @assert length(unique(bouts.name)) == 1 "bouts must be from the same recording"
+    rec = bouts.name[1]
+    recording_activity = convert(DataFrame, py"get_bouts_activity"(rec, bw=bw))
+
+    # keep units in the right regions
+    recording_activity = filter(row -> row.brain_region ∈ regions[target], recording_activity)
+    size(recording_activity, 1) ==0 && return
+
+    # get unit IDs
+    recording_activity.unit_id = round.(Int, recording_activity.unit_id)
+    ids = recording_activity.unit_id |> Vector
+
+    # cut activity for each bout
+    activity = Dict(
+        "unit_$(u)"=>[] for u in ids
+    )
+    for u in ids
+        unit_activity::Vector = recording_activity[recording_activity.unit_id .== u, :].firing_rate[1]
+
+        for bout in eachrow(bouts)
+            start_frame = bout.corrected_start_frame |> Int
+            end_frame = bout.corrected_end_frame |> Int
+            push!(activity["unit_$(u)"], unit_activity[start_frame:end_frame-1])
+        end
+
+    end
+
+    # add activity to df
+    for (k, v) in activity
+        bouts[:, k] = v
+    end
+    
+end
+nothing
+
 
 # ---------------------------------------------------------------------------- #
 #                                   PLOTTING                                   #

@@ -9,6 +9,7 @@ install_term_logger()
 install_term_stacktrace()
 install_term_repr()
 
+savefig_fld = "/Users/federicoclaudi/Dropbox (UCL)/Rotation_vte/Writings/GDL/plts"
 # ---------------------------------------------------------------------------- #
 #                                    PYCALL                                    #
 # ---------------------------------------------------------------------------- #
