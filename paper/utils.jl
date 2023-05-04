@@ -78,49 +78,36 @@ function moving_average(A::AbstractArray, m::Int)
 end
 
 
+function remove_nan(X)
+    X[ismissing.(X)] .= 0
+    X[isnan.(X)] .= 0
+    return Float64.(X)
+end
 
 """
     stack_kinematic_variables(bouts)
 """
-function stack_kinematic_variables(bouts)
-    s = vcat(
-        bouts[:, "s"]...
-    )
-    s[isnan.(s)] .= 0
-
-    X = vcat(
-        bouts[:, "x"]...
-    )
-    X[isnan.(X)] .= 0
-
-    Y = vcat(
-        bouts[:, "y"]...
-    )
-    Y[isnan.(Y)] .= 0
-
-    S = vcat(
-        bouts[:, "speed"]...
-    )
-    S[isnan.(S)] .= 0
-
-    A = vcat(
-        bouts[:, "acceleration"]...
-    )
-    A[isnan.(A)] .= 0
-
-    T = vcat(
-        bouts[:, "angvel"]...
-    )
-    T[isnan.(T)] .= 0
-
-    D = vcat(
-        bouts[:, "angaccel"]...
-    )
-    D[isnan.(D)] .= 0
-
-    return s, X, Y, S, A, T, D
+function stack_kinematic_variables(bouts::DataFrame)
+    s = vcat(bouts[:, "s"]...)
+    X = vcat(bouts[:, "x"]...)
+    Y = vcat(bouts[:, "y"]...)
+    S = vcat(bouts[:, "speed"]...)
+    A = vcat(bouts[:, "acceleration"]...)
+    T = vcat(bouts[:, "angvel"]...)
+    D = vcat(bouts[:, "angaccel"]...)
+    return remove_nan(s), remove_nan(X), remove_nan(Y), remove_nan(S), remove_nan(A), remove_nan(T), remove_nan(D)
 end
 
+function stack_kinematic_variables(dfs::Vector{DataFrame})
+    X = vcat(map(df -> df[!, :x], dfs)...,) |> Vector
+    Y = vcat(map(df -> df[!, :y], dfs)...,)|> Vector
+    S = vcat(map(df -> df[!, :speed], dfs)...,)|> Vector
+    A = vcat(map(df -> df[!, :acceleration], dfs)...,)|> Vector
+    T = vcat(map(df -> df[!, :theta], dfs)...,)|> Vector
+    D = vcat(map(df -> df[!, :thetadot], dfs)...,)|> Vector
+
+    return remove_nan(X), remove_nan(Y), remove_nan(S), remove_nan(A), remove_nan(T), remove_nan(D)
+end
 
 
 

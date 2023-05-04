@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate("../")
 
-using DataFrames, Plots, Statistics, KernelDensity, StatsPlots
+using DataFrames, Plots, Statistics, KernelDensity, StatsPlots, CSV
 import MyterialColors: Palette
 using MyterialColors
 using Term
