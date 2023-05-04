@@ -1,7 +1,10 @@
 using Pkg
 Pkg.activate("../")
 
+using MultivariateStats
+using ManifoldLearning
 using DataFrames, Plots, Statistics, KernelDensity, StatsPlots, CSV
+import StatsBase: fit, ZScoreTransform, transform
 import MyterialColors: Palette
 using MyterialColors
 using Term
@@ -27,7 +30,6 @@ from data.dbase.db_tables import (
     LocomotionBouts,
     ProcessedLocomotionBouts,
     SessionCondition,
-    ProcessedFiringRates,
     Surgery, 
     Tracking,
     TrackingBP,

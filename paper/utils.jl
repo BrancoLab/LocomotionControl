@@ -55,6 +55,11 @@ end
 #                               DATA MANIPULATION                              #
 # ---------------------------------------------------------------------------- #
 
+""" compute fraction of variance explained by each PC """
+fraction_variance_explained(M::PCA) = principalvars(M) ./ tvar(M) * 100
+
+
+
 
 """
     moving_average(A::AbstractArray, m::Int)
