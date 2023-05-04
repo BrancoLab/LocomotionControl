@@ -6,6 +6,7 @@ from loguru import logger
 import h5py
 import numpy as np
 from rich.prompt import Confirm
+import scipy
 
 sys.path.append("./")
 
@@ -255,12 +256,18 @@ def get_unit_spike_times(
 # -------------------------------- firing rate ------------------------------- #
 
 
-def gaussian(x, s):
-    return (
-        1.0
-        / np.sqrt(2.0 * np.pi * s ** 2)
-        * np.exp(-(x ** 2) / (2.0 * s ** 2))
-    )
+def gaussian_kernel_1d(width, sigma=1):
+    """Returns a 1-D Gaussian kernel of the given width and sigma"""
+    x = np.linspace(-width // 2, width // 2, width)
+    kernel = np.exp(-(x ** 2) / (2 * sigma ** 2))
+    return kernel / np.sum(kernel)
+
+
+def convolve_with_gaussian_1d(arr, width, sigma=1):
+    """Convolves a 1-D array with a Gaussian kernel of the given width and sigma"""
+    kernel = gaussian_kernel_1d(width, sigma)
+    convolved = scipy.signal.convolve(arr, kernel, mode="same")
+    return convolved
 
 
 def calc_firing_rate(spikes_train: np.ndarray, dt: int = 10):
@@ -269,15 +276,7 @@ def calc_firing_rate(spikes_train: np.ndarray, dt: int = 10):
         Using a gaussian kernel with standard deviation = dt/2 [dt is in ms]
     """
     # create kernel & get area under the curve
-    k = np.array(
-        [gaussian(x, dt / 2) for x in np.linspace(-2 * dt, 2 * dt, dt)]
-    )
-    auc = np.trapz(k)
-
-    # get firing rate
-    frate = (
-        np.convolve(spikes_train, k, mode="same") / auc * 1000
-    )  # times 1000 to go from ms to seconds
+    frate = convolve_with_gaussian_1d(spikes_train, 101, sigma=dt)
     return frate
 
 

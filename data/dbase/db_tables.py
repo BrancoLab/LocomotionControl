@@ -861,21 +861,28 @@ if have_dj:
             angaccel:           longblob  # angular acceleration in deg/s^2
         """
 
-        gcoord_delta_min = 0.925
-        vmin_start = 8
-        vmin_end = 8
-        gcoord_start_max = 0.1
-        gcoord_end_min = 0.9
+        gcoord_delta_min = 0.90
+        vmin_start = 5
+        vmin_end = 5
+
+        def insert_placeholder(self, key, reason):
+            print(f"Inserting placeholder for {key['name']} - {reason}")
+            key["corrected_start_frame"] = -1
+            key["corrected_end_frame"] = -1
+
+            key["s"] = np.zeros(100)
+            key["x"] = np.zeros(100)
+            key["y"] = np.zeros(100)
+            key["speed"] = np.zeros(100)
+            key["acceleration"] = np.zeros(100)
+
+            key["orientation"] = np.zeros(100)
+            key["angvel"] = np.zeros(100)
+            key["angaccel"] = np.zeros(100)
+            self.insert1(key)
 
         def make(self, key):
             name = key["name"]
-            tracking = pd.Series(
-                (
-                    Tracking * TrackingBP * TrackingLinearized
-                    & "bpname='body'"
-                    & f"name='{name}'"
-                ).fetch1()
-            )
 
             bout = pd.Series(
                 (
@@ -885,45 +892,79 @@ if have_dj:
                     & f"end_frame={key['end_frame']}"
                 ).fetch1()
             )
+            if not bout.complete or not bout.gcoord_delta > 0.8:
+                self.insert_placeholder(key, "incomplete")
+                return
+
+            tracking = pd.Series(
+                (
+                    Tracking * TrackingBP * TrackingLinearized
+                    & "bpname='body'"
+                    & f"name='{name}'"
+                ).fetch1()
+            )
 
             # get tracking betwen bout start end end
             speed = tracking.speed[bout.start_frame : bout.end_frame]
 
-            above_speed_th = np.where(speed > self.vmin_start)[0][0]
-            below_speed_th = np.where(speed < self.vmin_end)[0][-1]
-
-            g0 = tracking.global_coord[above_speed_th]
-            g1 = tracking.global_coord[below_speed_th]
-
-            if (
-                g1 - g0 < self.gcoord_delta_min
-                or g0 > self.gcoord_start_max
-                or g1 < self.gcoord_end_min
-            ):
+            try:
+                above_speed_frm = (
+                    np.where(speed > self.vmin_start)[0][0] + bout.start_frame
+                )
+            except IndexError:
+                self.insert_placeholder(key, "no speed above threshold")
                 return
+            try:
+                below_speed_frm = (
+                    np.where(speed < self.vmin_end)[0][0] + bout.start_frame
+                )
+            except IndexError:
+                below_speed_frm = bout.end_frame
 
-            key["start_frame"] = key["start_frame"] + above_speed_th
-            key["end_frame"] = key["start_frame"] + below_speed_th
+            if bout.direction == "outward":
+                g0 = tracking.global_coord[above_speed_frm]
+                g1 = tracking.global_coord[below_speed_frm]
+            else:
+                g1 = tracking.global_coord[above_speed_frm]
+                g0 = tracking.global_coord[below_speed_frm]
+
+            if abs(g1 - g0) < self.gcoord_delta_min:
+                print(
+                    f"Gcoord failed {g0:.2f} {g1:.2f} - delta: {abs(g1 - g0):.2f} - above below frames {above_speed_frm},{below_speed_frm} - bout frames: {bout.start_frame},{bout.end_frame}"
+                )
+                self.insert_placeholder(key, "gcoord delta too small")
+                return
+            print(
+                f"Bout frames {above_speed_frm} {below_speed_frm} - corrected to: {above_speed_frm} {below_speed_frm}"
+            )
+
+            key["corrected_start_frame"] = above_speed_frm
+            key["corrected_end_frame"] = below_speed_frm
             key["s"] = tracking.global_coord[
-                key["start_frame"] : key["end_frame"]
+                key["corrected_start_frame"] : key["corrected_end_frame"]
             ]
-            key["x"] = tracking.x[key["start_frame"] : key["end_frame"]]
-            key["y"] = tracking.y[key["start_frame"] : key["end_frame"]]
+
+            key["x"] = tracking.x[
+                key["corrected_start_frame"] : key["corrected_end_frame"]
+            ]
+            key["y"] = tracking.y[
+                key["corrected_start_frame"] : key["corrected_end_frame"]
+            ]
             key["speed"] = tracking.speed[
-                key["start_frame"] : key["end_frame"]
+                key["corrected_start_frame"] : key["corrected_end_frame"]
             ]
             key["acceleration"] = tracking.acceleration[
-                key["start_frame"] : key["end_frame"]
+                key["corrected_start_frame"] : key["corrected_end_frame"]
             ]
 
             key["orientation"] = tracking.theta[
-                key["start_frame"] : key["end_frame"]
+                key["corrected_start_frame"] : key["corrected_end_frame"]
             ]
             key["angvel"] = tracking.thetadot[
-                key["start_frame"] : key["end_frame"]
+                key["corrected_start_frame"] : key["corrected_end_frame"]
             ]
             key["angaccel"] = tracking.thetadotdot[
-                key["start_frame"] : key["end_frame"]
+                key["corrected_start_frame"] : key["corrected_end_frame"]
             ]
 
             self.insert1(key)
@@ -1102,7 +1143,7 @@ if have_dj:
 
     @schema
     class Unit(dj.Imported):
-        precomputed_firing_rate_windows = [25, 50, 100]  # in ms
+        precomputed_firing_rate_windows = [25, 50, 100, 200]  # in ms
 
         definition = """
             # a single unit's spike sorted data
@@ -1390,14 +1431,16 @@ if have_dj:
 
         def make(self, key):
             frate = (FiringRate & key).fetch("firing_rate")[0]
-            key["firing_rate"] = frate[key["bout_start"] : key["bout_end"]]
+            key["firing_rate"] = frate[
+                key["corrected_start_frame"] : key["corrected_end_frame"]
+            ]
             self.insert1(key)
 
 
 if __name__ == "__main__":
     # ------------------------------- delete stuff ------------------------------- #
     # ! careful: this is to delete stuff
-    # ProcessedLocomotionBouts().drop()
+    # FiringRate().drop()
     # sys.exit()
 
     # -------------------------------- sorti filex ------------------------------- #
@@ -1426,21 +1469,23 @@ if __name__ == "__main__":
     # Tracking().populate(display_progress=True)
     # TrackingBP().populate(display_progress=True)
     # TrackingLinearized().populate(display_progress=True)
-    LocomotionBouts().populate(display_progress=True)
-    ProcessedLocomotionBouts().populate(display_progress=True)
+    # LocomotionBouts().populate(display_progress=True)
+    # ProcessedLocomotionBouts().populate(display_progress=True)
 
     # ? EPHYS
     logger.info("#####    Filling Probe")
     # Probe().populate(display_progress=True)
     # Recording().populate(display_progress=False)
     # Unit().populate(display_progress=True)
-    # FiringRate().populate(display_progress=True)
-    # ProcessedFiryingRates().populate(display_progress=True)
+    FiringRate().populate(display_progress=True)
+    ProcessedFiringRates().populate(display_progress=True)
 
     # -------------------------------- print stuff ------------------------------- #
 
     # N = len((LocomotionBouts & 'complete="true"'))
     # n_frates = len((FiringRate & "firing_rate=50"))
+
+    n = len((ProcessedLocomotionBouts & "corrected_start_frame > 0"))
 
     print(
         f"Number of mice: {len(Mouse())}",
@@ -1450,6 +1495,7 @@ if __name__ == "__main__":
         f"Number of validated sessions: {len(ValidatedSession())}",
         f"Number of sessions with CCM: {len(CCM())}",
         f"Number of sessions with tracking: {len(Tracking())}",
+        f"NUmber of processed locomotion bouts: {n}",
         # # f"Number of complete locomotion bouts: {N}",
         f"Number of implanted probes {len(Probe())}",
         f"Number of recordings {len(Recording())}",
